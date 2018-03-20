@@ -1,44 +1,28 @@
 use std::borrow::Cow;
-
-#[derive(PartialEq, Debug)]
-pub enum Type {
-    Integer,
-    Image2d,
-}
-
-type Algorithm = fn(Vec<Cow<TypeContent>>) -> Vec<TypeContent>;
-
-pub struct Transformation {
-    pub input: Vec<Type>,
-    pub output: Vec<Type>,
-    pub algorithm: Algorithm,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum TypeContent {
-    Integer(u64),
-    Image2d(Vec<Vec<f64>>),
-}
-
-impl TypeContent {
-    fn get_type(&self) -> Type {
-        match self {
-            &TypeContent::Integer(_) => Type::Integer,
-            &TypeContent::Image2d(_) => Type::Image2d,
-        }
-    }
-}
-
 use std::slice;
+use std::vec;
 
-pub struct TransformationCaller<'a, 'b> {
-    expected_input_types: slice::Iter<'a, Type>,
-    algorithm: &'a Algorithm,
-    input: Vec<Cow<'b, TypeContent>>,
+pub trait TypeContent: Clone + PartialEq {
+    type Type: PartialEq;
+    fn get_type(&self) -> Self::Type;
 }
 
-impl Transformation {
-    pub fn start(&self) -> TransformationCaller {
+type Algorithm<T> = fn(Vec<Cow<T>>) -> Vec<T>;
+
+pub struct Transformation<T: TypeContent> {
+    pub input: Vec<T::Type>,
+    pub output: Vec<T::Type>,
+    pub algorithm: Algorithm<T>,
+}
+
+pub struct TransformationCaller<'a, 'b, T: 'a + 'b + TypeContent> {
+    expected_input_types: slice::Iter<'a, T::Type>,
+    algorithm: &'a Algorithm<T>,
+    input: Vec<Cow<'b, T>>,
+}
+
+impl<T: TypeContent> Transformation<T> {
+    pub fn start(&self) -> TransformationCaller<T> {
         TransformationCaller {
             expected_input_types: self.input.iter(),
             algorithm: &self.algorithm,
@@ -47,10 +31,11 @@ impl Transformation {
     }
 }
 
-
-impl<'a, 'b> TransformationCaller<'a, 'b> {
-    pub fn feed(&mut self, input: &'b TypeContent) {
-        let expected_type = self.expected_input_types.next().expect("Not all type consumed");
+impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
+    pub fn feed(&mut self, input: &'b T) {
+        let expected_type = self.expected_input_types
+            .next()
+            .expect("Not all type consumed");
         if &input.get_type() != expected_type {
             panic!("Wrong type on feeding algorithm!");
         } else {
@@ -58,26 +43,24 @@ impl<'a, 'b> TransformationCaller<'a, 'b> {
         }
     }
 
-    pub fn call(mut self) -> TransformationResult {
+    pub fn call(mut self) -> TransformationResult<T> {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {
             TransformationResult {
-                output: (self.algorithm)(self.input).into_iter()
+                output: (self.algorithm)(self.input).into_iter(),
             }
         }
     }
 }
 
-use std::vec;
-
-pub struct TransformationResult {
-    output: vec::IntoIter<TypeContent>,
+pub struct TransformationResult<T: TypeContent> {
+    output: vec::IntoIter<T>,
 }
 
-impl Iterator for TransformationResult {
-    type Item = TypeContent;
-    fn next(&mut self) -> Option<TypeContent> {
+impl<T: TypeContent> Iterator for TransformationResult<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
         self.output.next()
     }
 }
