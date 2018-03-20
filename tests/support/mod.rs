@@ -10,7 +10,7 @@ pub enum AlgoType {
     Image2d,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum AlgoContent {
     Integer(u64),
     Image2d(Vec<Vec<f64>>),
