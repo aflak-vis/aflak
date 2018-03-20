@@ -6,9 +6,12 @@ enum Type {
     Image2d,
 }
 
+type Algorithm = fn(Vec<Cow<TypeContent>>) -> Vec<TypeContent>;
+
 struct Transformation {
     input: Vec<Type>,
     output: Vec<Type>,
+    algorithm: Algorithm,
 }
 
 #[derive(Clone)]
@@ -30,6 +33,7 @@ use std::slice;
 
 struct TransformationCaller<'a, 'b> {
     expected_input_types: slice::Iter<'a, Type>,
+    algorithm: &'a Algorithm,
     input: Vec<Cow<'b, TypeContent>>,
 }
 
@@ -37,6 +41,7 @@ impl Transformation {
     fn start(&self) -> TransformationCaller {
         TransformationCaller {
             expected_input_types: self.input.iter(),
+            algorithm: &self.algorithm,
             input: Vec::new(),
         }
     }
@@ -53,13 +58,12 @@ impl<'a, 'b> TransformationCaller<'a, 'b> {
         }
     }
 
-    fn call(&mut self) -> TransformationResult {
+    fn call(mut self) -> TransformationResult {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {
-            // TODO
             TransformationResult {
-                output: Vec::new().into_iter()
+                output: (self.algorithm)(self.input).into_iter()
             }
         }
     }
