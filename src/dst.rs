@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use transform::{Transformation, TypeContent};
 
 #[derive(Clone)]
 pub struct DST<T: TypeContent> {
-    head: Arc<Node<T>>,
+    head: Arc<Mutex<Node<T>>>,
 }
 
 struct Node<T: TypeContent> {
@@ -16,7 +16,7 @@ struct Node<T: TypeContent> {
 enum OutputConnection<T: TypeContent> {
     Drop,
     Out,
-    Child(Arc<Node<T>>),
+    Child(Arc<Mutex<Node<T>>>),
 }
 
 impl<T: TypeContent> DST<T> {
@@ -24,10 +24,10 @@ impl<T: TypeContent> DST<T> {
         let mut connections = Vec::new();
         connections.resize(t.output.len(), OutputConnection::Drop);
         Self {
-            head: Arc::new(Node {
+            head: Arc::new(Mutex::new(Node {
                 t,
                 output_connections: connections,
-            }),
+            })),
         }
     }
 }
