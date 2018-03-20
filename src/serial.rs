@@ -16,3 +16,44 @@ where
         state.end()
     }
 }
+
+use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
+use std::fmt;
+use std::marker::PhantomData;
+
+impl<'de, T: TypeContent> Deserialize<'de> for Transformation<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Name,
+            Input,
+            Output,
+        };
+
+        struct TransformationVisitor<T> {
+            marker: PhantomData<fn() -> T>,
+        };
+        impl<T> TransformationVisitor<T> {
+            fn new() -> Self {
+                TransformationVisitor {
+                    marker: PhantomData,
+                }
+            }
+        }
+
+        impl<'de, T: TypeContent> Visitor<'de> for TransformationVisitor<T> {
+            type Value = Transformation<T>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Transformation")
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["name", "input", "output"];
+        deserializer.deserialize_struct("Transformation", FIELDS, TransformationVisitor::new())
+    }
+}

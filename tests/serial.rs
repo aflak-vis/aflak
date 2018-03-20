@@ -14,3 +14,12 @@ fn serialize_transformation() {
         "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}"
     );
 }
+
+#[test]
+fn deserialize_transformation() {
+    let deserialized: Transformation<AlgoContent> = serde_json::from_str(
+        "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}",
+    ).unwrap();
+    let plus1transform = get_plus1_transform();
+    assert_eq!(deserialized.name, plus1transform.name,);
+}
