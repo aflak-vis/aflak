@@ -15,7 +15,7 @@ struct Node<T: TypeContent> {
 #[derive(Clone)]
 enum OutputConnection<T: TypeContent> {
     Drop,
-    Out,
+    Out(usize),
     Child(Arc<Mutex<Node<T>>>),
 }
 
@@ -29,5 +29,28 @@ impl<T: TypeContent> DST<T> {
                 output_connections: connections,
             })),
         }
+    }
+
+    pub fn attach_to(&mut self, output_i: usize, dst: &DST<T>) {
+        let mut node = self.head.lock().unwrap();
+        node.output_connections[output_i] = OutputConnection::Child(dst.head.clone());
+    }
+
+    pub fn detach(&mut self, output_i: usize) -> Option<DST<T>> {
+        let mut node = self.head.lock().unwrap();
+        let mut ret = None;
+        node.output_connections[output_i] = match node.output_connections[output_i] {
+            OutputConnection::Child(ref mut child) => {
+                ret = Some(Self { head: child.clone() });
+                OutputConnection::Drop
+            },
+            _ => OutputConnection::Drop,
+        };
+        ret
+    }
+
+    pub fn set_out(&mut self, output_i: usize, out_id: usize) {
+        let mut node = self.head.lock().unwrap();
+        node.output_connections[output_i] = OutputConnection::Out(out_id);
     }
 }
