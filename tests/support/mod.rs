@@ -4,7 +4,7 @@ pub use self::aflak_backend::*;
 use std::borrow::Cow;
 
 /// Define specific types used in the examples
-#[derive(Clone, PartialEq, Debug, Serialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum AlgoType {
     Integer,
     Image2d,
@@ -24,7 +24,7 @@ fn plus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
     }
 }
 
-pub fn get_plus1_transform() -> Transformation<AlgoContent> {
+pub fn get_plus1_transform() -> Transformation<'static, AlgoContent> {
     Transformation {
         name: "+1",
         input: vec![AlgoType::Integer],
@@ -39,6 +39,15 @@ impl TypeContent for AlgoContent {
         match self {
             &AlgoContent::Integer(_) => AlgoType::Integer,
             &AlgoContent::Image2d(_) => AlgoType::Image2d,
+        }
+    }
+}
+
+impl NamedAlgorithms for AlgoContent {
+    fn get_algorithm(s: &str) -> Option<fn(Vec<Cow<AlgoContent>>) -> Vec<AlgoContent>> {
+        match s {
+            "+1" => Some(plus1),
+            _ => None,
         }
     }
 }

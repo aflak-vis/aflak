@@ -7,11 +7,18 @@ pub trait TypeContent: Clone + PartialEq {
     fn get_type(&self) -> Self::Type;
 }
 
+pub trait NamedAlgorithms
+where
+    Self: Clone,
+{
+    fn get_algorithm(&str) -> Option<Algorithm<Self>>;
+}
+
 type Algorithm<T> = fn(Vec<Cow<T>>) -> Vec<T>;
 
 #[derive(Clone)]
-pub struct Transformation<T: TypeContent> {
-    pub name: &'static str,
+pub struct Transformation<'de, T: TypeContent> {
+    pub name: &'de str,
     pub input: Vec<T::Type>,
     pub output: Vec<T::Type>,
     pub algorithm: Algorithm<T>,
@@ -23,7 +30,7 @@ pub struct TransformationCaller<'a, 'b, T: 'a + 'b + TypeContent> {
     input: Vec<Cow<'b, T>>,
 }
 
-impl<T: TypeContent> Transformation<T> {
+impl<'de, T: TypeContent> Transformation<'de, T> {
     pub fn start(&self) -> TransformationCaller<T> {
         TransformationCaller {
             expected_input_types: self.input.iter(),

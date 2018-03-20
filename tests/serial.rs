@@ -21,5 +21,7 @@ fn deserialize_transformation() {
         "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}",
     ).unwrap();
     let plus1transform = get_plus1_transform();
-    assert_eq!(deserialized.name, plus1transform.name,);
+    assert_eq!(deserialized.name, plus1transform.name);
+    assert_eq!(deserialized.input, plus1transform.input);
+    assert_eq!(deserialized.output, plus1transform.output);
 }
