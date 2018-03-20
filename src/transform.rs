@@ -56,11 +56,11 @@ impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
     }
 }
 
-pub struct TransformationResult<T: TypeContent> {
+pub struct TransformationResult<T> {
     output: vec::IntoIter<T>,
 }
 
-impl<T: TypeContent> Iterator for TransformationResult<T> {
+impl<T> Iterator for TransformationResult<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.output.next()
