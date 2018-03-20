@@ -9,48 +9,41 @@ pub struct DST<T: TypeContent> {
 
 struct Node<T: TypeContent> {
     t: Transformation<T>,
-    output_connections: Vec<OutputConnection<T>>,
-}
-
-#[derive(Clone)]
-enum OutputConnection<T: TypeContent> {
-    Drop,
-    Out(usize),
-    Child(Arc<Mutex<Node<T>>>),
+    outputs: Vec<Option<usize>>,
+    children: Vec<Option<Arc<Mutex<Node<T>>>>>,
 }
 
 impl<T: TypeContent> DST<T> {
     pub fn new(t: Transformation<T>) -> Self {
-        let mut connections = Vec::new();
-        connections.resize(t.output.len(), OutputConnection::Drop);
+        let len = t.output.len();
         Self {
             head: Arc::new(Mutex::new(Node {
                 t,
-                output_connections: connections,
+                outputs: vec![None; len],
+                children: vec![None; len],
             })),
         }
     }
 
-    pub fn attach_to(&mut self, output_i: usize, dst: &DST<T>) {
+    pub fn attach_child_to(&mut self, output_i: usize, dst: &DST<T>) {
         let mut node = self.head.lock().unwrap();
-        node.output_connections[output_i] = OutputConnection::Child(dst.head.clone());
+        node.children[output_i] = Some(dst.head.clone());
     }
 
-    pub fn detach(&mut self, output_i: usize) -> Option<DST<T>> {
+    pub fn detach_child(&mut self, output_i: usize) -> Option<DST<T>> {
         let mut node = self.head.lock().unwrap();
-        let mut ret = None;
-        node.output_connections[output_i] = match node.output_connections[output_i] {
-            OutputConnection::Child(ref mut child) => {
-                ret = Some(Self { head: child.clone() });
-                OutputConnection::Drop
-            },
-            _ => OutputConnection::Drop,
-        };
-        ret
+        node.children[output_i].take().map(|child| {
+            Self { head: child.clone() }
+        })
     }
 
-    pub fn set_out(&mut self, output_i: usize, out_id: usize) {
+    pub fn attach_out(&mut self, output_i: usize, out_id: usize) {
         let mut node = self.head.lock().unwrap();
-        node.output_connections[output_i] = OutputConnection::Out(out_id);
+        node.outputs[output_i] = Some(out_id);
+    }
+
+    pub fn detach_out(&mut self, output_i: usize) {
+        let mut node = self.head.lock().unwrap();
+        node.outputs[output_i] = None;
     }
 }
