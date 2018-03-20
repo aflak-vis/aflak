@@ -37,6 +37,7 @@ fn plus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
 #[test]
 fn test_plus1() {
     let plus1transform = Transformation {
+        name: "+1",
         input: vec![AlgoType::Integer],
         output: vec![AlgoType::Integer],
         algorithm: plus1,

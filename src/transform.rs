@@ -11,6 +11,7 @@ type Algorithm<T> = fn(Vec<Cow<T>>) -> Vec<T>;
 
 #[derive(Clone)]
 pub struct Transformation<T: TypeContent> {
+    pub name: &'static str,
     pub input: Vec<T::Type>,
     pub output: Vec<T::Type>,
     pub algorithm: Algorithm<T>,
