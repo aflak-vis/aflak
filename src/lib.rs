@@ -1,21 +1,21 @@
 use std::borrow::Cow;
 
-#[derive(PartialEq)]
-enum Type {
+#[derive(PartialEq, Debug)]
+pub enum Type {
     Integer,
     Image2d,
 }
 
 type Algorithm = fn(Vec<Cow<TypeContent>>) -> Vec<TypeContent>;
 
-struct Transformation {
-    input: Vec<Type>,
-    output: Vec<Type>,
-    algorithm: Algorithm,
+pub struct Transformation {
+    pub input: Vec<Type>,
+    pub output: Vec<Type>,
+    pub algorithm: Algorithm,
 }
 
-#[derive(Clone)]
-enum TypeContent {
+#[derive(Clone, PartialEq, Debug)]
+pub enum TypeContent {
     Integer(u64),
     Image2d(Vec<Vec<f64>>),
 }
@@ -31,14 +31,14 @@ impl TypeContent {
 
 use std::slice;
 
-struct TransformationCaller<'a, 'b> {
+pub struct TransformationCaller<'a, 'b> {
     expected_input_types: slice::Iter<'a, Type>,
     algorithm: &'a Algorithm,
     input: Vec<Cow<'b, TypeContent>>,
 }
 
 impl Transformation {
-    fn start(&self) -> TransformationCaller {
+    pub fn start(&self) -> TransformationCaller {
         TransformationCaller {
             expected_input_types: self.input.iter(),
             algorithm: &self.algorithm,
@@ -49,7 +49,7 @@ impl Transformation {
 
 
 impl<'a, 'b> TransformationCaller<'a, 'b> {
-    fn feed(&mut self, input: &'b TypeContent) {
+    pub fn feed(&mut self, input: &'b TypeContent) {
         let expected_type = self.expected_input_types.next().expect("Not all type consumed");
         if &input.get_type() != expected_type {
             panic!("Wrong type on feeding algorithm!");
@@ -58,7 +58,7 @@ impl<'a, 'b> TransformationCaller<'a, 'b> {
         }
     }
 
-    fn call(mut self) -> TransformationResult {
+    pub fn call(mut self) -> TransformationResult {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {
@@ -71,17 +71,13 @@ impl<'a, 'b> TransformationCaller<'a, 'b> {
 
 use std::vec;
 
-struct TransformationResult {
+pub struct TransformationResult {
     output: vec::IntoIter<TypeContent>,
 }
 
-impl TransformationResult {
-    fn next_result(&mut self) -> Option<TypeContent> {
+impl Iterator for TransformationResult {
+    type Item = TypeContent;
+    fn next(&mut self) -> Option<TypeContent> {
         self.output.next()
     }
 }
-
-//
-// call {
-//
-// }
