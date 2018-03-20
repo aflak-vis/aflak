@@ -1,25 +1,33 @@
+use std::sync::Arc;
+
 use transform::{Transformation, TypeContent};
 
 #[derive(Clone)]
 pub struct DST<T: TypeContent> {
+    head: Arc<Node<T>>,
+}
+
+struct Node<T: TypeContent> {
     t: Transformation<T>,
     output_connections: Vec<OutputConnection<T>>,
 }
 
 #[derive(Clone)]
-pub enum OutputConnection<T: TypeContent> {
+enum OutputConnection<T: TypeContent> {
     Drop,
     Out,
-    Child(DST<T>),
+    Child(Arc<Node<T>>),
 }
 
 impl<T: TypeContent> DST<T> {
-    fn new(t: Transformation<T>) -> Self {
+    pub fn new(t: Transformation<T>) -> Self {
         let mut connections = Vec::new();
         connections.resize(t.output.len(), OutputConnection::Drop);
         Self {
-            t,
-            output_connections: connections,
+            head: Arc::new(Node {
+                t,
+                output_connections: connections,
+            }),
         }
     }
 }
