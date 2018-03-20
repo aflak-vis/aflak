@@ -3,12 +3,13 @@ use std::slice;
 use std::vec;
 
 pub trait TypeContent: Clone + PartialEq {
-    type Type: PartialEq;
+    type Type: Clone + PartialEq;
     fn get_type(&self) -> Self::Type;
 }
 
 type Algorithm<T> = fn(Vec<Cow<T>>) -> Vec<T>;
 
+#[derive(Clone)]
 pub struct Transformation<T: TypeContent> {
     pub input: Vec<T::Type>,
     pub output: Vec<T::Type>,

@@ -4,7 +4,7 @@ use aflak_backend::*;
 use std::borrow::Cow;
 
 /// Define specific types used in the examples
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum AlgoType {
     Integer,
     Image2d,
