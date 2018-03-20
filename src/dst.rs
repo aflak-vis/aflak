@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::str::FromStr;
 
 use transform::{Transformation, TypeContent};
 
@@ -45,5 +46,14 @@ impl<T: TypeContent> DST<T> {
     pub fn detach_out(&mut self, output_i: usize) {
         let mut node = self.head.lock().unwrap();
         node.outputs[output_i] = None;
+    }
+}
+
+pub struct ParseDSTError;
+
+impl<T: TypeContent> FromStr for DST<T> {
+    type Err = ParseDSTError;
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
+        unimplemented!()
     }
 }
