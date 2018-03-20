@@ -3,18 +3,18 @@ use std::sync::{Arc, Mutex};
 use transform::{Transformation, TypeContent};
 
 #[derive(Clone)]
-pub struct DST<'de, T: TypeContent> {
+pub struct DST<'de, T: 'de + TypeContent> {
     head: Arc<Mutex<Node<'de, T>>>,
 }
 
-struct Node<'de, T: TypeContent> {
-    t: Transformation<'de, T>,
+struct Node<'de, T: 'de + TypeContent> {
+    t: &'de Transformation<'de, T>,
     outputs: Vec<Option<usize>>,
     children: Vec<Option<Arc<Mutex<Node<'de, T>>>>>,
 }
 
 impl<'de, T: TypeContent> DST<'de, T> {
-    pub fn new(t: Transformation<'de, T>) -> Self {
+    pub fn new(t: &'de Transformation<'de, T>) -> Self {
         let len = t.output.len();
         Self {
             head: Arc::new(Mutex::new(Node {
