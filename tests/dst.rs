@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate serde_derive;
+extern crate ron;
 
 mod support;
 use support::*;
@@ -52,6 +53,8 @@ fn test_make_dst_and_iterate_dependencies() {
 
     assert_eq!(dst.compute(&out1).unwrap(), AlgoContent::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoContent::Integer(0));
+
+    let _ronified = ron::ser::to_string(&dst).unwrap();
 }
 
 #[test]
