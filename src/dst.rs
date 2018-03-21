@@ -274,13 +274,9 @@ impl<'de, T: TypeContent> DST<'de, T> {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
         })?;
         let deps = self.get_transform_dependencies(&output.t_idx);
-        let mut tmp_vals = Vec::with_capacity(deps.len());
-        for parent_output in deps {
-            tmp_vals.push(self._compute(parent_output)?);
-        }
         let mut op = t.start();
-        for tmp_val in tmp_vals.iter() {
-            op.feed(tmp_val);
+        for parent_output in deps {
+            op.feed(self._compute(parent_output)?);
         }
         op.call().nth(output.output_i.into()).ok_or_else(|| {
             DSTError::ComputeError("No nth output received. This is a bug!".to_owned())
