@@ -18,7 +18,7 @@ where
     }
 }
 
-use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
 use std::fmt;
 use std::marker::PhantomData;
 
