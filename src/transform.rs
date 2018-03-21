@@ -61,16 +61,19 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
 }
 
 impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
-    pub fn feed_ref(&mut self, input: &'b T) {
-        self.check_type(input);
-        self.input.push(Cow::Borrowed(input));
-    }
-
+    /// Feed next argument to transformation.
     pub fn feed(&mut self, input: T) {
         self.check_type(&input);
         self.input.push(Cow::Owned(input));
     }
 
+    /// Feed next argument to transformation. Expect a reference as input.
+    pub fn feed_ref(&mut self, input: &'b T) {
+        self.check_type(input);
+        self.input.push(Cow::Borrowed(input));
+    }
+
+    /// Panic if expected type is not provided or if too many arguments are supplied.
     fn check_type(&mut self, input: &T) {
         let expected_type = self.expected_input_types
             .next()
@@ -80,6 +83,7 @@ impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
         }
     }
 
+    /// Compute the transformation with the provided arguments
     pub fn call(mut self) -> TransformationResult<T> {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
