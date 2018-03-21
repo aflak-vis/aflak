@@ -6,17 +6,18 @@ extern crate serde_derive;
 mod support;
 use support::*;
 
-fn get_all_transforms() -> [Transformation<'static, AlgoContent>; 3] {
+fn get_all_transforms() -> [Transformation<'static, AlgoContent>; 4] {
     [
         get_plus1_transform(),
         get_minus1_transform(),
         get_get1_transform(),
+        get_get_image_transform(),
     ]
 }
 
 #[test]
 fn test_make_dst_and_iterate_dependencies() {
-    let [plus1, minus1, get1] = get_all_transforms();
+    let [plus1, minus1, get1, _image] = get_all_transforms();
 
     // An error points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
@@ -51,4 +52,23 @@ fn test_make_dst_and_iterate_dependencies() {
 
     assert_eq!(dst.compute(&out1).unwrap(), AlgoContent::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoContent::Integer(0));
+}
+
+#[test]
+fn test_connect_wrong_types() {
+    let [plus1, _minus1, _get1, image] = get_all_transforms();
+
+    // An error points from a box's input to a box's output  `OUT -> INT`
+    // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
+    // a, image
+    // \-> b, plus1 -> OUT1
+    let mut dst = DST::new();
+    let a = dst.add_transform(&image);
+    let b = dst.add_transform(&plus1);
+    let _out1 = dst.attach_output(Output::new(b, 0)).unwrap();
+    if let Err(DSTError::IncompatibleTypes(_)) = dst.connect(Output::new(a, 0), Input::new(b, 0)) {
+        assert!(true);
+    } else {
+        assert!(false, "IncompatibleTypes expected!");
+    }
 }

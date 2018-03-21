@@ -92,6 +92,7 @@ pub enum DSTError {
     InvalidOutput(String),
     DuplicateEdge(String),
     Cycle(String),
+    IncompatibleTypes(String),
     MissingOutputID(String),
     ComputeError(String),
 }
@@ -172,6 +173,11 @@ impl<'de, T: TypeContent> DST<'de, T> {
                 "Connecting {:?} to {:?} would create a cycle!",
                 output, input
             )))
+        } else if !self.is_edge_compatible(&input, &output) {
+            Err(DSTError::IncompatibleTypes(format!(
+                "Cannot connect {:?} to {:?}. Output does not provided the required input type.",
+                output, input
+            )))
         } else {
             if !self.edges.contains_key(&output) {
                 self.edges.insert(output, InputList::new(vec![input]));
@@ -243,6 +249,19 @@ impl<'de, T: TypeContent> DST<'de, T> {
             }
         }
         false
+    }
+
+    fn is_edge_compatible(&self, input: &Input, output: &Output) -> bool {
+        match (
+            self.get_transform(&input.t_idx),
+            self.get_transform(&output.t_idx),
+        ) {
+            (Some(input_t), Some(output_t)) => {
+                input_t.nth_input_type(input.input_i.into())
+                    == output_t.nth_output_type(output.output_i.into())
+            }
+            _ => false,
+        }
     }
 
     fn new_transform_idx(&self) -> TransformIdx {

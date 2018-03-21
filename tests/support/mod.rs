@@ -36,6 +36,10 @@ fn get1(_: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
     vec![AlgoContent::Integer(1)]
 }
 
+fn get_image(_: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
+    vec![AlgoContent::Image2d(vec![vec![10.0; 10000]; 10000])]
+}
+
 pub fn get_plus1_transform() -> Transformation<'static, AlgoContent> {
     Transformation {
         name: "+1",
@@ -60,6 +64,15 @@ pub fn get_get1_transform() -> Transformation<'static, AlgoContent> {
         input: vec![],
         output: vec![AlgoType::Integer],
         algorithm: get1,
+    }
+}
+
+pub fn get_get_image_transform() -> Transformation<'static, AlgoContent> {
+    Transformation {
+        name: "image",
+        input: vec![],
+        output: vec![AlgoType::Image2d],
+        algorithm: get_image,
     }
 }
 

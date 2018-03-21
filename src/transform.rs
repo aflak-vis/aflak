@@ -48,6 +48,16 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
     pub fn input_exists(&self, input_i: usize) -> bool {
         input_i < self.input.len()
     }
+
+    /// Return nth output type. Panic if output_i > self.output.len()
+    pub fn nth_output_type(&self, output_i: usize) -> &T::Type {
+        &self.output[output_i]
+    }
+
+    /// Return nth input type. Panic if input_i > self.input.len()
+    pub fn nth_input_type(&self, input_i: usize) -> &T::Type {
+        &self.input[input_i]
+    }
 }
 
 /// TODO: Do not panic!
