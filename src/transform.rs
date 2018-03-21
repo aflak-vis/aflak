@@ -60,27 +60,23 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
     }
 }
 
-/// TODO: Do not panic!
 impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
     pub fn feed_ref(&mut self, input: &'b T) {
-        let expected_type = self.expected_input_types
-            .next()
-            .expect("Not all type consumed");
-        if &input.get_type() != expected_type {
-            panic!("Wrong type on feeding algorithm!");
-        } else {
-            self.input.push(Cow::Borrowed(input));
-        }
+        self.check_type(input);
+        self.input.push(Cow::Borrowed(input));
     }
 
     pub fn feed(&mut self, input: T) {
+        self.check_type(&input);
+        self.input.push(Cow::Owned(input));
+    }
+
+    fn check_type(&mut self, input: &T) {
         let expected_type = self.expected_input_types
             .next()
             .expect("Not all type consumed");
         if &input.get_type() != expected_type {
             panic!("Wrong type on feeding algorithm!");
-        } else {
-            self.input.push(Cow::Owned(input));
         }
     }
 
