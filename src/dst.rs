@@ -157,8 +157,17 @@ impl<'de, T: TypeContent> DST<'de, T> {
     ///
     /// Make dependency list for *output*'s transform and check that it does not depend on
     /// *input*'s transform.
+    /// Assume input and output exists and that no cycle already exist in the data.
     fn check_cycle(&self, input: &Input, output: &Output) -> bool {
-        unimplemented!()
+        let input_t = self.transforms.get(&input.t_idx).unwrap();
+        let input_t_ptr = *input_t as *const Transformation<T>;
+        for dep in self._dependencies(*output) {
+            let dep_t_ptr = dep.transform as *const Transformation<T>;
+            if dep_t_ptr == input_t_ptr {
+                return true;
+            }
+        }
+        false
     }
 
     fn new_transform_idx(&self) -> TransformIdx {
@@ -167,6 +176,13 @@ impl<'de, T: TypeContent> DST<'de, T> {
 
     fn new_output_id(&self) -> OutputId {
         self.outputs.keys().max().unwrap_or(&OutputId(0)).incr()
+    }
+
+    fn _dependencies(&'de self, output: Output) -> DependencyIter<'de, T> {
+        DependencyIter {
+            dst: self,
+            start_node: output,
+        }
     }
 }
 
@@ -191,5 +207,23 @@ impl TransformIdx {
 impl OutputId {
     fn incr(self) -> Self {
         OutputId(self.0 + 1)
+    }
+}
+
+/// Make a post-order tree traversal to look for deepest dependencies first.
+/// Return the dependencies one at a time
+struct DependencyIter<'de, T: 'de + TypeContent> {
+    dst: &'de DST<'de, T>,
+    start_node: Output,
+}
+
+struct Dependency<'de, T: 'de + TypeContent> {
+    transform: &'de Transformation<'de, T>,
+}
+
+impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
+    type Item = Dependency<'de, T>;
+    fn next(&mut self) -> Option<Self::Item> {
+        None
     }
 }
