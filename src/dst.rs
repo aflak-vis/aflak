@@ -6,7 +6,7 @@ use transform::{Transformation, TypeContent};
 
 pub struct DST<'de, T: 'de + TypeContent> {
     transforms: HashMap<TransformIdx, &'de Transformation<'de, T>>,
-    edges: HashMap<Output, Vec<Input>>,
+    edges: HashMap<Output, InputList<T>>,
     outputs: HashMap<OutputId, Output>,
 }
 
@@ -20,6 +20,30 @@ pub struct Output {
 pub struct Input {
     t_idx: TransformIdx,
     input_i: InputIdx,
+}
+
+struct InputList<T> {
+    /// List of all inputs to which the data is fed
+    inputs: Vec<Input>,
+    /// Compute cache
+    cache: Option<T>,
+}
+
+impl<T> InputList<T> {
+    pub fn new(inputs: Vec<Input>) -> Self {
+        Self {
+            inputs,
+            cache: None,
+        }
+    }
+
+    pub fn push(&mut self, input: Input) {
+        self.inputs.push(input);
+    }
+
+    pub fn contains(&self, input: &Input) -> bool {
+        self.inputs.contains(input)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -77,7 +101,7 @@ impl<'de, T: TypeContent> DST<'de, T> {
             Err(DSTError::Cycle(format!("Connecting {:?} to {:?} would create a cycle!", output, input)))
         } else {
             if !self.edges.contains_key(&output) {
-                self.edges.insert(output, vec![input]);
+                self.edges.insert(output, InputList::new(vec![input]));
             } else {
                 let inputs = self.edges.get_mut(&output).unwrap();
                 inputs.push(input);
@@ -124,8 +148,8 @@ impl<'de, T: TypeContent> DST<'de, T> {
     }
 
     fn edge_exists(&self, input: &Input, output: &Output) -> bool {
-        self.edges.get(&output).map(|inputs| {
-            inputs.contains(input)
+        self.edges.get(&output).map(|input_list| {
+            input_list.contains(input)
         }).unwrap_or(false)
     }
 
