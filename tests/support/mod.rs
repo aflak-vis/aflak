@@ -24,12 +24,42 @@ fn plus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
     }
 }
 
+fn minus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
+    if let AlgoContent::Integer(i) = *input[0] {
+        vec![AlgoContent::Integer(i - 1)]
+    } else {
+        panic!("Expected integer!")
+    }
+}
+
+fn get1(_: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
+    vec![AlgoContent::Integer(1)]
+}
+
 pub fn get_plus1_transform() -> Transformation<'static, AlgoContent> {
     Transformation {
         name: "+1",
         input: vec![AlgoType::Integer],
         output: vec![AlgoType::Integer],
         algorithm: plus1,
+    }
+}
+
+pub fn get_minus1_transform() -> Transformation<'static, AlgoContent> {
+    Transformation {
+        name: "-1",
+        input: vec![AlgoType::Integer],
+        output: vec![AlgoType::Integer],
+        algorithm: minus1,
+    }
+}
+
+pub fn get_get1_transform() -> Transformation<'static, AlgoContent> {
+    Transformation {
+        name: "1",
+        input: vec![],
+        output: vec![AlgoType::Integer],
+        algorithm: get1,
     }
 }
 
