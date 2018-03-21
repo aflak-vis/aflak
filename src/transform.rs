@@ -38,6 +38,16 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
             input: Vec::new(),
         }
     }
+
+    /// Check that output exists for the transform
+    pub fn check_output(&self, output_i: usize) -> bool {
+        output_i < self.output.len()
+    }
+
+    /// Check that input exists for the transform
+    pub fn check_input(&self, input_i: usize) -> bool {
+        input_i < self.input.len()
+    }
 }
 
 impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
