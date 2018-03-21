@@ -9,10 +9,13 @@ pub trait TypeContent: Clone + PartialEq {
 
 pub trait NamedAlgorithms
 where
-    Self: Clone,
+    Self: 'static + Clone + TypeContent,
 {
-    fn get_algorithm(&str) -> Option<Algorithm<Self>>;
-    fn get_transform<T: TypeContent>(&str) -> Option<&'static Transformation<'static, T>>;
+    fn get_algorithm(s: &str) -> Option<Algorithm<Self>> {
+        Self::get_transform(s).map(|t| t.algorithm.clone())
+    }
+
+    fn get_transform(s: &str) -> Option<&'static Transformation<'static, Self>>;
 }
 
 

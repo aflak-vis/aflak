@@ -86,17 +86,25 @@ impl TypeContent for AlgoContent {
     }
 }
 
-impl NamedAlgorithms for AlgoContent {
-    fn get_algorithm(s: &str) -> Option<Algorithm<AlgoContent>> {
-        match s {
-            "+1" => Some(Algorithm::Function(plus1)),
-            "-1" => Some(Algorithm::Function(minus1)),
-            "1" => Some(Algorithm::Function(get1)),
-            _ => None,
-        }
-    }
 
-    fn get_transform<T: TypeContent>(s: &str) -> Option<&'static Transformation<'static, T>> {
+lazy_static! {
+    pub static ref TRANSFORMATIONS: Vec<Transformation<'static, AlgoContent>> = {
+        vec![
+            get_plus1_transform(),
+            get_minus1_transform(),
+            get_get1_transform(),
+            get_get_image_transform(),
+        ]
+    };
+}
+
+impl NamedAlgorithms for AlgoContent {
+    fn get_transform(s: &str) -> Option<&'static Transformation<'static, AlgoContent>> {
+        for t in TRANSFORMATIONS.iter() {
+            if t.name == s {
+                return Some(t);
+            }
+        }
         None
     }
 }

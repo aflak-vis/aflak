@@ -26,7 +26,7 @@ use std::marker::PhantomData;
 impl<'de, T> Deserialize<'de> for Transformation<'de, T>
 where
     T::Type: Deserialize<'de>,
-    T: TypeContent + NamedAlgorithms,
+    T: 'static + TypeContent + NamedAlgorithms,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -54,7 +54,7 @@ where
         impl<'de, T> Visitor<'de> for TransformationVisitor<T>
         where
             T::Type: Deserialize<'de>,
-            T: TypeContent + NamedAlgorithms,
+            T: 'static + TypeContent + NamedAlgorithms,
         {
             type Value = Transformation<'de, T>;
 
