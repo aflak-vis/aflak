@@ -122,16 +122,24 @@ impl<'de, T: TypeContent> DST<'de, T> {
 
     /// Get a transform's dependencies, i.e the outputs wired into the transform's inputs, from its
     /// TransformIdx.
-    /// TODO: order dependencies by InputIdx. Should give back a Vec<Option<Output>>. Contains None
-    /// if argument is not provided, Some(Output) otherwise.
-    pub fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Output> {
-        let mut ret = vec![];
+    /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
+    /// provided in the graph, Some(Output) otherwise.
+    pub fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
+        let t = self.get_transform(idx)
+            .expect(&format!("Transform not found {:?}", idx));
+        let len = t.input.len();
+        (0..len)
+            .map(|i| self.find_output_attached_to(&Input::new(*idx, i)))
+            .collect()
+    }
+
+    fn find_output_attached_to(&self, input: &Input) -> Option<Output> {
         for (output, inputs) in self.edges.iter() {
-            if inputs.contains_transform(idx) {
-                ret.push(*output);
+            if inputs.contains(input) {
+                return Some(*output);
             }
         }
-        ret
+        None
     }
 
     /// Add a transform and return its identifier TransformIdx.
@@ -276,6 +284,9 @@ impl<'de, T: TypeContent> DST<'de, T> {
         let deps = self.get_transform_dependencies(&output.t_idx);
         let mut op = t.start();
         for parent_output in deps {
+            let parent_output = parent_output.ok_or_else(|| {
+                DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
+            })?;
             op.feed(self._compute(parent_output)?);
         }
         op.call().nth(output.output_i.into()).ok_or_else(|| {
@@ -341,7 +352,7 @@ impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
     /// If value has no parents, pop the stack and return it.
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_output) = self.stack.pop() {
-            let parent_outputs = self.dst.get_transform_dependencies(&current_output.t_idx);
+            let mut parent_outputs = self.dst.get_transform_dependencies(&current_output.t_idx);
             let some_dep = self.dst
                 .get_transform(&current_output.t_idx)
                 .map(|transform| Dependency {
@@ -351,7 +362,13 @@ impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
             if parent_outputs.is_empty() && some_dep.is_some() {
                 some_dep
             } else {
-                self.stack.extend(parent_outputs);
+                parent_outputs.retain(Option::is_some);
+                self.stack.extend(
+                    parent_outputs
+                        .into_iter()
+                        .map(Option::unwrap)
+                        .collect::<Vec<_>>(),
+                );
                 if let Some(dep) = some_dep {
                     self.completed_stack.push(dep);
                 }

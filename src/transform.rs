@@ -50,6 +50,7 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
     }
 }
 
+/// TODO: Do not panic!
 impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
     pub fn feed_ref(&mut self, input: &'b T) {
         let expected_type = self.expected_input_types
