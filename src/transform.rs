@@ -14,7 +14,11 @@ where
     fn get_algorithm(&str) -> Option<Algorithm<Self>>;
 }
 
-type Algorithm<T> = fn(Vec<Cow<T>>) -> Vec<T>;
+#[derive(Clone)]
+pub enum Algorithm<T: Clone> {
+    Function(fn(Vec<Cow<T>>) -> Vec<T>),
+    Constant(Vec<T>),
+}
 
 #[derive(Clone)]
 pub struct Transformation<'de, T: TypeContent> {
@@ -89,7 +93,10 @@ impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
             panic!("Missing input arguments!");
         } else {
             TransformationResult {
-                output: (self.algorithm)(self.input).into_iter(),
+                output: match self.algorithm {
+                    &Algorithm::Function(f) => f(self.input).into_iter(),
+                    &Algorithm::Constant(ref c) => c.clone().into_iter(),
+                },
             }
         }
     }

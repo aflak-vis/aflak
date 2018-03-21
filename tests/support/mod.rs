@@ -45,7 +45,7 @@ pub fn get_plus1_transform() -> Transformation<'static, AlgoContent> {
         name: "+1",
         input: vec![AlgoType::Integer],
         output: vec![AlgoType::Integer],
-        algorithm: plus1,
+        algorithm: Algorithm::Function(plus1),
     }
 }
 
@@ -54,7 +54,7 @@ pub fn get_minus1_transform() -> Transformation<'static, AlgoContent> {
         name: "-1",
         input: vec![AlgoType::Integer],
         output: vec![AlgoType::Integer],
-        algorithm: minus1,
+        algorithm: Algorithm::Function(minus1),
     }
 }
 
@@ -63,7 +63,7 @@ pub fn get_get1_transform() -> Transformation<'static, AlgoContent> {
         name: "1",
         input: vec![],
         output: vec![AlgoType::Integer],
-        algorithm: get1,
+        algorithm: Algorithm::Function(get1),
     }
 }
 
@@ -72,7 +72,7 @@ pub fn get_get_image_transform() -> Transformation<'static, AlgoContent> {
         name: "image",
         input: vec![],
         output: vec![AlgoType::Image2d],
-        algorithm: get_image,
+        algorithm: Algorithm::Function(get_image),
     }
 }
 
@@ -87,9 +87,11 @@ impl TypeContent for AlgoContent {
 }
 
 impl NamedAlgorithms for AlgoContent {
-    fn get_algorithm(s: &str) -> Option<fn(Vec<Cow<AlgoContent>>) -> Vec<AlgoContent>> {
+    fn get_algorithm(s: &str) -> Option<Algorithm<AlgoContent>> {
         match s {
-            "+1" => Some(plus1),
+            "+1" => Some(Algorithm::Function(plus1)),
+            "-1" => Some(Algorithm::Function(minus1)),
+            "1" => Some(Algorithm::Function(get1)),
             _ => None,
         }
     }
