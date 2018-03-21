@@ -28,12 +28,12 @@ fn test_make_dst_and_iterate_dependencies() {
     let c = dst.add_transform(&plus1);
     let d = dst.add_transform(&plus1);
     let e = dst.add_transform(&plus1);
-    let out1 = dst.attach_output(Output::new(d, 1)).unwrap();
-    let out2 = dst.attach_output(Output::new(b, 1)).unwrap();
-    dst.connect(Output::new(a, 1), Input::new(c, 1)).unwrap();
-    dst.connect(Output::new(a, 1), Input::new(b, 1)).unwrap();
-    dst.connect(Output::new(c, 1), Input::new(e, 1)).unwrap();
-    dst.connect(Output::new(c, 1), Input::new(d, 1)).unwrap();
+    let out1 = dst.attach_output(Output::new(d, 0)).unwrap();
+    let out2 = dst.attach_output(Output::new(b, 0)).unwrap();
+    dst.connect(Output::new(a, 0), Input::new(c, 0)).unwrap();
+    dst.connect(Output::new(a, 0), Input::new(b, 0)).unwrap();
+    dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
+    dst.connect(Output::new(c, 0), Input::new(d, 0)).unwrap();
 
     assert_eq!("TransformIdx(5)", format!("{:?}", e));
     assert_eq!("OutputId(1)", format!("{:?}", out1));

@@ -24,20 +24,22 @@ pub struct Input {
 
 impl Output {
     /// Create a new Output pointing to the *out_i*-th output of TransformIdx transform.
+    /// Counting start from 0.
     pub fn new(t_idx: TransformIdx, out_i: usize) -> Self {
         Self {
             t_idx,
-            output_i: OutputIdx(out_i - 1),
+            output_i: OutputIdx(out_i),
         }
     }
 }
 
 impl Input {
     /// Create a new Input pointing to the *in_i*-th input of TransformIdx transform.
+    /// Counting start from 0.
     pub fn new(t_idx: TransformIdx, in_i: usize) -> Self {
         Self {
             t_idx,
-            input_i: InputIdx(in_i - 1),
+            input_i: InputIdx(in_i),
         }
     }
 }
