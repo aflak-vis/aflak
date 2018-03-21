@@ -95,4 +95,8 @@ impl NamedAlgorithms for AlgoContent {
             _ => None,
         }
     }
+
+    fn get_transform<T: TypeContent>(s: &str) -> Option<&'static Transformation<'static, T>> {
+        None
+    }
 }

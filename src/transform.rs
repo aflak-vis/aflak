@@ -12,7 +12,9 @@ where
     Self: Clone,
 {
     fn get_algorithm(&str) -> Option<Algorithm<Self>>;
+    fn get_transform<T: TypeContent>(&str) -> Option<&'static Transformation<'static, T>>;
 }
+
 
 #[derive(Clone)]
 pub enum Algorithm<T: Clone> {
