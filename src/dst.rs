@@ -93,6 +93,7 @@ pub enum DSTError {
     DuplicateEdge(String),
     Cycle(String),
     MissingOutputID(String),
+    ComputeError(String),
 }
 
 impl<'de, T: TypeContent> DST<'de, T> {
@@ -121,6 +122,8 @@ impl<'de, T: TypeContent> DST<'de, T> {
 
     /// Get a transform's dependencies, i.e the outputs wired into the transform's inputs, from its
     /// TransformIdx.
+    /// TODO: order dependencies by InputIdx. Should give back a Vec<Option<Output>>. Contains None
+    /// if argument is not provided, Some(Output) otherwise.
     pub fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Output> {
         let mut ret = vec![];
         for (output, inputs) in self.edges.iter() {
@@ -264,6 +267,33 @@ impl<'de, T: TypeContent> DST<'de, T> {
                 DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
             })
             .map(|output| self._dependencies(*output))
+    }
+
+    fn _compute(&self, output: Output) -> Result<T, DSTError> {
+        let t = self.get_transform(&output.t_idx).ok_or_else(|| {
+            DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
+        })?;
+        let deps = self.get_transform_dependencies(&output.t_idx);
+        let mut tmp_vals = Vec::with_capacity(deps.len());
+        for parent_output in deps {
+            tmp_vals.push(self._compute(parent_output)?);
+        }
+        let mut op = t.start();
+        for tmp_val in tmp_vals.iter() {
+            op.feed(tmp_val);
+        }
+        op.call().nth(output.output_i.into()).ok_or_else(|| {
+            DSTError::ComputeError("No nth output received. This is a bug!".to_owned())
+        })
+    }
+
+    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError> {
+        self.outputs
+            .get(output_id)
+            .ok_or_else(|| {
+                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
+            })
+            .and_then(|output| self._compute(*output))
     }
 }
 

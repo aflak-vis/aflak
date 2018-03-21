@@ -48,4 +48,7 @@ fn test_make_dst_and_iterate_dependencies() {
     assert_eq!(deps.next().unwrap().transform_idx(), a);
     assert_eq!(deps.next().unwrap().transform_idx(), b);
     assert_eq!(deps.next().as_ref().map(Dependency::transform_idx), None);
+
+    assert_eq!(dst.compute(&out1).unwrap(), AlgoContent::Integer(3));
+    assert_eq!(dst.compute(&out2).unwrap(), AlgoContent::Integer(0));
 }
