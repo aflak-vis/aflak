@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::hash::Hash;
 use std::collections::HashMap;
 
-use transform::{Transformation, TypeContent, NamedAlgorithms};
+use transform::{NamedAlgorithms, Transformation, TypeContent};
 
 use serde::ser::Serialize;
 
@@ -399,13 +399,11 @@ impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
     }
 }
 
-
 /*** Custom deserializer for DST ***/
 
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
 use std::fmt;
 use std::marker::PhantomData;
-
 
 /// Desiarializer for DST
 impl<'de, T> Deserialize<'de> for DST<'de, T>
@@ -491,7 +489,6 @@ where
         deserializer.deserialize_struct("DST", FIELDS, DSTVisitor::new())
     }
 }
-
 
 impl<'de, T> Deserialize<'de> for &'de Transformation<'de, T>
 where

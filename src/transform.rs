@@ -18,7 +18,6 @@ where
     fn get_transform(s: &str) -> Option<&'static Transformation<'static, Self>>;
 }
 
-
 #[derive(Clone)]
 pub enum Algorithm<T: Clone> {
     Function(fn(Vec<Cow<T>>) -> Vec<T>),

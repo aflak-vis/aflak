@@ -86,7 +86,6 @@ impl TypeContent for AlgoContent {
     }
 }
 
-
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<Transformation<'static, AlgoContent>> = {
         vec![
