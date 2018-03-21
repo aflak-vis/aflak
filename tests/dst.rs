@@ -54,7 +54,9 @@ fn test_make_dst_and_iterate_dependencies() {
     assert_eq!(dst.compute(&out1).unwrap(), AlgoContent::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoContent::Integer(0));
 
-    let _ronified = ron::ser::to_string(&dst).unwrap();
+    let _ronified = ron::ser::to_string_pretty(&dst, Default::default()).unwrap();
+    println!("{}", _ronified);
+    //panic!()
 }
 
 #[test]

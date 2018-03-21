@@ -5,22 +5,23 @@ use std::collections::HashMap;
 use transform::{Transformation, TypeContent};
 
 use serde::ser::Serialize;
+use serde::de::Deserialize;
 
 #[derive(Serialize)]
-#[serde(bound = "T::Type: Serialize")]
-pub struct DST<'de, T: 'de + TypeContent> {
-    transforms: HashMap<TransformIdx, &'de Transformation<'de, T>>,
+#[serde(bound(serialize = "T::Type: Serialize"))]
+pub struct DST<'t, T: 't + TypeContent> {
+    transforms: HashMap<TransformIdx, &'t Transformation<'t, T>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Output>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Output {
     t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Input {
     t_idx: TransformIdx,
     input_i: InputIdx,
@@ -48,7 +49,7 @@ impl Input {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct InputList {
     /// List of all inputs to which the data is fed
     inputs: Vec<Input>,
@@ -77,13 +78,13 @@ impl InputList {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TransformIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct OutputIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct InputIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct OutputId(usize);
 
 #[derive(Debug)]

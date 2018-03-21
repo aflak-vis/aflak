@@ -1,4 +1,5 @@
 use transform::{NamedAlgorithms, Transformation, TypeContent};
+use dst::DST;
 
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
@@ -106,5 +107,38 @@ where
 
         const FIELDS: &'static [&'static str] = &["name", "input", "output"];
         deserializer.deserialize_struct("Transformation", FIELDS, TransformationVisitor::new())
+    }
+}
+
+
+impl<'de, T> Deserialize<'de> for DST<'de, T>
+where
+    T::Type: Deserialize<'de>,
+    T: TypeContent + NamedAlgorithms,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Transforms,
+            Edges,
+            Outputs,
+        };
+
+        struct TransformationVisitor<T> {
+            marker: PhantomData<fn() -> T>,
+        };
+        impl<T> TransformationVisitor<T> {
+            fn new() -> Self {
+                TransformationVisitor {
+                    marker: PhantomData,
+                }
+            }
+        }
+
+        unimplemented!()
     }
 }
