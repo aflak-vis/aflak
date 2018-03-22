@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::slice;
 use std::vec;
 
-pub trait TypeContent: Clone + PartialEq {
+pub trait TypeContent: Clone {
     type Type: Clone + PartialEq;
     fn get_type(&self) -> Self::Type;
 }
