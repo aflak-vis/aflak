@@ -58,6 +58,14 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
         }
     }
 
+    /// Set this transformation to the given constant value.
+    pub fn set_constant(&mut self, t: T) {
+        self.name = "const";
+        self.input = vec![];
+        self.output = vec![t.get_type()];
+        self.algorithm = Algorithm::Constant(vec![t])
+    }
+
     /// Check that output exists for the transform
     pub fn output_exists(&self, output_i: usize) -> bool {
         output_i < self.output.len()
