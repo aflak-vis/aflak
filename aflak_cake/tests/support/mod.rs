@@ -1,5 +1,5 @@
-extern crate aflak_backend;
-pub use self::aflak_backend::*;
+extern crate aflak_cake;
+pub use self::aflak_cake::*;
 
 use std::borrow::Cow;
 
