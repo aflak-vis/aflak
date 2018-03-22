@@ -13,5 +13,5 @@ fn test_plus1() {
     let mut caller = plus1transform.start();
     caller.feed_ref(&AlgoContent::Integer(1));
     let mut ret = caller.call();
-    assert_eq!(ret.next(), Some(AlgoContent::Integer(2)));
+    assert_eq!(ret.next(), Some(Ok(AlgoContent::Integer(2))));
 }

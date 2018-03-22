@@ -16,28 +16,28 @@ pub enum AlgoContent {
     Image2d(Vec<Vec<f64>>),
 }
 
-fn plus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
+fn plus1(input: Vec<Cow<AlgoContent>>) -> Vec<Result<AlgoContent, !>> {
     if let AlgoContent::Integer(i) = *input[0] {
-        vec![AlgoContent::Integer(i + 1)]
+        vec![Ok(AlgoContent::Integer(i + 1))]
     } else {
         panic!("Expected integer!")
     }
 }
 
-fn minus1(input: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
+fn minus1(input: Vec<Cow<AlgoContent>>) -> Vec<Result<AlgoContent, !>> {
     if let AlgoContent::Integer(i) = *input[0] {
-        vec![AlgoContent::Integer(i - 1)]
+        vec![Ok(AlgoContent::Integer(i - 1))]
     } else {
         panic!("Expected integer!")
     }
 }
 
-fn get1(_: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
-    vec![AlgoContent::Integer(1)]
+fn get1(_: Vec<Cow<AlgoContent>>) -> Vec<Result<AlgoContent, !>> {
+    vec![Ok(AlgoContent::Integer(1))]
 }
 
-fn get_image(_: Vec<Cow<AlgoContent>>) -> Vec<AlgoContent> {
-    vec![AlgoContent::Image2d(vec![vec![10.0; 10000]; 10000])]
+fn get_image(_: Vec<Cow<AlgoContent>>) -> Vec<Result<AlgoContent, !>> {
+    vec![Ok(AlgoContent::Image2d(vec![vec![10.0; 10000]; 10000]))]
 }
 
 pub fn get_plus1_transform() -> Transformation<'static, AlgoContent> {
@@ -78,6 +78,7 @@ pub fn get_get_image_transform() -> Transformation<'static, AlgoContent> {
 
 impl TypeContent for AlgoContent {
     type Type = AlgoType;
+    type Err = !;
     fn get_type(&self) -> Self::Type {
         match self {
             &AlgoContent::Integer(_) => AlgoType::Integer,

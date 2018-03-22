@@ -4,6 +4,7 @@ use std::vec;
 
 pub trait TypeContent: Clone {
     type Type: Clone + PartialEq;
+    type Err: Clone;
     fn get_type(&self) -> Self::Type;
 }
 
@@ -11,7 +12,7 @@ pub trait NamedAlgorithms
 where
     Self: 'static + Clone + TypeContent,
 {
-    fn get_algorithm(s: &str) -> Option<Algorithm<Self>> {
+    fn get_algorithm(s: &str) -> Option<Algorithm<Self, Self::Err>> {
         Self::get_transform(s).map(|t| t.algorithm.clone())
     }
 
@@ -19,8 +20,8 @@ where
 }
 
 #[derive(Clone)]
-pub enum Algorithm<T: Clone> {
-    Function(fn(Vec<Cow<T>>) -> Vec<T>),
+pub enum Algorithm<T: Clone, E> {
+    Function(fn(Vec<Cow<T>>) -> Vec<Result<T, E>>),
     Constant(Vec<T>),
 }
 
@@ -29,12 +30,12 @@ pub struct Transformation<'de, T: TypeContent> {
     pub name: &'de str,
     pub input: Vec<T::Type>,
     pub output: Vec<T::Type>,
-    pub algorithm: Algorithm<T>,
+    pub algorithm: Algorithm<T, T::Err>,
 }
 
 pub struct TransformationCaller<'a, 'b, T: 'a + 'b + TypeContent> {
     expected_input_types: slice::Iter<'a, T::Type>,
-    algorithm: &'a Algorithm<T>,
+    algorithm: &'a Algorithm<T, T::Err>,
     input: Vec<Cow<'b, T>>,
 }
 
@@ -102,14 +103,18 @@ impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
     }
 
     /// Compute the transformation with the provided arguments
-    pub fn call(mut self) -> TransformationResult<T> {
+    pub fn call(mut self) -> TransformationResult<Result<T, T::Err>> {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {
             TransformationResult {
                 output: match self.algorithm {
                     &Algorithm::Function(f) => f(self.input).into_iter(),
-                    &Algorithm::Constant(ref c) => c.clone().into_iter(),
+                    &Algorithm::Constant(ref c) => c.clone()
+                        .into_iter()
+                        .map(Ok)
+                        .collect::<Vec<_>>()
+                        .into_iter(),
                 },
             }
         }

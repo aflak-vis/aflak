@@ -299,9 +299,15 @@ impl<'de, T: TypeContent> DST<'de, T> {
             })?;
             op.feed(self._compute(parent_output)?);
         }
-        op.call().nth(output.output_i.into()).ok_or_else(|| {
-            DSTError::ComputeError("No nth output received. This is a bug!".to_owned())
-        })
+        match op.call().nth(output.output_i.into()) {
+            None => Err(DSTError::ComputeError(
+                "No nth output received. This is a bug!".to_owned(),
+            )),
+            Some(result) => result.map_err(|_err| {
+                // TODO: Improve this error message
+                DSTError::ComputeError("Computation failed...".to_owned())
+            }),
+        }
     }
 
     pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError> {

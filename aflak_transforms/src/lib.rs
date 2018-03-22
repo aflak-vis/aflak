@@ -95,7 +95,7 @@ fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<IOValue> {
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
-    use super::{IOValue, open_fits, fits_to_3d_image};
+    use super::{open_fits, IOValue, fits_to_3d_image};
     #[test]
     fn test_open_fits() {
         let path = IOValue::Str("/home/malik/workspace/lab/aflak/data/test.fits".to_owned());
