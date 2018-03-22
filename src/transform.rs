@@ -39,6 +39,16 @@ pub struct TransformationCaller<'a, 'b, T: 'a + 'b + TypeContent> {
 }
 
 impl<'de, T: TypeContent> Transformation<'de, T> {
+    /// Create a new Transformation always returning a single constant
+    pub fn new_constant(t: T) -> Self {
+        Self {
+            name: "const",
+            input: vec![],
+            output: vec![t.get_type()],
+            algorithm: Algorithm::Constant(vec![t]),
+        }
+    }
+
     pub fn start(&self) -> TransformationCaller<T> {
         TransformationCaller {
             expected_input_types: self.input.iter(),
