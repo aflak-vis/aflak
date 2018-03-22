@@ -1,0 +1,11 @@
+[package]
+name = "aflak_transforms"
+version = "0.1.0"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+serde = "1.0"
+serde_derive = "1.0"
+aflak_cake = { path = "../aflak_cake" }
+# fitrs = { git = "https://github.com/malikolivier/fitrs" }
+fitrs = { path = "../../fitrs" }
