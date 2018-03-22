@@ -16,6 +16,7 @@ pub enum IOType {
     Image1d,
     Image2d,
     Image3d,
+    Map2dTo3dCoords,
 }
 
 #[derive(Clone, Debug)]
@@ -27,6 +28,7 @@ pub enum IOValue {
     Image1d(Vec<f64>),
     Image2d(Vec<Vec<f64>>),
     Image3d(Vec<Vec<Vec<f64>>>),
+    Map2dTo3dCoords(Vec<Vec<[f64; 3]>>),
 }
 
 /// Return the type of each IOValue
@@ -42,6 +44,7 @@ impl cake::TypeContent for IOValue {
             &IOValue::Image1d(_) => IOType::Image1d,
             &IOValue::Image2d(_) => IOType::Image3d,
             &IOValue::Image3d(_) => IOType::Image3d,
+            &IOValue::Map2dTo3dCoords(_) => IOType::Map2dTo3dCoords,
         }
     }
 }
@@ -50,6 +53,7 @@ impl cake::TypeContent for IOValue {
 pub enum IOErr {
     NotFound(String),
     FITSErr(String),
+    UnexpectedInput(String),
 }
 
 /// Open FITS file
@@ -105,14 +109,97 @@ fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
     }
 }
 
+fn slice_3d_to_2d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
+    fn slice(input_img: &Vec<Vec<Vec<f64>>>, map: &Vec<Vec<[f64; 3]>>) -> Result<IOValue, IOErr> {
+        let mut out = Vec::with_capacity(map.len());
+        for row in map {
+            let mut out_rows = Vec::with_capacity(row.len());
+            for &[x, y, z] in row {
+                // Interpolate to nearest
+                let out_val = *input_img
+                    .get(x as usize)
+                    .and_then(|f| f.get(y as usize))
+                    .and_then(|r| r.get(z as usize))
+                    .ok_or_else(|| {
+                        IOErr::UnexpectedInput(format!(
+                            "Input maps to out of bound pixel!: [{}, {}, {}]",
+                            x, y, z
+                        ))
+                    })?;
+                out_rows.push(out_val);
+            }
+            out.push(out_rows);
+        }
+        Ok(IOValue::Image2d(out))
+    }
+
+    if let (&IOValue::Image3d(ref input_img), &IOValue::Map2dTo3dCoords(ref map)) =
+        (&*input[0], &*input[1])
+    {
+        vec![slice(input_img, map)]
+    } else {
+        panic!("Unexpected input")
+    }
+}
+
+fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
+    use IOValue::*;
+    if let (
+        &Image1d(ref p0),
+        &Image1d(ref dir1),
+        &Image1d(ref dir2),
+        &Integer(count1),
+        &Integer(count2),
+    ) = (&*input[0], &*input[1], &*input[2], &*input[3], &*input[4])
+    {
+        match (p0.as_slice(), dir1.as_slice(), dir2.as_slice()) {
+            (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) => {
+                let mut map = Vec::with_capacity(count1 as usize);
+                for i in 0..count1 {
+                    let i = i as f64;
+                    let mut row = Vec::with_capacity(count2 as usize);
+                    for j in 0..count2 {
+                        let j = j as f64;
+                        row.push([
+                            x0 + i * dx1 + j * dx2,
+                            y0 + i * dy1 + j * dy2,
+                            z0 + i * dz1 + j * dz2,
+                        ]);
+                    }
+                    map.push(row);
+                }
+                vec![Ok(IOValue::Map2dTo3dCoords(map))]
+            }
+            _ => vec![
+                Err(IOErr::UnexpectedInput(
+                    "Expected input vectors to have a length of 3 [x, y, z].".to_owned(),
+                )),
+            ],
+        }
+    } else {
+        panic!("Unexpected input")
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
-    use super::{open_fits, IOValue, fits_to_3d_image};
+    use super::{open_fits, IOValue, fits_to_3d_image, plane3d, slice_3d_to_2d};
     #[test]
     fn test_open_fits() {
         let path = IOValue::Str("/home/malik/workspace/lab/aflak/data/test.fits".to_owned());
         let ret_fits = open_fits(vec![Cow::Owned(path)]);
         let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(ret_fits[0].as_ref().unwrap())]);
+        let plane = plane3d(vec![
+            Cow::Owned(IOValue::Image1d(vec![0.0, 0.0, 0.0])),
+            Cow::Owned(IOValue::Image1d(vec![1.0, 0.5, 0.0])),
+            Cow::Owned(IOValue::Image1d(vec![0.0, 0.5, 1.0])),
+            Cow::Owned(IOValue::Integer(10)),
+            Cow::Owned(IOValue::Integer(20)),
+        ]);
+        let sliced_image = slice_3d_to_2d(vec![
+            Cow::Borrowed(ret_3d_image[0].as_ref().unwrap()),
+            Cow::Borrowed(plane[0].as_ref().unwrap()),
+        ]);
     }
 }
