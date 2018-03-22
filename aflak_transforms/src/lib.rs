@@ -32,6 +32,7 @@ pub enum IOValue {
 /// Return the type of each IOValue
 impl cake::TypeContent for IOValue {
     type Type = IOType;
+    type Err = IOErr;
     fn get_type(&self) -> Self::Type {
         match self {
             &IOValue::Integer(_) => IOType::Integer,
@@ -45,20 +46,25 @@ impl cake::TypeContent for IOValue {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum IOErr {
+    NotFound(String),
+}
+
 /// Open FITS file
-fn open_fits(input: Vec<Cow<IOValue>>) -> Vec<IOValue> {
+fn open_fits(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
     if let IOValue::Str(ref path) = *input[0] {
         vec![
             fitrs::Fits::open(path)
                 .map(|fits| IOValue::Fits(Arc::new(Mutex::new(fits))))
-                .unwrap(),
+                .map_err(|err| IOErr::NotFound(err.to_string())),
         ]
     } else {
         panic!("Expected path as input!")
     }
 }
 
-fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<IOValue> {
+fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
     if let IOValue::Fits(ref fits) = *input[0] {
         let image = {
             let mut file = fits.lock().unwrap();
@@ -86,7 +92,7 @@ fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<IOValue> {
                 _ => unimplemented!(),
             }
         };
-        vec![IOValue::Image3d(image)]
+        vec![Ok(IOValue::Image3d(image))]
     } else {
         panic!("Expectect FITS as input")
     }
@@ -100,6 +106,6 @@ mod test {
     fn test_open_fits() {
         let path = IOValue::Str("/home/malik/workspace/lab/aflak/data/test.fits".to_owned());
         let ret_fits = open_fits(vec![Cow::Owned(path)]);
-        let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(&ret_fits[0])]);
+        let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(ret_fits[0].as_ref().unwrap())]);
     }
 }
