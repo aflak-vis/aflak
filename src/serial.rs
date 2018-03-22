@@ -1,5 +1,4 @@
 use transform::{NamedAlgorithms, Transformation, TypeContent};
-use dst::DST;
 
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 

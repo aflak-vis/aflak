@@ -66,15 +66,6 @@ impl InputList {
     pub fn contains(&self, input: &Input) -> bool {
         self.inputs.contains(input)
     }
-
-    pub fn contains_transform(&self, idx: &TransformIdx) -> bool {
-        for input in self.inputs.iter() {
-            if &input.t_idx == idx {
-                return true;
-            }
-        }
-        false
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -351,35 +342,31 @@ impl OutputId {
 pub struct DependencyIter<'de, T: 'de + TypeContent> {
     dst: &'de DST<'de, T>,
     stack: Vec<Output>,
-    completed_stack: Vec<Dependency<'de, T>>,
+    completed_stack: Vec<Dependency>,
 }
 
-pub struct Dependency<'de, T: 'de + TypeContent> {
-    transform: &'de Transformation<'de, T>,
+pub struct Dependency {
     t_idx: TransformIdx,
 }
 
-impl<'de, T: TypeContent> Dependency<'de, T> {
+impl Dependency {
     pub fn transform_idx(&self) -> TransformIdx {
         self.t_idx
     }
 }
 
 impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
-    type Item = Dependency<'de, T>;
+    type Item = Dependency;
     /// Push all parents on the stack recursively.
     /// If value has no parents, pop the stack and return it.
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_output) = self.stack.pop() {
             let mut parent_outputs = self.dst.get_transform_dependencies(&current_output.t_idx);
-            let some_dep = self.dst
-                .get_transform(&current_output.t_idx)
-                .map(|transform| Dependency {
-                    transform,
-                    t_idx: current_output.t_idx,
-                });
-            if parent_outputs.is_empty() && some_dep.is_some() {
-                some_dep
+            let dep = Dependency {
+                t_idx: current_output.t_idx,
+            };
+            if parent_outputs.is_empty() {
+                Some(dep)
             } else {
                 parent_outputs.retain(Option::is_some);
                 self.stack.extend(
@@ -388,9 +375,7 @@ impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
                         .map(Option::unwrap)
                         .collect::<Vec<_>>(),
                 );
-                if let Some(dep) = some_dep {
-                    self.completed_stack.push(dep);
-                }
+                self.completed_stack.push(dep);
                 self.next()
             }
         } else {
