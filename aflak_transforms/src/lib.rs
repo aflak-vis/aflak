@@ -49,6 +49,7 @@ impl cake::TypeContent for IOValue {
 #[derive(Clone, Debug)]
 pub enum IOErr {
     NotFound(String),
+    FITSErr(String),
 }
 
 /// Open FITS file
@@ -65,7 +66,7 @@ fn open_fits(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
 }
 
 fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
-    if let IOValue::Fits(ref fits) = *input[0] {
+    fn convert_fits(fits: &Arc<Mutex<fitrs::Fits>>) -> Result<IOValue, IOErr> {
         let image = {
             let mut file = fits.lock().unwrap();
             let primary_hdu = &mut file[0];
@@ -80,7 +81,9 @@ fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
                         for _ in 0..y_max {
                             let mut values = Vec::with_capacity(x_max);
                             for _ in 0..x_max {
-                                let val = iter.next().unwrap();
+                                let val = iter.next().ok_or_else(|| {
+                                    IOErr::FITSErr("Unexpected length of in FITS file".to_owned())
+                                })?;
                                 values.push(*val as f64);
                             }
                             rows.push(values);
@@ -92,7 +95,11 @@ fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
                 _ => unimplemented!(),
             }
         };
-        vec![Ok(IOValue::Image3d(image))]
+        Ok(IOValue::Image3d(image))
+    }
+
+    if let IOValue::Fits(ref fits) = *input[0] {
+        vec![convert_fits(fits)]
     } else {
         panic!("Expectect FITS as input")
     }
