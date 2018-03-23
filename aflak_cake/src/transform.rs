@@ -6,13 +6,8 @@ use variant_name::VariantName;
 
 pub trait NamedAlgorithms<E>
 where
-    Self: 'static + Clone,
-    E: 'static + Clone,
+    Self: Clone,
 {
-    fn get_algorithm(s: &str) -> Option<Algorithm<Self, E>> {
-        Self::get_transform(s).map(|t| t.algorithm.clone())
-    }
-
     fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
 }
 
