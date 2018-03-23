@@ -5,6 +5,8 @@ extern crate variant_name_derive;
 enum EnumTest {
     A,
     B(usize),
+    C(usize, usize),
+    D{ _a: usize, _b: usize },
 }
 
 #[derive(VariantName)]
@@ -17,5 +19,7 @@ trait VariantName {
 fn main() {
     println!("{}", EnumTest::A.variant_name());
     println!("{}", EnumTest::B(2).variant_name());
+    println!("{}", EnumTest::C(3,1).variant_name());
+    println!("{}", EnumTest::D{_a: 1, _b: 3}.variant_name());
     println!("{}", StructTest.variant_name());
 }

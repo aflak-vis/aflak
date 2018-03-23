@@ -26,13 +26,34 @@ pub fn variant_name(input: TokenStream) -> TokenStream {
             }
         }
         syn::Data::Enum(enu) => {
-            let variants1 = enu.variants.iter().map(|v| v.ident);
-            let variants2 = enu.variants.iter().map(|v| v.ident);
+            let branches = enu.variants.iter().map(|v| {
+                let ident = &v.ident;
+                let match_identifier = match v.fields {
+                    syn::Fields::Named(_) => {
+                        quote! {
+                            #ident{ .. }
+                        }
+                    }
+                    syn::Fields::Unnamed(_) => {
+                        quote! {
+                            #ident( .. )
+                        }
+                    }
+                    syn::Fields::Unit => {
+                        quote! {
+                            #ident
+                        }
+                    }
+                };
+                quote! {
+                    &#name::#match_identifier => stringify!(#ident)
+                }
+            });
             quote! {
                 impl VariantName for #name {
                     fn variant_name(&self) -> &'static str {
                         match self {
-                            #(#variants1 => stringify!(#variants2)),*
+                            #(#branches),*
                         }
                     }
                 }
