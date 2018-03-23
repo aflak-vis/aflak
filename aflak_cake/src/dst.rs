@@ -1,15 +1,13 @@
+use variant_name::VariantName;
 use std::borrow::Borrow;
 use std::hash::Hash;
 use std::collections::HashMap;
 
-use transform::{NamedAlgorithms, Transformation, TypeContent};
-
-use serde::ser::Serialize;
+use transform::{NamedAlgorithms, Transformation};
 
 #[derive(Serialize)]
-#[serde(bound(serialize = "T::Type: Serialize"))]
-pub struct DST<'t, T: 't + TypeContent> {
-    transforms: HashMap<TransformIdx, &'t Transformation<'t, T>>,
+pub struct DST<'t, T: Clone + 't, E: 't> {
+    transforms: HashMap<TransformIdx, &'t Transformation<T, E>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Output>,
 }
@@ -88,7 +86,10 @@ pub enum DSTError {
     ComputeError(String),
 }
 
-impl<'de, T: TypeContent> DST<'de, T> {
+impl<'t, T: 't, E: 't> DST<'t, T, E>
+where
+    T: Clone + VariantName,
+{
     pub fn new() -> Self {
         Self {
             transforms: HashMap::new(),
@@ -97,10 +98,10 @@ impl<'de, T: TypeContent> DST<'de, T> {
         }
     }
 
-    pub fn contains(&self, t: &'de Transformation<'de, T>) -> bool {
-        let ptr = t as *const Transformation<T>;
+    pub fn contains(&self, t: &'t Transformation<T, E>) -> bool {
+        let ptr = t as *const Transformation<T, E>;
         for transform in self.transforms.values() {
-            if *transform as *const Transformation<T> == ptr {
+            if *transform as *const Transformation<T, E> == ptr {
                 return true;
             }
         }
@@ -108,7 +109,7 @@ impl<'de, T: TypeContent> DST<'de, T> {
     }
 
     /// Get a transform from its TransformIdx.
-    pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'de Transformation<'de, T>> {
+    pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'t Transformation<T, E>> {
         self.transforms.get(idx).map(|t| *t)
     }
 
@@ -135,7 +136,7 @@ impl<'de, T: TypeContent> DST<'de, T> {
     }
 
     /// Add a transform and return its identifier TransformIdx.
-    pub fn add_transform(&mut self, t: &'de Transformation<'de, T>) -> TransformIdx {
+    pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
         self.transforms.insert(idx, t);
         idx
@@ -267,7 +268,7 @@ impl<'de, T: TypeContent> DST<'de, T> {
         self.outputs.keys().max().unwrap_or(&OutputId(0)).incr()
     }
 
-    fn _dependencies(&'de self, output: Output) -> DependencyIter<'de, T> {
+    fn _dependencies(&'t self, output: Output) -> DependencyIter<'t, T, E> {
         DependencyIter {
             dst: self,
             stack: vec![output],
@@ -276,9 +277,9 @@ impl<'de, T: TypeContent> DST<'de, T> {
     }
 
     pub fn dependencies(
-        &'de self,
+        &'t self,
         output_id: &OutputId,
-    ) -> Result<DependencyIter<'de, T>, DSTError> {
+    ) -> Result<DependencyIter<'t, T, E>, DSTError> {
         self.outputs
             .get(output_id)
             .ok_or_else(|| {
@@ -345,8 +346,8 @@ impl OutputId {
 
 /// Make a post-order tree traversal to look for deepest dependencies first.
 /// Return the dependencies one at a time
-pub struct DependencyIter<'de, T: 'de + TypeContent> {
-    dst: &'de DST<'de, T>,
+pub struct DependencyIter<'t, T: 't + Clone, E: 't> {
+    dst: &'t DST<'t, T, E>,
     stack: Vec<Output>,
     completed_stack: Vec<Dependency>,
 }
@@ -361,7 +362,10 @@ impl Dependency {
     }
 }
 
-impl<'de, T: TypeContent> Iterator for DependencyIter<'de, T> {
+impl<'t, T: 't, E> Iterator for DependencyIter<'t, T, E>
+where
+    T: Clone + VariantName,
+{
     type Item = Dependency;
     /// Push all parents on the stack recursively.
     /// If value has no parents, pop the stack and return it.
@@ -397,10 +401,10 @@ use std::fmt;
 use std::marker::PhantomData;
 
 /// Desiarializer for DST
-impl<'de, T> Deserialize<'de> for DST<'de, T>
+impl<'de, T, E: 'de> Deserialize<'de> for DST<'de, T, E>
 where
-    T::Type: Deserialize<'de>,
-    T: 'static + TypeContent + NamedAlgorithms,
+    T: 'static + NamedAlgorithms<E>,
+    E: 'static + Clone,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -414,10 +418,10 @@ where
             Outputs,
         };
 
-        struct DSTVisitor<T> {
-            marker: PhantomData<fn() -> T>,
+        struct DSTVisitor<T, E> {
+            marker: PhantomData<fn() -> (T, E)>,
         };
-        impl<T> DSTVisitor<T> {
+        impl<T, E> DSTVisitor<T, E> {
             fn new() -> Self {
                 DSTVisitor {
                     marker: PhantomData,
@@ -425,12 +429,12 @@ where
             }
         }
 
-        impl<'de, T> Visitor<'de> for DSTVisitor<T>
+        impl<'de, T, E: 'de> Visitor<'de> for DSTVisitor<T, E>
         where
-            T::Type: Deserialize<'de>,
-            T: 'static + TypeContent + NamedAlgorithms,
+            T: 'static + NamedAlgorithms<E>,
+            E: 'static + Clone,
         {
-            type Value = DST<'de, T>;
+            type Value = DST<'de, T, E>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct DST")
@@ -481,19 +485,19 @@ where
     }
 }
 
-impl<'de, T> Deserialize<'de> for &'de Transformation<'de, T>
+impl<'de, T, E> Deserialize<'de> for &'de Transformation<T, E>
 where
-    T::Type: Deserialize<'de>,
-    T: 'static + TypeContent + NamedAlgorithms,
+    T: 'static + NamedAlgorithms<E>,
+    E: 'static + Clone,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct TransformationVisitor<T> {
-            marker: PhantomData<fn() -> T>,
+        struct TransformationVisitor<T, E> {
+            marker: PhantomData<fn() -> (T, E)>,
         };
-        impl<T> TransformationVisitor<T> {
+        impl<T, E> TransformationVisitor<T, E> {
             fn new() -> Self {
                 TransformationVisitor {
                     marker: PhantomData,
@@ -501,12 +505,12 @@ where
             }
         }
 
-        impl<'de, T> Visitor<'de> for TransformationVisitor<T>
+        impl<'de, T, E> Visitor<'de> for TransformationVisitor<T, E>
         where
-            T::Type: Deserialize<'de>,
-            T: 'static + TypeContent + NamedAlgorithms,
+            T: 'static + NamedAlgorithms<E>,
+            E: 'static + Clone,
         {
-            type Value = &'de Transformation<'de, T>;
+            type Value = &'de Transformation<T, E>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct Transformation")
@@ -525,8 +529,8 @@ where
                         }
                         name = Some(map.next_value()?);
                     } else {
-                        // Ignore next value
-                        map.next_value::<Vec<T::Type>>()?;
+                        // Ignore next value. Assume discriminant is saved as u64
+                        map.next_value::<Vec<u64>>()?;
                     }
                 }
                 let name = name.ok_or_else(|| de::Error::missing_field("name"))?;

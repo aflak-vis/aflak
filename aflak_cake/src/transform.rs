@@ -2,21 +2,18 @@ use std::borrow::Cow;
 use std::slice;
 use std::vec;
 
-pub trait TypeContent: Clone {
-    type Type: Clone + PartialEq;
-    type Err: Clone;
-    fn get_type(&self) -> Self::Type;
-}
+use variant_name::VariantName;
 
-pub trait NamedAlgorithms
+pub trait NamedAlgorithms<E>
 where
-    Self: 'static + Clone + TypeContent,
+    Self: 'static + Clone,
+    E: 'static + Clone,
 {
-    fn get_algorithm(s: &str) -> Option<Algorithm<Self, Self::Err>> {
+    fn get_algorithm(s: &str) -> Option<Algorithm<Self, E>> {
         Self::get_transform(s).map(|t| t.algorithm.clone())
     }
 
-    fn get_transform(s: &str) -> Option<&'static Transformation<'static, Self>>;
+    fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
 }
 
 #[derive(Clone)]
@@ -26,31 +23,34 @@ pub enum Algorithm<T: Clone, E> {
 }
 
 #[derive(Clone)]
-pub struct Transformation<'de, T: TypeContent> {
-    pub name: &'de str,
-    pub input: Vec<T::Type>,
-    pub output: Vec<T::Type>,
-    pub algorithm: Algorithm<T, T::Err>,
+pub struct Transformation<T: Clone, E> {
+    pub name: &'static str,
+    pub input: Vec<&'static str>,
+    pub output: Vec<&'static str>,
+    pub algorithm: Algorithm<T, E>,
 }
 
-pub struct TransformationCaller<'a, 'b, T: 'a + 'b + TypeContent> {
-    expected_input_types: slice::Iter<'a, T::Type>,
-    algorithm: &'a Algorithm<T, T::Err>,
+pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
+    expected_input_types: slice::Iter<'a, &'static str>,
+    algorithm: &'a Algorithm<T, E>,
     input: Vec<Cow<'b, T>>,
 }
 
-impl<'de, T: TypeContent> Transformation<'de, T> {
+impl<T, E> Transformation<T, E>
+where
+    T: Clone + VariantName,
+{
     /// Create a new Transformation always returning a single constant
     pub fn new_constant(t: T) -> Self {
         Self {
             name: "const",
             input: vec![],
-            output: vec![t.get_type()],
+            output: vec![t.variant_name()],
             algorithm: Algorithm::Constant(vec![t]),
         }
     }
 
-    pub fn start(&self) -> TransformationCaller<T> {
+    pub fn start(&self) -> TransformationCaller<T, E> {
         TransformationCaller {
             expected_input_types: self.input.iter(),
             algorithm: &self.algorithm,
@@ -62,7 +62,7 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
     pub fn set_constant(&mut self, t: T) {
         self.name = "const";
         self.input = vec![];
-        self.output = vec![t.get_type()];
+        self.output = vec![t.variant_name()];
         self.algorithm = Algorithm::Constant(vec![t])
     }
 
@@ -77,17 +77,20 @@ impl<'de, T: TypeContent> Transformation<'de, T> {
     }
 
     /// Return nth output type. Panic if output_i > self.output.len()
-    pub fn nth_output_type(&self, output_i: usize) -> &T::Type {
-        &self.output[output_i]
+    pub fn nth_output_type(&self, output_i: usize) -> &'static str {
+        self.output[output_i]
     }
 
     /// Return nth input type. Panic if input_i > self.input.len()
-    pub fn nth_input_type(&self, input_i: usize) -> &T::Type {
-        &self.input[input_i]
+    pub fn nth_input_type(&self, input_i: usize) -> &'static str {
+        self.input[input_i]
     }
 }
 
-impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
+impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
+where
+    T: Clone + VariantName,
+{
     /// Feed next argument to transformation.
     pub fn feed(&mut self, input: T) {
         self.check_type(&input);
@@ -102,16 +105,16 @@ impl<'a, 'b, T: TypeContent> TransformationCaller<'a, 'b, T> {
 
     /// Panic if expected type is not provided or if too many arguments are supplied.
     fn check_type(&mut self, input: &T) {
-        let expected_type = self.expected_input_types
+        let expected_type = *self.expected_input_types
             .next()
             .expect("Not all type consumed");
-        if &input.get_type() != expected_type {
+        if input.variant_name() != expected_type {
             panic!("Wrong type on feeding algorithm!");
         }
     }
 
     /// Compute the transformation with the provided arguments
-    pub fn call(mut self) -> TransformationResult<Result<T, T::Err>> {
+    pub fn call(mut self) -> TransformationResult<Result<T, E>> {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {

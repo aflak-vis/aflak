@@ -1,10 +1,10 @@
-use transform::{NamedAlgorithms, Transformation, TypeContent};
+use transform::{NamedAlgorithms, Transformation};
 
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-impl<'de, T: TypeContent> Serialize for Transformation<'de, T>
+impl<T, E> Serialize for Transformation<T, E>
 where
-    T::Type: Serialize,
+    T: Clone,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -12,8 +12,6 @@ where
     {
         let mut state = serializer.serialize_struct("Transformation", 3)?;
         state.serialize_field("name", &self.name)?;
-        state.serialize_field("input", &self.input)?;
-        state.serialize_field("output", &self.output)?;
         state.end()
     }
 }
@@ -22,10 +20,10 @@ use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
 use std::fmt;
 use std::marker::PhantomData;
 
-impl<'de, T> Deserialize<'de> for Transformation<'de, T>
+impl<'de, T, E> Deserialize<'de> for Transformation<T, E>
 where
-    T::Type: Deserialize<'de>,
-    T: 'static + TypeContent + NamedAlgorithms,
+    T: 'static + NamedAlgorithms<E>,
+    E: 'static + Clone,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -35,14 +33,12 @@ where
         #[serde(field_identifier, rename_all = "lowercase")]
         enum Field {
             Name,
-            Input,
-            Output,
         };
 
-        struct TransformationVisitor<T> {
-            marker: PhantomData<fn() -> T>,
+        struct TransformationVisitor<T, E> {
+            marker: PhantomData<fn() -> (T, E)>,
         };
-        impl<T> TransformationVisitor<T> {
+        impl<T, E> TransformationVisitor<T, E> {
             fn new() -> Self {
                 TransformationVisitor {
                     marker: PhantomData,
@@ -50,12 +46,12 @@ where
             }
         }
 
-        impl<'de, T> Visitor<'de> for TransformationVisitor<T>
+        impl<'de, T, E> Visitor<'de> for TransformationVisitor<T, E>
         where
-            T::Type: Deserialize<'de>,
-            T: 'static + TypeContent + NamedAlgorithms,
+            T: 'static + NamedAlgorithms<E>,
+            E: 'static + Clone,
         {
-            type Value = Transformation<'de, T>;
+            type Value = Transformation<T, E>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct Transformation")
@@ -66,8 +62,6 @@ where
                 V: MapAccess<'de>,
             {
                 let mut name = None;
-                let mut input = None;
-                let mut output = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::Name => {
@@ -76,35 +70,16 @@ where
                             }
                             name = Some(map.next_value()?);
                         }
-                        Field::Input => {
-                            if input.is_some() {
-                                return Err(de::Error::duplicate_field("input"));
-                            }
-                            input = Some(map.next_value()?);
-                        }
-                        Field::Output => {
-                            if output.is_some() {
-                                return Err(de::Error::duplicate_field("output"));
-                            }
-                            output = Some(map.next_value()?);
-                        }
                     }
                 }
                 let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-                let input = input.ok_or_else(|| de::Error::missing_field("input"))?;
-                let output = output.ok_or_else(|| de::Error::missing_field("output"))?;
-                let algorithm = T::get_algorithm(name)
+                let transform = T::get_transform(name)
                     .ok_or_else(|| de::Error::custom("algorithm name not found"))?;
-                Ok(Transformation {
-                    name,
-                    input,
-                    output,
-                    algorithm,
-                })
+                Ok(transform.clone())
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["name", "input", "output"];
+        const FIELDS: &'static [&'static str] = &["name"];
         deserializer.deserialize_struct("Transformation", FIELDS, TransformationVisitor::new())
     }
 }

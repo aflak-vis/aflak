@@ -6,6 +6,7 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 [dependencies]
 serde_derive = "1.0"
 serde = "1.0"
+variant_name = { path = "../variant_name" }
 
 [dev-dependencies]
 serde_json = "1.0"

@@ -5,6 +5,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate variant_name;
+
 mod transform;
 mod dst;
 mod serial;
