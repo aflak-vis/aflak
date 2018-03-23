@@ -4,6 +4,9 @@ use std::vec;
 
 use variant_name::VariantName;
 
+pub type TransformId = &'static str;
+pub type TypeId = &'static str;
+
 pub trait NamedAlgorithms<E>
 where
     Self: Clone,
@@ -19,14 +22,14 @@ pub enum Algorithm<T: Clone, E> {
 
 #[derive(Clone)]
 pub struct Transformation<T: Clone, E> {
-    pub name: &'static str,
-    pub input: Vec<&'static str>,
-    pub output: Vec<&'static str>,
+    pub name: TransformId,
+    pub input: Vec<TypeId>,
+    pub output: Vec<TypeId>,
     pub algorithm: Algorithm<T, E>,
 }
 
 pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
-    expected_input_types: slice::Iter<'a, &'static str>,
+    expected_input_types: slice::Iter<'a, TypeId>,
     algorithm: &'a Algorithm<T, E>,
     input: Vec<Cow<'b, T>>,
 }
@@ -72,12 +75,12 @@ where
     }
 
     /// Return nth output type. Panic if output_i > self.output.len()
-    pub fn nth_output_type(&self, output_i: usize) -> &'static str {
+    pub fn nth_output_type(&self, output_i: usize) -> TypeId {
         self.output[output_i]
     }
 
     /// Return nth input type. Panic if input_i > self.input.len()
-    pub fn nth_input_type(&self, input_i: usize) -> &'static str {
+    pub fn nth_input_type(&self, input_i: usize) -> TypeId {
         self.input[input_i]
     }
 }
