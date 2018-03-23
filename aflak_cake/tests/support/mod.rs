@@ -5,42 +5,27 @@ extern crate variant_name;
 pub use self::variant_name::VariantName;
 use std::borrow::Cow;
 
-/// Define specific types used in the examples
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum AlgoType {
-    Integer,
-    Image2d,
-}
-
 #[derive(Clone, PartialEq, Debug, VariantName, Serialize)]
 pub enum AlgoIO {
     Integer(u64),
     Image2d(Vec<Vec<f64>>),
 }
 
-fn plus1(input: Vec<Cow<AlgoIO>>) -> Vec<Result<AlgoIO, !>> {
-    if let AlgoIO::Integer(i) = *input[0] {
-        vec![Ok(AlgoIO::Integer(i + 1))]
-    } else {
-        panic!("Expected integer!")
-    }
-}
+cake_fn!(plus1<AlgoIO>(i: Integer) => {
+    vec![Ok(AlgoContent::Integer(i + 1))]
+});
 
-fn minus1(input: Vec<Cow<AlgoIO>>) -> Vec<Result<AlgoIO, !>> {
-    if let AlgoIO::Integer(i) = *input[0] {
-        vec![Ok(AlgoIO::Integer(i - 1))]
-    } else {
-        panic!("Expected integer!")
-    }
-}
+cake_fn!(minus1<AlgoIO>(i: Integer) => {
+    vec![Ok(AlgoContent::Integer(i - 1))]
+});
 
-fn get1(_: Vec<Cow<AlgoIO>>) -> Vec<Result<AlgoIO, !>> {
-    vec![Ok(AlgoIO::Integer(1))]
-}
+cake_fn!(get1<AlgoIO>() => {
+    vec![Ok(AlgoContent::Integer(1))]
+});
 
-fn get_image(_: Vec<Cow<AlgoIO>>) -> Vec<Result<AlgoIO, !>> {
-    vec![Ok(AlgoIO::Image2d(vec![vec![10.0; 10000]; 10000]))]
-}
+cake_fn!(get_image<AlgoIO>() => {
+    vec![Ok(AlgoContent::Image2d(vec![vec![10.0; 10000]; 10000]))]
+});
 
 pub fn get_plus1_transform() -> Transformation<AlgoIO, !> {
     Transformation {
