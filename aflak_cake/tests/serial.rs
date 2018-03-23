@@ -18,14 +18,14 @@ fn serialize_transformation() {
     let json = serde_json::to_string(&plus1transform).unwrap();
     assert_eq!(
         json,
-        "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}"
+        "{\"name\":\"plus1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}"
     );
 }
 
 #[test]
 fn deserialize_transformation() {
     let deserialized: Transformation<AlgoIO, !> = serde_json::from_str(
-        "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}",
+        "{\"name\":\"plus1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}",
     ).unwrap();
     let plus1transform = get_plus1_transform();
     assert_eq!(deserialized.name, plus1transform.name);

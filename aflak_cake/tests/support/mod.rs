@@ -7,56 +7,24 @@ pub enum AlgoIO {
     Image2d(Vec<Vec<f64>>),
 }
 
-cake_fn!(plus1<AlgoIO, !>(i: Integer) {
-    vec![Ok(AlgoIO::Integer(i + 1))]
-});
-
-cake_fn!(minus1<AlgoIO, !>(i: Integer) {
-    vec![Ok(AlgoIO::Integer(i - 1))]
-});
-
-cake_fn!(get1<AlgoIO, !>() {
-    vec![Ok(AlgoIO::Integer(1))]
-});
-
-cake_fn!(get_image<AlgoIO, !>() {
-    vec![Ok(AlgoIO::Image2d(vec![vec![10.0; 10000]; 10000]))]
-});
-
 pub fn get_plus1_transform() -> Transformation<AlgoIO, !> {
-    Transformation {
-        name: "+1",
-        input: vec!["Integer"],
-        output: vec!["Integer"],
-        algorithm: Algorithm::Function(plus1),
-    }
+    cake_transform!(plus1<AlgoIO, !>(i: Integer) -> Integer {
+        vec![Ok(AlgoIO::Integer(i + 1))]
+    })
 }
 
 pub fn get_minus1_transform() -> Transformation<AlgoIO, !> {
-    Transformation {
-        name: "-1",
-        input: vec!["Integer"],
-        output: vec!["Integer"],
-        algorithm: Algorithm::Function(minus1),
-    }
+    cake_transform!(minus1<AlgoIO, !>(i: Integer) -> Integer {
+        vec![Ok(AlgoIO::Integer(i - 1))]
+    })
 }
 
 pub fn get_get1_transform() -> Transformation<AlgoIO, !> {
-    Transformation {
-        name: "1",
-        input: vec![],
-        output: vec!["Integer"],
-        algorithm: Algorithm::Function(get1),
-    }
+    cake_constant!(get1, AlgoIO::Integer(1))
 }
 
 pub fn get_get_image_transform() -> Transformation<AlgoIO, !> {
-    Transformation {
-        name: "image",
-        input: vec![],
-        output: vec!["Image2d"],
-        algorithm: Algorithm::Function(get_image),
-    }
+    cake_constant!(image, AlgoIO::Image2d(vec![vec![10.0; 10000]; 10000]))
 }
 
 lazy_static! {
