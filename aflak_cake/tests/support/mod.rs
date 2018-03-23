@@ -6,6 +6,11 @@ pub use self::variant_name::VariantName;
 use std::borrow::Cow;
 
 /// Define specific types used in the examples
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub enum AlgoType {
+    Integer,
+    Image2d,
+}
 
 #[derive(Clone, PartialEq, Debug, VariantName, Serialize)]
 pub enum AlgoIO {
