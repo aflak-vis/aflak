@@ -153,6 +153,11 @@ fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
         panic!("Unexpected input")
     }
 }
+fn test22() {
+    let empty = cake_transform!(test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d) -> Integer {
+        vec![]
+    });
+}
 
 #[cfg(test)]
 mod test {
@@ -176,3 +181,7 @@ mod test {
         ]);
     }
 }
+
+cake_fn!{test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d) {
+    vec![]
+}}

@@ -40,3 +40,16 @@ macro_rules! cake_fn {
         }
     };
 }
+
+#[macro_export]
+macro_rules! cake_transform {
+    ($fn_name: ident<$enum_name: ident>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
+        cake_fn!{$fn_name<$enum_name>($($x: $x_type),*) $fn_block}
+        $crate::Transformation {
+            name: stringify!($fn_name),
+            input: vec![$($enum_name::$x_type, )*],
+            output: vec![$($enum_name::$out_type, )*],
+            algorithm: $crate::Algorithm::Function($fn_name),
+        }
+    }};
+}
