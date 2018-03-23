@@ -1,25 +1,15 @@
+extern crate variant_name;
 #[macro_use]
-extern crate serde_derive;
+extern crate variant_name_derive;
 extern crate aflak_cake as cake;
 extern crate fitrs;
 extern crate serde;
 
+use variant_name::VariantName;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum IOType {
-    Integer,
-    Float,
-    Str,
-    Fits,
-    Image1d,
-    Image2d,
-    Image3d,
-    Map2dTo3dCoords,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, VariantName)]
 pub enum IOValue {
     Integer(i64),
     Float(f64),
@@ -29,24 +19,6 @@ pub enum IOValue {
     Image2d(Vec<Vec<f64>>),
     Image3d(Vec<Vec<Vec<f64>>>),
     Map2dTo3dCoords(Vec<Vec<[f64; 3]>>),
-}
-
-/// Return the type of each IOValue
-impl cake::TypeContent for IOValue {
-    type Type = IOType;
-    type Err = IOErr;
-    fn get_type(&self) -> Self::Type {
-        match self {
-            &IOValue::Integer(_) => IOType::Integer,
-            &IOValue::Float(_) => IOType::Float,
-            &IOValue::Str(_) => IOType::Str,
-            &IOValue::Fits(_) => IOType::Fits,
-            &IOValue::Image1d(_) => IOType::Image1d,
-            &IOValue::Image2d(_) => IOType::Image3d,
-            &IOValue::Image3d(_) => IOType::Image3d,
-            &IOValue::Map2dTo3dCoords(_) => IOType::Map2dTo3dCoords,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
