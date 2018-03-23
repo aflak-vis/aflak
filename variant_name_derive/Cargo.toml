@@ -1,0 +1,11 @@
+[package]
+name = "variant_name_derive"
+version = "0.1.0"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+syn = "0.12"
+quote = "0.4"
+
+[lib]
+proc-macro = true
