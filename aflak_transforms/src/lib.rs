@@ -154,16 +154,17 @@ fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
     }
 }
 fn test22() {
-    let empty = cake_transform!(test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d) -> Integer {
+    let empty = cake_transform!(test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d) -> Integer {
         vec![]
     });
-    let empty = cake_transform!(test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d, th: Integer) -> Integer, Image3d {
+    let empty = cake_transform!(test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d, th: Integer) -> Integer, Image3d {
        vec![]
     });
-    let empty = cake_transform!(test_transform<IOValue>() -> Integer, Image3d {
+    let empty = cake_transform!(test_transform<IOValue, IOErr>() -> Integer, Image3d {
        vec![]
     });
-    let empty = cake_constant!(test_constant, IOValue::Image1d(vec![1.0; 10]));
+    let empty: cake::Transformation<IOValue, IOErr> =
+        cake_constant!(test_constant, IOValue::Image1d(vec![1.0; 10]));
 }
 
 #[cfg(test)]
@@ -189,6 +190,6 @@ mod test {
     }
 }
 
-cake_fn!{test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d) {
+cake_fn!{test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d) {
     vec![]
 }}

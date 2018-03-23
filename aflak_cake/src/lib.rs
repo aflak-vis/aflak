@@ -14,6 +14,8 @@ mod serial;
 pub use transform::*;
 pub use dst::*;
 
+pub use self::variant_name::VariantName;
+
 /// Make it easier to define a function used for a transform
 #[macro_export]
 macro_rules! cake_fn {
@@ -43,12 +45,12 @@ macro_rules! cake_fn {
 
 #[macro_export]
 macro_rules! cake_transform {
-    ($fn_name: ident<$enum_name: ident>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
-        cake_fn!{$fn_name<$enum_name>($($x: $x_type),*) $fn_block}
+    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
+        cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
         $crate::Transformation {
             name: stringify!($fn_name),
-            input: vec![$(<$enum_name as $crate::TypeContent>::Type::$x_type, )*],
-            output: vec![$(<$enum_name as $crate::TypeContent>::Type::$out_type, )*],
+            input: vec![$(stringify!($x_type), )*],
+            output: vec![$(stringify!($out_type), )*],
             algorithm: $crate::Algorithm::Function($fn_name),
         }
     }};
@@ -57,12 +59,12 @@ macro_rules! cake_transform {
 #[macro_export]
 macro_rules! cake_constant {
     ($const_name: ident, $($x: expr),*) => {{
-        use $crate::TypeContent;
-        let constant = vec![$($x.get_type(), )*];
+        use $crate::VariantName;
+        let constant = vec![$($x, )*];
         $crate::Transformation {
             name: stringify!($const_name),
             input: vec![],
-            output: constant.iter().map($crate::TypeContent::get_type).collect(),
+            output: constant.iter().map(|c| c.variant_name()).collect(),
             algorithm: $crate::Algorithm::Constant(constant),
         }
     }};
