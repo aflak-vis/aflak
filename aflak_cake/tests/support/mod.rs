@@ -1,11 +1,5 @@
 pub use aflak_cake::*;
-
-/// Define specific types used in the examples
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum AlgoType {
-    Integer,
-    Image2d,
-}
+use variant_name::VariantName;
 
 #[derive(Clone, PartialEq, Debug, VariantName, Serialize)]
 pub enum AlgoIO {
@@ -13,20 +7,20 @@ pub enum AlgoIO {
     Image2d(Vec<Vec<f64>>),
 }
 
-cake_fn!(plus1<AlgoIO>(i: Integer) => {
-    vec![Ok(AlgoContent::Integer(i + 1))]
+cake_fn!(plus1<AlgoIO, !>(i: Integer) {
+    vec![Ok(AlgoIO::Integer(i + 1))]
 });
 
-cake_fn!(minus1<AlgoIO>(i: Integer) => {
-    vec![Ok(AlgoContent::Integer(i - 1))]
+cake_fn!(minus1<AlgoIO, !>(i: Integer) {
+    vec![Ok(AlgoIO::Integer(i - 1))]
 });
 
-cake_fn!(get1<AlgoIO>() => {
-    vec![Ok(AlgoContent::Integer(1))]
+cake_fn!(get1<AlgoIO, !>() {
+    vec![Ok(AlgoIO::Integer(1))]
 });
 
-cake_fn!(get_image<AlgoIO>() => {
-    vec![Ok(AlgoContent::Image2d(vec![vec![10.0; 10000]; 10000]))]
+cake_fn!(get_image<AlgoIO, !>() {
+    vec![Ok(AlgoIO::Image2d(vec![vec![10.0; 10000]; 10000]))]
 });
 
 pub fn get_plus1_transform() -> Transformation<AlgoIO, !> {

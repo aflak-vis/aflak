@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate variant_name_derive;
+extern crate variant_name;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
