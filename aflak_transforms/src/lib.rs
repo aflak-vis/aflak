@@ -157,6 +157,13 @@ fn test22() {
     let empty = cake_transform!(test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d) -> Integer {
         vec![]
     });
+    let empty = cake_transform!(test_transform<IOValue>(first_arg: Image1d, second_arg: Image2d, th: Integer) -> Integer, Image3d {
+       vec![]
+    });
+    let empty = cake_transform!(test_transform<IOValue>() -> Integer, Image3d {
+       vec![]
+    });
+    let empty = cake_constant!(test_constant, IOValue::Image1d(vec![1.0; 10]));
 }
 
 #[cfg(test)]

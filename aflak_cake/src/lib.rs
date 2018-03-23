@@ -47,9 +47,23 @@ macro_rules! cake_transform {
         cake_fn!{$fn_name<$enum_name>($($x: $x_type),*) $fn_block}
         $crate::Transformation {
             name: stringify!($fn_name),
-            input: vec![$($enum_name::$x_type, )*],
-            output: vec![$($enum_name::$out_type, )*],
+            input: vec![$(<$enum_name as $crate::TypeContent>::Type::$x_type, )*],
+            output: vec![$(<$enum_name as $crate::TypeContent>::Type::$out_type, )*],
             algorithm: $crate::Algorithm::Function($fn_name),
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! cake_constant {
+    ($const_name: ident, $($x: expr),*) => {{
+        use $crate::TypeContent;
+        let constant = vec![$($x.get_type(), )*];
+        $crate::Transformation {
+            name: stringify!($const_name),
+            input: vec![],
+            output: constant.iter().map($crate::TypeContent::get_type).collect(),
+            algorithm: $crate::Algorithm::Constant(constant),
         }
     }};
 }
