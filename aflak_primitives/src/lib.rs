@@ -37,9 +37,16 @@ lazy_static! {
             cake_transform!(open_fits<IOValue, IOErr>(path: Str) -> Fits {
                 vec![run_open_fits(path)]
             }),
+            cake_transform!(fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
+                vec![run_fits_to_3d_image(fits)]
+            }),
+            cake_transform!(slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
+                vec![run_slice_3d_to_2d(image, map)]
+            }),
         ]
     };
 }
+
 /// Open FITS file
 fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)
@@ -47,77 +54,64 @@ fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
         .map_err(|err| IOErr::NotFound(err.to_string()))
 }
 
-fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
-    fn convert_fits(fits: &Arc<Mutex<fitrs::Fits>>) -> Result<IOValue, IOErr> {
-        let image = {
-            let mut file = fits.lock().unwrap();
-            let primary_hdu = &mut file[0];
-            let data = primary_hdu.read_data();
-            match data {
-                &fitrs::FitsData::FloatingPoint32(ref image) => {
-                    let (x_max, y_max, z_max) = (image.shape[0], image.shape[1], image.shape[2]);
-                    let mut frames = Vec::with_capacity(z_max);
-                    let mut iter = image.data.iter();
-                    for _ in 0..z_max {
-                        let mut rows = Vec::with_capacity(y_max);
-                        for _ in 0..y_max {
-                            let mut values = Vec::with_capacity(x_max);
-                            for _ in 0..x_max {
-                                let val = iter.next().ok_or_else(|| {
-                                    IOErr::FITSErr("Unexpected length of in FITS file".to_owned())
-                                })?;
-                                values.push(*val as f64);
-                            }
-                            rows.push(values);
+/// Turn a FITS file into a 3D image
+fn run_fits_to_3d_image(fits: &Arc<Mutex<fitrs::Fits>>) -> Result<IOValue, IOErr> {
+    let image = {
+        let mut file = fits.lock().unwrap();
+        let primary_hdu = &mut file[0];
+        let data = primary_hdu.read_data();
+        match data {
+            &fitrs::FitsData::FloatingPoint32(ref image) => {
+                let (x_max, y_max, z_max) = (image.shape[0], image.shape[1], image.shape[2]);
+                let mut frames = Vec::with_capacity(z_max);
+                let mut iter = image.data.iter();
+                for _ in 0..z_max {
+                    let mut rows = Vec::with_capacity(y_max);
+                    for _ in 0..y_max {
+                        let mut values = Vec::with_capacity(x_max);
+                        for _ in 0..x_max {
+                            let val = iter.next().ok_or_else(|| {
+                                IOErr::FITSErr("Unexpected length of in FITS file".to_owned())
+                            })?;
+                            values.push(*val as f64);
                         }
-                        frames.push(rows);
+                        rows.push(values);
                     }
-                    frames
+                    frames.push(rows);
                 }
-                _ => unimplemented!(),
+                frames
             }
-        };
-        Ok(IOValue::Image3d(image))
-    }
-
-    if let IOValue::Fits(ref fits) = *input[0] {
-        vec![convert_fits(fits)]
-    } else {
-        panic!("Expectect FITS as input")
-    }
+            _ => unimplemented!(),
+        }
+    };
+    Ok(IOValue::Image3d(image))
 }
 
-fn slice_3d_to_2d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
-    fn slice(input_img: &Vec<Vec<Vec<f64>>>, map: &Vec<Vec<[f64; 3]>>) -> Result<IOValue, IOErr> {
-        let mut out = Vec::with_capacity(map.len());
-        for row in map {
-            let mut out_rows = Vec::with_capacity(row.len());
-            for &[x, y, z] in row {
-                // Interpolate to nearest
-                let out_val = *input_img
-                    .get(x as usize)
-                    .and_then(|f| f.get(y as usize))
-                    .and_then(|r| r.get(z as usize))
-                    .ok_or_else(|| {
-                        IOErr::UnexpectedInput(format!(
-                            "Input maps to out of bound pixel!: [{}, {}, {}]",
-                            x, y, z
-                        ))
-                    })?;
-                out_rows.push(out_val);
-            }
-            out.push(out_rows);
+/// Slice a 3D image through an arbitrary 2D plane
+fn run_slice_3d_to_2d(
+    input_img: &Vec<Vec<Vec<f64>>>,
+    map: &Vec<Vec<[f64; 3]>>,
+) -> Result<IOValue, IOErr> {
+    let mut out = Vec::with_capacity(map.len());
+    for row in map {
+        let mut out_rows = Vec::with_capacity(row.len());
+        for &[x, y, z] in row {
+            // Interpolate to nearest
+            let out_val = *input_img
+                .get(x as usize)
+                .and_then(|f| f.get(y as usize))
+                .and_then(|r| r.get(z as usize))
+                .ok_or_else(|| {
+                    IOErr::UnexpectedInput(format!(
+                        "Input maps to out of bound pixel!: [{}, {}, {}]",
+                        x, y, z
+                    ))
+                })?;
+            out_rows.push(out_val);
         }
-        Ok(IOValue::Image2d(out))
+        out.push(out_rows);
     }
-
-    if let (&IOValue::Image3d(ref input_img), &IOValue::Map2dTo3dCoords(ref map)) =
-        (&*input[0], &*input[1])
-    {
-        vec![slice(input_img, map)]
-    } else {
-        panic!("Unexpected input")
-    }
+    Ok(IOValue::Image2d(out))
 }
 
 fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
@@ -158,43 +152,29 @@ fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
         panic!("Unexpected input")
     }
 }
-fn test22() {
-    let empty = cake_transform!(test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d) -> Integer {
-        vec![]
-    });
-    let empty = cake_transform!(test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d, th: Integer) -> Integer, Image3d {
-       vec![]
-    });
-    let empty = cake_transform!(test_transform<IOValue, IOErr>() -> Integer, Image3d {
-       vec![]
-    });
-    let empty: cake::Transformation<IOValue, IOErr> =
-        cake_constant!(test_constant, IOValue::Image1d(vec![1.0; 10]));
-}
 
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
-    use super::{run_open_fits, IOValue, fits_to_3d_image, plane3d, slice_3d_to_2d};
+    use super::{run_open_fits, IOValue, plane3d, run_fits_to_3d_image, run_slice_3d_to_2d};
     #[test]
     fn test_open_fits() {
         let path = "/home/malik/workspace/lab/aflak/data/test.fits";
-        let ret_fits = run_open_fits(path).unwrap();
-        let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(&ret_fits)]);
-        let plane = plane3d(vec![
-            Cow::Owned(IOValue::Image1d(vec![0.0, 0.0, 0.0])),
-            Cow::Owned(IOValue::Image1d(vec![1.0, 0.5, 0.0])),
-            Cow::Owned(IOValue::Image1d(vec![0.0, 0.5, 1.0])),
-            Cow::Owned(IOValue::Integer(10)),
-            Cow::Owned(IOValue::Integer(20)),
-        ]);
-        let sliced_image = slice_3d_to_2d(vec![
-            Cow::Borrowed(ret_3d_image[0].as_ref().unwrap()),
-            Cow::Borrowed(plane[0].as_ref().unwrap()),
-        ]);
+        if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
+            if let IOValue::Image3d(image3d) = run_fits_to_3d_image(&fits).unwrap() {
+                let plane = plane3d(vec![
+                    Cow::Owned(IOValue::Image1d(vec![0.0, 0.0, 0.0])),
+                    Cow::Owned(IOValue::Image1d(vec![1.0, 0.5, 0.0])),
+                    Cow::Owned(IOValue::Image1d(vec![0.0, 0.5, 1.0])),
+                    Cow::Owned(IOValue::Integer(10)),
+                    Cow::Owned(IOValue::Integer(20)),
+                ]);
+                if let &IOValue::Map2dTo3dCoords(ref plane2d) = plane[0].as_ref().unwrap() {
+                    let sliced_image = run_slice_3d_to_2d(&image3d, plane2d);
+                    return;
+                }
+            }
+        }
+        panic!("Failed somewhere!");
     }
 }
-
-cake_fn!{test_transform<IOValue, IOErr>(first_arg: Image1d, second_arg: Image2d) {
-    vec![]
-}}
