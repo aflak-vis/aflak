@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use transform::{NamedAlgorithms, Transformation};
 
 #[derive(Serialize)]
+#[serde(bound(serialize = ""))]
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, &'t Transformation<T, E>>,
     edges: HashMap<Output, InputList>,

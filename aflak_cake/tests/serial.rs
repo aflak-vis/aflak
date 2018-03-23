@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate variant_name_derive;
+#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
@@ -19,7 +21,7 @@ fn serialize_transformation() {
 
 #[test]
 fn deserialize_transformation() {
-    let deserialized: Transformation<AlgoContent> = serde_json::from_str(
+    let deserialized: Transformation<AlgoIO, !> = serde_json::from_str(
         "{\"name\":\"+1\",\"input\":[\"Integer\"],\"output\":[\"Integer\"]}",
     ).unwrap();
     let plus1transform = get_plus1_transform();

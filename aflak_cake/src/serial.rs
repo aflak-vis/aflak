@@ -12,6 +12,8 @@ where
     {
         let mut state = serializer.serialize_struct("Transformation", 3)?;
         state.serialize_field("name", &self.name)?;
+        state.serialize_field("input", &self.input)?;
+        state.serialize_field("output", &self.output)?;
         state.end()
     }
 }
@@ -33,6 +35,8 @@ where
         #[serde(field_identifier, rename_all = "lowercase")]
         enum Field {
             Name,
+            Input,
+            Output,
         };
 
         struct TransformationVisitor<T, E> {
@@ -70,6 +74,9 @@ where
                             }
                             name = Some(map.next_value()?);
                         }
+                        _ => {
+                            map.next_value::<Vec<String>>()?;
+                        }
                     }
                 }
                 let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
@@ -79,7 +86,7 @@ where
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["name"];
+        const FIELDS: &'static [&'static str] = &["name", "input", "output"];
         deserializer.deserialize_struct("Transformation", FIELDS, TransformationVisitor::new())
     }
 }

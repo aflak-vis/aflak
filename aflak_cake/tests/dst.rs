@@ -1,6 +1,8 @@
 #![feature(slice_patterns)]
 
 #[macro_use]
+extern crate variant_name_derive;
+#[macro_use]
 extern crate lazy_static;
 extern crate ron;
 #[macro_use]
@@ -9,7 +11,7 @@ extern crate serde_derive;
 mod support;
 use support::*;
 
-fn get_all_transforms() -> [Transformation<'static, AlgoContent>; 4] {
+fn get_all_transforms() -> [Transformation<AlgoIO, !>; 4] {
     [
         get_plus1_transform(),
         get_minus1_transform(),
@@ -53,8 +55,8 @@ fn test_make_dst_and_iterate_dependencies() {
     assert_eq!(deps.next().unwrap().transform_idx(), b);
     assert_eq!(deps.next().as_ref().map(Dependency::transform_idx), None);
 
-    assert_eq!(dst.compute(&out1).unwrap(), AlgoContent::Integer(3));
-    assert_eq!(dst.compute(&out2).unwrap(), AlgoContent::Integer(0));
+    assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
+    assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
 
     let _ronified = ron::ser::to_string_pretty(&dst, Default::default()).unwrap();
     println!("{}", _ronified);
