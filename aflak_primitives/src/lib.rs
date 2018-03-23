@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static;
 extern crate variant_name;
 #[macro_use]
 extern crate variant_name_derive;
@@ -29,17 +31,20 @@ pub enum IOErr {
     UnexpectedInput(String),
 }
 
-/// Open FITS file
-fn open_fits(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
-    if let IOValue::Str(ref path) = *input[0] {
+lazy_static! {
+    pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
         vec![
-            fitrs::Fits::open(path)
-                .map(|fits| IOValue::Fits(Arc::new(Mutex::new(fits))))
-                .map_err(|err| IOErr::NotFound(err.to_string())),
+            cake_transform!(open_fits<IOValue, IOErr>(path: Str) -> Fits {
+                vec![run_open_fits(path)]
+            }),
         ]
-    } else {
-        panic!("Expected path as input!")
-    }
+    };
+}
+/// Open FITS file
+fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
+    fitrs::Fits::open(path)
+        .map(|fits| IOValue::Fits(Arc::new(Mutex::new(fits))))
+        .map_err(|err| IOErr::NotFound(err.to_string()))
 }
 
 fn fits_to_3d_image(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
@@ -170,12 +175,12 @@ fn test22() {
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
-    use super::{open_fits, IOValue, fits_to_3d_image, plane3d, slice_3d_to_2d};
+    use super::{run_open_fits, IOValue, fits_to_3d_image, plane3d, slice_3d_to_2d};
     #[test]
     fn test_open_fits() {
-        let path = IOValue::Str("/home/malik/workspace/lab/aflak/data/test.fits".to_owned());
-        let ret_fits = open_fits(vec![Cow::Owned(path)]);
-        let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(ret_fits[0].as_ref().unwrap())]);
+        let path = "/home/malik/workspace/lab/aflak/data/test.fits";
+        let ret_fits = run_open_fits(path).unwrap();
+        let ret_3d_image = fits_to_3d_image(vec![Cow::Borrowed(&ret_fits)]);
         let plane = plane3d(vec![
             Cow::Owned(IOValue::Image1d(vec![0.0, 0.0, 0.0])),
             Cow::Owned(IOValue::Image1d(vec![1.0, 0.5, 0.0])),
