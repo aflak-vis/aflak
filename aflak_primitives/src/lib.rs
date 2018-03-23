@@ -9,7 +9,6 @@ extern crate fitrs;
 extern crate serde;
 
 use variant_name::VariantName;
-use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, VariantName)]
@@ -42,6 +41,9 @@ lazy_static! {
             }),
             cake_transform!(slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
                 vec![run_slice_3d_to_2d(image, map)]
+            }),
+            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Image1d, dir1: Image1d, dir2: Image1d, count1: Integer, count2: Integer) -> Map2dTo3dCoords {
+                vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
             }),
         ]
     };
@@ -114,63 +116,56 @@ fn run_slice_3d_to_2d(
     Ok(IOValue::Image2d(out))
 }
 
-fn plane3d(input: Vec<Cow<IOValue>>) -> Vec<Result<IOValue, IOErr>> {
-    use IOValue::*;
-    if let (
-        &Image1d(ref p0),
-        &Image1d(ref dir1),
-        &Image1d(ref dir2),
-        &Integer(count1),
-        &Integer(count2),
-    ) = (&*input[0], &*input[1], &*input[2], &*input[3], &*input[4])
-    {
-        match (p0.as_slice(), dir1.as_slice(), dir2.as_slice()) {
-            (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) => {
-                let mut map = Vec::with_capacity(count1 as usize);
-                for i in 0..count1 {
-                    let i = i as f64;
-                    let mut row = Vec::with_capacity(count2 as usize);
-                    for j in 0..count2 {
-                        let j = j as f64;
-                        row.push([
-                            x0 + i * dx1 + j * dx2,
-                            y0 + i * dy1 + j * dy2,
-                            z0 + i * dz1 + j * dz2,
-                        ]);
-                    }
-                    map.push(row);
+/// Make a 2D plane slicing the 3D space
+/// This is actually a map mapping 2D to 3D coordinates
+fn run_make_plane3d(
+    p0: &Vec<f64>,
+    dir1: &Vec<f64>,
+    dir2: &Vec<f64>,
+    count1: i64,
+    count2: i64,
+) -> Result<IOValue, IOErr> {
+    match (p0.as_slice(), dir1.as_slice(), dir2.as_slice()) {
+        (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) => {
+            let mut map = Vec::with_capacity(count1 as usize);
+            for i in 0..count1 {
+                let i = i as f64;
+                let mut row = Vec::with_capacity(count2 as usize);
+                for j in 0..count2 {
+                    let j = j as f64;
+                    row.push([
+                        x0 + i * dx1 + j * dx2,
+                        y0 + i * dy1 + j * dy2,
+                        z0 + i * dz1 + j * dz2,
+                    ]);
                 }
-                vec![Ok(IOValue::Map2dTo3dCoords(map))]
+                map.push(row);
             }
-            _ => vec![
-                Err(IOErr::UnexpectedInput(
-                    "Expected input vectors to have a length of 3 [x, y, z].".to_owned(),
-                )),
-            ],
+            Ok(IOValue::Map2dTo3dCoords(map))
         }
-    } else {
-        panic!("Unexpected input")
+        _ => Err(IOErr::UnexpectedInput(
+            "Expected input vectors to have a length of 3 [x, y, z].".to_owned(),
+        )),
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::borrow::Cow;
-    use super::{run_open_fits, IOValue, plane3d, run_fits_to_3d_image, run_slice_3d_to_2d};
+    use super::{run_open_fits, IOValue, run_fits_to_3d_image, run_make_plane3d, run_slice_3d_to_2d};
     #[test]
     fn test_open_fits() {
         let path = "/home/malik/workspace/lab/aflak/data/test.fits";
         if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
             if let IOValue::Image3d(image3d) = run_fits_to_3d_image(&fits).unwrap() {
-                let plane = plane3d(vec![
-                    Cow::Owned(IOValue::Image1d(vec![0.0, 0.0, 0.0])),
-                    Cow::Owned(IOValue::Image1d(vec![1.0, 0.5, 0.0])),
-                    Cow::Owned(IOValue::Image1d(vec![0.0, 0.5, 1.0])),
-                    Cow::Owned(IOValue::Integer(10)),
-                    Cow::Owned(IOValue::Integer(20)),
-                ]);
-                if let &IOValue::Map2dTo3dCoords(ref plane2d) = plane[0].as_ref().unwrap() {
-                    let sliced_image = run_slice_3d_to_2d(&image3d, plane2d);
+                if let IOValue::Map2dTo3dCoords(map) = run_make_plane3d(
+                    &vec![0.0, 0.0, 0.0],
+                    &vec![1.0, 0.5, 0.0],
+                    &vec![0.0, 0.5, 1.0],
+                    10,
+                    20,
+                ).unwrap()
+                {
+                    let _sliced_image = run_slice_3d_to_2d(&image3d, &map);
                     return;
                 }
             }
