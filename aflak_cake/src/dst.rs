@@ -91,6 +91,43 @@ impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone + VariantName,
 {
+    fn _compute(&self, output: Output) -> Result<T, DSTError> {
+        let t = self.get_transform(&output.t_idx).ok_or_else(|| {
+            DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
+        })?;
+        let deps = self.get_transform_dependencies(&output.t_idx);
+        let mut op = t.start();
+        for parent_output in deps {
+            let parent_output = parent_output.ok_or_else(|| {
+                DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
+            })?;
+            op.feed(self._compute(parent_output)?);
+        }
+        match op.call().nth(output.output_i.into()) {
+            None => Err(DSTError::ComputeError(
+                "No nth output received. This is a bug!".to_owned(),
+            )),
+            Some(result) => result.map_err(|_err| {
+                // TODO: Improve this error message
+                DSTError::ComputeError("Computation failed...".to_owned())
+            }),
+        }
+    }
+
+    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError> {
+        self.outputs
+            .get(output_id)
+            .ok_or_else(|| {
+                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
+            })
+            .and_then(|output| self._compute(*output))
+    }
+}
+
+impl<'t, T: 't, E: 't> DST<'t, T, E>
+where
+    T: Clone,
+{
     pub fn new() -> Self {
         Self {
             transforms: HashMap::new(),
@@ -288,38 +325,6 @@ where
             })
             .map(|output| self._dependencies(*output))
     }
-
-    fn _compute(&self, output: Output) -> Result<T, DSTError> {
-        let t = self.get_transform(&output.t_idx).ok_or_else(|| {
-            DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
-        })?;
-        let deps = self.get_transform_dependencies(&output.t_idx);
-        let mut op = t.start();
-        for parent_output in deps {
-            let parent_output = parent_output.ok_or_else(|| {
-                DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
-            })?;
-            op.feed(self._compute(parent_output)?);
-        }
-        match op.call().nth(output.output_i.into()) {
-            None => Err(DSTError::ComputeError(
-                "No nth output received. This is a bug!".to_owned(),
-            )),
-            Some(result) => result.map_err(|_err| {
-                // TODO: Improve this error message
-                DSTError::ComputeError("Computation failed...".to_owned())
-            }),
-        }
-    }
-
-    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError> {
-        self.outputs
-            .get(output_id)
-            .ok_or_else(|| {
-                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
-            })
-            .and_then(|output| self._compute(*output))
-    }
 }
 
 impl From<OutputIdx> for usize {
@@ -365,7 +370,7 @@ impl Dependency {
 
 impl<'t, T: 't, E> Iterator for DependencyIter<'t, T, E>
 where
-    T: Clone + VariantName,
+    T: Clone,
 {
     type Item = Dependency;
     /// Push all parents on the stack recursively.

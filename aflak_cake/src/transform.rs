@@ -33,7 +33,6 @@ pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
     algorithm: &'a Algorithm<T, E>,
     input: Vec<Cow<'b, T>>,
 }
-
 impl<T, E> Transformation<T, E>
 where
     T: Clone + VariantName,
@@ -48,20 +47,25 @@ where
         }
     }
 
-    pub fn start(&self) -> TransformationCaller<T, E> {
-        TransformationCaller {
-            expected_input_types: self.input.iter(),
-            algorithm: &self.algorithm,
-            input: Vec::new(),
-        }
-    }
-
     /// Set this transformation to the given constant value.
     pub fn set_constant(&mut self, t: T) {
         self.name = "const";
         self.input = vec![];
         self.output = vec![t.variant_name()];
         self.algorithm = Algorithm::Constant(vec![t])
+    }
+}
+
+impl<T, E> Transformation<T, E>
+where
+    T: Clone,
+{
+    pub fn start(&self) -> TransformationCaller<T, E> {
+        TransformationCaller {
+            expected_input_types: self.input.iter(),
+            algorithm: &self.algorithm,
+            input: Vec::new(),
+        }
     }
 
     /// Check that output exists for the transform
@@ -84,7 +88,6 @@ where
         self.input[input_i]
     }
 }
-
 impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
 where
     T: Clone + VariantName,
@@ -110,7 +113,12 @@ where
             panic!("Wrong type on feeding algorithm!");
         }
     }
+}
 
+impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
+where
+    T: Clone,
+{
     /// Compute the transformation with the provided arguments
     pub fn call(mut self) -> TransformationResult<Result<T, E>> {
         if self.expected_input_types.next().is_some() {
