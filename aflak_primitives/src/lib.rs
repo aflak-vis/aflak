@@ -49,6 +49,17 @@ lazy_static! {
     };
 }
 
+impl cake::NamedAlgorithms<IOErr> for IOValue {
+    fn get_transform(s: &str) -> Option<&'static cake::Transformation<IOValue, IOErr>> {
+        for t in TRANSFORMATIONS.iter() {
+            if t.name == s {
+                return Some(t);
+            }
+        }
+        None
+    }
+}
+
 /// Open FITS file
 fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)
