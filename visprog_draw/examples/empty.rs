@@ -24,6 +24,7 @@ fn main() {
         .with_title("Aflak DRAW DST");
     let context = glium::glutin::ContextBuilder::new();
     let display = glium::Display::new(window, context, &events_loop).unwrap();
+    let draw_context = vis_prog::get_context(&display);
     let mut quit = false;
     loop {
         events_loop.poll_events(|ev| match ev {
@@ -38,7 +39,7 @@ fn main() {
         }
 
         let mut target = display.draw();
-        vis_prog::draw(&mut target, &diagram, &draw_options).unwrap();
+        vis_prog::draw(&mut target, &diagram, &draw_context, &draw_options).unwrap();
         target.finish().unwrap();
     }
 }

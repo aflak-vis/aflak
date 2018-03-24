@@ -1,11 +1,13 @@
 extern crate aflak_cake as cake;
+#[macro_use]
 extern crate glium;
 
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::collections::btree_set;
 use cake::{TransformIdx, DST};
-use glium::{DrawError, Surface};
+use glium::{DrawError, Program, Surface};
+use glium::backend::Facade;
 
 /// Draw options to be provided to the draw function
 pub struct DrawOptions {
@@ -76,22 +78,94 @@ impl<'t, T: Clone, E> Diagram<'t, T, E> {
     }
 }
 
+pub struct DrawContext<'a, F: 'a> {
+    facade: &'a F,
+    box_program: Program,
+}
+
+pub fn get_context<F>(facade: &F) -> DrawContext<F>
+where
+    F: Facade,
+{
+    let vertex_shader_src = r#"
+        #version 140
+
+        in vec2 position;
+
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    "#;
+    let fragment_shader_src = r#"
+        #version 140
+
+        out vec4 color;
+
+        void main() {
+            color = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+    "#;
+    DrawContext {
+        facade,
+        box_program: Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+            .expect("Correct program"),
+    }
+}
+
 /// Draw the DST to the given target
-pub fn draw<'t, S, T, E>(
+pub fn draw<'t, S, F, T, E>(
     target: &mut S,
     dst: &Diagram<'t, T, E>,
+    ctx: &DrawContext<F>,
     options: &DrawOptions,
 ) -> Result<(), DrawError>
 where
     S: Surface,
+    F: Facade,
     T: Clone,
 {
     let [r, g, b, a] = options.clear_color;
     target.clear_color(r, g, b, a);
 
     for d_box in dst.box_iter() {
-        println!("{:?}", d_box);
+        draw_box(target, d_box, ctx)?;
     }
 
     Ok(())
 }
+
+fn draw_box<S, F>(target: &mut S, d_box: &DiagramBox, ctx: &DrawContext<F>) -> Result<(), DrawError>
+where
+    S: Surface,
+    F: Facade,
+{
+    const BOX_WIDTH: f32 = 0.085;
+    const BOX_HEIGHT: f32 = 0.085;
+    println!("{:?}", d_box);
+    let vertex1 = Vertex {
+        position: [-0.5, -0.5],
+    };
+    let vertex2 = Vertex {
+        position: [0.0, 0.5],
+    };
+    let vertex3 = Vertex {
+        position: [0.5, -0.25],
+    };
+    let shape = vec![vertex1, vertex2, vertex3];
+    let vertex_buffer = glium::VertexBuffer::new(ctx.facade, &shape).unwrap();
+    let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    target.draw(
+        &vertex_buffer,
+        &index_buffer,
+        &ctx.box_program,
+        &glium::uniforms::EmptyUniforms,
+        &Default::default(),
+    )
+}
+
+#[derive(Copy, Clone)]
+struct Vertex {
+    position: [f32; 2],
+}
+
+implement_vertex!(Vertex, position);
