@@ -133,6 +133,16 @@ where
 
     for d_box in diag.box_iter() {
         draw_box(target, d_box, ctx, options)?;
+        let t = diag.dst
+            .get_transform(&d_box.t_idx)
+            .expect("Find transform");
+        draw_io_ports(
+            target,
+            d_box,
+            t.name,
+            [t.input.as_slice(), t.output.as_slice()],
+            ctx,
+        )?;
     }
 
     Ok(())
@@ -173,6 +183,17 @@ where
         &glium::uniforms::EmptyUniforms,
         &Default::default(),
     )
+}
+
+fn draw_io_ports<S, F>(
+    target: &mut S,
+    d_box: &DiagramBox,
+    name: &str,
+    io: [&[&str]; 2],
+    ctx: &DrawContext<F>,
+) -> Result<(), DrawError> {
+    let vertices = println!("{:?}", d_box);
+    Ok(())
 }
 
 #[derive(Copy, Clone)]
