@@ -16,6 +16,8 @@ fn main() {
     let _out = dst.attach_output(Output::new(b, 0)).unwrap();
     dst.connect(Output::new(a, 0), Input::new(b, 0)).unwrap();
 
+    let diagram = vis_prog::Diagram::new(&dst);
+
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
         .with_dimensions(1024, 768)
@@ -36,7 +38,7 @@ fn main() {
         }
 
         let mut target = display.draw();
-        vis_prog::draw(&mut target, &dst, &draw_options).unwrap();
+        vis_prog::draw(&mut target, &diagram, &draw_options).unwrap();
         target.finish().unwrap();
     }
 }

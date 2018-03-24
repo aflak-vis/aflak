@@ -1,7 +1,7 @@
 use variant_name::VariantName;
 use std::borrow::Borrow;
 use std::hash::Hash;
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 
 use transform::{NamedAlgorithms, Transformation};
 
@@ -144,6 +144,10 @@ where
             }
         }
         false
+    }
+
+    pub fn transforms_iter(&self) -> hash_map::Iter<TransformIdx, &Transformation<T, E>> {
+        self.transforms.iter()
     }
 
     /// Get a transform from its TransformIdx.
