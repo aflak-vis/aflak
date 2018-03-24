@@ -58,13 +58,13 @@ impl Ord for DiagramBox {
 impl<'t, T: Clone, E> Diagram<'t, T, E> {
     pub fn new(dst: &'t DST<'t, T, E>) -> Self {
         let mut boxes = BTreeSet::new();
-        let mut px = 0.0;
+        let mut px = -0.95;
         for (&t_idx, _t) in dst.transforms_iter() {
             boxes.insert(
                 // TODO: Make an intelligent layout
                 DiagramBox {
                     z_depth: 0,
-                    position: [px, 0.0],
+                    position: [px, 0.95],
                     t_idx,
                 },
             );
@@ -143,17 +143,23 @@ where
     const BOX_HEIGHT: f32 = 0.085;
     println!("{:?}", d_box);
     let vertex1 = Vertex {
-        position: [-0.5, -0.5],
+        position: d_box.position,
     };
     let vertex2 = Vertex {
-        position: [0.0, 0.5],
+        position: [d_box.position[0], d_box.position[1] - BOX_HEIGHT],
     };
     let vertex3 = Vertex {
-        position: [0.5, -0.25],
+        position: [
+            d_box.position[0] + BOX_WIDTH,
+            d_box.position[1] - BOX_HEIGHT,
+        ],
     };
-    let shape = vec![vertex1, vertex2, vertex3];
+    let vertex4 = Vertex {
+        position: [d_box.position[0] + BOX_WIDTH, d_box.position[1]],
+    };
+    let shape = vec![vertex1, vertex2, vertex3, vertex4];
     let vertex_buffer = glium::VertexBuffer::new(ctx.facade, &shape).unwrap();
-    let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::LineLoop);
     target.draw(
         &vertex_buffer,
         &index_buffer,
