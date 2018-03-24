@@ -12,12 +12,16 @@ use glium::backend::Facade;
 /// Draw options to be provided to the draw function
 pub struct DrawOptions {
     pub clear_color: [f32; 4],
+    pub box_width: f32,
+    pub box_height: f32,
 }
 
 impl Default for DrawOptions {
     fn default() -> Self {
         Self {
             clear_color: [1.0, 1.0, 1.0, 1.0],
+            box_width: 0.085,
+            box_height: 0.085,
         }
     }
 }
@@ -115,7 +119,7 @@ where
 /// Draw the DST to the given target
 pub fn draw<'t, S, F, T, E>(
     target: &mut S,
-    dst: &Diagram<'t, T, E>,
+    diag: &Diagram<'t, T, E>,
     ctx: &DrawContext<F>,
     options: &DrawOptions,
 ) -> Result<(), DrawError>
@@ -127,35 +131,37 @@ where
     let [r, g, b, a] = options.clear_color;
     target.clear_color(r, g, b, a);
 
-    for d_box in dst.box_iter() {
-        draw_box(target, d_box, ctx)?;
+    for d_box in diag.box_iter() {
+        draw_box(target, d_box, ctx, options)?;
     }
 
     Ok(())
 }
 
-fn draw_box<S, F>(target: &mut S, d_box: &DiagramBox, ctx: &DrawContext<F>) -> Result<(), DrawError>
+fn draw_box<S, F>(
+    target: &mut S,
+    d_box: &DiagramBox,
+    ctx: &DrawContext<F>,
+    options: &DrawOptions,
+) -> Result<(), DrawError>
 where
     S: Surface,
     F: Facade,
 {
-    const BOX_WIDTH: f32 = 0.085;
-    const BOX_HEIGHT: f32 = 0.085;
-    println!("{:?}", d_box);
     let vertex1 = Vertex {
         position: d_box.position,
     };
     let vertex2 = Vertex {
-        position: [d_box.position[0], d_box.position[1] - BOX_HEIGHT],
+        position: [d_box.position[0], d_box.position[1] - options.box_height],
     };
     let vertex3 = Vertex {
         position: [
-            d_box.position[0] + BOX_WIDTH,
-            d_box.position[1] - BOX_HEIGHT,
+            d_box.position[0] + options.box_width,
+            d_box.position[1] - options.box_height,
         ],
     };
     let vertex4 = Vertex {
-        position: [d_box.position[0] + BOX_WIDTH, d_box.position[1]],
+        position: [d_box.position[0] + options.box_width, d_box.position[1]],
     };
     let shape = vec![vertex1, vertex2, vertex3, vertex4];
     let vertex_buffer = glium::VertexBuffer::new(ctx.facade, &shape).unwrap();
