@@ -1,0 +1,14 @@
+[package]
+name = "node_editor"
+version = "0.1.0"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+imgui = { path = "imgui-rs" }
+imgui-sys = { path = "imgui-rs/imgui-sys" }
+aflak_cake = { path = "../aflak_cake" }
+
+[dev-dependencies]
+imgui-glium-renderer = { path = "imgui-rs/imgui-glium-renderer" }
+glium = { version = "0.20", default-features = true }
+aflak_primitives = { path = "../aflak_primitives" }
