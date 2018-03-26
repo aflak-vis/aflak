@@ -133,6 +133,22 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         ui.text(im_str!("Double-click LMB on slots to remove their links (or SHIFT+LMB on links)."));
                     });
                 }
+                const GRAPH_STYLE_VAR: [StyleVar; 2] = [
+                    StyleVar::FramePadding(ImVec2 { x: 1.0, y: 1.0 }),
+                    StyleVar::WindowPadding(ImVec2 { x: 0.0, y: 0.0 }),
+                ];
+                const GRAPH_STYLE_COLOR: [(ImGuiCol, (f32, f32, f32, f32)); 1] =
+                    [(ImGuiCol::ChildWindowBg, (0.24, 0.24, 0.27, 0.78))];
+                ui.with_style_and_color_vars(&GRAPH_STYLE_VAR, &GRAPH_STYLE_COLOR, || {
+                    ui.child_frame(im_str!("scrolling_region"), (0.0, 0.0))
+                        .show_borders(true)
+                        .show_scrollbar(false)
+                        .movable(false)
+                        .show_scrollbar_with_mouse(false)
+                        .build(|| {
+                            ui.text(im_str!("TEST"));
+                        });
+                });
             });
     }
 }
