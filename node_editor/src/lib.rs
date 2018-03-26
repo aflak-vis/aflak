@@ -4,7 +4,7 @@ extern crate imgui;
 extern crate imgui_sys as sys;
 
 use cake::{TransformIdx, Transformation, DST};
-use imgui::{ImGuiCol, ImGuiMouseCursor, ImString, Ui};
+use imgui::{ImGuiCol, ImGuiMouseCursor, ImMouseButton, ImString, ImVec2, StyleVar, Ui};
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
@@ -12,6 +12,9 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     active_node: Option<TransformIdx>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
+    pub show_top_pane: bool,
+    pub show_connection_names: bool,
+    pub show_grid: bool,
 }
 
 impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
@@ -22,6 +25,9 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
             active_node: None,
             show_left_pane: true,
             left_pane_size: None,
+            show_top_pane: true,
+            show_connection_names: true,
+            show_grid: true,
         }
     }
 
@@ -34,6 +40,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
         if self.show_left_pane {
             self.render_left_pane(ui);
         }
+        self.render_graph_node(ui);
     }
 
     fn render_left_pane(&mut self, ui: &Ui) {
@@ -102,5 +109,30 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     fn show_node_list(&self, ui: &Ui) {
         // TODO
         ui.text(im_str!("TODO SHOW NODE LIST"));
+    }
+
+    fn render_graph_node(&mut self, ui: &Ui) {
+        let is_mouse_being_dragged_for_scrolling =
+            ui.imgui().is_mouse_dragging(ImMouseButton::Middle);
+        ui.child_frame(im_str!("GraphNodeChildWindow"), (0.0, 0.0))
+            .build(|| {
+                if self.show_top_pane {
+                    const TOP_PANE_DESIGN: [StyleVar; 2] = [
+                        StyleVar::ItemSpacing(ImVec2 { x: 0.0, y: 0.0 }),
+                        StyleVar::ItemInnerSpacing(ImVec2 { x: 0.0, y: 0.0 }),
+                    ];
+                    ui.with_style_vars(&TOP_PANE_DESIGN, || {
+                        ui.checkbox(
+                            im_str!("Show connection names."),
+                            &mut self.show_connection_names,
+                        );
+                        ui.same_line_spacing(0.0, 15.0);
+                        ui.text(im_str!("Use CTRL+MW to zoom. Scroll with MMB."));
+                        ui.same_line(ui.imgui().get_window_width() - 120.0);
+                        ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
+                        ui.text(im_str!("Double-click LMB on slots to remove their links (or SHIFT+LMB on links)."));
+                    });
+                }
+            });
     }
 }
