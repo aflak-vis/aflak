@@ -40,11 +40,24 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
 
 struct NodeState {
     selected: bool,
+    pos: (f32, f32),
 }
 
 impl Default for NodeState {
     fn default() -> Self {
-        Self { selected: false }
+        Self {
+            selected: false,
+            pos: (0.0, 0.0),
+        }
+    }
+}
+
+impl NodeState {
+    fn get_pos(&self, font_window_scale: f32) -> (f32, f32) {
+        (
+            self.pos.0 * font_window_scale,
+            self.pos.1 * font_window_scale,
+        )
     }
 }
 
@@ -270,6 +283,34 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 .build();
                             y += grid_sz;
                         }
+                    }
+
+                    // Bezier control point of the links
+                    const LINK_CONTROL_POINT_DISTANCE: f32 = 50.0;
+                    let link_cp = [LINK_CONTROL_POINT_DISTANCE * CURRENT_FONT_WINDOW_SCALE, 0.0];
+                    const LINK_LINE_WIDTH: f32 = 3.0;
+                    let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
+                    // NODE LINK CULLING?
+
+                    for (idx, node) in self.dst.transforms_iter() {
+                        let state = self.node_states.get(idx).unwrap();
+                        let node_pos = state.get_pos(CURRENT_FONT_WINDOW_SCALE);
+                        ui.push_id(idx.id() as i32);
+
+                        // Display node contents first in the foreground
+                        draw_list.channels_set_current(if self.active_node == Some(*idx) {
+                            4
+                        } else {
+                            2
+                        });
+
+                        let node_rect_min = (offset.0 + node_pos.0, offset.1 + node_pos.1);
+                        ui.set_cursor_screen_pos((
+                            node_rect_min.0 + NODE_WINDOW_PADDING.x,
+                            node_rect_min.1 + NODE_WINDOW_PADDING.y,
+                        ));
+                        ui.group(|| {});
+                        ui.pop_id();
                     }
                 })
             });
