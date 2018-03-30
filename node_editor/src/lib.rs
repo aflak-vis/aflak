@@ -3,12 +3,15 @@ extern crate aflak_cake as cake;
 extern crate imgui;
 extern crate imgui_sys as sys;
 
+use std::collections::BTreeMap;
 use cake::{TransformIdx, Transformation, DST};
-use imgui::{ImGuiCol, ImGuiMouseCursor, ImMouseButton, ImString, ImVec2, StyleVar, Ui};
+use imgui::{ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImStr, ImString,
+            ImVec2, StyleVar, Ui};
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transformation<T, E>],
+    node_states: BTreeMap<TransformIdx, NodeState>,
     active_node: Option<TransformIdx>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
@@ -18,11 +21,12 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     pub show_grid: bool,
 }
 
-impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
-    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
+impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
+    fn default() -> Self {
         Self {
             dst: DST::new(),
-            addable_nodes,
+            addable_nodes: &[],
+            node_states: BTreeMap::new(),
             active_node: None,
             show_left_pane: true,
             left_pane_size: None,
@@ -30,6 +34,33 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
             show_connection_names: true,
             scrolling: (0.0, 0.0),
             show_grid: true,
+        }
+    }
+}
+
+struct NodeState {
+    selected: bool,
+}
+
+impl Default for NodeState {
+    fn default() -> Self {
+        Self { selected: false }
+    }
+}
+
+impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
+    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
+        Self {
+            addable_nodes,
+            ..Default::default()
+        }
+    }
+
+    pub fn from_dst(dst: DST<'t, T, E>, addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
+        Self {
+            dst,
+            addable_nodes,
+            ..Default::default()
         }
     }
 
@@ -110,9 +141,30 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
         ui.same_line(0.0);
     }
 
-    fn show_node_list(&self, ui: &Ui) {
-        // TODO
-        ui.text(im_str!("TODO SHOW NODE LIST"));
+    fn show_node_list(&mut self, ui: &Ui) {
+        for (idx, node) in self.dst.transforms_iter() {
+            ui.push_id(idx.id() as i32);
+            let selected = self.node_states
+                .entry(*idx)
+                .or_insert_with(Default::default)
+                .selected;
+            if ui.selectable(
+                &ImString::new(node.name),
+                selected,
+                ImGuiSelectableFlags::empty(),
+                (0.0, 0.0),
+            ) {
+                if !ui.imgui().key_ctrl() {
+                    for state in self.node_states.values_mut() {
+                        state.selected = false;
+                    }
+                }
+                let state = self.node_states.get_mut(idx).unwrap();
+                state.selected = !state.selected;
+                self.active_node = Some(*idx);
+            }
+            ui.pop_id();
+        }
     }
 
     fn render_graph_node(&mut self, ui: &Ui) {

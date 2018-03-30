@@ -346,6 +346,9 @@ impl TransformIdx {
     fn incr(self) -> Self {
         TransformIdx(self.0 + 1)
     }
+    pub fn id(&self) -> usize {
+        self.0
+    }
 }
 
 impl OutputId {
