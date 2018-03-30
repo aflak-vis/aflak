@@ -14,6 +14,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
     pub show_connection_names: bool,
+    scrolling: (f32, f32),
     pub show_grid: bool,
 }
 
@@ -27,6 +28,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
             left_pane_size: None,
             show_top_pane: true,
             show_connection_names: true,
+            scrolling: (0.0, 0.0),
             show_grid: true,
         }
     }
@@ -45,7 +47,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
 
     fn render_left_pane(&mut self, ui: &Ui) {
         const LEFT_PANE_DEFAULT_RELATIVE_WIDTH: f32 = 0.2;
-        let window_size = ui.imgui().get_window_size();
+        let window_size = ui.get_window_size();
         let pane_width = *self.left_pane_size
             .get_or_insert_with(|| window_size.0 * LEFT_PANE_DEFAULT_RELATIVE_WIDTH);
 
@@ -128,7 +130,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         );
                         ui.same_line_spacing(0.0, 15.0);
                         ui.text(im_str!("Use CTRL+MW to zoom. Scroll with MMB."));
-                        ui.same_line(ui.imgui().get_window_width() - 120.0);
+                        ui.same_line(ui.get_window_width() - 120.0);
                         ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
                         ui.text(im_str!("Double-click LMB on slots to remove their links (or SHIFT+LMB on links)."));
                     });
@@ -146,9 +148,77 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         .movable(false)
                         .show_scrollbar_with_mouse(false)
                         .build(|| {
-                            ui.text(im_str!("TEST"));
+                            // TODO: Manage scaling (and font-scaling)
+                            self.render_graph_canvas(ui);
                         });
                 });
             });
+    }
+
+    fn render_graph_canvas(&mut self, ui: &Ui) {
+        const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
+        const NODE_SLOT_RADIUS: f32 = 5.0 * CURRENT_FONT_WINDOW_SCALE;
+        const NODE_SLOT_RADIUS_SQUARED: f32 = NODE_SLOT_RADIUS * NODE_SLOT_RADIUS;
+        const NODE_WINDOW_PADDING: ImVec2 = ImVec2 { x: 0.0, y: 0.0 };
+        let mouse_delta_squared = {
+            let delta = ui.imgui().mouse_delta();
+            delta.0 * delta.0 + delta.1 * delta.1
+        };
+        // We don't detect "mouse release" events while dragging links onto slots.
+        // Instead we check that our mouse delta is small enough. Otherwise we couldn't
+        // hover other slots while dragging links.
+        const MOUSE_DELTA_SQUARED_THRESHOLD: f32 = NODE_SLOT_RADIUS_SQUARED * 0.05;
+        const BASE_NODE_WIDTH: f32 = 120.0 * CURRENT_FONT_WINDOW_SCALE;
+        let mut current_node_width = BASE_NODE_WIDTH;
+        ui.with_item_width(current_node_width, || {
+            ui.with_window_draw_list(|list| {
+                list.channels_split(5, |draw_list| {
+                    let canvas_size = ui.get_window_size();
+                    let win_pos = ui.get_cursor_screen_pos();
+                    // TODO: Center view on a specific node
+                    let effective_scrolling = (
+                        self.scrolling.0 - canvas_size.0 * 0.5,
+                        self.scrolling.1 - canvas_size.1 * 0.5,
+                    );
+                    let offset = (
+                        win_pos.0 - effective_scrolling.0,
+                        win_pos.1 - effective_scrolling.1,
+                    );
+
+                    if self.show_grid {
+                        let (cursor_pos_x, cursor_pos_y) = ui.get_cursor_pos();
+                        let offset2 = (
+                            cursor_pos_x - effective_scrolling.0,
+                            cursor_pos_y - effective_scrolling.1,
+                        );
+                        const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
+                        const GRID_SIZE: f32 = 64.0;
+                        const GRID_LINE_WIDTH: f32 = 1.0;
+                        let grid_sz = CURRENT_FONT_WINDOW_SCALE * GRID_SIZE;
+                        let grid_line_width = CURRENT_FONT_WINDOW_SCALE * GRID_LINE_WIDTH;
+                        let mut x = offset2.0 % grid_sz;
+                        while x < canvas_size.0 {
+                            let p1 = (x + win_pos.0, win_pos.1);
+                            let p2 = (x + win_pos.0, canvas_size.1 + win_pos.1);
+                            draw_list
+                                .add_line(p1, p2, GRID_COLOR)
+                                .thickness(grid_line_width)
+                                .build();
+                            x += grid_sz;
+                        }
+                        let mut y = offset2.1 % grid_sz;
+                        while y < canvas_size.1 {
+                            let p1 = (win_pos.0, y + win_pos.1);
+                            let p2 = (canvas_size.0 + win_pos.0, y + win_pos.1);
+                            draw_list
+                                .add_line(p1, p2, GRID_COLOR)
+                                .thickness(grid_line_width)
+                                .build();
+                            y += grid_sz;
+                        }
+                    }
+                })
+            });
+        });
     }
 }
