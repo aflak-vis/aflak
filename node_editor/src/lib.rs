@@ -56,6 +56,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 ui.spacing();
                 ui.separator();
                 if ui.collapsing_header(im_str!("Node List##node_list_1"))
+                    .default_open(true)
                     .build()
                 {
                     ui.separator();
@@ -66,6 +67,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     ui.spacing();
                     ui.separator();
                     if ui.collapsing_header(im_str!("Active Node##activeNode"))
+                        .default_open(true)
                         .build()
                     {
                         ui.separator();
