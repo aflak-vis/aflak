@@ -15,13 +15,13 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Output {
-    t_idx: TransformIdx,
+    pub t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Input {
-    t_idx: TransformIdx,
+    pub t_idx: TransformIdx,
     input_i: InputIdx,
 }
 
@@ -34,6 +34,9 @@ impl Output {
             output_i: OutputIdx(out_i),
         }
     }
+    pub fn index(&self) -> usize {
+        self.output_i.into()
+    }
 }
 
 impl Input {
@@ -44,6 +47,9 @@ impl Input {
             t_idx,
             input_i: InputIdx(in_i),
         }
+    }
+    pub fn index(&self) -> usize {
+        self.input_i.into()
     }
 }
 

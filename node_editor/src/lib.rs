@@ -65,16 +65,29 @@ impl NodeState {
         )
     }
 
-    fn get_input_slot_pos(
+    fn get_input_slot_pos<I: Into<usize>, C: Into<usize>>(
         &self,
-        slot_idx: usize,
-        slot_cnt: usize,
+        slot_idx: I,
+        slot_cnt: C,
         font_window_scale: f32,
     ) -> (f32, f32) {
         (
             self.pos.0 * font_window_scale,
             self.pos.1 * font_window_scale
-                + self.size.1 * (slot_idx + 1) as f32 / (slot_cnt + 1) as f32,
+                + self.size.1 * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
+        )
+    }
+
+    fn get_output_slot_pos<I: Into<usize>, C: Into<usize>>(
+        &self,
+        slot_idx: I,
+        slot_cnt: C,
+        font_window_scale: f32,
+    ) -> (f32, f32) {
+        (
+            self.pos.0 * font_window_scale + self.size.0,
+            self.pos.1 * font_window_scale
+                + self.size.1 * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
         )
     }
 }
@@ -442,7 +455,64 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ui.text(&ImString::new(slot_name));
                             }
                         }
+                        const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
+                        for (slot_idx, &slot_name) in node.output.iter().enumerate() {
+                            let connector_pos = state.get_output_slot_pos(
+                                slot_idx,
+                                node.output.len(),
+                                CURRENT_FONT_WINDOW_SCALE,
+                            );
+                            let connector_screen_pos =
+                                (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                            draw_list
+                                .add_circle(
+                                    connector_screen_pos,
+                                    NODE_SLOT_RADIUS,
+                                    INPUT_SLOT_COLOR,
+                                )
+                                .thickness(CONNECTOR_BORDER_THICKNESS)
+                                .filled(true)
+                                .build();
+                            if self.show_connection_names {
+                                let name_size =
+                                    ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
+                                ui.set_cursor_screen_pos((
+                                    connector_screen_pos.0 + NODE_SLOT_RADIUS,
+                                    connector_screen_pos.1 - name_size.y,
+                                ));
+                                ui.text(&ImString::new(slot_name));
+                            }
+                        }
                         ui.pop_id();
+                    }
+
+                    // Display links
+                    draw_list.channels_set_current(0);
+                    for (output, input) in self.dst.edges_iter() {
+                        let input_node_count = self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                        let output_node_count = self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                        let input_node_state = self.node_states.get(&input.t_idx).unwrap();
+                        let output_node_state = self.node_states.get(&output.t_idx).unwrap();
+                        let connector_in_pos = input_node_state.get_input_slot_pos(
+                            input.index(),
+                            input_node_count,
+                            CURRENT_FONT_WINDOW_SCALE,
+                        );
+                        let p1 = (offset.0 + connector_in_pos.0, offset.1 + connector_in_pos.1);
+
+                        let connector_out_pos = output_node_state.get_output_slot_pos(
+                            output.index(),
+                            output_node_count,
+                            CURRENT_FONT_WINDOW_SCALE,
+                        );
+                        let p2 = (offset.0 + connector_out_pos.0, offset.1 + connector_out_pos.1);
+                        let cp1 = (p1.0 - link_cp[0], p1.1 - link_cp[1]);
+                        let cp2 = (p2.0 + link_cp[0], p2.1 + link_cp[1]);
+                        const LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
+                        draw_list
+                            .add_bezier_curve(p1, cp1, cp2, p2, LINK_COLOR)
+                            .thickness(LINK_LINE_WIDTH)
+                            .build();
                     }
                 })
             });
