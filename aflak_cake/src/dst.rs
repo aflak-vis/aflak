@@ -150,6 +150,10 @@ where
         self.transforms.iter()
     }
 
+    pub fn edges_iter(&self) -> EdgeIterator {
+        EdgeIterator::new(self.edges.iter())
+    }
+
     /// Get a transform from its TransformIdx.
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'t Transformation<T, E>> {
         self.transforms.get(idx).map(|t| *t)
@@ -403,6 +407,37 @@ where
             }
         } else {
             self.completed_stack.pop()
+        }
+    }
+}
+
+use std::slice;
+
+pub struct EdgeIterator<'a> {
+    edges: hash_map::Iter<'a, Output, InputList>,
+    output: Option<&'a Output>,
+    inputs: slice::Iter<'a, Input>,
+}
+
+
+impl<'a> EdgeIterator<'a> {
+    fn new(edges: hash_map::Iter<'a, Output, InputList>) -> Self {
+        const NO_INPUT: [Input; 0] = [];
+        Self { edges, output: None, inputs: NO_INPUT.iter() }
+    }
+}
+
+impl<'a> Iterator for EdgeIterator<'a> {
+    type Item = (&'a Output, &'a Input);
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(input) = self.inputs.next() {
+            Some((self.output.unwrap(), input))
+        } else if let Some((output, input_list)) = self.edges.next() {
+            self.output = Some(output);
+            self.inputs = input_list.inputs.iter();
+            self.next()
+        } else {
+            None
         }
     }
 }
