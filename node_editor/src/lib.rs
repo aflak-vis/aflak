@@ -5,8 +5,8 @@ extern crate imgui_sys as sys;
 
 use std::collections::BTreeMap;
 use cake::{TransformIdx, Transformation, DST};
-use imgui::{ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImStr, ImString,
-            ImVec2, StyleVar, Ui};
+use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImStr,
+            ImString, ImVec2, StyleVar, Ui};
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
@@ -38,16 +38,21 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
     }
 }
 
+#[derive(Debug)]
 struct NodeState {
     selected: bool,
+    open: bool,
     pos: (f32, f32),
+    size: (f32, f32),
 }
 
 impl Default for NodeState {
     fn default() -> Self {
         Self {
             selected: false,
+            open: true,
             pos: (0.0, 0.0),
+            size: (0.0, 0.0),
         }
     }
 }
@@ -57,6 +62,19 @@ impl NodeState {
         (
             self.pos.0 * font_window_scale,
             self.pos.1 * font_window_scale,
+        )
+    }
+
+    fn get_input_slot_pos(
+        &self,
+        slot_idx: usize,
+        slot_cnt: usize,
+        font_window_scale: f32,
+    ) -> (f32, f32) {
+        (
+            self.pos.0 * font_window_scale,
+            self.pos.1 * font_window_scale
+                + self.size.1 * (slot_idx + 1) as f32 / (slot_cnt + 1) as f32,
         )
     }
 }
@@ -157,10 +175,11 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     fn show_node_list(&mut self, ui: &Ui) {
         for (idx, node) in self.dst.transforms_iter() {
             ui.push_id(idx.id() as i32);
-            let selected = self.node_states
-                .entry(*idx)
-                .or_insert_with(Default::default)
-                .selected;
+            if !self.node_states.contains_key(idx) {
+                let new_node = self.init_node();
+                self.node_states.insert(*idx, new_node);
+            }
+            let selected = self.node_states.get(idx).unwrap().selected;
             if ui.selectable(
                 &ImString::new(node.name),
                 selected,
@@ -293,7 +312,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     // NODE LINK CULLING?
 
                     for (idx, node) in self.dst.transforms_iter() {
-                        let state = self.node_states.get(idx).unwrap();
+                        let state = self.node_states.get_mut(idx).unwrap();
                         let node_pos = state.get_pos(CURRENT_FONT_WINDOW_SCALE);
                         ui.push_id(idx.id() as i32);
 
@@ -305,15 +324,144 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         });
 
                         let node_rect_min = (offset.0 + node_pos.0, offset.1 + node_pos.1);
+                        let node_rect_max = (
+                            node_rect_min.0 + state.size.0,
+                            node_rect_min.1 + state.size.1,
+                        );
                         ui.set_cursor_screen_pos((
                             node_rect_min.0 + NODE_WINDOW_PADDING.x,
                             node_rect_min.1 + NODE_WINDOW_PADDING.y,
                         ));
-                        ui.group(|| {});
+                        ui.group(|| {
+                            let default_text_color =
+                                ui.imgui().style().colors[ImGuiCol::Text as usize];
+                            ui.with_color_var(ImGuiCol::Text, default_text_color, || {
+                                const TRANSPARENT: [f32; 4] = [1.0, 1.0, 1.0, 0.0];
+                                const TREE_STYLE: [(ImGuiCol, [f32; 4]); 3] = [
+                                    (ImGuiCol::Header, TRANSPARENT),
+                                    (ImGuiCol::HeaderActive, TRANSPARENT),
+                                    (ImGuiCol::HeaderHovered, TRANSPARENT),
+                                ];
+                                ui.with_color_vars(&TREE_STYLE, || {
+                                    if ui.tree_node(&ImString::new(node.name))
+                                        .opened(state.open, ImGuiCond::Always)
+                                        .build(|| {})
+                                    {
+                                        state.open = false;
+                                    } else {
+                                        state.open = true;
+                                    }
+                                });
+                                ui.same_line_spacing(0.0, 2.0);
+                                //ui.text(node.name);
+                                if ui.is_item_hovered() {
+                                    // Show tooltip ?
+                                    ui.tooltip(|| ui.text("TEST TOOLTIP"));
+                                }
+                            });
+                            // TODO: Add copy-paste buttons
+                        });
+
+                        let item_rect_size = ui.get_item_rect_size();
+                        state.size = (
+                            item_rect_size.0 + 2.0 * NODE_WINDOW_PADDING.x,
+                            item_rect_size.1 + 2.0 * NODE_WINDOW_PADDING.y,
+                        );
+
+                        draw_list.channels_set_current(if self.active_node == Some(*idx) {
+                            3
+                        } else {
+                            1
+                        });
+                        ui.set_cursor_screen_pos(node_rect_min);
+                        ui.invisible_button(im_str!("node##nodeinvbtn"), state.size);
+                        // TODO: Handle selection
+
+                        const NODE_ROUNDING: f32 = 4.0;
+                        const NODE_COLOR: [f32; 3] = [0.24, 0.24, 0.24];
+                        let node_bg_color = NODE_COLOR;
+                        draw_list
+                            .add_rect(node_rect_min, node_rect_max, node_bg_color)
+                            .rounding(NODE_ROUNDING)
+                            .filled(true)
+                            .build();
+
+                        // Display frame
+                        const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
+                        let line_thickness = if self.active_node == Some(*idx) {
+                            3.0
+                        } else {
+                            1.0
+                        } * CURRENT_FONT_WINDOW_SCALE;
+                        draw_list
+                            .add_rect(node_rect_min, node_rect_max, NODE_FRAME_COLOR)
+                            .thickness(line_thickness)
+                            .rounding(NODE_ROUNDING)
+                            .build();
+                        // Line below node name
+                        if state.open {
+                            let node_title_bar_height =
+                                ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.y;
+                            let tmp1 = (
+                                node_rect_min.0,
+                                node_rect_min.1 + node_title_bar_height + 1.0,
+                            );
+                            let tmp2 = (node_rect_max.0, tmp1.1);
+                            draw_list
+                                .add_line(tmp1, tmp2, NODE_FRAME_COLOR)
+                                .thickness(line_thickness)
+                                .build();
+                        }
+                        // Display connectors
+                        const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
+                        const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
+                        for (slot_idx, &slot_name) in node.input.iter().enumerate() {
+                            let connector_pos = state.get_input_slot_pos(
+                                slot_idx,
+                                node.input.len(),
+                                CURRENT_FONT_WINDOW_SCALE,
+                            );
+                            let connector_screen_pos =
+                                (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                            draw_list
+                                .add_circle(
+                                    connector_screen_pos,
+                                    NODE_SLOT_RADIUS,
+                                    INPUT_SLOT_COLOR,
+                                )
+                                .thickness(CONNECTOR_BORDER_THICKNESS)
+                                .filled(true)
+                                .build();
+                            if self.show_connection_names {
+                                let name_size =
+                                    ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
+                                ui.set_cursor_screen_pos((
+                                    connector_screen_pos.0 - NODE_SLOT_RADIUS - name_size.x,
+                                    connector_screen_pos.1 - name_size.y,
+                                ));
+                                ui.text(&ImString::new(slot_name));
+                            }
+                        }
                         ui.pop_id();
                     }
                 })
             });
         });
+    }
+}
+
+/// Manage nodes
+impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
+    fn init_node(&self) -> NodeState {
+        let mut max = -300.0;
+        for state in self.node_states.values() {
+            if state.pos.1 > max {
+                max = state.pos.1;
+            }
+        }
+        NodeState {
+            pos: (0.0, max + 150.0),
+            ..Default::default()
+        }
     }
 }
