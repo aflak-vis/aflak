@@ -372,8 +372,13 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     ui.tooltip(|| ui.text("TEST TOOLTIP"));
                                 }
                             });
+                            ui.dummy([0.0, 100.0]);
                             // TODO: Add copy-paste buttons
                         });
+                        if ui.is_item_hovered() && ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                            let delta = ui.imgui().mouse_delta();
+                            state.pos = (state.pos.0 + delta.0, state.pos.1 + delta.1);
+                        }
 
                         let item_rect_size = ui.get_item_rect_size();
                         state.size = (
