@@ -517,6 +517,20 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 })
             });
         });
+        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+            ui.open_popup(im_str!("TEST"));
+        }
+        ui.popup(im_str!("TEST"), || {
+            ui.text("Add node");
+            ui.separator();
+            for (i, node) in self.addable_nodes.iter().enumerate() {
+                ui.push_id(i as i32);
+                if ui.menu_item(&ImString::new(node.name)).build() {
+                    self.dst.add_transform(node);
+                }
+                ui.pop_id();
+            }
+        });
     }
 }
 
