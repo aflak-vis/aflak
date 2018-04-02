@@ -13,6 +13,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     addable_nodes: &'t [&'t Transformation<T, E>],
     node_states: BTreeMap<TransformIdx, NodeState>,
     active_node: Option<TransformIdx>,
+    drag_node: Option<TransformIdx>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -28,6 +29,7 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
             addable_nodes: &[],
             node_states: BTreeMap::new(),
             active_node: None,
+            drag_node: None,
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -375,7 +377,15 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             ui.dummy([0.0, 100.0]);
                             // TODO: Add copy-paste buttons
                         });
-                        if ui.is_item_hovered() && ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                        if ui.is_item_hovered() {
+                            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                                self.active_node = Some(*idx);
+                                self.drag_node = Some(*idx);
+                            }
+                        }
+                        if self.drag_node == Some(*idx)
+                            && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
+                        {
                             let delta = ui.imgui().mouse_delta();
                             state.pos = (state.pos.0 + delta.0, state.pos.1 + delta.1);
                         }
