@@ -202,12 +202,9 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 (0.0, 0.0),
             ) {
                 if !ui.imgui().key_ctrl() {
-                    for state in self.node_states.values_mut() {
-                        state.selected = false;
-                    }
+                    deselect_all_nodes(&mut self.node_states);
                 }
-                let state = self.node_states.get_mut(idx).unwrap();
-                state.selected = !state.selected;
+                toggle_select_node(&mut self.node_states, idx);
                 self.active_node = Some(*idx);
             }
             ui.pop_id();
@@ -326,9 +323,11 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
                     // NODE LINK CULLING?
 
+                    let node_states = &mut self.node_states;
                     for (idx, node) in self.dst.transforms_iter() {
-                        let state = self.node_states.get_mut(idx).unwrap();
-                        let node_pos = state.get_pos(CURRENT_FONT_WINDOW_SCALE);
+                        let node_pos = node_state_get(node_states, idx, |state| {
+                            state.get_pos(CURRENT_FONT_WINDOW_SCALE)
+                        });
                         ui.push_id(idx.id() as i32);
 
                         // Display node contents first in the foreground
@@ -339,10 +338,12 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         });
 
                         let node_rect_min = (offset.0 + node_pos.0, offset.1 + node_pos.1);
-                        let node_rect_max = (
-                            node_rect_min.0 + state.size.0,
-                            node_rect_min.1 + state.size.1,
-                        );
+                        let node_rect_max = node_state_get(node_states, idx, |state| {
+                            (
+                                node_rect_min.0 + state.size.0,
+                                node_rect_min.1 + state.size.1,
+                            )
+                        });
                         ui.set_cursor_screen_pos((
                             node_rect_min.0 + NODE_WINDOW_PADDING.x,
                             node_rect_min.1 + NODE_WINDOW_PADDING.y,
@@ -359,12 +360,17 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ];
                                 ui.with_color_vars(&TREE_STYLE, || {
                                     if ui.tree_node(&ImString::new(node.name))
-                                        .opened(state.open, ImGuiCond::Always)
+                                        .opened(
+                                            node_state_get(node_states, idx, |state| {
+                                                state.open
+                                            }),
+                                            ImGuiCond::Always,
+                                        )
                                         .build(|| {})
                                     {
-                                        state.open = false;
+                                        open_node(node_states, idx, false);
                                     } else {
-                                        state.open = true;
+                                        open_node(node_states, idx, true);
                                     }
                                 });
                                 ui.same_line_spacing(0.0, 2.0);
@@ -381,20 +387,28 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                                 self.active_node = Some(*idx);
                                 self.drag_node = Some(*idx);
+                                if !ui.imgui().key_ctrl() {
+                                    deselect_all_nodes(node_states);
+                                }
+                                toggle_select_node(node_states, idx);
                             }
                         }
                         if self.drag_node == Some(*idx)
                             && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                         {
                             let delta = ui.imgui().mouse_delta();
-                            state.pos = (state.pos.0 + delta.0, state.pos.1 + delta.1);
+                            node_state_set(node_states, idx, |state| {
+                                state.pos = (state.pos.0 + delta.0, state.pos.1 + delta.1);
+                            });
                         }
 
                         let item_rect_size = ui.get_item_rect_size();
-                        state.size = (
-                            item_rect_size.0 + 2.0 * NODE_WINDOW_PADDING.x,
-                            item_rect_size.1 + 2.0 * NODE_WINDOW_PADDING.y,
-                        );
+                        node_state_set(node_states, idx, |state| {
+                            state.size = (
+                                item_rect_size.0 + 2.0 * NODE_WINDOW_PADDING.x,
+                                item_rect_size.1 + 2.0 * NODE_WINDOW_PADDING.y,
+                            );
+                        });
 
                         draw_list.channels_set_current(if self.active_node == Some(*idx) {
                             3
@@ -402,7 +416,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             1
                         });
                         ui.set_cursor_screen_pos(node_rect_min);
-                        ui.invisible_button(im_str!("node##nodeinvbtn"), state.size);
+                        ui.invisible_button(
+                            im_str!("node##nodeinvbtn"),
+                            node_state_get(node_states, idx, |state| state.size),
+                        );
                         // TODO: Handle selection
 
                         const NODE_ROUNDING: f32 = 4.0;
@@ -427,7 +444,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             .rounding(NODE_ROUNDING)
                             .build();
                         // Line below node name
-                        if state.open {
+                        if node_state_get(node_states, idx, |state| state.open) {
                             let node_title_bar_height =
                                 ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.y;
                             let tmp1 = (
@@ -444,11 +461,13 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                         const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.input.iter().enumerate() {
-                            let connector_pos = state.get_input_slot_pos(
-                                slot_idx,
-                                node.input.len(),
-                                CURRENT_FONT_WINDOW_SCALE,
-                            );
+                            let connector_pos = node_state_get(node_states, idx, |state| {
+                                state.get_input_slot_pos(
+                                    slot_idx,
+                                    node.input.len(),
+                                    CURRENT_FONT_WINDOW_SCALE,
+                                )
+                            });
                             let connector_screen_pos =
                                 (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
                             draw_list
@@ -472,11 +491,13 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         }
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.output.iter().enumerate() {
-                            let connector_pos = state.get_output_slot_pos(
-                                slot_idx,
-                                node.output.len(),
-                                CURRENT_FONT_WINDOW_SCALE,
-                            );
+                            let connector_pos = node_state_get(node_states, idx, |state| {
+                                state.get_output_slot_pos(
+                                    slot_idx,
+                                    node.output.len(),
+                                    CURRENT_FONT_WINDOW_SCALE,
+                                )
+                            });
                             let connector_screen_pos =
                                 (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
                             draw_list
@@ -504,10 +525,12 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     // Display links
                     draw_list.channels_set_current(0);
                     for (output, input) in self.dst.edges_iter() {
-                        let input_node_count = self.dst.get_transform(&input.t_idx).unwrap().input.len();
-                        let output_node_count = self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let input_node_state = self.node_states.get(&input.t_idx).unwrap();
-                        let output_node_state = self.node_states.get(&output.t_idx).unwrap();
+                        let input_node_count =
+                            self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                        let output_node_count =
+                            self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                        let input_node_state = node_states.get(&input.t_idx).unwrap();
+                        let output_node_state = node_states.get(&output.t_idx).unwrap();
                         let connector_in_pos = input_node_state.get_input_slot_pos(
                             input.index(),
                             input_node_count,
@@ -520,7 +543,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             output_node_count,
                             CURRENT_FONT_WINDOW_SCALE,
                         );
-                        let p2 = (offset.0 + connector_out_pos.0, offset.1 + connector_out_pos.1);
+                        let p2 = (
+                            offset.0 + connector_out_pos.0,
+                            offset.1 + connector_out_pos.1,
+                        );
                         let cp1 = (p1.0 - link_cp[0], p1.1 - link_cp[1]);
                         let cp2 = (p2.0 + link_cp[0], p2.1 + link_cp[1]);
                         const LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
@@ -563,4 +589,38 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
             ..Default::default()
         }
     }
+}
+
+fn deselect_all_nodes(node_states: &mut BTreeMap<TransformIdx, NodeState>) {
+    for state in node_states.values_mut() {
+        state.selected = false;
+    }
+}
+
+fn toggle_select_node(node_states: &mut BTreeMap<TransformIdx, NodeState>, idx: &TransformIdx) {
+    let state = node_states.get_mut(idx).unwrap();
+    state.selected = !state.selected;
+}
+
+fn open_node(node_states: &mut BTreeMap<TransformIdx, NodeState>, idx: &TransformIdx, open: bool) {
+    let state = node_states.get_mut(idx).unwrap();
+    state.open = open;
+}
+
+fn node_state_get<'a, T, F: FnOnce(&'a NodeState) -> T>(
+    node_states: &'a BTreeMap<TransformIdx, NodeState>,
+    idx: &TransformIdx,
+    f: F,
+) -> T {
+    let state = node_states.get(idx).unwrap();
+    f(state)
+}
+
+fn node_state_set<'a, T, F: FnOnce(&'a mut NodeState) -> T>(
+    node_states: &'a mut BTreeMap<TransformIdx, NodeState>,
+    idx: &TransformIdx,
+    f: F,
+) -> T {
+    let state = node_states.get_mut(idx).unwrap();
+    f(state)
 }
