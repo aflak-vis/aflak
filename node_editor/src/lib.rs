@@ -473,7 +473,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 .add_circle(
                                     connector_screen_pos,
                                     NODE_SLOT_RADIUS,
-                                    INPUT_SLOT_COLOR,
+                                    OUTPUT_SLOT_COLOR,
                                 )
                                 .thickness(CONNECTOR_BORDER_THICKNESS)
                                 .filled(true)
