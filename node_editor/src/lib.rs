@@ -526,7 +526,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         const LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
                         draw_list
                             .add_bezier_curve(p1, cp1, cp2, p2, LINK_COLOR)
-                            .thickness(LINK_LINE_WIDTH)
+                            .thickness(link_line_width)
                             .build();
                     }
                 })
