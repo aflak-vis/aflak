@@ -10,7 +10,7 @@ use transform::{NamedAlgorithms, Transformation};
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, &'t Transformation<T, E>>,
     edges: HashMap<Output, InputList>,
-    outputs: HashMap<OutputId, Output>,
+    outputs: HashMap<OutputId, Option<Output>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -126,7 +126,12 @@ where
             .ok_or_else(|| {
                 DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
             })
-            .and_then(|output| self._compute(*output))
+            .and_then(|output| {
+                output.ok_or_else(|| {
+                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
+                })
+            })
+            .and_then(|output| self._compute(output))
     }
 }
 
@@ -160,7 +165,7 @@ where
         EdgeIterator::new(self.edges.iter())
     }
 
-    pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Output> {
+    pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
         self.outputs.iter()
     }
 
@@ -250,7 +255,7 @@ where
     pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
-            self.outputs.insert(idx, output);
+            self.outputs.insert(idx, Some(output));
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
@@ -258,6 +263,13 @@ where
                 output
             )))
         }
+    }
+
+    /// Create a new output not attached and return its Id.
+    pub fn create_output(&mut self) -> OutputId {
+        let idx = self.new_output_id();
+        self.outputs.insert(idx, None);
+        idx
     }
 
     /// Detach output with given ID. Does nothing if output does not exist.
@@ -348,7 +360,12 @@ where
             .ok_or_else(|| {
                 DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
             })
-            .map(|output| self._dependencies(*output))
+            .and_then(|output| {
+                output.ok_or_else(|| {
+                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
+                })
+            })
+            .map(|output| self._dependencies(output))
     }
 }
 
@@ -480,7 +497,7 @@ impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
 
 pub struct NodeIter<'a, T: 'a + Clone, E: 'a> {
     transforms: TransformIterator<'a, T, E>,
-    outputs: hash_map::Iter<'a, OutputId, Output>,
+    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
 }
 
 pub enum NodeId<'a> {
@@ -490,7 +507,7 @@ pub enum NodeId<'a> {
 
 pub enum Node<'a, T: 'a + Clone, E: 'a> {
     Transform(&'a Transformation<T, E>),
-    Output(&'a Output),
+    Output(Option<&'a Output>),
 }
 
 impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
@@ -499,7 +516,7 @@ impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
         if let Some((id, t)) = self.transforms.next() {
             Some((NodeId::Transform(id), Node::Transform(t)))
         } else if let Some((id, o)) = self.outputs.next() {
-            Some((NodeId::Output(id), Node::Output(o)))
+            Some((NodeId::Output(id), Node::Output(o.as_ref())))
         } else {
             None
         }
