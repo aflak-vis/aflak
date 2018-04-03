@@ -164,6 +164,13 @@ where
         self.outputs.iter()
     }
 
+    pub fn transforms_outputs_iter(&self) -> NodeIter<T, E> {
+        NodeIter {
+            transforms: self.transforms_iter(),
+            outputs: self.outputs_iter(),
+        }
+    }
+
     /// Get a transform from its TransformIdx.
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'t Transformation<T, E>> {
         self.transforms.get(idx).map(|t| *t)
@@ -468,6 +475,34 @@ impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
     type Item = (&'a TransformIdx, &'a Transformation<T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(idx, &t)| (idx, t))
+    }
+}
+
+pub struct NodeIter<'a, T: 'a + Clone, E: 'a> {
+    transforms: TransformIterator<'a, T, E>,
+    outputs: hash_map::Iter<'a, OutputId, Output>,
+}
+
+pub enum NodeId<'a> {
+    Transform(&'a TransformIdx),
+    Output(&'a OutputId),
+}
+
+pub enum Node<'a, T: 'a + Clone, E: 'a> {
+    Transform(&'a Transformation<T, E>),
+    Output(&'a Output),
+}
+
+impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
+    type Item = (NodeId<'a>, Node<'a, T, E>);
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((id, t)) = self.transforms.next() {
+            Some((NodeId::Transform(id), Node::Transform(t)))
+        } else if let Some((id, o)) = self.outputs.next() {
+            Some((NodeId::Output(id), Node::Output(o)))
+        } else {
+            None
+        }
     }
 }
 
