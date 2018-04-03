@@ -1,7 +1,7 @@
-use variant_name::VariantName;
 use std::borrow::Borrow;
-use std::hash::Hash;
 use std::collections::{hash_map, HashMap};
+use std::hash::Hash;
+use variant_name::VariantName;
 
 use transform::{NamedAlgorithms, Transformation};
 
@@ -429,11 +429,14 @@ pub struct EdgeIterator<'a> {
     inputs: slice::Iter<'a, Input>,
 }
 
-
 impl<'a> EdgeIterator<'a> {
     fn new(edges: hash_map::Iter<'a, Output, InputList>) -> Self {
         const NO_INPUT: [Input; 0] = [];
-        Self { edges, output: None, inputs: NO_INPUT.iter() }
+        Self {
+            edges,
+            output: None,
+            inputs: NO_INPUT.iter(),
+        }
     }
 }
 

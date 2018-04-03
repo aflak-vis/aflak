@@ -7,12 +7,12 @@ extern crate serde_derive;
 
 extern crate variant_name;
 
-mod transform;
 mod dst;
 mod serial;
+mod transform;
 
-pub use transform::*;
 pub use dst::*;
+pub use transform::*;
 
 pub use self::variant_name::VariantName;
 
