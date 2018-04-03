@@ -14,12 +14,19 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     node_states: BTreeMap<TransformIdx, NodeState>,
     active_node: Option<TransformIdx>,
     drag_node: Option<TransformIdx>,
+    creating_link: Option<LinkExtremity>,
+    new_link: Option<(cake::Output, cake::Input)>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
     pub show_connection_names: bool,
     scrolling: (f32, f32),
     pub show_grid: bool,
+}
+
+enum LinkExtremity {
+    Output(cake::Output),
+    Input(cake::Input),
 }
 
 impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
@@ -30,6 +37,8 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
             node_states: BTreeMap::new(),
             active_node: None,
             drag_node: None,
+            creating_link: None,
+            new_link: None,
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -361,9 +370,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ui.with_color_vars(&TREE_STYLE, || {
                                     if ui.tree_node(&ImString::new(node.name))
                                         .opened(
-                                            node_state_get(node_states, idx, |state| {
-                                                state.open
-                                            }),
+                                            node_state_get(node_states, idx, |state| state.open),
                                             ImGuiCond::Always,
                                         )
                                         .build(|| {})
@@ -488,6 +495,28 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ));
                                 ui.text(&ImString::new(slot_name));
                             }
+                            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                                let mouse_pos = ui.imgui().mouse_pos();
+                                let dx = mouse_pos.0 - connector_screen_pos.0;
+                                let dy = mouse_pos.1 - connector_screen_pos.1;
+                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                    self.drag_node = None;
+                                    self.creating_link = Some(LinkExtremity::Input(
+                                        cake::Input::new(*idx, slot_idx),
+                                    ));
+                                }
+                            }
+                            if let Some(LinkExtremity::Output(link_output)) = self.creating_link {
+                                // Check if we hover slot!
+                                let mouse_pos = ui.imgui().mouse_pos();
+                                let dx = mouse_pos.0 - connector_screen_pos.0;
+                                let dy = mouse_pos.1 - connector_screen_pos.1;
+                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                    self.new_link =
+                                        Some((link_output, cake::Input::new(*idx, slot_idx)));
+                                    self.creating_link = None;
+                                }
+                            }
                         }
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.output.iter().enumerate() {
@@ -518,8 +547,77 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ));
                                 ui.text(&ImString::new(slot_name));
                             }
+                            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                                let mouse_pos = ui.imgui().mouse_pos();
+                                let dx = mouse_pos.0 - connector_screen_pos.0;
+                                let dy = mouse_pos.1 - connector_screen_pos.1;
+                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                    self.drag_node = None;
+                                    self.creating_link = Some(LinkExtremity::Output(
+                                        cake::Output::new(*idx, slot_idx),
+                                    ));
+                                }
+                            }
+                            if let Some(LinkExtremity::Input(link_input)) = self.creating_link {
+                                // Check if we hover slot!
+                                let mouse_pos = ui.imgui().mouse_pos();
+                                let dx = mouse_pos.0 - connector_screen_pos.0;
+                                let dy = mouse_pos.1 - connector_screen_pos.1;
+                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                    self.new_link =
+                                        Some((cake::Output::new(*idx, slot_idx), link_input));
+                                    self.creating_link = None;
+                                }
+                            }
                         }
                         ui.pop_id();
+                    }
+                    // Preview new link
+                    const NEW_LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
+                    if self.creating_link.is_some() {
+                        if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                            let (p1, cp1, cp2, p2) = match self.creating_link.as_ref().unwrap() {
+                                &LinkExtremity::Output(output) => {
+                                    let output_node_count =
+                                        self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                                    let output_node_state = node_states.get(&output.t_idx).unwrap();
+                                    let connector_pos = output_node_state.get_output_slot_pos(
+                                        output.index(),
+                                        output_node_count,
+                                        CURRENT_FONT_WINDOW_SCALE,
+                                    );
+                                    let p1 =
+                                        (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                                    let p2 = ui.imgui().mouse_pos();
+                                    let cp1 = (p1.0 + link_cp[0], p1.1 + link_cp[1]);
+                                    let cp2 = (p2.0 - link_cp[0], p2.1 - link_cp[1]);
+                                    (p1, cp1, cp2, p2)
+                                }
+                                &LinkExtremity::Input(input) => {
+                                    let input_node_count =
+                                        self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                                    let input_node_state = node_states.get(&input.t_idx).unwrap();
+                                    let connector_pos = input_node_state.get_input_slot_pos(
+                                        input.index(),
+                                        input_node_count,
+                                        CURRENT_FONT_WINDOW_SCALE,
+                                    );
+                                    let p1 =
+                                        (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                                    let p2 = ui.imgui().mouse_pos();
+                                    let cp1 = (p1.0 - link_cp[0], p1.1 - link_cp[1]);
+                                    let cp2 = (p2.0 + link_cp[0], p2.1 + link_cp[1]);
+                                    (p1, cp1, cp2, p2)
+                                }
+                            };
+                            draw_list
+                                .add_bezier_curve(p1, cp1, cp2, p2, NEW_LINK_COLOR)
+                                .thickness(link_line_width)
+                                .build();
+                        }
+                        if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                            self.creating_link = None;
+                        }
                     }
 
                     // Display links
@@ -558,6 +656,13 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 })
             });
         });
+        if let Some((input, output)) = self.new_link {
+            if let Err(e) = self.dst.connect(input, output) {
+                // TODO: Make a modal to show error
+                eprintln!("{:?}", e);
+            }
+            self.new_link = None;
+        }
         if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
             ui.open_popup(im_str!("TEST"));
         }
