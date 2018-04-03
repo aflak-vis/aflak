@@ -8,10 +8,12 @@ use cake::{TransformIdx, Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
 
+type NodeStates = BTreeMap<NodeId, NodeState>;
+
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transformation<T, E>],
-    node_states: BTreeMap<TransformIdx, NodeState>,
+    node_states: NodeStates,
     active_node: Option<TransformIdx>,
     drag_node: Option<TransformIdx>,
     creating_link: Option<LinkExtremity>,
@@ -27,6 +29,12 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
 enum LinkExtremity {
     Output(cake::Output),
     Input(cake::Input),
+}
+
+#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
+enum NodeId {
+    Transform(TransformIdx),
+    Output(cake::OutputId),
 }
 
 impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
@@ -196,11 +204,12 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     fn show_node_list(&mut self, ui: &Ui) {
         for (idx, node) in self.dst.transforms_iter() {
             ui.push_id(idx.id() as i32);
-            if !self.node_states.contains_key(idx) {
+            let node_id = NodeId::Transform(*idx);
+            if !self.node_states.contains_key(&node_id) {
                 let new_node = self.init_node();
-                self.node_states.insert(*idx, new_node);
+                self.node_states.insert(node_id, new_node);
             }
-            let selected = self.node_states.get(idx).unwrap().selected;
+            let selected = self.node_states.get(&node_id).unwrap().selected;
             if ui.selectable(
                 &ImString::new(node.name),
                 selected,
@@ -210,7 +219,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 if !ui.imgui().key_ctrl() {
                     deselect_all_nodes(&mut self.node_states);
                 }
-                toggle_select_node(&mut self.node_states, idx);
+                toggle_select_node(&mut self.node_states, &node_id);
                 self.active_node = Some(*idx);
             }
             ui.pop_id();
@@ -315,7 +324,8 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
 
                     let node_states = &mut self.node_states;
                     for (idx, node) in self.dst.transforms_iter() {
-                        let node_pos = node_state_get(node_states, idx, |state| {
+                        let node_id = NodeId::Transform(*idx);
+                        let node_pos = node_state_get(node_states, &node_id, |state| {
                             state.get_pos(CURRENT_FONT_WINDOW_SCALE)
                         });
                         ui.push_id(idx.id() as i32);
@@ -328,8 +338,9 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         });
 
                         let node_rect_min = offset + node_pos;
-                        let node_rect_max =
-                            node_state_get(node_states, idx, |state| node_rect_min + state.size);
+                        let node_rect_max = node_state_get(node_states, &node_id, |state| {
+                            node_rect_min + state.size
+                        });
                         ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                         ui.group(|| {
                             let default_text_color =
@@ -344,14 +355,16 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 ui.with_color_vars(&TREE_STYLE, || {
                                     if ui.tree_node(&ImString::new(node.name))
                                         .opened(
-                                            node_state_get(node_states, idx, |state| state.open),
+                                            node_state_get(node_states, &node_id, |state| {
+                                                state.open
+                                            }),
                                             ImGuiCond::Always,
                                         )
                                         .build(|| {})
                                     {
-                                        open_node(node_states, idx, false);
+                                        open_node(node_states, &node_id, false);
                                     } else {
-                                        open_node(node_states, idx, true);
+                                        open_node(node_states, &node_id, true);
                                     }
                                 });
                                 ui.same_line_spacing(0.0, 2.0);
@@ -371,20 +384,20 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 if !ui.imgui().key_ctrl() {
                                     deselect_all_nodes(node_states);
                                 }
-                                toggle_select_node(node_states, idx);
+                                toggle_select_node(node_states, &node_id);
                             }
                         }
                         if self.drag_node == Some(*idx)
                             && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                         {
                             let delta = ui.imgui().mouse_delta();
-                            node_state_set(node_states, idx, |state| {
+                            node_state_set(node_states, &node_id, |state| {
                                 state.pos = state.pos + delta.into();
                             });
                         }
 
                         let item_rect_size = ui.get_item_rect_size();
-                        node_state_set(node_states, idx, |state| {
+                        node_state_set(node_states, &node_id, |state| {
                             state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                         });
 
@@ -396,7 +409,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         ui.set_cursor_screen_pos(node_rect_min);
                         ui.invisible_button(
                             im_str!("node##nodeinvbtn"),
-                            node_state_get(node_states, idx, |state| state.size),
+                            node_state_get(node_states, &node_id, |state| state.size),
                         );
                         // TODO: Handle selection
 
@@ -422,7 +435,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             .rounding(NODE_ROUNDING)
                             .build();
                         // Line below node name
-                        if node_state_get(node_states, idx, |state| state.open) {
+                        if node_state_get(node_states, &node_id, |state| state.open) {
                             let node_title_bar_height =
                                 ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.y;
                             let tmp1 = ImVec2::new(
@@ -439,7 +452,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                         const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.input.iter().enumerate() {
-                            let connector_pos = node_state_get(node_states, idx, |state| {
+                            let connector_pos = node_state_get(node_states, &node_id, |state| {
                                 state.get_input_slot_pos(
                                     slot_idx,
                                     node.input.len(),
@@ -490,7 +503,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         }
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.output.iter().enumerate() {
-                            let connector_pos = node_state_get(node_states, idx, |state| {
+                            let connector_pos = node_state_get(node_states, &node_id, |state| {
                                 state.get_output_slot_pos(
                                     slot_idx,
                                     node.output.len(),
@@ -549,7 +562,8 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 &LinkExtremity::Output(output) => {
                                     let output_node_count =
                                         self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                                    let output_node_state = node_states.get(&output.t_idx).unwrap();
+                                    let output_node_state =
+                                        node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
                                     let connector_pos = output_node_state.get_output_slot_pos(
                                         output.index(),
                                         output_node_count,
@@ -564,7 +578,8 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 &LinkExtremity::Input(input) => {
                                     let input_node_count =
                                         self.dst.get_transform(&input.t_idx).unwrap().input.len();
-                                    let input_node_state = node_states.get(&input.t_idx).unwrap();
+                                    let input_node_state =
+                                        node_states.get(&NodeId::Transform(input.t_idx)).unwrap();
                                     let connector_pos = input_node_state.get_input_slot_pos(
                                         input.index(),
                                         input_node_count,
@@ -594,8 +609,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             self.dst.get_transform(&input.t_idx).unwrap().input.len();
                         let output_node_count =
                             self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let input_node_state = node_states.get(&input.t_idx).unwrap();
-                        let output_node_state = node_states.get(&output.t_idx).unwrap();
+                        let input_node_state =
+                            node_states.get(&NodeId::Transform(input.t_idx)).unwrap();
+                        let output_node_state =
+                            node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
                         let connector_in_pos = input_node_state.get_input_slot_pos(
                             input.index(),
                             input_node_count,
@@ -622,7 +639,8 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     for (output_id, output) in self.dst.outputs_iter() {
                         let output_node_count =
                             self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let output_node_state = node_states.get(&output.t_idx).unwrap();
+                        let output_node_state =
+                            node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
                         let connector_pos = output_node_state.get_output_slot_pos(
                             output.index(),
                             output_node_count,
@@ -693,36 +711,36 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     }
 }
 
-fn deselect_all_nodes(node_states: &mut BTreeMap<TransformIdx, NodeState>) {
+fn deselect_all_nodes(node_states: &mut NodeStates) {
     for state in node_states.values_mut() {
         state.selected = false;
     }
 }
 
-fn toggle_select_node(node_states: &mut BTreeMap<TransformIdx, NodeState>, idx: &TransformIdx) {
-    let state = node_states.get_mut(idx).unwrap();
+fn toggle_select_node(node_states: &mut NodeStates, id: &NodeId) {
+    let state = node_states.get_mut(id).unwrap();
     state.selected = !state.selected;
 }
 
-fn open_node(node_states: &mut BTreeMap<TransformIdx, NodeState>, idx: &TransformIdx, open: bool) {
+fn open_node(node_states: &mut NodeStates, idx: &NodeId, open: bool) {
     let state = node_states.get_mut(idx).unwrap();
     state.open = open;
 }
 
 fn node_state_get<'a, T, F: FnOnce(&'a NodeState) -> T>(
-    node_states: &'a BTreeMap<TransformIdx, NodeState>,
-    idx: &TransformIdx,
+    node_states: &'a NodeStates,
+    id: &NodeId,
     f: F,
 ) -> T {
-    let state = node_states.get(idx).unwrap();
+    let state = node_states.get(id).unwrap();
     f(state)
 }
 
 fn node_state_set<'a, T, F: FnOnce(&'a mut NodeState) -> T>(
-    node_states: &'a mut BTreeMap<TransformIdx, NodeState>,
-    idx: &TransformIdx,
+    node_states: &'a mut NodeStates,
+    id: &NodeId,
     f: F,
 ) -> T {
-    let state = node_states.get_mut(idx).unwrap();
+    let state = node_states.get_mut(id).unwrap();
     f(state)
 }
