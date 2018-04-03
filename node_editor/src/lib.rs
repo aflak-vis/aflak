@@ -5,8 +5,8 @@ extern crate imgui_sys as sys;
 
 use std::collections::BTreeMap;
 use cake::{TransformIdx, Transformation, DST};
-use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImStr,
-            ImString, ImVec2, StyleVar, Ui};
+use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
+            ImVec2, StyleVar, Ui};
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
@@ -221,8 +221,6 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     }
 
     fn render_graph_node(&mut self, ui: &Ui) {
-        let is_mouse_being_dragged_for_scrolling =
-            ui.imgui().is_mouse_dragging(ImMouseButton::Middle);
         ui.child_frame(im_str!("GraphNodeChildWindow"), (0.0, 0.0))
             .build(|| {
                 if self.show_top_pane {
@@ -267,17 +265,11 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
         const NODE_SLOT_RADIUS: f32 = 5.0 * CURRENT_FONT_WINDOW_SCALE;
         const NODE_SLOT_RADIUS_SQUARED: f32 = NODE_SLOT_RADIUS * NODE_SLOT_RADIUS;
         const NODE_WINDOW_PADDING: ImVec2 = ImVec2 { x: 0.0, y: 0.0 };
-        let mouse_delta_squared = {
-            let delta = ui.imgui().mouse_delta();
-            delta.0 * delta.0 + delta.1 * delta.1
-        };
         // We don't detect "mouse release" events while dragging links onto slots.
         // Instead we check that our mouse delta is small enough. Otherwise we couldn't
         // hover other slots while dragging links.
-        const MOUSE_DELTA_SQUARED_THRESHOLD: f32 = NODE_SLOT_RADIUS_SQUARED * 0.05;
         const BASE_NODE_WIDTH: f32 = 120.0 * CURRENT_FONT_WINDOW_SCALE;
-        let mut current_node_width = BASE_NODE_WIDTH;
-        ui.with_item_width(current_node_width, || {
+        ui.with_item_width(BASE_NODE_WIDTH, || {
             ui.with_window_draw_list(|list| {
                 list.channels_split(5, |draw_list| {
                     let canvas_size = ui.get_window_size();
@@ -673,7 +665,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             connector_screen_pos.0 + NODE_SLOT_RADIUS + OUTPUT_LINK_LENGTH,
                             connector_screen_pos.1 - name_size.y,
                         ));
-                        let OUT_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
+                        const OUT_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
                         draw_list
                             .add_line(
                                 connector_screen_pos,
