@@ -653,6 +653,40 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             .thickness(link_line_width)
                             .build();
                     }
+
+                    // Display outputs
+                    for (output_id, output) in self.dst.outputs_iter() {
+                        let output_node_count =
+                            self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                        let output_node_state = node_states.get(&output.t_idx).unwrap();
+                        let connector_pos = output_node_state.get_output_slot_pos(
+                            output.index(),
+                            output_node_count,
+                            CURRENT_FONT_WINDOW_SCALE,
+                        );
+                        let output_disp_string = ImString::new(format!("{:?}", output_id));
+                        let name_size = ui.calc_text_size(&output_disp_string, false, -1.0);
+                        let connector_screen_pos =
+                            (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                        const OUTPUT_LINK_LENGTH: f32 = 50.0;
+                        ui.set_cursor_screen_pos((
+                            connector_screen_pos.0 + NODE_SLOT_RADIUS + OUTPUT_LINK_LENGTH,
+                            connector_screen_pos.1 - name_size.y,
+                        ));
+                        let OUT_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
+                        draw_list
+                            .add_line(
+                                connector_screen_pos,
+                                [
+                                    connector_screen_pos.0 + OUTPUT_LINK_LENGTH,
+                                    connector_screen_pos.1,
+                                ],
+                                OUT_LINK_COLOR,
+                            )
+                            .thickness(link_line_width)
+                            .build();
+                        ui.text(&output_disp_string);
+                    }
                 })
             });
         });

@@ -21,6 +21,7 @@ fn main() {
     let c = dst.add_transform(transformations[1]);
     dst.connect(cake::Output::new(a, 0), cake::Input::new(c, 0))
         .unwrap();
+    dst.attach_output(cake::Output::new(c, 0)).unwrap();
     let mut node_editor = NodeEditor::from_dst(dst, transformations);
     support::run("Node editor example".to_owned(), CLEAR_COLOR, |ui| {
         ui.window(im_str!("Node editor")).build(|| {

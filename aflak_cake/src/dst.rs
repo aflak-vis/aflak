@@ -160,6 +160,10 @@ where
         EdgeIterator::new(self.edges.iter())
     }
 
+    pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Output> {
+        self.outputs.iter()
+    }
+
     /// Get a transform from its TransformIdx.
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'t Transformation<T, E>> {
         self.transforms.get(idx).map(|t| *t)
