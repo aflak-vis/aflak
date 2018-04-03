@@ -20,7 +20,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
     pub show_connection_names: bool,
-    scrolling: (f32, f32),
+    scrolling: ImVec2,
     pub show_grid: bool,
 }
 
@@ -43,7 +43,7 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
             left_pane_size: None,
             show_top_pane: true,
             show_connection_names: true,
-            scrolling: (0.0, 0.0),
+            scrolling: ImVec2::new(0.0, 0.0),
             show_grid: true,
         }
     }
@@ -53,8 +53,8 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
 struct NodeState {
     selected: bool,
     open: bool,
-    pos: (f32, f32),
-    size: (f32, f32),
+    pos: ImVec2,
+    size: ImVec2,
 }
 
 impl Default for NodeState {
@@ -62,18 +62,15 @@ impl Default for NodeState {
         Self {
             selected: false,
             open: true,
-            pos: (0.0, 0.0),
-            size: (0.0, 0.0),
+            pos: ImVec2::new(0.0, 0.0),
+            size: ImVec2::new(0.0, 0.0),
         }
     }
 }
 
 impl NodeState {
-    fn get_pos(&self, font_window_scale: f32) -> (f32, f32) {
-        (
-            self.pos.0 * font_window_scale,
-            self.pos.1 * font_window_scale,
-        )
+    fn get_pos(&self, font_window_scale: f32) -> ImVec2 {
+        self.pos * font_window_scale
     }
 
     fn get_input_slot_pos<I: Into<usize>, C: Into<usize>>(
@@ -81,11 +78,11 @@ impl NodeState {
         slot_idx: I,
         slot_cnt: C,
         font_window_scale: f32,
-    ) -> (f32, f32) {
-        (
-            self.pos.0 * font_window_scale,
-            self.pos.1 * font_window_scale
-                + self.size.1 * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
+    ) -> ImVec2 {
+        ImVec2::new(
+            self.pos.x * font_window_scale,
+            self.pos.y * font_window_scale
+                + self.size.y * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
         )
     }
 
@@ -94,11 +91,11 @@ impl NodeState {
         slot_idx: I,
         slot_cnt: C,
         font_window_scale: f32,
-    ) -> (f32, f32) {
-        (
-            self.pos.0 * font_window_scale + self.size.0,
-            self.pos.1 * font_window_scale
-                + self.size.1 * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
+    ) -> ImVec2 {
+        ImVec2::new(
+            self.pos.x * font_window_scale + self.size.x,
+            self.pos.y * font_window_scale
+                + self.size.y * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
         )
     }
 }
@@ -135,7 +132,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
         const LEFT_PANE_DEFAULT_RELATIVE_WIDTH: f32 = 0.2;
         let window_size = ui.get_window_size();
         let pane_width = *self.left_pane_size
-            .get_or_insert_with(|| window_size.0 * LEFT_PANE_DEFAULT_RELATIVE_WIDTH);
+            .get_or_insert_with(|| window_size.x * LEFT_PANE_DEFAULT_RELATIVE_WIDTH);
 
         ui.child_frame(im_str!("node_list"), (pane_width, 0.0))
             .build(|| {
@@ -185,7 +182,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                 }
                 let style = ui.imgui().style();
                 let minw = style.window_padding.x + style.frame_padding.x;
-                let maxw = minw + window_size.0 - SPLITTER_WIDTH - style.window_min_size.x;
+                let maxw = minw + window_size.x - SPLITTER_WIDTH - style.window_min_size.x;
                 if *w > maxw {
                     *w = maxw;
                 } else if *w < minw {
@@ -275,40 +272,31 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     let canvas_size = ui.get_window_size();
                     let win_pos = ui.get_cursor_screen_pos();
                     // TODO: Center view on a specific node
-                    let effective_scrolling = (
-                        self.scrolling.0 - canvas_size.0 * 0.5,
-                        self.scrolling.1 - canvas_size.1 * 0.5,
-                    );
-                    let offset = (
-                        win_pos.0 - effective_scrolling.0,
-                        win_pos.1 - effective_scrolling.1,
-                    );
+                    let effective_scrolling = self.scrolling - canvas_size * 0.5;
+                    let offset = win_pos - effective_scrolling;
 
                     if self.show_grid {
-                        let (cursor_pos_x, cursor_pos_y) = ui.get_cursor_pos();
-                        let offset2 = (
-                            cursor_pos_x - effective_scrolling.0,
-                            cursor_pos_y - effective_scrolling.1,
-                        );
+                        let cursor_pos = ui.get_cursor_pos();
+                        let offset2 = cursor_pos - effective_scrolling;
                         const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
                         const GRID_SIZE: f32 = 64.0;
                         const GRID_LINE_WIDTH: f32 = 1.0;
                         let grid_sz = CURRENT_FONT_WINDOW_SCALE * GRID_SIZE;
                         let grid_line_width = CURRENT_FONT_WINDOW_SCALE * GRID_LINE_WIDTH;
-                        let mut x = offset2.0 % grid_sz;
-                        while x < canvas_size.0 {
-                            let p1 = (x + win_pos.0, win_pos.1);
-                            let p2 = (x + win_pos.0, canvas_size.1 + win_pos.1);
+                        let mut x = offset2.x % grid_sz;
+                        while x < canvas_size.x {
+                            let p1 = ImVec2::new(x + win_pos.x, win_pos.y);
+                            let p2 = (x + win_pos.x, canvas_size.y + win_pos.y);
                             draw_list
                                 .add_line(p1, p2, GRID_COLOR)
                                 .thickness(grid_line_width)
                                 .build();
                             x += grid_sz;
                         }
-                        let mut y = offset2.1 % grid_sz;
-                        while y < canvas_size.1 {
-                            let p1 = (win_pos.0, y + win_pos.1);
-                            let p2 = (canvas_size.0 + win_pos.0, y + win_pos.1);
+                        let mut y = offset2.y % grid_sz;
+                        while y < canvas_size.y {
+                            let p1 = (win_pos.x, y + win_pos.y);
+                            let p2 = (canvas_size.x + win_pos.x, y + win_pos.y);
                             draw_list
                                 .add_line(p1, p2, GRID_COLOR)
                                 .thickness(grid_line_width)
@@ -319,7 +307,8 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
 
                     // Bezier control point of the links
                     const LINK_CONTROL_POINT_DISTANCE: f32 = 50.0;
-                    let link_cp = [LINK_CONTROL_POINT_DISTANCE * CURRENT_FONT_WINDOW_SCALE, 0.0];
+                    let link_cp =
+                        ImVec2::new(LINK_CONTROL_POINT_DISTANCE * CURRENT_FONT_WINDOW_SCALE, 0.0);
                     const LINK_LINE_WIDTH: f32 = 3.0;
                     let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
                     // NODE LINK CULLING?
@@ -338,17 +327,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             2
                         });
 
-                        let node_rect_min = (offset.0 + node_pos.0, offset.1 + node_pos.1);
-                        let node_rect_max = node_state_get(node_states, idx, |state| {
-                            (
-                                node_rect_min.0 + state.size.0,
-                                node_rect_min.1 + state.size.1,
-                            )
-                        });
-                        ui.set_cursor_screen_pos((
-                            node_rect_min.0 + NODE_WINDOW_PADDING.x,
-                            node_rect_min.1 + NODE_WINDOW_PADDING.y,
-                        ));
+                        let node_rect_min = offset + node_pos;
+                        let node_rect_max =
+                            node_state_get(node_states, idx, |state| node_rect_min + state.size);
+                        ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                         ui.group(|| {
                             let default_text_color =
                                 ui.imgui().style().colors[ImGuiCol::Text as usize];
@@ -397,16 +379,13 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         {
                             let delta = ui.imgui().mouse_delta();
                             node_state_set(node_states, idx, |state| {
-                                state.pos = (state.pos.0 + delta.0, state.pos.1 + delta.1);
+                                state.pos = state.pos + delta.into();
                             });
                         }
 
                         let item_rect_size = ui.get_item_rect_size();
                         node_state_set(node_states, idx, |state| {
-                            state.size = (
-                                item_rect_size.0 + 2.0 * NODE_WINDOW_PADDING.x,
-                                item_rect_size.1 + 2.0 * NODE_WINDOW_PADDING.y,
-                            );
+                            state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                         });
 
                         draw_list.channels_set_current(if self.active_node == Some(*idx) {
@@ -446,11 +425,11 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         if node_state_get(node_states, idx, |state| state.open) {
                             let node_title_bar_height =
                                 ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.y;
-                            let tmp1 = (
-                                node_rect_min.0,
-                                node_rect_min.1 + node_title_bar_height + 1.0,
+                            let tmp1 = ImVec2::new(
+                                node_rect_min.x,
+                                node_rect_min.y + node_title_bar_height + 1.0,
                             );
-                            let tmp2 = (node_rect_max.0, tmp1.1);
+                            let tmp2 = (node_rect_max.x, tmp1.y);
                             draw_list
                                 .add_line(tmp1, tmp2, NODE_FRAME_COLOR)
                                 .thickness(line_thickness)
@@ -467,8 +446,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     CURRENT_FONT_WINDOW_SCALE,
                                 )
                             });
-                            let connector_screen_pos =
-                                (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                            let connector_screen_pos = offset + connector_pos;
                             draw_list
                                 .add_circle(
                                     connector_screen_pos,
@@ -482,16 +460,16 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 let name_size =
                                     ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
                                 ui.set_cursor_screen_pos((
-                                    connector_screen_pos.0 - NODE_SLOT_RADIUS - name_size.x,
-                                    connector_screen_pos.1 - name_size.y,
+                                    connector_screen_pos.x - NODE_SLOT_RADIUS - name_size.x,
+                                    connector_screen_pos.y - name_size.y,
                                 ));
                                 ui.text(&ImString::new(slot_name));
                             }
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                                let mouse_pos = ui.imgui().mouse_pos();
-                                let dx = mouse_pos.0 - connector_screen_pos.0;
-                                let dy = mouse_pos.1 - connector_screen_pos.1;
-                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                if (mouse_pos - connector_screen_pos).squared_norm()
+                                    <= NODE_SLOT_RADIUS_SQUARED
+                                {
                                     self.drag_node = None;
                                     self.creating_link = Some(LinkExtremity::Input(
                                         cake::Input::new(*idx, slot_idx),
@@ -500,10 +478,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             }
                             if let Some(LinkExtremity::Output(link_output)) = self.creating_link {
                                 // Check if we hover slot!
-                                let mouse_pos = ui.imgui().mouse_pos();
-                                let dx = mouse_pos.0 - connector_screen_pos.0;
-                                let dy = mouse_pos.1 - connector_screen_pos.1;
-                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                if (mouse_pos - connector_screen_pos).squared_norm()
+                                    <= NODE_SLOT_RADIUS_SQUARED
+                                {
                                     self.new_link =
                                         Some((link_output, cake::Input::new(*idx, slot_idx)));
                                     self.creating_link = None;
@@ -519,8 +497,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     CURRENT_FONT_WINDOW_SCALE,
                                 )
                             });
-                            let connector_screen_pos =
-                                (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                            let connector_screen_pos = offset + connector_pos;
                             draw_list
                                 .add_circle(
                                     connector_screen_pos,
@@ -534,16 +511,16 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 let name_size =
                                     ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
                                 ui.set_cursor_screen_pos((
-                                    connector_screen_pos.0 + NODE_SLOT_RADIUS,
-                                    connector_screen_pos.1 - name_size.y,
+                                    connector_screen_pos.x + NODE_SLOT_RADIUS,
+                                    connector_screen_pos.y - name_size.y,
                                 ));
                                 ui.text(&ImString::new(slot_name));
                             }
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                                let mouse_pos = ui.imgui().mouse_pos();
-                                let dx = mouse_pos.0 - connector_screen_pos.0;
-                                let dy = mouse_pos.1 - connector_screen_pos.1;
-                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                if (mouse_pos - connector_screen_pos).squared_norm()
+                                    <= NODE_SLOT_RADIUS_SQUARED
+                                {
                                     self.drag_node = None;
                                     self.creating_link = Some(LinkExtremity::Output(
                                         cake::Output::new(*idx, slot_idx),
@@ -552,10 +529,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             }
                             if let Some(LinkExtremity::Input(link_input)) = self.creating_link {
                                 // Check if we hover slot!
-                                let mouse_pos = ui.imgui().mouse_pos();
-                                let dx = mouse_pos.0 - connector_screen_pos.0;
-                                let dy = mouse_pos.1 - connector_screen_pos.1;
-                                if dx * dx + dy * dy <= NODE_SLOT_RADIUS_SQUARED {
+                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                if (mouse_pos - connector_screen_pos).squared_norm()
+                                    <= NODE_SLOT_RADIUS_SQUARED
+                                {
                                     self.new_link =
                                         Some((cake::Output::new(*idx, slot_idx), link_input));
                                     self.creating_link = None;
@@ -578,11 +555,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                         output_node_count,
                                         CURRENT_FONT_WINDOW_SCALE,
                                     );
-                                    let p1 =
-                                        (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
-                                    let p2 = ui.imgui().mouse_pos();
-                                    let cp1 = (p1.0 + link_cp[0], p1.1 + link_cp[1]);
-                                    let cp2 = (p2.0 - link_cp[0], p2.1 - link_cp[1]);
+                                    let p1 = offset + connector_pos;
+                                    let p2: ImVec2 = ui.imgui().mouse_pos().into();
+                                    let cp1 = p1 + link_cp;
+                                    let cp2 = p2 - link_cp;
                                     (p1, cp1, cp2, p2)
                                 }
                                 &LinkExtremity::Input(input) => {
@@ -594,11 +570,10 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                         input_node_count,
                                         CURRENT_FONT_WINDOW_SCALE,
                                     );
-                                    let p1 =
-                                        (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
-                                    let p2 = ui.imgui().mouse_pos();
-                                    let cp1 = (p1.0 - link_cp[0], p1.1 - link_cp[1]);
-                                    let cp2 = (p2.0 + link_cp[0], p2.1 + link_cp[1]);
+                                    let p1 = offset + connector_pos;
+                                    let p2: ImVec2 = ui.imgui().mouse_pos().into();
+                                    let cp1 = p1 - link_cp;
+                                    let cp2 = p2 + link_cp;
                                     (p1, cp1, cp2, p2)
                                 }
                             };
@@ -626,19 +601,16 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             input_node_count,
                             CURRENT_FONT_WINDOW_SCALE,
                         );
-                        let p1 = (offset.0 + connector_in_pos.0, offset.1 + connector_in_pos.1);
+                        let p1 = offset + connector_in_pos;
 
                         let connector_out_pos = output_node_state.get_output_slot_pos(
                             output.index(),
                             output_node_count,
                             CURRENT_FONT_WINDOW_SCALE,
                         );
-                        let p2 = (
-                            offset.0 + connector_out_pos.0,
-                            offset.1 + connector_out_pos.1,
-                        );
-                        let cp1 = (p1.0 - link_cp[0], p1.1 - link_cp[1]);
-                        let cp2 = (p2.0 + link_cp[0], p2.1 + link_cp[1]);
+                        let p2 = offset + connector_out_pos;
+                        let cp1 = p1 - link_cp;
+                        let cp2 = p2 + link_cp;
                         const LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
                         draw_list
                             .add_bezier_curve(p1, cp1, cp2, p2, LINK_COLOR)
@@ -658,20 +630,19 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         );
                         let output_disp_string = ImString::new(format!("{:?}", output_id));
                         let name_size = ui.calc_text_size(&output_disp_string, false, -1.0);
-                        let connector_screen_pos =
-                            (offset.0 + connector_pos.0, offset.1 + connector_pos.1);
+                        let connector_screen_pos = offset + connector_pos;
                         const OUTPUT_LINK_LENGTH: f32 = 50.0;
                         ui.set_cursor_screen_pos((
-                            connector_screen_pos.0 + NODE_SLOT_RADIUS + OUTPUT_LINK_LENGTH,
-                            connector_screen_pos.1 - name_size.y,
+                            connector_screen_pos.x + NODE_SLOT_RADIUS + OUTPUT_LINK_LENGTH,
+                            connector_screen_pos.y - name_size.y,
                         ));
                         const OUT_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
                         draw_list
                             .add_line(
                                 connector_screen_pos,
                                 [
-                                    connector_screen_pos.0 + OUTPUT_LINK_LENGTH,
-                                    connector_screen_pos.1,
+                                    connector_screen_pos.x + OUTPUT_LINK_LENGTH,
+                                    connector_screen_pos.y,
                                 ],
                                 OUT_LINK_COLOR,
                             )
@@ -711,12 +682,12 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     fn init_node(&self) -> NodeState {
         let mut max = -300.0;
         for state in self.node_states.values() {
-            if state.pos.1 > max {
-                max = state.pos.1;
+            if state.pos.y > max {
+                max = state.pos.y;
             }
         }
         NodeState {
-            pos: (0.0, max + 150.0),
+            pos: ImVec2::new(0.0, max + 150.0),
             ..Default::default()
         }
     }
