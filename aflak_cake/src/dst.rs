@@ -165,6 +165,10 @@ where
         EdgeIterator::new(self.edges.iter())
     }
 
+    pub fn links_iter(&self) -> LinkIter {
+        LinkIter::new(self.edges_iter(), self.outputs.iter())
+    }
+
     pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
         self.outputs.iter()
     }
@@ -570,6 +574,40 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
         match self {
             &Node::Transform(t) => t.output.len(),
             &Node::Output(_) => 0,
+        }
+    }
+}
+
+pub struct LinkIter<'a> {
+    edges: EdgeIterator<'a>,
+    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
+}
+
+impl<'a> LinkIter<'a> {
+    fn new(edges: EdgeIterator<'a>, outputs: hash_map::Iter<'a, OutputId, Option<Output>>) -> Self {
+        Self { edges, outputs }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum InputSlot<'a> {
+    Transform(&'a Input),
+    Output(&'a OutputId),
+}
+
+impl<'a> Iterator for LinkIter<'a> {
+    type Item = (&'a Output, InputSlot<'a>);
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((output, input)) = self.edges.next() {
+            Some((output, InputSlot::Transform(input)))
+        } else if let Some((output_id, output)) = self.outputs.next() {
+            if let Some(output) = output {
+                Some((output, InputSlot::Output(output_id)))
+            } else {
+                self.next()
+            }
+        } else {
+            None
         }
     }
 }
