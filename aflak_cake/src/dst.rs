@@ -216,6 +216,8 @@ where
 
     /// Connect an output to an input.
     /// Returns an error if cycle is created or if output or input does not exist.
+    ///
+    /// If input is already connector to another output, delete this output
     pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError> {
         if !self.output_exists(&output) {
             Err(DSTError::InvalidOutput(format!(
@@ -243,6 +245,10 @@ where
                 output, input
             )))
         } else {
+            // Delete input if it is already attached somewhere
+            for input_list in self.edges.values_mut() {
+                input_list.inputs.retain(|input_| input_ != &input)
+            }
             if !self.edges.contains_key(&output) {
                 self.edges.insert(output, InputList::new(vec![input]));
             } else {
