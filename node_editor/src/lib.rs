@@ -3,21 +3,21 @@ extern crate aflak_cake as cake;
 extern crate imgui;
 extern crate imgui_sys as sys;
 
-use cake::{TransformIdx, Transformation, DST};
+use cake::{Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
 use std::collections::BTreeMap;
 
-type NodeStates = BTreeMap<NodeId, NodeState>;
+type NodeStates = BTreeMap<cake::NodeId, NodeState>;
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transformation<T, E>],
     node_states: NodeStates,
-    active_node: Option<TransformIdx>,
-    drag_node: Option<TransformIdx>,
+    active_node: Option<cake::NodeId>,
+    drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
-    new_link: Option<(cake::Output, cake::Input)>,
+    new_link: Option<(cake::Output, InputSlot)>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -28,12 +28,12 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
 
 enum LinkExtremity {
     Output(cake::Output),
-    Input(cake::Input),
+    Input(InputSlot),
 }
 
-#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-enum NodeId {
-    Transform(TransformIdx),
+#[derive(Copy, Clone)]
+enum InputSlot {
+    Transform(cake::Input),
     Output(cake::OutputId),
 }
 
@@ -202,27 +202,22 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     }
 
     fn show_node_list(&mut self, ui: &Ui) {
-        for (idx, node) in self.dst.transforms_iter() {
-            ui.push_id(idx.id() as i32);
-            let node_id = NodeId::Transform(*idx);
-            if !self.node_states.contains_key(&node_id) {
+        for (idx, node) in self.dst.transforms_outputs_iter() {
+            //ui.push_id(idx.id() as i32);
+            if !self.node_states.contains_key(&idx) {
                 let new_node = self.init_node();
-                self.node_states.insert(node_id, new_node);
+                self.node_states.insert(idx, new_node);
             }
-            let selected = self.node_states.get(&node_id).unwrap().selected;
-            if ui.selectable(
-                &ImString::new(node.name),
-                selected,
-                ImGuiSelectableFlags::empty(),
-                (0.0, 0.0),
-            ) {
+            let selected = self.node_states.get(&idx).unwrap().selected;
+            let name = ImString::new(node.name(&idx));
+            if ui.selectable(&name, selected, ImGuiSelectableFlags::empty(), (0.0, 0.0)) {
                 if !ui.imgui().key_ctrl() {
                     deselect_all_nodes(&mut self.node_states);
                 }
-                toggle_select_node(&mut self.node_states, &node_id);
-                self.active_node = Some(*idx);
+                toggle_select_node(&mut self.node_states, &idx);
+                self.active_node = Some(idx);
             }
-            ui.pop_id();
+            //ui.pop_id();
         }
     }
 
@@ -323,24 +318,23 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     // NODE LINK CULLING?
 
                     let node_states = &mut self.node_states;
-                    for (idx, node) in self.dst.transforms_iter() {
-                        let node_id = NodeId::Transform(*idx);
-                        let node_pos = node_state_get(node_states, &node_id, |state| {
+                    for (idx, node) in self.dst.transforms_outputs_iter() {
+                        let node_name = ImString::new(node.name(&idx));
+                        let node_pos = node_state_get(node_states, &idx, |state| {
                             state.get_pos(CURRENT_FONT_WINDOW_SCALE)
                         });
-                        ui.push_id(idx.id() as i32);
+                        // ui.push_id(idx.id() as i32);
 
                         // Display node contents first in the foreground
-                        draw_list.channels_set_current(if self.active_node == Some(*idx) {
+                        draw_list.channels_set_current(if self.active_node == Some(idx) {
                             4
                         } else {
                             2
                         });
 
                         let node_rect_min = offset + node_pos;
-                        let node_rect_max = node_state_get(node_states, &node_id, |state| {
-                            node_rect_min + state.size
-                        });
+                        let node_rect_max =
+                            node_state_get(node_states, &idx, |state| node_rect_min + state.size);
                         ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                         ui.group(|| {
                             let default_text_color =
@@ -353,18 +347,16 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     (ImGuiCol::HeaderHovered, TRANSPARENT),
                                 ];
                                 ui.with_color_vars(&TREE_STYLE, || {
-                                    if ui.tree_node(&ImString::new(node.name))
+                                    if ui.tree_node(&node_name)
                                         .opened(
-                                            node_state_get(node_states, &node_id, |state| {
-                                                state.open
-                                            }),
+                                            node_state_get(node_states, &idx, |state| state.open),
                                             ImGuiCond::Always,
                                         )
                                         .build(|| {})
                                     {
-                                        open_node(node_states, &node_id, false);
+                                        open_node(node_states, &idx, false);
                                     } else {
-                                        open_node(node_states, &node_id, true);
+                                        open_node(node_states, &idx, true);
                                     }
                                 });
                                 ui.same_line_spacing(0.0, 2.0);
@@ -379,29 +371,29 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         });
                         if ui.is_item_hovered() {
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                                self.active_node = Some(*idx);
-                                self.drag_node = Some(*idx);
+                                self.active_node = Some(idx);
+                                self.drag_node = Some(idx);
                                 if !ui.imgui().key_ctrl() {
                                     deselect_all_nodes(node_states);
                                 }
-                                toggle_select_node(node_states, &node_id);
+                                toggle_select_node(node_states, &idx);
                             }
                         }
-                        if self.drag_node == Some(*idx)
+                        if self.drag_node == Some(idx)
                             && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                         {
                             let delta = ui.imgui().mouse_delta();
-                            node_state_set(node_states, &node_id, |state| {
+                            node_state_set(node_states, &idx, |state| {
                                 state.pos = state.pos + delta.into();
                             });
                         }
 
                         let item_rect_size = ui.get_item_rect_size();
-                        node_state_set(node_states, &node_id, |state| {
+                        node_state_set(node_states, &idx, |state| {
                             state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                         });
 
-                        draw_list.channels_set_current(if self.active_node == Some(*idx) {
+                        draw_list.channels_set_current(if self.active_node == Some(idx) {
                             3
                         } else {
                             1
@@ -409,7 +401,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         ui.set_cursor_screen_pos(node_rect_min);
                         ui.invisible_button(
                             im_str!("node##nodeinvbtn"),
-                            node_state_get(node_states, &node_id, |state| state.size),
+                            node_state_get(node_states, &idx, |state| state.size),
                         );
                         // TODO: Handle selection
 
@@ -424,7 +416,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
 
                         // Display frame
                         const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
-                        let line_thickness = if self.active_node == Some(*idx) {
+                        let line_thickness = if self.active_node == Some(idx) {
                             3.0
                         } else {
                             1.0
@@ -435,7 +427,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             .rounding(NODE_ROUNDING)
                             .build();
                         // Line below node name
-                        if node_state_get(node_states, &node_id, |state| state.open) {
+                        if node_state_get(node_states, &idx, |state| state.open) {
                             let node_title_bar_height =
                                 ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.y;
                             let tmp1 = ImVec2::new(
@@ -451,11 +443,11 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                         // Display connectors
                         const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                         const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
-                        for (slot_idx, &slot_name) in node.input.iter().enumerate() {
-                            let connector_pos = node_state_get(node_states, &node_id, |state| {
+                        for (slot_idx, &slot_name) in node.inputs_iter().enumerate() {
+                            let connector_pos = node_state_get(node_states, &idx, |state| {
                                 state.get_input_slot_pos(
                                     slot_idx,
-                                    node.input.len(),
+                                    node.inputs_count(),
                                     CURRENT_FONT_WINDOW_SCALE,
                                 )
                             });
@@ -484,9 +476,14 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     <= NODE_SLOT_RADIUS_SQUARED
                                 {
                                     self.drag_node = None;
-                                    self.creating_link = Some(LinkExtremity::Input(
-                                        cake::Input::new(*idx, slot_idx),
-                                    ));
+                                    self.creating_link = Some(LinkExtremity::Input(match idx {
+                                        cake::NodeId::Transform(t_idx) => {
+                                            InputSlot::Transform(cake::Input::new(t_idx, slot_idx))
+                                        }
+                                        cake::NodeId::Output(output_id) => {
+                                            InputSlot::Output(output_id)
+                                        }
+                                    }));
                                 }
                             }
                             if let Some(LinkExtremity::Output(link_output)) = self.creating_link {
@@ -495,64 +492,77 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 if (mouse_pos - connector_screen_pos).squared_norm()
                                     <= NODE_SLOT_RADIUS_SQUARED
                                 {
-                                    self.new_link =
-                                        Some((link_output, cake::Input::new(*idx, slot_idx)));
-                                    self.creating_link = None;
-                                }
-                            }
-                        }
-                        const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
-                        for (slot_idx, &slot_name) in node.output.iter().enumerate() {
-                            let connector_pos = node_state_get(node_states, &node_id, |state| {
-                                state.get_output_slot_pos(
-                                    slot_idx,
-                                    node.output.len(),
-                                    CURRENT_FONT_WINDOW_SCALE,
-                                )
-                            });
-                            let connector_screen_pos = offset + connector_pos;
-                            draw_list
-                                .add_circle(
-                                    connector_screen_pos,
-                                    NODE_SLOT_RADIUS,
-                                    OUTPUT_SLOT_COLOR,
-                                )
-                                .thickness(CONNECTOR_BORDER_THICKNESS)
-                                .filled(true)
-                                .build();
-                            if self.show_connection_names {
-                                let name_size =
-                                    ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
-                                ui.set_cursor_screen_pos((
-                                    connector_screen_pos.x + NODE_SLOT_RADIUS,
-                                    connector_screen_pos.y - name_size.y,
-                                ));
-                                ui.text(&ImString::new(slot_name));
-                            }
-                            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
-                                if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
-                                {
-                                    self.drag_node = None;
-                                    self.creating_link = Some(LinkExtremity::Output(
-                                        cake::Output::new(*idx, slot_idx),
+                                    self.new_link = Some((
+                                        link_output,
+                                        match idx {
+                                            cake::NodeId::Transform(t_idx) => InputSlot::Transform(
+                                                cake::Input::new(t_idx, slot_idx),
+                                            ),
+                                            cake::NodeId::Output(output_id) => {
+                                                InputSlot::Output(output_id)
+                                            }
+                                        },
                                     ));
-                                }
-                            }
-                            if let Some(LinkExtremity::Input(link_input)) = self.creating_link {
-                                // Check if we hover slot!
-                                let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
-                                if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
-                                {
-                                    self.new_link =
-                                        Some((cake::Output::new(*idx, slot_idx), link_input));
                                     self.creating_link = None;
                                 }
                             }
                         }
-                        ui.pop_id();
+
+                        // Show outputs for transform nodes
+                        if let cake::NodeId::Transform(t_idx) = idx {
+                            const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
+                            for (slot_idx, &slot_name) in node.outputs_iter().enumerate() {
+                                let connector_pos = node_state_get(node_states, &idx, |state| {
+                                    state.get_output_slot_pos(
+                                        slot_idx,
+                                        node.outputs_count(),
+                                        CURRENT_FONT_WINDOW_SCALE,
+                                    )
+                                });
+                                let connector_screen_pos = offset + connector_pos;
+                                draw_list
+                                    .add_circle(
+                                        connector_screen_pos,
+                                        NODE_SLOT_RADIUS,
+                                        OUTPUT_SLOT_COLOR,
+                                    )
+                                    .thickness(CONNECTOR_BORDER_THICKNESS)
+                                    .filled(true)
+                                    .build();
+                                if self.show_connection_names {
+                                    let name_size =
+                                        ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
+                                    ui.set_cursor_screen_pos((
+                                        connector_screen_pos.x + NODE_SLOT_RADIUS,
+                                        connector_screen_pos.y - name_size.y,
+                                    ));
+                                    ui.text(&ImString::new(slot_name));
+                                }
+                                if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                                    let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                    if (mouse_pos - connector_screen_pos).squared_norm()
+                                        <= NODE_SLOT_RADIUS_SQUARED
+                                    {
+                                        self.drag_node = None;
+                                        self.creating_link = Some(LinkExtremity::Output(
+                                            cake::Output::new(t_idx, slot_idx),
+                                        ));
+                                    }
+                                }
+                                if let Some(LinkExtremity::Input(link_input)) = self.creating_link {
+                                    // Check if we hover slot!
+                                    let mouse_pos: ImVec2 = ui.imgui().mouse_pos().into();
+                                    if (mouse_pos - connector_screen_pos).squared_norm()
+                                        <= NODE_SLOT_RADIUS_SQUARED
+                                    {
+                                        self.new_link =
+                                            Some((cake::Output::new(t_idx, slot_idx), link_input));
+                                        self.creating_link = None;
+                                    }
+                                }
+                            }
+                            //ui.pop_id();
+                        }
                     }
                     // Preview new link
                     const NEW_LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
@@ -562,8 +572,9 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                 &LinkExtremity::Output(output) => {
                                     let output_node_count =
                                         self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                                    let output_node_state =
-                                        node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
+                                    let output_node_state = node_states
+                                        .get(&cake::NodeId::Transform(output.t_idx))
+                                        .unwrap();
                                     let connector_pos = output_node_state.get_output_slot_pos(
                                         output.index(),
                                         output_node_count,
@@ -575,16 +586,34 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                     let cp2 = p2 - link_cp;
                                     (p1, cp1, cp2, p2)
                                 }
-                                &LinkExtremity::Input(input) => {
-                                    let input_node_count =
-                                        self.dst.get_transform(&input.t_idx).unwrap().input.len();
-                                    let input_node_state =
-                                        node_states.get(&NodeId::Transform(input.t_idx)).unwrap();
-                                    let connector_pos = input_node_state.get_input_slot_pos(
-                                        input.index(),
-                                        input_node_count,
-                                        CURRENT_FONT_WINDOW_SCALE,
-                                    );
+                                &LinkExtremity::Input(input_slot) => {
+                                    let connector_pos = match input_slot {
+                                        InputSlot::Transform(input) => {
+                                            let input_node_count = self.dst
+                                                .get_transform(&input.t_idx)
+                                                .unwrap()
+                                                .input
+                                                .len();
+                                            let input_node_state = node_states
+                                                .get(&cake::NodeId::Transform(input.t_idx))
+                                                .unwrap();
+                                            input_node_state.get_input_slot_pos(
+                                                input.index(),
+                                                input_node_count,
+                                                CURRENT_FONT_WINDOW_SCALE,
+                                            )
+                                        }
+                                        InputSlot::Output(output_id) => {
+                                            let input_node_state = node_states
+                                                .get(&cake::NodeId::Output(output_id))
+                                                .unwrap();
+                                            input_node_state.get_input_slot_pos(
+                                                1usize,
+                                                1usize,
+                                                CURRENT_FONT_WINDOW_SCALE,
+                                            )
+                                        }
+                                    };
                                     let p1 = offset + connector_pos;
                                     let p2: ImVec2 = ui.imgui().mouse_pos().into();
                                     let cp1 = p1 - link_cp;
@@ -609,10 +638,12 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             self.dst.get_transform(&input.t_idx).unwrap().input.len();
                         let output_node_count =
                             self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let input_node_state =
-                            node_states.get(&NodeId::Transform(input.t_idx)).unwrap();
-                        let output_node_state =
-                            node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
+                        let input_node_state = node_states
+                            .get(&cake::NodeId::Transform(input.t_idx))
+                            .unwrap();
+                        let output_node_state = node_states
+                            .get(&cake::NodeId::Transform(output.t_idx))
+                            .unwrap();
                         let connector_in_pos = input_node_state.get_input_slot_pos(
                             input.index(),
                             input_node_count,
@@ -634,47 +665,18 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                             .thickness(link_line_width)
                             .build();
                     }
-
-                    // Display outputs
-                    for (output_id, output) in self.dst.outputs_iter() {
-                        let output_node_count =
-                            self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let output_node_state =
-                            node_states.get(&NodeId::Transform(output.t_idx)).unwrap();
-                        let connector_pos = output_node_state.get_output_slot_pos(
-                            output.index(),
-                            output_node_count,
-                            CURRENT_FONT_WINDOW_SCALE,
-                        );
-                        let output_disp_string = ImString::new(format!("{:?}", output_id));
-                        let name_size = ui.calc_text_size(&output_disp_string, false, -1.0);
-                        let connector_screen_pos = offset + connector_pos;
-                        const OUTPUT_LINK_LENGTH: f32 = 50.0;
-                        ui.set_cursor_screen_pos((
-                            connector_screen_pos.x + NODE_SLOT_RADIUS + OUTPUT_LINK_LENGTH,
-                            connector_screen_pos.y - name_size.y,
-                        ));
-                        const OUT_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
-                        draw_list
-                            .add_line(
-                                connector_screen_pos,
-                                [
-                                    connector_screen_pos.x + OUTPUT_LINK_LENGTH,
-                                    connector_screen_pos.y,
-                                ],
-                                OUT_LINK_COLOR,
-                            )
-                            .thickness(link_line_width)
-                            .build();
-                        ui.text(&output_disp_string);
-                    }
                 })
             });
         });
-        if let Some((input, output)) = self.new_link {
-            if let Err(e) = self.dst.connect(input, output) {
-                // TODO: Make a modal to show error
-                eprintln!("{:?}", e);
+        if let Some((output, input_slot)) = self.new_link {
+            match input_slot {
+                InputSlot::Transform(input) => {
+                    if let Err(e) = self.dst.connect(output, input) {
+                        // TODO: Make a modal to show error
+                        eprintln!("{:?}", e);
+                    }
+                }
+                InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
             }
             self.new_link = None;
         }
@@ -690,6 +692,9 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                     self.dst.add_transform(node);
                 }
                 ui.pop_id();
+            }
+            if ui.menu_item(im_str!("Output node")).build() {
+                self.dst.create_output();
             }
         });
     }
@@ -717,28 +722,28 @@ fn deselect_all_nodes(node_states: &mut NodeStates) {
     }
 }
 
-fn toggle_select_node(node_states: &mut NodeStates, id: &NodeId) {
+fn toggle_select_node(node_states: &mut NodeStates, id: &cake::NodeId) {
     let state = node_states.get_mut(id).unwrap();
     state.selected = !state.selected;
 }
 
-fn open_node(node_states: &mut NodeStates, idx: &NodeId, open: bool) {
+fn open_node(node_states: &mut NodeStates, idx: &cake::NodeId, open: bool) {
     let state = node_states.get_mut(idx).unwrap();
     state.open = open;
 }
 
-fn node_state_get<'a, T, F: FnOnce(&'a NodeState) -> T>(
-    node_states: &'a NodeStates,
-    id: &NodeId,
+fn node_state_get<T, F: FnOnce(&NodeState) -> T>(
+    node_states: &NodeStates,
+    id: &cake::NodeId,
     f: F,
 ) -> T {
     let state = node_states.get(id).unwrap();
     f(state)
 }
 
-fn node_state_set<'a, T, F: FnOnce(&'a mut NodeState) -> T>(
-    node_states: &'a mut NodeStates,
-    id: &NodeId,
+fn node_state_set<T, F: FnOnce(&mut NodeState) -> T>(
+    node_states: &mut NodeStates,
+    id: &cake::NodeId,
     f: F,
 ) -> T {
     let state = node_states.get_mut(id).unwrap();
