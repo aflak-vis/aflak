@@ -108,6 +108,12 @@ impl NodeState {
     }
 }
 
+impl<'t, T: Clone + cake::VariantName, E> NodeEditor<'t, T, E> {
+    pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError> {
+        self.dst.compute(id)
+    }
+}
+
 impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
     pub fn new(addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
         Self {
@@ -134,6 +140,14 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
             self.render_left_pane(ui);
         }
         self.render_graph_node(ui);
+    }
+
+    pub fn outputs(&self) -> Vec<cake::OutputId> {
+        self.dst
+            .outputs_iter()
+            .filter(|(_, some_output)| some_output.is_some())
+            .map(|(id, _)| *id)
+            .collect()
     }
 
     fn render_left_pane(&mut self, ui: &Ui) {
