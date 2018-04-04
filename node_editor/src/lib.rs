@@ -608,7 +608,7 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
                                                 .get(&cake::NodeId::Output(output_id))
                                                 .unwrap();
                                             input_node_state.get_input_slot_pos(
-                                                1usize,
+                                                0usize,
                                                 1usize,
                                                 CURRENT_FONT_WINDOW_SCALE,
                                             )
