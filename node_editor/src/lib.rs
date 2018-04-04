@@ -633,23 +633,36 @@ impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
 
                     // Display links
                     draw_list.channels_set_current(0);
-                    for (output, input) in self.dst.edges_iter() {
-                        let input_node_count =
-                            self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                    for (output, input_slot) in self.dst.links_iter() {
+                        let connector_in_pos = match input_slot {
+                            cake::InputSlot::Transform(input) => {
+                                let input_node_count =
+                                    self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                                let input_node_state = node_states
+                                    .get(&cake::NodeId::Transform(input.t_idx))
+                                    .unwrap();
+                                input_node_state.get_input_slot_pos(
+                                    input.index(),
+                                    input_node_count,
+                                    CURRENT_FONT_WINDOW_SCALE,
+                                )
+                            }
+                            cake::InputSlot::Output(output_id) => {
+                                let input_node_state =
+                                    node_states.get(&cake::NodeId::Output(*output_id)).unwrap();
+                                input_node_state.get_input_slot_pos(
+                                    0usize,
+                                    1usize,
+                                    CURRENT_FONT_WINDOW_SCALE,
+                                )
+                            }
+                        };
+                        let p1 = offset + connector_in_pos;
                         let output_node_count =
                             self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let input_node_state = node_states
-                            .get(&cake::NodeId::Transform(input.t_idx))
-                            .unwrap();
                         let output_node_state = node_states
                             .get(&cake::NodeId::Transform(output.t_idx))
                             .unwrap();
-                        let connector_in_pos = input_node_state.get_input_slot_pos(
-                            input.index(),
-                            input_node_count,
-                            CURRENT_FONT_WINDOW_SCALE,
-                        );
-                        let p1 = offset + connector_in_pos;
 
                         let connector_out_pos = output_node_state.get_output_slot_pos(
                             output.index(),
