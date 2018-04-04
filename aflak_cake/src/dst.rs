@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::collections::{hash_map, HashMap};
 use std::hash::Hash;
 use variant_name::VariantName;
@@ -272,6 +272,11 @@ where
         idx
     }
 
+    /// Attach an already registered output somewhere else
+    pub fn update_output(&mut self, output_id: OutputId, output: Output) {
+        self.outputs.insert(output_id, Some(output));
+    }
+
     /// Detach output with given ID. Does nothing if output does not exist.
     pub fn detach_output<O>(&mut self, output_id: &O)
     where
@@ -500,9 +505,10 @@ pub struct NodeIter<'a, T: 'a + Clone, E: 'a> {
     outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
 }
 
-pub enum NodeId<'a> {
-    Transform(&'a TransformIdx),
-    Output(&'a OutputId),
+#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Debug)]
+pub enum NodeId {
+    Transform(TransformIdx),
+    Output(OutputId),
 }
 
 pub enum Node<'a, T: 'a + Clone, E: 'a> {
@@ -511,14 +517,59 @@ pub enum Node<'a, T: 'a + Clone, E: 'a> {
 }
 
 impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
-    type Item = (NodeId<'a>, Node<'a, T, E>);
+    type Item = (NodeId, Node<'a, T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((id, t)) = self.transforms.next() {
-            Some((NodeId::Transform(id), Node::Transform(t)))
+            Some((NodeId::Transform(*id), Node::Transform(t)))
         } else if let Some((id, o)) = self.outputs.next() {
-            Some((NodeId::Output(id), Node::Output(o.as_ref())))
+            Some((NodeId::Output(*id), Node::Output(o.as_ref())))
         } else {
             None
+        }
+    }
+}
+
+impl<'a, T: Clone, E> Node<'a, T, E> {
+    pub fn name(&'a self, id: &NodeId) -> Cow<'static, str> {
+        match self {
+            &Node::Transform(t) => Cow::Borrowed(t.name),
+            &Node::Output(_) => {
+                if let NodeId::Output(output_id) = id {
+                    Cow::Owned(format!("Output {:?}", output_id))
+                } else {
+                    panic!("Expected id to be output")
+                }
+            }
+        }
+    }
+
+    pub fn inputs_iter(&'a self) -> slice::Iter<'a, &'static str> {
+        const OUTPUT_NODE_SLOTS: [&'static str; 1] = ["Out"];
+        match self {
+            &Node::Transform(t) => t.input.iter(),
+            &Node::Output(_) => OUTPUT_NODE_SLOTS.iter(),
+        }
+    }
+
+    pub fn inputs_count(&self) -> usize {
+        match self {
+            &Node::Transform(t) => t.input.len(),
+            &Node::Output(_) => 1,
+        }
+    }
+
+    pub fn outputs_iter(&'a self) -> slice::Iter<'a, &'static str> {
+        const OUTPUT_NODE_SLOTS: [&'static str; 0] = [];
+        match self {
+            &Node::Transform(t) => t.output.iter(),
+            &Node::Output(_) => OUTPUT_NODE_SLOTS.iter(),
+        }
+    }
+
+    pub fn outputs_count(&self) -> usize {
+        match self {
+            &Node::Transform(t) => t.output.len(),
+            &Node::Output(_) => 0,
         }
     }
 }
