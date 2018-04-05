@@ -60,6 +60,17 @@ impl cake::NamedAlgorithms<IOErr> for IOValue {
     }
 }
 
+impl cake::DefaultFor for IOValue {
+    fn default_for(variant_name: &'static str) -> Self {
+        match variant_name {
+            "Integer" => IOValue::Integer(0),
+            "Float" => IOValue::Float(0.0),
+            "Str" => IOValue::Str("".to_owned()),
+            _ => panic!("Unknown variant name provided: {}.", variant_name),
+        }
+    }
+}
+
 /// Open FITS file
 fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)

@@ -16,6 +16,10 @@ pub use transform::*;
 
 pub use self::variant_name::VariantName;
 
+pub trait DefaultFor {
+    fn default_for(variant_name: &'static str) -> Self;
+}
+
 /// Make it easier to define a function used for a transform
 #[macro_export]
 macro_rules! cake_fn {
