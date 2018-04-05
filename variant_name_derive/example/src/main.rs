@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate variant_name_derive;
+extern crate variant_name;
+
+use variant_name::VariantName;
 
 #[derive(VariantName)]
 enum EnumTest {
@@ -12,14 +15,13 @@ enum EnumTest {
 #[derive(VariantName)]
 struct StructTest;
 
-trait VariantName {
-    fn variant_name(&self) -> &'static str;
-}
-
 fn main() {
     println!("{}", EnumTest::A.variant_name());
     println!("{}", EnumTest::B(2).variant_name());
     println!("{}", EnumTest::C(3,1).variant_name());
     println!("{}", EnumTest::D{_a: 1, _b: 3}.variant_name());
     println!("{}", StructTest.variant_name());
+
+    println!("{:?}", EnumTest::variant_names());
+    println!("{:?}", StructTest::variant_names());
 }

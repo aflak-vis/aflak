@@ -5,3 +5,4 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
 variant_name_derive = { path = "../" }
+variant_name = { path = "../../variant_name" }

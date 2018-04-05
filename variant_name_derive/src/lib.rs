@@ -22,6 +22,9 @@ pub fn variant_name(input: TokenStream) -> TokenStream {
                     fn variant_name(&self) -> &'static str {
                         stringify!(#name)
                     }
+                    fn variant_names() -> &'static [&'static str] {
+                        &[stringify!(#name)]
+                    }
                 }
             }
         }
@@ -49,12 +52,16 @@ pub fn variant_name(input: TokenStream) -> TokenStream {
                     &#name::#match_identifier => stringify!(#ident)
                 }
             });
+            let names = enu.variants.iter().map(|v| v.ident);
             quote! {
                 impl VariantName for #name {
                     fn variant_name(&self) -> &'static str {
                         match self {
                             #(#branches),*
                         }
+                    }
+                    fn variant_names() -> &'static [&'static str] {
+                        &[#(stringify!(#names)),*]
                     }
                 }
             }
