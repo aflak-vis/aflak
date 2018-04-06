@@ -5,6 +5,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate bow;
 extern crate variant_name;
 
 mod dst;

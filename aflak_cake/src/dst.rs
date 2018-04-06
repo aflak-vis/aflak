@@ -1,14 +1,13 @@
+use bow::Bow;
 use std::borrow::{Borrow, Cow};
 use std::collections::{hash_map, HashMap};
 use std::hash::Hash;
 use variant_name::VariantName;
 
-use transform::{NamedAlgorithms, Transformation};
+use transform::Transformation;
 
-#[derive(Serialize)]
-#[serde(bound(serialize = ""))]
 pub struct DST<'t, T: Clone + 't, E: 't> {
-    transforms: HashMap<TransformIdx, &'t Transformation<T, E>>,
+    transforms: HashMap<TransformIdx, Bow<'t, Transformation<T, E>>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
 }
@@ -150,7 +149,7 @@ where
     pub fn contains(&self, t: &'t Transformation<T, E>) -> bool {
         let ptr = t as *const Transformation<T, E>;
         for transform in self.transforms.values() {
-            if *transform as *const Transformation<T, E> == ptr {
+            if transform.borrow() as *const Transformation<T, E> == ptr {
                 return true;
             }
         }
@@ -181,8 +180,8 @@ where
     }
 
     /// Get a transform from its TransformIdx.
-    pub fn get_transform(&self, idx: &TransformIdx) -> Option<&'t Transformation<T, E>> {
-        self.transforms.get(idx).map(|t| *t)
+    pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
+        self.transforms.get(idx).map(|t| t.borrow())
     }
 
     /// Get a transform's dependencies, i.e the outputs wired into the transform's inputs, from its
@@ -210,7 +209,7 @@ where
     /// Add a transform and return its identifier TransformIdx.
     pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
-        self.transforms.insert(idx, t);
+        self.transforms.insert(idx, Bow::Borrowed(t));
         idx
     }
 
@@ -495,10 +494,10 @@ impl<'a> Iterator for EdgeIterator<'a> {
 }
 
 pub struct TransformIterator<'a, T: 'a + Clone, E: 'a> {
-    iter: hash_map::Iter<'a, TransformIdx, &'a Transformation<T, E>>,
+    iter: hash_map::Iter<'a, TransformIdx, Bow<'a, Transformation<T, E>>>,
 }
 impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
-    fn new(iter: hash_map::Iter<'a, TransformIdx, &'a Transformation<T, E>>) -> Self {
+    fn new(iter: hash_map::Iter<'a, TransformIdx, Bow<'a, Transformation<T, E>>>) -> Self {
         Self { iter }
     }
 }
@@ -506,7 +505,7 @@ impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
 impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
     type Item = (&'a TransformIdx, &'a Transformation<T, E>);
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(idx, &t)| (idx, t))
+        self.iter.next().map(|(idx, t)| (idx, t.borrow()))
     }
 }
 
@@ -615,155 +614,5 @@ impl<'a> Iterator for LinkIter<'a> {
         } else {
             None
         }
-    }
-}
-
-/*** Custom deserializer for DST ***/
-
-use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
-use std::fmt;
-use std::marker::PhantomData;
-
-/// Desiarializer for DST
-impl<'de, T, E: 'de> Deserialize<'de> for DST<'de, T, E>
-where
-    T: 'static + NamedAlgorithms<E>,
-    E: 'static + Clone,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
-        enum Field {
-            Transforms,
-            Edges,
-            Outputs,
-        };
-
-        struct DSTVisitor<T, E> {
-            marker: PhantomData<fn() -> (T, E)>,
-        };
-        impl<T, E> DSTVisitor<T, E> {
-            fn new() -> Self {
-                DSTVisitor {
-                    marker: PhantomData,
-                }
-            }
-        }
-
-        impl<'de, T, E: 'de> Visitor<'de> for DSTVisitor<T, E>
-        where
-            T: 'static + NamedAlgorithms<E>,
-            E: 'static + Clone,
-        {
-            type Value = DST<'de, T, E>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct DST")
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut transforms = None;
-                let mut edges = None;
-                let mut outputs = None;
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        Field::Transforms => {
-                            if transforms.is_some() {
-                                return Err(de::Error::duplicate_field("transforms"));
-                            }
-                            transforms = Some(map.next_value()?);
-                        }
-                        Field::Edges => {
-                            if edges.is_some() {
-                                return Err(de::Error::duplicate_field("edges"));
-                            }
-                            edges = Some(map.next_value()?);
-                        }
-                        Field::Outputs => {
-                            if outputs.is_some() {
-                                return Err(de::Error::duplicate_field("outputs"));
-                            }
-                            outputs = Some(map.next_value()?);
-                        }
-                    }
-                }
-                let transforms = transforms.ok_or_else(|| de::Error::missing_field("transforms"))?;
-                let edges = edges.ok_or_else(|| de::Error::missing_field("edges"))?;
-                let outputs = outputs.ok_or_else(|| de::Error::missing_field("outputs"))?;
-                Ok(DST {
-                    transforms,
-                    edges,
-                    outputs,
-                })
-            }
-        }
-
-        const FIELDS: &'static [&'static str] = &["transforms", "edges", "outputs"];
-        deserializer.deserialize_struct("DST", FIELDS, DSTVisitor::new())
-    }
-}
-
-impl<'de, T, E> Deserialize<'de> for &'de Transformation<T, E>
-where
-    T: 'static + NamedAlgorithms<E>,
-    E: 'static + Clone,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct TransformationVisitor<T, E> {
-            marker: PhantomData<fn() -> (T, E)>,
-        };
-        impl<T, E> TransformationVisitor<T, E> {
-            fn new() -> Self {
-                TransformationVisitor {
-                    marker: PhantomData,
-                }
-            }
-        }
-
-        impl<'de, T, E> Visitor<'de> for TransformationVisitor<T, E>
-        where
-            T: 'static + NamedAlgorithms<E>,
-            E: 'static + Clone,
-        {
-            type Value = &'de Transformation<T, E>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Transformation")
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut name: Option<String> = None;
-                while let Some(key) = map.next_key::<String>()? {
-                    println!("{}", key);
-                    if key == "name" {
-                        if name.is_some() {
-                            return Err(de::Error::duplicate_field("name"));
-                        }
-                        name = Some(map.next_value()?);
-                    } else {
-                        // Ignore next value. Assume discriminant is saved as u64
-                        map.next_value::<Vec<u64>>()?;
-                    }
-                }
-                let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-                let transform = T::get_transform(&name)
-                    .ok_or_else(|| de::Error::custom("algorithm name not found"))?;
-                Ok(transform)
-            }
-        }
-        const FIELDS: &'static [&'static str] = &["name"];
-        deserializer.deserialize_struct("Transformation", FIELDS, TransformationVisitor::new())
     }
 }

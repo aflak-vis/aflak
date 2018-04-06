@@ -60,10 +60,6 @@ fn test_make_dst_and_iterate_dependencies() {
 
     assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
-
-    let _ronified = ron::ser::to_string_pretty(&dst, Default::default()).unwrap();
-    println!("{}", _ronified);
-    //panic!()
 }
 
 #[test]
