@@ -184,6 +184,12 @@ where
         self.transforms.get(idx).map(|t| t.borrow())
     }
 
+    /// Get a transform mutably from its TransformIdx.
+    /// Return `None` if the target transform is not owned.
+    pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
+        self.transforms.get_mut(idx).and_then(|t| t.borrow_mut())
+    }
+
     /// Get a transform's dependencies, i.e the outputs wired into the transform's inputs, from its
     /// TransformIdx.
     /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
