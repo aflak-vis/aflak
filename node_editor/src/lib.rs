@@ -395,13 +395,15 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                                 toggle_select_node(node_states, &idx);
                             }
                         }
-                        if self.drag_node == Some(idx)
-                            && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
-                        {
-                            let delta = ui.imgui().mouse_delta();
-                            node_state_set(node_states, &idx, |state| {
-                                state.pos = state.pos + delta.into();
-                            });
+                        if self.drag_node == Some(idx) {
+                            if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                                let delta = ui.imgui().mouse_delta();
+                                node_state_set(node_states, &idx, |state| {
+                                    state.pos = state.pos + delta.into();
+                                });
+                            } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                                self.drag_node = None;
+                            }
                         }
 
                         let item_rect_size = ui.get_item_rect_size();
