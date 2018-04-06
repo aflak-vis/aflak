@@ -18,7 +18,6 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
     new_link: Option<(cake::Output, InputSlot)>,
-    constants: Vec<Transformation<T, E>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -48,7 +47,6 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
             drag_node: None,
             creating_link: None,
             new_link: None,
-            constants: vec![],
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -733,10 +731,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                 let item_name = ImString::new(format!("Input node: {}", constant_type));
                 if ui.menu_item(&item_name).build() {
                     let constant = Transformation::new_constant(T::default_for(constant_type));
-                    self.constants.push(constant);
-                    // self.constants and 't are not the same lifetimes! So we must trick rustc.
-                    let constant = self.constants.last().unwrap() as *const Transformation<T, E>;
-                    self.dst.add_transform(unsafe { &*constant });
+                    self.dst.add_owned_transform(constant);
                 }
             }
         });

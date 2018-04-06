@@ -213,6 +213,13 @@ where
         idx
     }
 
+    /// Add an owned transform and return its identifier TransformIdx.
+    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
+        let idx = self.new_transform_idx();
+        self.transforms.insert(idx, Bow::Owned(t));
+        idx
+    }
+
     /// Connect an output to an input.
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
