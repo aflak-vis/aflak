@@ -331,10 +331,8 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                     let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
                     // NODE LINK CULLING?
 
-                    let node_states = &mut self.node_states;
-                    for (idx, node) in self.dst.transforms_outputs_iter() {
-                        let node_name = ImString::new(node.name(&idx));
-                        let node_pos = node_state_get(node_states, &idx, |state| {
+                    for idx in self.dst.node_ids() {
+                        let node_pos = node_state_get(&self.node_states, &idx, |state| {
                             state.get_pos(CURRENT_FONT_WINDOW_SCALE)
                         });
                         // ui.push_id(idx.id() as i32);
@@ -348,62 +346,12 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
 
                         let node_rect_min = offset + node_pos;
                         let node_rect_max =
-                            node_state_get(node_states, &idx, |state| node_rect_min + state.size);
+                            node_state_get(&self.node_states, &idx, |state| node_rect_min + state.size);
                         ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
-                        ui.group(|| {
-                            let default_text_color =
-                                ui.imgui().style().colors[ImGuiCol::Text as usize];
-                            ui.with_color_var(ImGuiCol::Text, default_text_color, || {
-                                const TRANSPARENT: [f32; 4] = [1.0, 1.0, 1.0, 0.0];
-                                const TREE_STYLE: [(ImGuiCol, [f32; 4]); 3] = [
-                                    (ImGuiCol::Header, TRANSPARENT),
-                                    (ImGuiCol::HeaderActive, TRANSPARENT),
-                                    (ImGuiCol::HeaderHovered, TRANSPARENT),
-                                ];
-                                ui.with_color_vars(&TREE_STYLE, || {
-                                    if ui.tree_node(&node_name)
-                                        .opened(
-                                            node_state_get(node_states, &idx, |state| state.open),
-                                            ImGuiCond::Always,
-                                        )
-                                        .build(|| {})
-                                    {
-                                        open_node(node_states, &idx, false);
-                                    } else {
-                                        open_node(node_states, &idx, true);
-                                    }
-                                });
-                                ui.same_line_spacing(0.0, 2.0);
-                                //ui.text(node.name);
-                                if ui.is_item_hovered() {
-                                    // Show tooltip ?
-                                    ui.tooltip(|| ui.text("TEST TOOLTIP"));
-                                }
-                            });
-                            ui.dummy([0.0, 100.0]);
-                            // TODO: Add copy-paste buttons
-                        });
-                        if ui.is_item_hovered() {
-                            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                                self.active_node = Some(idx);
-                                self.drag_node = Some(idx);
-                                if !ui.imgui().key_ctrl() {
-                                    deselect_all_nodes(node_states);
-                                }
-                                toggle_select_node(node_states, &idx);
-                            }
-                        }
-                        if self.drag_node == Some(idx) {
-                            if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
-                                let delta = ui.imgui().mouse_delta();
-                                node_state_set(node_states, &idx, |state| {
-                                    state.pos = state.pos + delta.into();
-                                });
-                            } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
-                                self.drag_node = None;
-                            }
-                        }
+                        self.draw_node_inside(ui, &idx); // ...
 
+                        let node = self.dst.get_node(&idx).unwrap();
+                        let node_states = &mut self.node_states;
                         let item_rect_size = ui.get_item_rect_size();
                         node_state_set(node_states, &idx, |state| {
                             state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
@@ -588,7 +536,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                                 &LinkExtremity::Output(output) => {
                                     let output_node_count =
                                         self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                                    let output_node_state = node_states
+                                    let output_node_state = self.node_states
                                         .get(&cake::NodeId::Transform(output.t_idx))
                                         .unwrap();
                                     let connector_pos = output_node_state.get_output_slot_pos(
@@ -610,7 +558,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                                                 .unwrap()
                                                 .input
                                                 .len();
-                                            let input_node_state = node_states
+                                            let input_node_state = self.node_states
                                                 .get(&cake::NodeId::Transform(input.t_idx))
                                                 .unwrap();
                                             input_node_state.get_input_slot_pos(
@@ -620,7 +568,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                                             )
                                         }
                                         InputSlot::Output(output_id) => {
-                                            let input_node_state = node_states
+                                            let input_node_state = self.node_states
                                                 .get(&cake::NodeId::Output(output_id))
                                                 .unwrap();
                                             input_node_state.get_input_slot_pos(
@@ -654,7 +602,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                             cake::InputSlot::Transform(input) => {
                                 let input_node_count =
                                     self.dst.get_transform(&input.t_idx).unwrap().input.len();
-                                let input_node_state = node_states
+                                let input_node_state = self.node_states
                                     .get(&cake::NodeId::Transform(input.t_idx))
                                     .unwrap();
                                 input_node_state.get_input_slot_pos(
@@ -665,7 +613,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                             }
                             cake::InputSlot::Output(output_id) => {
                                 let input_node_state =
-                                    node_states.get(&cake::NodeId::Output(*output_id)).unwrap();
+                                    self.node_states.get(&cake::NodeId::Output(*output_id)).unwrap();
                                 input_node_state.get_input_slot_pos(
                                     0usize,
                                     1usize,
@@ -676,7 +624,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                         let p1 = offset + connector_in_pos;
                         let output_node_count =
                             self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                        let output_node_state = node_states
+                        let output_node_state = self.node_states
                             .get(&cake::NodeId::Transform(output.t_idx))
                             .unwrap();
 
@@ -735,6 +683,66 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                 }
             }
         });
+    }
+
+    fn draw_node_inside(&mut self, ui: &Ui, id: &cake::NodeId) {
+        let node_name = {
+            let node = self.dst.get_node(id).unwrap();
+            ImString::new(node.name(id))
+        };
+        let node_states = &mut self.node_states;
+        ui.group(|| {
+            let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
+            ui.with_color_var(ImGuiCol::Text, default_text_color, || {
+                const TRANSPARENT: [f32; 4] = [1.0, 1.0, 1.0, 0.0];
+                const TREE_STYLE: [(ImGuiCol, [f32; 4]); 3] = [
+                    (ImGuiCol::Header, TRANSPARENT),
+                    (ImGuiCol::HeaderActive, TRANSPARENT),
+                    (ImGuiCol::HeaderHovered, TRANSPARENT),
+                ];
+                ui.with_color_vars(&TREE_STYLE, || {
+                    if ui.tree_node(&node_name)
+                        .opened(
+                            node_state_get(node_states, id, |state| state.open),
+                            ImGuiCond::Always,
+                        )
+                        .build(|| {})
+                    {
+                        open_node(node_states, id, false);
+                    } else {
+                        open_node(node_states, id, true);
+                    }
+                });
+                ui.same_line_spacing(0.0, 2.0);
+                //ui.text(node.name);
+                if ui.is_item_hovered() {
+                    // Show tooltip ?
+                    ui.tooltip(|| ui.text("TEST TOOLTIP"));
+                }
+            });
+            ui.dummy([0.0, 100.0]);
+            // TODO: Add copy-paste buttons
+        });
+        if ui.is_item_hovered() {
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                self.active_node = Some(*id);
+                self.drag_node = Some(*id);
+                if !ui.imgui().key_ctrl() {
+                    deselect_all_nodes(node_states);
+                }
+                toggle_select_node(node_states, id);
+            }
+        }
+        if self.drag_node == Some(*id) {
+            if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                let delta = ui.imgui().mouse_delta();
+                node_state_set(node_states, id, |state| {
+                    state.pos = state.pos + delta.into();
+                });
+            } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                self.drag_node = None;
+            }
+        }
     }
 }
 
