@@ -92,7 +92,11 @@ fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
 fn run_fits_to_3d_image(fits: &Arc<Mutex<fitrs::Fits>>) -> Result<IOValue, IOErr> {
     let image = {
         let mut file = fits.lock().unwrap();
-        let primary_hdu = &mut file[0];
+        let primary_hdu = file.get(0).ok_or_else(|| {
+            IOErr::UnexpectedInput(
+                "Could not find HDU 0 in Fits file. Is the file valid?".to_owned(),
+            )
+        })?;
         let data = primary_hdu.read_data();
         match data {
             &fitrs::FitsData::FloatingPoint32(ref image) => {
