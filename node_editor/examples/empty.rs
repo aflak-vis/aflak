@@ -58,7 +58,7 @@ fn main() {
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
     let string_constant =
-        cake::Transformation::new_constant(primitives::IOValue::Str("TEST".to_owned()));
+        cake::Transformation::new_constant(primitives::IOValue::Str("/home/malik/workspace/lab/aflak/data/JCMT_CO32.FITS".to_owned()));
     let mut dst = cake::DST::new();
     let a = dst.add_transform(transformations[0]);
     let _b = dst.add_transform(transformations[0]);
