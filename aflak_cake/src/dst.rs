@@ -179,6 +179,10 @@ where
         }
     }
 
+    pub fn node_ids(&self) -> Vec<NodeId> {
+        self.transforms_outputs_iter().map(|(id, _)| id).collect()
+    }
+
     /// Get a transform from its TransformIdx.
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
         self.transforms.get(idx).map(|t| t.borrow())
@@ -188,6 +192,15 @@ where
     /// Return `None` if the target transform is not owned.
     pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
         self.transforms.get_mut(idx).and_then(|t| t.borrow_mut())
+    }
+
+    pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
+        match idx {
+            &NodeId::Transform(ref t_idx) => self.get_transform(t_idx).map(Node::Transform),
+            &NodeId::Output(ref output_id) => self.outputs
+                .get(output_id)
+                .map(|some_output| Node::Output(some_output.as_ref())),
+        }
     }
 
     /// Get a transform's dependencies, i.e the outputs wired into the transform's inputs, from its
