@@ -15,6 +15,8 @@ use std::sync::{Arc, Mutex};
 pub enum IOValue {
     Integer(i64),
     Float(f64),
+    Float2([f64; 2]),
+    Float3([f64; 3]),
     Str(String),
     Fits(Arc<Mutex<fitrs::Fits>>),
     Image1d(Vec<f64>),
@@ -65,6 +67,8 @@ impl cake::DefaultFor for IOValue {
         match variant_name {
             "Integer" => IOValue::Integer(0),
             "Float" => IOValue::Float(0.0),
+            "Float2" => IOValue::Float2([0.0; 2]),
+            "Float3" => IOValue::Float3([0.0; 3]),
             "Str" => IOValue::Str("".to_owned()),
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
@@ -73,7 +77,7 @@ impl cake::DefaultFor for IOValue {
 
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
-        &["Integer", "Float", "Str"]
+        &["Integer", "Float", "Float2", "Float3", "Str"]
     }
 }
 
