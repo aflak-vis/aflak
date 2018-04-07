@@ -32,6 +32,11 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 ui.input_int(im_str!("Int value"), &mut out).build();
                 *int = out as i64;
             }
+            &mut IOValue::Float(ref mut float) => {
+                let mut out = *float as f32;
+                ui.input_float(im_str!("Float value"), &mut out).build();
+                *float = out as f64;
+            }
             _ => (),
         }
     }
@@ -70,6 +75,9 @@ fn main() {
                         }
                         primitives::IOValue::Integer(integer) => {
                             ui.text(format!("{:?}", integer));
+                        }
+                        primitives::IOValue::Float(float) => {
+                            ui.text(format!("{:?}", float));
                         }
                         _ => {
                             ui.text("Unimplemented");
