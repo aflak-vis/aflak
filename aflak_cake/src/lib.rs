@@ -20,6 +20,12 @@ pub use self::variant_name::VariantName;
 pub trait DefaultFor {
     fn default_for(variant_name: &'static str) -> Self;
 }
+pub trait EditableVariants {
+    fn editable_variants() -> &'static [&'static str];
+    fn editable(variant_name: &'static str) -> bool {
+        Self::editable_variants().contains(&variant_name)
+    }
+}
 
 /// Make it easier to define a function used for a transform
 #[macro_export]

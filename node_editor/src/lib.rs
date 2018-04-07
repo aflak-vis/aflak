@@ -116,8 +116,10 @@ impl<'t, T: Clone + cake::VariantName, E, ED> NodeEditor<'t, T, E, ED> {
     }
 }
 
-impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E, ED: ConstantEditor<T>>
-    NodeEditor<'t, T, E, ED>
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone + cake::EditableVariants + cake::VariantName + cake::DefaultFor,
+    ED: ConstantEditor<T>,
 {
     pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
         Self {
@@ -687,7 +689,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E, ED: ConstantEditor<
                 self.dst.create_output();
             }
             ui.separator();
-            for constant_type in T::variant_names() {
+            for constant_type in T::editable_variants() {
                 let item_name = ImString::new(format!("Input node: {}", constant_type));
                 if ui.menu_item(&item_name).build() {
                     let constant = Transformation::new_constant(T::default_for(constant_type));

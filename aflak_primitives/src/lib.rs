@@ -71,6 +71,12 @@ impl cake::DefaultFor for IOValue {
     }
 }
 
+impl cake::EditableVariants for IOValue {
+    fn editable_variants() -> &'static [&'static str] {
+        &["Integer", "Float", "Str"]
+    }
+}
+
 /// Open FITS file
 fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)
