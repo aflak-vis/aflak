@@ -8,25 +8,44 @@ mod support;
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
 extern crate node_editor;
-use node_editor::NodeEditor;
+use node_editor::{ConstantEditor, NodeEditor};
 
-use imgui::ImString;
+use imgui::{ImString, Ui};
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
+
+#[derive(Default)]
+struct MyConstantEditor;
+
+impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
+    fn editor(&self, ui: &Ui, constant: &mut primitives::IOValue) {
+        use primitives::IOValue;
+        match constant {
+            &mut IOValue::Str(ref mut string) => {
+                let mut out = ImString::with_capacity(1024);
+                out.push_str(string);
+                ui.input_text(im_str!("String value"), &mut out).build();
+                *string = out.to_str().to_owned();
+            }
+            _ => (),
+        }
+    }
+}
 
 fn main() {
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
-    let string_constant = cake::Transformation::new_constant(primitives::IOValue::Str("TEST".to_owned()));
+    let string_constant =
+        cake::Transformation::new_constant(primitives::IOValue::Str("TEST".to_owned()));
     let mut dst = cake::DST::new();
     let a = dst.add_transform(transformations[0]);
     let _b = dst.add_transform(transformations[0]);
     let c = dst.add_transform(transformations[1]);
-    let _d = dst.add_transform(&string_constant);
+    let _d = dst.add_owned_transform(string_constant);
     dst.connect(cake::Output::new(a, 0), cake::Input::new(c, 0))
         .unwrap();
     dst.attach_output(cake::Output::new(c, 0)).unwrap();
-    let mut node_editor = NodeEditor::from_dst(dst, transformations);
+    let mut node_editor = NodeEditor::from_dst(dst, transformations, MyConstantEditor);
     support::run("Node editor example".to_owned(), CLEAR_COLOR, |ui| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);
@@ -39,17 +58,15 @@ fn main() {
                 match result {
                     Err(e) => {
                         ui.text(format!("{:?}", e));
-                    },
-                    Ok(result) => {
-                        match result {
-                            primitives::IOValue::Str(string) => {
-                                ui.text(format!("{:?}", string));
-                            },
-                            _ => {
-                                ui.text("Unimplemented");
-                            }
-                        }
                     }
+                    Ok(result) => match result {
+                        primitives::IOValue::Str(string) => {
+                            ui.text(format!("{:?}", string));
+                        }
+                        _ => {
+                            ui.text("Unimplemented");
+                        }
+                    },
                 }
             });
         }

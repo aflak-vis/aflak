@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 type NodeStates = BTreeMap<cake::NodeId, NodeState>;
 
-pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
+pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transformation<T, E>],
     node_states: NodeStates,
@@ -24,6 +24,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't> {
     pub show_connection_names: bool,
     scrolling: ImVec2,
     pub show_grid: bool,
+    constant_editor: ED,
 }
 
 enum LinkExtremity {
@@ -37,7 +38,7 @@ enum InputSlot {
     Output(cake::OutputId),
 }
 
-impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
+impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
     fn default() -> Self {
         Self {
             dst: DST::new(),
@@ -53,6 +54,7 @@ impl<'t, T: Clone, E> Default for NodeEditor<'t, T, E> {
             show_connection_names: true,
             scrolling: ImVec2::new(0.0, 0.0),
             show_grid: true,
+            constant_editor: ED::default(),
         }
     }
 }
@@ -108,24 +110,32 @@ impl NodeState {
     }
 }
 
-impl<'t, T: Clone + cake::VariantName, E> NodeEditor<'t, T, E> {
+impl<'t, T: Clone + cake::VariantName, E, ED> NodeEditor<'t, T, E, ED> {
     pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError> {
         self.dst.compute(id)
     }
 }
 
-impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E> {
-    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
+impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E, ED: ConstantEditor<T>>
+    NodeEditor<'t, T, E, ED>
+{
+    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
         Self {
             addable_nodes,
+            constant_editor: ed,
             ..Default::default()
         }
     }
 
-    pub fn from_dst(dst: DST<'t, T, E>, addable_nodes: &'t [&'t Transformation<T, E>]) -> Self {
+    pub fn from_dst(
+        dst: DST<'t, T, E>,
+        addable_nodes: &'t [&'t Transformation<T, E>],
+        ed: ED,
+    ) -> Self {
         Self {
             dst,
             addable_nodes,
+            constant_editor: ed,
             ..Default::default()
         }
     }
@@ -345,8 +355,9 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                         });
 
                         let node_rect_min = offset + node_pos;
-                        let node_rect_max =
-                            node_state_get(&self.node_states, &idx, |state| node_rect_min + state.size);
+                        let node_rect_max = node_state_get(&self.node_states, &idx, |state| {
+                            node_rect_min + state.size
+                        });
                         ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                         self.draw_node_inside(ui, &idx); // ...
 
@@ -612,8 +623,9 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                                 )
                             }
                             cake::InputSlot::Output(output_id) => {
-                                let input_node_state =
-                                    self.node_states.get(&cake::NodeId::Output(*output_id)).unwrap();
+                                let input_node_state = self.node_states
+                                    .get(&cake::NodeId::Output(*output_id))
+                                    .unwrap();
                                 input_node_state.get_input_slot_pos(
                                     0usize,
                                     1usize,
@@ -691,6 +703,8 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
             ImString::new(node.name(id))
         };
         let node_states = &mut self.node_states;
+        let dst = &mut self.dst;
+        let constant_editor = &self.constant_editor;
         ui.group(|| {
             let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
             ui.with_color_var(ImGuiCol::Text, default_text_color, || {
@@ -720,7 +734,21 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
                     ui.tooltip(|| ui.text("TEST TOOLTIP"));
                 }
             });
-            ui.dummy([0.0, 100.0]);
+            let mut constant_editor_in_use = false;
+            if let &cake::NodeId::Transform(ref t_idx) = id {
+                if let Some(t) = dst.get_transform_mut(t_idx) {
+                    if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
+                        ui.dummy([0.0, 20.0]);
+                        for c in constants.iter_mut() {
+                            constant_editor.editor(ui, c);
+                            constant_editor_in_use = true;
+                        }
+                    }
+                }
+            }
+            if !constant_editor_in_use {
+                ui.dummy([0.0, 100.0]);
+            }
             // TODO: Add copy-paste buttons
         });
         if ui.is_item_hovered() {
@@ -747,7 +775,7 @@ impl<'t, T: Clone + cake::VariantName + cake::DefaultFor, E> NodeEditor<'t, T, E
 }
 
 /// Manage nodes
-impl<'t, T: Clone, E> NodeEditor<'t, T, E> {
+impl<'t, T: Clone, E, ED> NodeEditor<'t, T, E, ED> {
     fn init_node(&self) -> NodeState {
         let mut max = -300.0;
         for state in self.node_states.values() {
@@ -794,4 +822,8 @@ fn node_state_set<T, F: FnOnce(&mut NodeState) -> T>(
 ) -> T {
     let state = node_states.get_mut(id).unwrap();
     f(state)
+}
+
+pub trait ConstantEditor<T>: Default {
+    fn editor(&self, ui: &Ui, constant: &mut T);
 }
