@@ -3,6 +3,7 @@ extern crate aflak_cake as cake;
 extern crate imgui;
 extern crate imgui_sys as sys;
 
+use std::fmt;
 use cake::{Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
@@ -111,7 +112,7 @@ impl NodeState {
 }
 
 impl<'t, T: Clone + cake::VariantName, E, ED> NodeEditor<'t, T, E, ED> {
-    pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError> {
+    pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError<E>> {
         self.dst.compute(id)
     }
 }
@@ -120,6 +121,7 @@ impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone + cake::EditableVariants + cake::VariantName + cake::DefaultFor,
     ED: ConstantEditor<T>,
+    E: fmt::Debug,
 {
     pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
         Self {

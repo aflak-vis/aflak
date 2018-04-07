@@ -82,7 +82,7 @@ struct InputIdx(usize);
 pub struct OutputId(usize);
 
 #[derive(Debug)]
-pub enum DSTError {
+pub enum DSTError<E> {
     InvalidInput(String),
     InvalidOutput(String),
     DuplicateEdge(String),
@@ -90,13 +90,14 @@ pub enum DSTError {
     IncompatibleTypes(String),
     MissingOutputID(String),
     ComputeError(String),
+    InnerComputeError(E),
 }
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone + VariantName,
 {
-    fn _compute(&self, output: Output) -> Result<T, DSTError> {
+    fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
         let t = self.get_transform(&output.t_idx).ok_or_else(|| {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
         })?;
@@ -112,14 +113,13 @@ where
             None => Err(DSTError::ComputeError(
                 "No nth output received. This is a bug!".to_owned(),
             )),
-            Some(result) => result.map_err(|_err| {
-                // TODO: Improve this error message
-                DSTError::ComputeError("Computation failed...".to_owned())
+            Some(result) => result.map_err(|err| {
+                DSTError::InnerComputeError(err)
             }),
         }
     }
 
-    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError> {
+    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError<E>> {
         self.outputs
             .get(output_id)
             .ok_or_else(|| {
@@ -243,7 +243,7 @@ where
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
     /// If input is already connector to another output, delete this output
-    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError> {
+    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>> {
         if !self.output_exists(&output) {
             Err(DSTError::InvalidOutput(format!(
                 "{:?} does not exist in this graph!",
@@ -287,7 +287,7 @@ where
     /// Attach an output to the graph. Only the attached outputs are lazily evaluated.
     /// Return the unique identifier to the attached output.
     /// Return an error if specified output does not exists in current graph.
-    pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError> {
+    pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError<E>> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
             self.outputs.insert(idx, Some(output));
@@ -394,7 +394,7 @@ where
     pub fn dependencies(
         &'t self,
         output_id: &OutputId,
-    ) -> Result<DependencyIter<'t, T, E>, DSTError> {
+    ) -> Result<DependencyIter<'t, T, E>, DSTError<E>> {
         self.outputs
             .get(output_id)
             .ok_or_else(|| {
