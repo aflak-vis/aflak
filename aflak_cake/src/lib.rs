@@ -4,6 +4,7 @@
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate rayon;
 
 extern crate bow;
 extern crate variant_name;

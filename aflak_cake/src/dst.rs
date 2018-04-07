@@ -1,3 +1,5 @@
+use rayon;
+
 use bow::Bow;
 use std::borrow::{Borrow, Cow};
 use std::collections::{hash_map, HashMap};
@@ -91,11 +93,13 @@ pub enum DSTError<E> {
     MissingOutputID(String),
     ComputeError(String),
     InnerComputeError(E),
+    NothingDoneYet,
 }
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
-    T: Clone + VariantName,
+    T: Clone + VariantName + Send + Sync,
+    E: Send,
 {
     fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
         let t = self.get_transform(&output.t_idx).ok_or_else(|| {
@@ -103,11 +107,23 @@ where
         })?;
         let deps = self.get_transform_dependencies(&output.t_idx);
         let mut op = t.start();
-        for parent_output in deps {
-            let parent_output = parent_output.ok_or_else(|| {
-                DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
-            })?;
-            op.feed(self._compute(parent_output)?);
+        let mut results = Vec::with_capacity(deps.len());
+        for _ in 0..(deps.len()) {
+            results.push(Err(DSTError::NothingDoneYet));
+        }
+        rayon::scope(|s| {
+            for (result, parent_output) in results.iter_mut().zip(deps) {
+                s.spawn(move |_| {
+                    *result = parent_output
+                        .ok_or_else(|| {
+                            DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
+                        })
+                        .and_then(|output| self._compute(output));
+                })
+            }
+        });
+        for result in results {
+            op.feed(result?);
         }
         match op.call().nth(output.output_i.into()) {
             None => Err(DSTError::ComputeError(
