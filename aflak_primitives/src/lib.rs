@@ -8,8 +8,8 @@ extern crate aflak_cake as cake;
 extern crate fitrs;
 extern crate serde;
 
-use variant_name::VariantName;
 use std::sync::{Arc, Mutex};
+use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName)]
 pub enum IOValue {
