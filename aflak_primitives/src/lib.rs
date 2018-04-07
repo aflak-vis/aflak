@@ -8,7 +8,7 @@ extern crate aflak_cake as cake;
 extern crate fitrs;
 extern crate serde;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName)]
@@ -18,7 +18,7 @@ pub enum IOValue {
     Float2([f64; 2]),
     Float3([f64; 3]),
     Str(String),
-    Fits(Arc<Mutex<fitrs::Fits>>),
+    Fits(Arc<fitrs::Fits>),
     Image1d(Vec<f64>),
     Image2d(Vec<Vec<f64>>),
     Image3d(Vec<Vec<Vec<f64>>>),
@@ -84,15 +84,14 @@ impl cake::EditableVariants for IOValue {
 /// Open FITS file
 fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)
-        .map(|fits| IOValue::Fits(Arc::new(Mutex::new(fits))))
+        .map(|fits| IOValue::Fits(Arc::new(fits)))
         .map_err(|err| IOErr::NotFound(err.to_string()))
 }
 
 /// Turn a FITS file into a 3D image
-fn run_fits_to_3d_image(fits: &Arc<Mutex<fitrs::Fits>>) -> Result<IOValue, IOErr> {
+fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
     let image = {
-        let mut file = fits.lock().unwrap();
-        let primary_hdu = file.get(0).ok_or_else(|| {
+        let primary_hdu = fits.get(0).ok_or_else(|| {
             IOErr::UnexpectedInput(
                 "Could not find HDU 0 in Fits file. Is the file valid?".to_owned(),
             )
