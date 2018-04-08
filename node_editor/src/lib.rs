@@ -111,7 +111,11 @@ impl NodeState {
     }
 }
 
-impl<'t, T: Clone + cake::VariantName, E, ED> NodeEditor<'t, T, E, ED> {
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone + cake::VariantName + Send + Sync,
+    E: Send,
+{
     pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError<E>> {
         self.dst.compute(id)
     }
