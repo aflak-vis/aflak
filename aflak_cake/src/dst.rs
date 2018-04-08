@@ -1,4 +1,5 @@
 use rayon;
+use std::sync::RwLock;
 
 use bow::Bow;
 use std::borrow::{Borrow, Cow};
@@ -8,10 +9,13 @@ use variant_name::VariantName;
 
 use transform::Transformation;
 
+type Cache<T> = RwLock<Option<T>>;
+
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, Bow<'t, Transformation<T, E>>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
+    cache: HashMap<Output, Cache<T>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -54,7 +58,6 @@ impl Input {
     }
 }
 
-#[derive(Serialize, Deserialize)]
 struct InputList {
     /// List of all inputs to which the data is fed
     inputs: Vec<Input>,
@@ -105,6 +108,13 @@ where
         let t = self.get_transform(&output.t_idx).ok_or_else(|| {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
         })?;
+        let output_cache_lock = self.cache.get(&output).expect("Get output cache");
+        {
+            let output_cache = output_cache_lock.read().unwrap();
+            if let Some(ref cache) = *output_cache {
+                return Ok(cache.clone());
+            }
+        }
         let deps = self.get_transform_dependencies(&output.t_idx);
         let mut op = t.start();
         let mut results = Vec::with_capacity(deps.len());
@@ -129,9 +139,13 @@ where
             None => Err(DSTError::ComputeError(
                 "No nth output received. This is a bug!".to_owned(),
             )),
-            Some(result) => result.map_err(|err| {
-                DSTError::InnerComputeError(err)
-            }),
+            Some(result) => {
+                if let Ok(ref result) = result {
+                    let mut cache = output_cache_lock.write().unwrap();
+                    *cache = Some(result.clone())
+                }
+                result.map_err(|err| DSTError::InnerComputeError(err))
+            }
         }
     }
 
@@ -159,6 +173,7 @@ where
             transforms: HashMap::new(),
             edges: HashMap::new(),
             outputs: HashMap::new(),
+            cache: HashMap::new(),
         }
     }
 
@@ -296,6 +311,7 @@ where
                 let inputs = self.edges.get_mut(&output).unwrap();
                 inputs.push(input);
             }
+            self.cache.insert(output, RwLock::new(None));
             Ok(())
         }
     }
@@ -307,6 +323,7 @@ where
         if self.output_exists(&output) {
             let idx = self.new_output_id();
             self.outputs.insert(idx, Some(output));
+            self.cache.insert(output, RwLock::new(None));
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
@@ -326,6 +343,7 @@ where
     /// Attach an already registered output somewhere else
     pub fn update_output(&mut self, output_id: OutputId, output: Output) {
         self.outputs.insert(output_id, Some(output));
+        self.cache.insert(output, RwLock::new(None));
     }
 
     /// Detach output with given ID. Does nothing if output does not exist.
