@@ -3,11 +3,11 @@ extern crate aflak_cake as cake;
 extern crate imgui;
 extern crate imgui_sys as sys;
 
-use std::fmt;
 use cake::{Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
 use std::collections::BTreeMap;
+use std::fmt;
 
 type NodeStates = BTreeMap<cake::NodeId, NodeState>;
 
