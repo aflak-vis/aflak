@@ -7,6 +7,7 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 imgui = { path = "imgui-rs" }
 imgui-sys = { path = "imgui-rs/imgui-sys" }
 aflak_cake = { path = "../aflak_cake" }
+rayon = "1.0"
 
 [dev-dependencies]
 imgui-glium-renderer = { path = "imgui-rs/imgui-glium-renderer" }

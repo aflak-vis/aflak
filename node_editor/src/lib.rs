@@ -2,12 +2,15 @@ extern crate aflak_cake as cake;
 #[macro_use]
 extern crate imgui;
 extern crate imgui_sys as sys;
+extern crate rayon;
 
 use cake::{Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
 use std::collections::BTreeMap;
 use std::fmt;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 type NodeStates = BTreeMap<cake::NodeId, NodeState>;
 
@@ -19,6 +22,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
     new_link: Option<(cake::Output, InputSlot)>,
+    output_results: BTreeMap<cake::OutputId, Arc<Mutex<Option<Result<T, cake::DSTError<E>>>>>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -49,6 +53,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
             drag_node: None,
             creating_link: None,
             new_link: None,
+            output_results: BTreeMap::new(),
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -111,13 +116,29 @@ impl NodeState {
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, T: 'static, E: 'static, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send,
 {
-    pub fn compute_output(&self, id: &cake::OutputId) -> Result<T, cake::DSTError<E>> {
-        self.dst.compute(id)
+    pub fn compute_output(&self, id: &cake::OutputId) -> Arc<Mutex<Option<Result<T, cake::DSTError<E>>>>> {
+        let result_lock = self.output_results.get(id).unwrap();
+        let mut result = result_lock.lock().unwrap();
+        if let Some(Err(cake::DSTError::NothingDoneYet)) = *result {
+            // Currently computing... Just return pointer
+            result_lock.clone()
+        } else {
+            *result = Some(Err(cake::DSTError::NothingDoneYet));
+            drop(result);
+            let result_lock_clone = result_lock.clone();
+            let dst = &self.dst as *const DST<T, E> as usize;
+            let id = *id;
+            rayon::spawn(move || {
+                let dst = unsafe { std::mem::transmute::<usize, &DST<T, E>>(dst) };
+                *result_lock_clone.lock().unwrap() = Some(dst.compute(&id));
+            });
+            result_lock.clone()
+        }
     }
 }
 
@@ -140,9 +161,17 @@ where
         addable_nodes: &'t [&'t Transformation<T, E>],
         ed: ED,
     ) -> Self {
+        let mut output_results = BTreeMap::new();
+        for (output_id, _) in dst.outputs_iter() {
+            output_results.insert(
+                *output_id,
+                Arc::new(Mutex::new(None)),
+            );
+        }
         Self {
             dst,
             addable_nodes,
+            output_results,
             constant_editor: ed,
             ..Default::default()
         }
@@ -692,7 +721,11 @@ where
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
-                self.dst.create_output();
+                let id = self.dst.create_output();
+                self.output_results.insert(
+                    id,
+                    Arc::new(Mutex::new(None)),
+                );
             }
             ui.separator();
             for constant_type in T::editable_variants() {

@@ -78,30 +78,32 @@ fn main() {
             let window_name = ImString::new(format!("{:?}", output));
             ui.window(&window_name).build(|| {
                 let result = node_editor.compute_output(&output);
+                let result = &*result.lock().unwrap();
                 match result {
-                    Err(e) => {
+                    Some(Err(ref e)) => {
                         ui.text(format!("{:?}", e));
                     }
-                    Ok(result) => match result {
-                        primitives::IOValue::Str(string) => {
+                    Some(Ok(ref result)) => match result {
+                        &primitives::IOValue::Str(ref string) => {
                             ui.text(format!("{:?}", string));
                         }
-                        primitives::IOValue::Integer(integer) => {
+                        &primitives::IOValue::Integer(integer) => {
                             ui.text(format!("{:?}", integer));
                         }
-                        primitives::IOValue::Float(float) => {
+                        &primitives::IOValue::Float(float) => {
                             ui.text(format!("{:?}", float));
                         }
-                        primitives::IOValue::Float2(floats) => {
+                        &primitives::IOValue::Float2(floats) => {
                             ui.text(format!("{:?}", floats));
                         }
-                        primitives::IOValue::Float3(floats) => {
+                        &primitives::IOValue::Float3(floats) => {
                             ui.text(format!("{:?}", floats));
                         }
                         _ => {
                             ui.text("Unimplemented");
                         }
                     },
+                    None => (),
                 }
             });
         }
