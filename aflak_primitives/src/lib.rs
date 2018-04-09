@@ -14,15 +14,15 @@ use variant_name::VariantName;
 #[derive(Clone, Debug, VariantName)]
 pub enum IOValue {
     Integer(i64),
-    Float(f64),
-    Float2([f64; 2]),
-    Float3([f64; 3]),
+    Float(f32),
+    Float2([f32; 2]),
+    Float3([f32; 3]),
     Str(String),
     Fits(Arc<fitrs::Fits>),
-    Image1d(Vec<f64>),
-    Image2d(Vec<Vec<f64>>),
-    Image3d(Vec<Vec<Vec<f64>>>),
-    Map2dTo3dCoords(Vec<Vec<[f64; 3]>>),
+    Image1d(Vec<f32>),
+    Image2d(Vec<Vec<f32>>),
+    Image3d(Vec<Vec<Vec<f32>>>),
+    Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
 }
 
 #[derive(Clone, Debug)]
@@ -110,7 +110,7 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
                             let val = iter.next().ok_or_else(|| {
                                 IOErr::FITSErr("Unexpected length of in FITS file".to_owned())
                             })?;
-                            values.push(*val as f64);
+                            values.push(*val);
                         }
                         rows.push(values);
                     }
@@ -126,8 +126,8 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
 
 /// Slice a 3D image through an arbitrary 2D plane
 fn run_slice_3d_to_2d(
-    input_img: &Vec<Vec<Vec<f64>>>,
-    map: &Vec<Vec<[f64; 3]>>,
+    input_img: &Vec<Vec<Vec<f32>>>,
+    map: &Vec<Vec<[f32; 3]>>,
 ) -> Result<IOValue, IOErr> {
     let mut out = Vec::with_capacity(map.len());
     for row in map {
@@ -154,19 +154,19 @@ fn run_slice_3d_to_2d(
 /// Make a 2D plane slicing the 3D space
 /// This is actually a map mapping 2D to 3D coordinates
 fn run_make_plane3d(
-    p0: &[f64; 3],
-    dir1: &[f64; 3],
-    dir2: &[f64; 3],
+    p0: &[f32; 3],
+    dir1: &[f32; 3],
+    dir2: &[f32; 3],
     count1: i64,
     count2: i64,
 ) -> Result<IOValue, IOErr> {
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
     let mut map = Vec::with_capacity(count1 as usize);
     for i in 0..count1 {
-        let i = i as f64;
+        let i = i as f32;
         let mut row = Vec::with_capacity(count2 as usize);
         for j in 0..count2 {
-            let j = j as f64;
+            let j = j as f32;
             row.push([
                 x0 + i * dx1 + j * dx2,
                 y0 + i * dy1 + j * dy2,
