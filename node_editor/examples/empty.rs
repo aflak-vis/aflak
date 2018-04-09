@@ -8,7 +8,7 @@ mod support;
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
 extern crate node_editor;
-use node_editor::{ConstantEditor, NodeEditor};
+use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
 use imgui::{ImString, Ui};
 
@@ -77,33 +77,41 @@ fn main() {
         for output in outputs {
             let window_name = ImString::new(format!("{:?}", output));
             ui.window(&window_name).build(|| {
-                let result = node_editor.compute_output(&output);
-                let result = &*result.lock().unwrap();
-                match result {
-                    Some(Err(ref e)) => {
-                        ui.text(format!("{:?}", e));
+                let compute_state = node_editor.compute_output(&output);
+                let compute_state = &*compute_state.lock().unwrap();
+                match compute_state {
+                    &ComputationState::NothingDone => {
+                        ui.text("Initializing...");
                     }
-                    Some(Ok(ref result)) => match result {
-                        &primitives::IOValue::Str(ref string) => {
-                            ui.text(format!("{:?}", string));
+                    &ComputationState::RunningFirstTime => {
+                        ui.text("Computing...");
+                    }
+                    _ => match compute_state.result() {
+                        Some(Err(ref e)) => {
+                            ui.text(format!("{:?}", e));
                         }
-                        &primitives::IOValue::Integer(integer) => {
-                            ui.text(format!("{:?}", integer));
-                        }
-                        &primitives::IOValue::Float(float) => {
-                            ui.text(format!("{:?}", float));
-                        }
-                        &primitives::IOValue::Float2(floats) => {
-                            ui.text(format!("{:?}", floats));
-                        }
-                        &primitives::IOValue::Float3(floats) => {
-                            ui.text(format!("{:?}", floats));
-                        }
-                        _ => {
-                            ui.text("Unimplemented");
-                        }
+                        Some(Ok(ref result)) => match result {
+                            &primitives::IOValue::Str(ref string) => {
+                                ui.text(format!("{:?}", string));
+                            }
+                            &primitives::IOValue::Integer(integer) => {
+                                ui.text(format!("{:?}", integer));
+                            }
+                            &primitives::IOValue::Float(float) => {
+                                ui.text(format!("{:?}", float));
+                            }
+                            &primitives::IOValue::Float2(floats) => {
+                                ui.text(format!("{:?}", floats));
+                            }
+                            &primitives::IOValue::Float3(floats) => {
+                                ui.text(format!("{:?}", floats));
+                            }
+                            _ => {
+                                ui.text("Unimplemented");
+                            }
+                        },
+                        None => unreachable!(),
                     },
-                    None => (),
                 }
             });
         }

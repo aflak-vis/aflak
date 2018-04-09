@@ -9,6 +9,7 @@ use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouse
             ImVec2, StyleVar, Ui};
 use std::collections::BTreeMap;
 use std::fmt;
+use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -22,7 +23,8 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
     new_link: Option<(cake::Output, InputSlot)>,
-    output_results: BTreeMap<cake::OutputId, Arc<Mutex<Option<Result<T, cake::DSTError<E>>>>>>,
+    output_results:
+        BTreeMap<cake::OutputId, Arc<Mutex<ComputationState<Result<T, cake::DSTError<E>>>>>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -30,6 +32,51 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     scrolling: ImVec2,
     pub show_grid: bool,
     constant_editor: ED,
+}
+
+pub enum ComputationState<T> {
+    NothingDone,
+    RunningFirstTime,
+    Running { previous_result: T },
+    Completed { result: T },
+}
+
+impl<T> ComputationState<T> {
+    fn is_running(&self) -> bool {
+        match self {
+            &ComputationState::NothingDone => false,
+            &ComputationState::Completed { .. } => false,
+            &ComputationState::Running { .. } => true,
+            &ComputationState::RunningFirstTime => true,
+        }
+    }
+
+    fn to_running(&mut self) {
+        debug_assert!(!self.is_running(), "State is not running!");
+        let interim = ComputationState::NothingDone;
+        let prev = mem::replace(self, interim);
+        let next = match prev {
+            ComputationState::NothingDone => ComputationState::RunningFirstTime,
+            ComputationState::Completed { result } => ComputationState::Running {
+                previous_result: result,
+            },
+            _ => panic!("Expected computation state to not be running."),
+        };
+        mem::replace(self, next);
+    }
+
+    fn complete(&mut self, result: T) {
+        *self = ComputationState::Completed { result };
+    }
+
+    pub fn result(&self) -> Option<&T> {
+        match self {
+            ComputationState::NothingDone => None,
+            ComputationState::Completed { result } => Some(result),
+            ComputationState::Running { previous_result } => Some(previous_result),
+            ComputationState::RunningFirstTime => None,
+        }
+    }
 }
 
 enum LinkExtremity {
@@ -121,24 +168,28 @@ where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send,
 {
-    pub fn compute_output(&self, id: &cake::OutputId) -> Arc<Mutex<Option<Result<T, cake::DSTError<E>>>>> {
+    pub fn compute_output(
+        &self,
+        id: &cake::OutputId,
+    ) -> Arc<Mutex<ComputationState<Result<T, cake::DSTError<E>>>>> {
         let result_lock = self.output_results.get(id).unwrap();
         let mut result = result_lock.lock().unwrap();
-        if let Some(Err(cake::DSTError::NothingDoneYet)) = *result {
-            // Currently computing... Just return pointer
-            result_lock.clone()
+        if result.is_running() {
+            // Currently computing... Nothing to do
+            drop(result);
         } else {
-            *result = Some(Err(cake::DSTError::NothingDoneYet));
+            result.to_running();
             drop(result);
             let result_lock_clone = result_lock.clone();
             let dst = &self.dst as *const DST<T, E> as usize;
             let id = *id;
             rayon::spawn(move || {
                 let dst = unsafe { std::mem::transmute::<usize, &DST<T, E>>(dst) };
-                *result_lock_clone.lock().unwrap() = Some(dst.compute(&id));
+                let result = dst.compute(&id);
+                result_lock_clone.lock().unwrap().complete(result);
             });
-            result_lock.clone()
         }
+        result_lock.clone()
     }
 }
 
@@ -165,7 +216,7 @@ where
         for (output_id, _) in dst.outputs_iter() {
             output_results.insert(
                 *output_id,
-                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(ComputationState::NothingDone)),
             );
         }
         Self {
@@ -722,10 +773,8 @@ where
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
                 let id = self.dst.create_output();
-                self.output_results.insert(
-                    id,
-                    Arc::new(Mutex::new(None)),
-                );
+                self.output_results
+                    .insert(id, Arc::new(Mutex::new(ComputationState::NothingDone)));
             }
             ui.separator();
             for constant_type in T::editable_variants() {
