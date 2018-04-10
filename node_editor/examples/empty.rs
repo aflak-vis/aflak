@@ -33,21 +33,13 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 *int = out as i64;
             }
             &mut IOValue::Float(ref mut float) => {
-                let mut out = *float as f32;
-                ui.input_float(im_str!("Float value"), &mut out).build();
-                *float = out as f32;
+                ui.input_float(im_str!("Float value"), float).build();
             }
             &mut IOValue::Float2(ref mut floats) => {
-                let [a, b] = *floats;
-                let mut out = [a as f32, b as f32];
-                ui.input_float2(im_str!("2 floats value"), &mut out).build();
-                *floats = [out[0] as f32, out[1] as f32];
+                ui.input_float2(im_str!("2 floats value"), floats).build();
             }
             &mut IOValue::Float3(ref mut floats) => {
-                let [a, b, c] = *floats;
-                let mut out = [a as f32, b as f32, c as f32];
-                ui.input_float3(im_str!("3 floats value"), &mut out).build();
-                *floats = [out[0] as f32, out[1] as f32, out[2] as f32];
+                ui.input_float3(im_str!("3 floats value"), floats).build();
             }
             _ => (),
         }
