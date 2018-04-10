@@ -1,7 +1,7 @@
 use rayon;
 use std::sync::RwLock;
 
-use bow::Bow;
+use boow::Bow;
 use std::borrow::{Borrow, Cow};
 use std::collections::{hash_map, HashMap};
 use std::hash::Hash;

@@ -7,7 +7,7 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 serde_derive = "1.0"
 serde = "1.0"
 variant_name = { path = "../variant_name" }
-bow = { path = "../bow" }
+boow = "0.1"
 rayon = "1.0"
 
 [dev-dependencies]

@@ -6,7 +6,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate rayon;
 
-extern crate bow;
+extern crate boow;
 extern crate variant_name;
 
 mod dst;
