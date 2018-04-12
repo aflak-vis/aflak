@@ -11,6 +11,7 @@ use transform::Transformation;
 
 type Cache<T> = RwLock<Option<T>>;
 
+#[derive(Debug)]
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, Bow<'t, Transformation<T, E>>>,
     edges: HashMap<Output, InputList>,
@@ -58,6 +59,7 @@ impl Input {
     }
 }
 
+#[derive(Debug)]
 struct InputList {
     /// List of all inputs to which the data is fed
     inputs: Vec<Input>,

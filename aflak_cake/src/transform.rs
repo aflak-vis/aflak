@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt;
 use std::slice;
 use std::vec;
 
@@ -20,7 +21,16 @@ pub enum Algorithm<T: Clone, E> {
     Constant(Vec<T>),
 }
 
-#[derive(Clone)]
+impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &Algorithm::Function(ref fun) => write!(f, "Function({:p})", fun),
+            &Algorithm::Constant(ref vec) => write!(f, "Constant({:?})", vec),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Transformation<T: Clone, E> {
     pub name: TransformId,
     pub input: Vec<TypeId>,
