@@ -322,8 +322,7 @@ where
     pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError<E>> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
-            self.outputs.insert(idx, Some(output));
-            self.cache.insert(output, RwLock::new(None));
+            self.update_output(idx, output);
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
