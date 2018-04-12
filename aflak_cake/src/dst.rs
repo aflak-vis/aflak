@@ -256,6 +256,31 @@ where
         None
     }
 
+    fn inputs_attached_to(&self, output: &Output) -> Option<slice::Iter<Input>> {
+        self.edges
+            .get(output)
+            .map(|input_list| input_list.inputs.iter())
+    }
+
+    fn outputs_of_transformation(&self, t_idx: &TransformIdx) -> Option<Vec<Output>> {
+        self.get_transform(&t_idx).map(|t| {
+            let mut outputs = Vec::with_capacity(t.output.len());
+            for i in 0..(t.output.len()) {
+                let output = Output::new(*t_idx, i);
+                if self.edges.contains_key(&output) {
+                    outputs.push(output)
+                } else if self.outputs
+                    .values()
+                    .find(|&val| &Some(output) == val)
+                    .is_some()
+                {
+                    outputs.push(output)
+                }
+            }
+            outputs
+        })
+    }
+
     /// Add a transform and return its identifier TransformIdx.
     pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
@@ -311,7 +336,7 @@ where
                 let inputs = self.edges.get_mut(&output).unwrap();
                 inputs.push(input);
             }
-            self.cache.insert(output, RwLock::new(None));
+            self.purge_cache(output);
             Ok(())
         }
     }
@@ -439,6 +464,24 @@ where
                 })
             })
             .map(|output| self._dependencies(output))
+    }
+
+    /// Purge all cache in the given output and all its children.
+    fn purge_cache(&mut self, output: Output) {
+        self.cache.insert(output, RwLock::new(None));
+        let inputs: Option<Vec<_>> = self.inputs_attached_to(&output)
+            .map(|inputs| inputs.map(|input| *input))
+            .map(Iterator::collect);
+        if let Some(inputs) = inputs {
+            for input in inputs {
+                let outputs = self.outputs_of_transformation(&input.t_idx);
+                if let Some(outputs) = outputs {
+                    for output in outputs {
+                        self.purge_cache(output);
+                    }
+                }
+            }
+        }
     }
 }
 
