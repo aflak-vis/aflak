@@ -142,9 +142,11 @@ where
                 "No nth output received. This is a bug!".to_owned(),
             )),
             Some(result) => {
-                if let Ok(ref result) = result {
-                    let mut cache = output_cache_lock.write().unwrap();
-                    *cache = Some(result.clone())
+                if t.can_use_cache() {
+                    if let Ok(ref result) = result {
+                        let mut cache = output_cache_lock.write().unwrap();
+                        *cache = Some(result.clone())
+                    }
                 }
                 result.map_err(|err| DSTError::InnerComputeError(err))
             }

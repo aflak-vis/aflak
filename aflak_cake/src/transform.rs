@@ -97,6 +97,10 @@ where
     pub fn nth_input_type(&self, input_i: usize) -> TypeId {
         self.input[input_i]
     }
+
+    pub(crate) fn can_use_cache(&self) -> bool {
+        !self.input.is_empty()
+    }
 }
 impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
 where
