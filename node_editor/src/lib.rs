@@ -820,16 +820,22 @@ where
                 }
             });
             let mut constant_editor_in_use = false;
+            let mut purge_list = Vec::new();
             if let &cake::NodeId::Transform(ref t_idx) = id {
                 if let Some(t) = dst.get_transform_mut(t_idx) {
                     if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
                         ui.dummy([0.0, 20.0]);
                         for c in constants.iter_mut() {
-                            constant_editor.editor(ui, c);
+                            if constant_editor.editor(ui, c) {
+                                purge_list.push(id);
+                            }
                             constant_editor_in_use = true;
                         }
                     }
                 }
+            }
+            for node_id in purge_list {
+                dst.purge_cache_node(node_id);
             }
             if !constant_editor_in_use {
                 ui.dummy([0.0, 100.0]);
@@ -910,5 +916,6 @@ fn node_state_set<T, F: FnOnce(&mut NodeState) -> T>(
 }
 
 pub trait ConstantEditor<T>: Default {
-    fn editor(&self, ui: &Ui, constant: &mut T);
+    /// Build editor for constant T and return true on change
+    fn editor(&self, ui: &Ui, constant: &mut T) -> bool;
 }

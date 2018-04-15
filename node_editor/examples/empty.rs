@@ -18,30 +18,32 @@ const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 struct MyConstantEditor;
 
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
-    fn editor(&self, ui: &Ui, constant: &mut primitives::IOValue) {
+    fn editor(&self, ui: &Ui, constant: &mut primitives::IOValue) -> bool {
         use primitives::IOValue;
         match constant {
             &mut IOValue::Str(ref mut string) => {
                 let mut out = ImString::with_capacity(1024);
                 out.push_str(string);
-                ui.input_text(im_str!("String value"), &mut out).build();
+                let changed = ui.input_text(im_str!("String value"), &mut out).build();
                 *string = out.to_str().to_owned();
+                changed
             }
             &mut IOValue::Integer(ref mut int) => {
                 let mut out = *int as i32;
-                ui.input_int(im_str!("Int value"), &mut out).build();
+                let changed = ui.input_int(im_str!("Int value"), &mut out).build();
                 *int = out as i64;
+                changed
             }
             &mut IOValue::Float(ref mut float) => {
-                ui.input_float(im_str!("Float value"), float).build();
+                ui.input_float(im_str!("Float value"), float).build()
             }
             &mut IOValue::Float2(ref mut floats) => {
-                ui.input_float2(im_str!("2 floats value"), floats).build();
+                ui.input_float2(im_str!("2 floats value"), floats).build()
             }
             &mut IOValue::Float3(ref mut floats) => {
-                ui.input_float3(im_str!("3 floats value"), floats).build();
+                ui.input_float3(im_str!("3 floats value"), floats).build()
             }
-            _ => (),
+            _ => false,
         }
     }
 }

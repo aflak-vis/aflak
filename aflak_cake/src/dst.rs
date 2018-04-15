@@ -487,6 +487,29 @@ where
             }
         }
     }
+
+    /// Purge cache for specified node.
+    pub fn purge_cache_node(&mut self, node_id: &NodeId) {
+        match node_id {
+            &NodeId::Output(ref output_id) => {
+                let output = {
+                    if let Some(Some(output)) = self.outputs.get(output_id) {
+                        *output
+                    } else {
+                        return;
+                    }
+                };
+                self.purge_cache(output);
+            }
+            &NodeId::Transform(ref t_idx) => {
+                if let Some(outputs) = self.outputs_of_transformation(t_idx) {
+                    for output in outputs {
+                        self.purge_cache(output);
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl From<OutputIdx> for usize {
