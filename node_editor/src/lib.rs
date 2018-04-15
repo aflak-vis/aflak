@@ -237,6 +237,13 @@ where
     }
 
     pub fn render(&mut self, ui: &Ui) {
+        for idx in self.dst.node_ids() {
+            // Initialization of node states
+            if !self.node_states.contains_key(&idx) {
+                let new_node = self.init_node();
+                self.node_states.insert(idx, new_node);
+            }
+        }
         if self.show_left_pane {
             self.render_left_pane(ui);
         }
@@ -319,10 +326,6 @@ where
     fn show_node_list(&mut self, ui: &Ui) {
         for (idx, node) in self.dst.transforms_outputs_iter() {
             //ui.push_id(idx.id() as i32);
-            if !self.node_states.contains_key(&idx) {
-                let new_node = self.init_node();
-                self.node_states.insert(idx, new_node);
-            }
             let selected = self.node_states.get(&idx).unwrap().selected;
             let name = ImString::new(node.name(&idx));
             if ui.selectable(&name, selected, ImGuiSelectableFlags::empty(), (0.0, 0.0)) {
