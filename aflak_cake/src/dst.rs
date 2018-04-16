@@ -201,16 +201,6 @@ where
         }
     }
 
-    pub fn contains(&self, t: &'t Transformation<T, E>) -> bool {
-        let ptr = t as *const Transformation<T, E>;
-        for transform in self.transforms.values() {
-            if transform.borrow() as *const Transformation<T, E> == ptr {
-                return true;
-            }
-        }
-        false
-    }
-
     pub fn transforms_iter(&self) -> TransformIterator<T, E> {
         TransformIterator::new(self.transforms.iter())
     }
