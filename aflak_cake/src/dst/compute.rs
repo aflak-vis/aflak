@@ -1,7 +1,9 @@
+use std::sync::RwLock;
+
 use rayon;
 use variant_name::VariantName;
 
-use dst::{DSTError, Output, OutputId, DST};
+use dst::{DST, DSTError, Output, OutputId, NodeId};
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -68,5 +70,52 @@ where
                 })
             })
             .and_then(|output| self._compute(output))
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E>
+where
+    T: 't + Clone,
+    E: 't,
+{
+    /// Purge all cache in the given output and all its children.
+    pub(crate) fn purge_cache(&mut self, output: Output) {
+        self.cache.insert(output, RwLock::new(None));
+        let inputs: Option<Vec<_>> = self.inputs_attached_to(&output)
+            .map(|inputs| inputs.map(|input| *input))
+            .map(Iterator::collect);
+        if let Some(inputs) = inputs {
+            for input in inputs {
+                let outputs = self.outputs_of_transformation(&input.t_idx);
+                if let Some(outputs) = outputs {
+                    for output in outputs {
+                        self.purge_cache(output);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Purge cache for specified node.
+    pub fn purge_cache_node(&mut self, node_id: &NodeId) {
+        match node_id {
+            &NodeId::Output(ref output_id) => {
+                let output = {
+                    if let Some(Some(output)) = self.outputs.get(output_id) {
+                        *output
+                    } else {
+                        return;
+                    }
+                };
+                self.purge_cache(output);
+            }
+            &NodeId::Transform(ref t_idx) => {
+                if let Some(outputs) = self.outputs_of_transformation(t_idx) {
+                    for output in outputs {
+                        self.purge_cache(output);
+                    }
+                }
+            }
+        }
     }
 }
