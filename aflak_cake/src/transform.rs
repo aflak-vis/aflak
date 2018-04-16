@@ -5,7 +5,9 @@ use std::vec;
 
 use variant_name::VariantName;
 
+/// Static string that identifies a transformation.
 pub type TransformId = &'static str;
+/// Static string that identifies a type of a input/output variable.
 pub type TypeId = &'static str;
 
 pub trait NamedAlgorithms<E>
@@ -15,9 +17,14 @@ where
     fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
 }
 
+/// Algorithm that defines the transformation
 #[derive(Clone)]
 pub enum Algorithm<T: Clone, E> {
+    /// A rust function with a vector of input variables as argument.
+    /// Returns a vector of [`Result`], one result for each output.
     Function(fn(Vec<Cow<T>>) -> Vec<Result<T, E>>),
+    /// Use this variant for algorithms with no input. Such algorithm will
+    /// always return this constant.
     Constant(Vec<T>),
 }
 
@@ -30,19 +37,29 @@ impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     }
 }
 
+/// A transformation defined by an [`Algorithm`], with a determined number of
+/// inputs and outputs.
 #[derive(Clone, Debug)]
 pub struct Transformation<T: Clone, E> {
+    /// Transformation name
     pub name: TransformId,
+    /// Inputs of the transformation
     pub input: Vec<TypeId>,
+    /// Outputs of the transformation
     pub output: Vec<TypeId>,
+    /// Algorithm defining the transformation
     pub algorithm: Algorithm<T, E>,
 }
 
+/// Result of [`Transformation::start`].
+///
+/// Stores the state of the transformation just before it is called.
 pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
     expected_input_types: slice::Iter<'a, TypeId>,
     algorithm: &'a Algorithm<T, E>,
     input: Vec<Cow<'b, T>>,
 }
+
 impl<T, E> Transformation<T, E>
 where
     T: Clone + VariantName,
@@ -70,6 +87,7 @@ impl<T, E> Transformation<T, E>
 where
     T: Clone,
 {
+    /// Ready the transformation to be called.
     pub fn start(&self) -> TransformationCaller<T, E> {
         TransformationCaller {
             expected_input_types: self.input.iter(),
@@ -102,6 +120,7 @@ where
         !self.input.is_empty()
     }
 }
+
 impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
 where
     T: Clone + VariantName,
@@ -152,6 +171,7 @@ where
     }
 }
 
+/// Represents the result of a transformation.
 pub struct TransformationResult<T> {
     output: vec::IntoIter<T>,
 }

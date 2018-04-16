@@ -53,6 +53,7 @@ impl Output {
             output_i: OutputIdx(out_i),
         }
     }
+    /// Get index of output (starting from 0 for the first output).
     pub fn index(&self) -> usize {
         self.output_i.into()
     }
@@ -67,6 +68,7 @@ impl Input {
             input_i: InputIdx(in_i),
         }
     }
+    /// Get index of input (starting from 0 for the first input).
     pub fn index(&self) -> usize {
         self.input_i.into()
     }
@@ -92,15 +94,18 @@ impl InputList {
     }
 }
 
+/// Identify a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransformIdx(usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct OutputIdx(usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct InputIdx(usize);
+/// Identify an output node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutputId(usize);
 
+/// Errors when computing or building a [`DST`].
 #[derive(Debug)]
 pub enum DSTError<E> {
     InvalidInput(String),
@@ -166,6 +171,9 @@ where
         }
     }
 
+    /// Return the result of the computation to the output given as argument.
+    ///
+    /// If possible, computation is distributed on several threads.
     pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError<E>> {
         self.outputs
             .get(output_id)
@@ -185,6 +193,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone,
 {
+    /// Make a new empty [`DST`].
     pub fn new() -> Self {
         Self {
             transforms: HashMap::new(),
