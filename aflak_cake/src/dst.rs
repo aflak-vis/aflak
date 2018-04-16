@@ -217,7 +217,7 @@ where
         self.outputs.iter()
     }
 
-    pub fn transforms_outputs_iter(&self) -> NodeIter<T, E> {
+    pub fn nodes_iter(&self) -> NodeIter<T, E> {
         NodeIter {
             transforms: self.transforms_iter(),
             outputs: self.outputs_iter(),
@@ -225,7 +225,7 @@ where
     }
 
     pub fn node_ids(&self) -> Vec<NodeId> {
-        self.transforms_outputs_iter().map(|(id, _)| id).collect()
+        self.nodes_iter().map(|(id, _)| id).collect()
     }
 
     /// Get a transform from its [`TransformIdx`].

@@ -324,7 +324,7 @@ where
     }
 
     fn show_node_list(&mut self, ui: &Ui) {
-        for (idx, node) in self.dst.transforms_outputs_iter() {
+        for (idx, node) in self.dst.nodes_iter() {
             //ui.push_id(idx.id() as i32);
             let selected = self.node_states.get(&idx).unwrap().selected;
             let name = ImString::new(node.name(&idx));
