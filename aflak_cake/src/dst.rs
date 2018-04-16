@@ -201,16 +201,16 @@ where
         }
     }
 
-    pub fn transforms_iter(&self) -> TransformIterator<T, E> {
+    fn transforms_iter(&self) -> TransformIterator<T, E> {
         TransformIterator::new(self.transforms.iter())
     }
 
-    pub fn edges_iter(&self) -> EdgeIterator {
+    fn edges_iter(&self) -> EdgeIterator {
         EdgeIterator::new(self.edges.iter())
     }
 
     pub fn links_iter(&self) -> LinkIter {
-        LinkIter::new(self.edges_iter(), self.outputs.iter())
+        LinkIter::new(self.edges_iter(), self.outputs_iter())
     }
 
     pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
@@ -228,17 +228,18 @@ where
         self.transforms_outputs_iter().map(|(id, _)| id).collect()
     }
 
-    /// Get a transform from its TransformIdx.
+    /// Get a transform from its [`TransformIdx`].
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
         self.transforms.get(idx).map(|t| t.borrow())
     }
 
-    /// Get a transform mutably from its TransformIdx.
+    /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
     pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
         self.transforms.get_mut(idx).and_then(|t| t.borrow_mut())
     }
 
+    /// Get a node from its [`NodeId`].
     pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
         match idx {
             &NodeId::Transform(ref t_idx) => self.get_transform(t_idx).map(Node::Transform),
@@ -252,7 +253,7 @@ where
     /// TransformIdx.
     /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
     /// provided in the graph, Some(Output) otherwise.
-    pub fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
+    fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
         let t = self.get_transform(idx)
             .expect(&format!("Transform not found {:?}", idx));
         let len = t.input.len();
@@ -295,14 +296,14 @@ where
         })
     }
 
-    /// Add a transform and return its identifier TransformIdx.
+    /// Add a borrowed transform and return its identifier [`TransformIdx`].
     pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
         self.transforms.insert(idx, Bow::Borrowed(t));
         idx
     }
 
-    /// Add an owned transform and return its identifier TransformIdx.
+    /// Add an owned transform and return its identifier [`TransformIdx`].
     pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
         self.transforms.insert(idx, Bow::Owned(t));
@@ -312,7 +313,7 @@ where
     /// Connect an output to an input.
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
-    /// If input is already connector to another output, delete this output
+    /// If input is already connector to another output, delete this output.
     pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>> {
         if !self.output_exists(&output) {
             Err(DSTError::InvalidOutput(format!(
@@ -409,6 +410,7 @@ where
         }
     }
 
+    /// Check that the edge exists in the current graph
     fn edge_exists(&self, input: &Input, output: &Output) -> bool {
         self.edges
             .get(&output)
@@ -430,6 +432,8 @@ where
         false
     }
 
+    /// Check if edge can be added to the current graph.
+    /// Especially check if the input type is the same as the output type.
     fn is_edge_compatible(&self, input: &Input, output: &Output) -> bool {
         match (
             self.get_transform(&input.t_idx),
@@ -463,6 +467,9 @@ where
         }
     }
 
+    /// Get dependency list for specific output id.
+    ///
+    /// Target for deprecation.
     pub fn dependencies(
         &'t self,
         output_id: &OutputId,
