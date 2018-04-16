@@ -1,7 +1,7 @@
 use rayon;
 use variant_name::VariantName;
 
-use dst::{DST, DSTError, Output, OutputId};
+use dst::{DSTError, Output, OutputId, DST};
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
