@@ -11,6 +11,17 @@ use transform::Transformation;
 
 type Cache<T> = RwLock<Option<T>>;
 
+/// Dynamic Syntax Tree
+///
+/// Represent the node graph for the computing tasks to be done.
+/// Each node is identified by a [`NodeId`].
+/// A DST has two types of nodes, transformation and output nodes.
+/// An output node is a leaf, it is the end of the journey of the data.
+/// A transformation node wraps a [`Transformation`] to takes input data and
+/// compute output data out of it.
+///
+/// Each output node is identified by an [`OutputId`], while each transformation
+/// node is identified by a [`TransformIdx`].
 #[derive(Debug)]
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, Bow<'t, Transformation<T, E>>>,
@@ -19,12 +30,14 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
     cache: HashMap<Output, Cache<T>>,
 }
 
+/// Uniquely identify an ouput of a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Output {
     pub t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
+/// Uniquely identify an input of a node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Input {
     pub t_idx: TransformIdx,
