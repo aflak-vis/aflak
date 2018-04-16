@@ -3,7 +3,7 @@ use std::sync::RwLock;
 use rayon;
 use variant_name::VariantName;
 
-use dst::{DST, DSTError, Output, OutputId, NodeId};
+use dst::{DSTError, NodeId, Output, OutputId, DST};
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
