@@ -1,16 +1,12 @@
 //! # aflak - Computational mAKE
 //!
 //! A crate to manage a graph of interdependent functions.
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 extern crate rayon;
 
 extern crate boow;
 extern crate variant_name;
 
 mod dst;
-mod serial;
 mod transform;
 
 pub use dst::*;

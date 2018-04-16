@@ -8,8 +8,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate aflak_cake;
 extern crate ron;
-#[macro_use]
-extern crate serde_derive;
 
 mod support;
 use support::*;
