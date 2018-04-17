@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
+
+[dev-dependencies]
+variant_name_derive = { path = "../variant_name_derive" }
