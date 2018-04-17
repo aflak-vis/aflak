@@ -4,12 +4,12 @@ version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
-imgui = { path = "imgui-rs" }
-imgui-sys = { path = "imgui-rs/imgui-sys" }
+imgui = { path = "../../imgui-rs" }
+imgui-sys = { path = "../../imgui-rs/imgui-sys" }
 aflak_cake = { path = "../aflak_cake" }
 rayon = "1.0"
 
 [dev-dependencies]
-imgui-glium-renderer = { path = "imgui-rs/imgui-glium-renderer" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
 glium = { version = "0.20", default-features = true }
 aflak_primitives = { path = "../aflak_primitives" }
