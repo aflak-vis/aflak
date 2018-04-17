@@ -75,7 +75,12 @@ macro_rules! cake_fn {
 ///     Image2d(Vec<Vec<f64>>),
 /// }
 ///
+/// //                                                        Error type   Input arguments    Output types
+/// //      key identifying transformation  In/Out types_____/  __________/   _______________/
+/// //                                   \       |     /       /             /
 /// let plus_one_trans = cake_transform!(plus1<AlgoIO, !>(i: Integer) -> Integer {
+///     // Define the body of the transformation.
+///     // Must return a Vec<Result<AlgoIO, !>>!
 ///     vec![Ok(AlgoIO::Integer(i + 1))]
 /// });
 /// ```
