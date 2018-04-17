@@ -10,6 +10,7 @@ mod compute;
 mod iterators;
 mod node;
 pub use self::node::{Node, NodeId};
+pub use self::iterators::{Dependency, LinkIter, NodeIter};
 
 type Cache<T> = RwLock<Option<T>>;
 
@@ -147,7 +148,8 @@ impl OutputId {
     }
 }
 
-/// Identify the input of a transform or a final output.
+/// Identify an input slot, i.e., the input of a transform or the input of a
+/// final output node.
 #[derive(Copy, Clone)]
 pub enum InputSlot<'a> {
     Transform(&'a Input),

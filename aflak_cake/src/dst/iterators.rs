@@ -20,14 +20,17 @@ where
         EdgeIterator::new(self.edges.iter())
     }
 
+    /// Iterator over links.
     pub fn links_iter(&self) -> LinkIter {
         LinkIter::new(self.edges_iter(), self.outputs_iter())
     }
 
+    /// Iterator over outputs.
     pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
         self.outputs.iter()
     }
 
+    /// Iterator over nodes.
     pub fn nodes_iter(&self) -> NodeIter<T, E> {
         NodeIter {
             transforms: self.transforms_iter(),
@@ -35,6 +38,7 @@ where
         }
     }
 
+    /// Return owned vector containing all [`NodeId`]s.
     pub fn node_ids(&self) -> Vec<NodeId> {
         self.nodes_iter().map(|(id, _)| id).collect()
     }
@@ -166,11 +170,15 @@ impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
     }
 }
 
+/// Iterator over nodes.
+///
+/// Iterate over a tuple ([`NodeId`], [`Node`]).
 pub struct NodeIter<'a, T: 'a + Clone, E: 'a> {
     transforms: TransformIterator<'a, T, E>,
     outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
 }
 
+/// Iterate over nodes.
 impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
     type Item = (NodeId, Node<'a, T, E>);
     fn next(&mut self) -> Option<Self::Item> {
@@ -184,6 +192,12 @@ impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
     }
 }
 
+/// Iterator over links.
+///
+/// A link is a tuple ([`Output`], [`InputSlot`]). It is attached on one side to
+/// the [`Output`] of a transformation and to the other side on an input slot.
+/// The input slot is either the input to another [`Transformation`] or the
+/// input slot of an output node.
 pub struct LinkIter<'a> {
     edges: EdgeIterator<'a>,
     outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
@@ -195,6 +209,7 @@ impl<'a> LinkIter<'a> {
     }
 }
 
+/// Iterate over links.
 impl<'a> Iterator for LinkIter<'a> {
     type Item = (&'a Output, InputSlot<'a>);
     fn next(&mut self) -> Option<Self::Item> {

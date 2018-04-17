@@ -24,7 +24,8 @@ pub trait EditableVariants {
     }
 }
 
-/// Make it easier to define a function used for a transform
+/// Make it easier to define a function used for a transform. Used internally
+/// by [`cake_transform`]. You probably want to directly use [`cake_transform`].
 #[macro_export]
 macro_rules! cake_fn {
     // Special case where no argument is provided
@@ -51,6 +52,25 @@ macro_rules! cake_fn {
     };
 }
 
+/// Create a new transform from a rust function.
+///
+/// # Example
+///
+/// ```rust
+/// #[macro_use] extern crate variant_name_derive;
+/// #[macro_use] extern crate aflak_cake;
+/// use aflak_cake::*;
+///
+/// #[derive(Clone, PartialEq, Debug, VariantName)]
+/// pub enum AlgoIO {
+///     Integer(u64),
+///     Image2d(Vec<Vec<f64>>),
+/// }
+///
+/// let plus_one_trans = cake_transform!(plus1<AlgoIO, !>(i: Integer) -> Integer {
+///     vec![Ok(AlgoIO::Integer(i + 1))]
+/// });
+/// ```
 #[macro_export]
 macro_rules! cake_transform {
     ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
@@ -64,6 +84,10 @@ macro_rules! cake_transform {
     }};
 }
 
+/// Make a constant.
+///
+/// Subject for deprecation.
+/// You'd probably better use [`Transformation::new_constant`].
 #[macro_export]
 macro_rules! cake_constant {
     ($const_name: ident, $($x: expr),*) => {{
