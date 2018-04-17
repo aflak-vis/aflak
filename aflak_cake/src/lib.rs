@@ -14,12 +14,20 @@ pub use transform::*;
 
 pub use self::variant_name::VariantName;
 
-pub trait DefaultFor {
-    fn default_for(variant_name: &'static str) -> Self;
+/// Trait to define a default value for each variant of an enumeration.
+pub trait DefaultFor: VariantName {
+    fn default_for(variant_name: &str) -> Self;
 }
-pub trait EditableVariants {
+
+/// Trait to discriminate editable variants from constant variants of an
+/// enumeration.
+///
+/// Especially used for a node editor.
+pub trait EditableVariants: VariantName {
+    /// Get list of editable variants.
     fn editable_variants() -> &'static [&'static str];
-    fn editable(variant_name: &'static str) -> bool {
+    /// Check if given variant is editable or not.
+    fn editable(variant_name: &str) -> bool {
         Self::editable_variants().contains(&variant_name)
     }
 }

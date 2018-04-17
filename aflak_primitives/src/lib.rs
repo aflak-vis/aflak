@@ -63,7 +63,7 @@ impl cake::NamedAlgorithms<IOErr> for IOValue {
 }
 
 impl cake::DefaultFor for IOValue {
-    fn default_for(variant_name: &'static str) -> Self {
+    fn default_for(variant_name: &str) -> Self {
         match variant_name {
             "Integer" => IOValue::Integer(0),
             "Float" => IOValue::Float(0.0),
