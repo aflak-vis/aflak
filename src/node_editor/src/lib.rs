@@ -173,6 +173,10 @@ where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send,
 {
+    /// Compute output's result asynchonously.
+    ///
+    /// `self` should live longer as long as computing is not finished.
+    /// If not, you'll get undefined behavior!
     pub fn compute_output(
         &self,
         id: &cake::OutputId,
@@ -186,10 +190,10 @@ where
             result.to_running();
             drop(result);
             let result_lock_clone = result_lock.clone();
-            let dst = &self.dst as *const DST<T, E> as usize;
+            // Extend dst's lifetime
+            let dst: &'static DST<T, E> = unsafe { mem::transmute(&self.dst) };
             let id = *id;
             rayon::spawn(move || {
-                let dst = unsafe { std::mem::transmute::<usize, &DST<T, E>>(dst) };
                 let result = dst.compute(&id);
                 result_lock_clone.lock().unwrap().complete(result);
             });
