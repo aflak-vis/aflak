@@ -13,6 +13,8 @@ use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+mod id_stack;
+use id_stack::GetId;
 mod vec2;
 use vec2::Vec2;
 
@@ -325,7 +327,7 @@ where
 
     fn show_node_list(&mut self, ui: &Ui) {
         for (idx, node) in self.dst.nodes_iter() {
-            //ui.push_id(idx.id() as i32);
+            ui.push_id(idx.id());
             let selected = self.node_states.get(&idx).unwrap().selected;
             let name = ImString::new(node.name(&idx));
             if ui.selectable(&name, selected, ImGuiSelectableFlags::empty(), (0.0, 0.0)) {
@@ -335,7 +337,7 @@ where
                 toggle_select_node(&mut self.node_states, &idx);
                 self.active_node = Some(idx);
             }
-            //ui.pop_id();
+            ui.pop_id();
         }
     }
 
@@ -439,7 +441,7 @@ where
                     let node_pos = node_state_get(&self.node_states, &idx, |state| {
                         state.get_pos(CURRENT_FONT_WINDOW_SCALE)
                     });
-                    // ui.push_id(idx.id() as i32);
+                    ui.push_id(idx.id());
 
                     // Display node contents first in the foreground
                     draw_list.channels_set_current(if self.active_node == Some(idx) {
@@ -623,8 +625,8 @@ where
                                 }
                             }
                         }
-                        //ui.pop_id();
                     }
+                    ui.pop_id();
                 }
                 // Preview new link
                 const NEW_LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];

@@ -146,6 +146,9 @@ impl OutputId {
     fn incr(self) -> Self {
         OutputId(self.0 + 1)
     }
+    pub fn id(&self) -> usize {
+        self.0
+    }
 }
 
 /// Identify an input slot, i.e., the input of a transform or the input of a
