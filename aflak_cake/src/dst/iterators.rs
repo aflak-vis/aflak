@@ -4,7 +4,8 @@ use std::slice;
 
 use boow::Bow;
 
-use dst::{DSTError, Input, InputList, InputSlot, Node, NodeId, Output, OutputId, TransformIdx, DST};
+use dst::node::{Node, NodeId};
+use dst::{DSTError, Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
