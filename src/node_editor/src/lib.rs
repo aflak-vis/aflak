@@ -4,6 +4,9 @@ extern crate imgui;
 extern crate imgui_sys as sys;
 extern crate rayon;
 
+mod compute;
+use compute::ComputationState;
+
 use cake::{Transformation, DST};
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
@@ -37,51 +40,6 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     scrolling: Vec2,
     pub show_grid: bool,
     constant_editor: ED,
-}
-
-pub enum ComputationState<T> {
-    NothingDone,
-    RunningFirstTime,
-    Running { previous_result: T },
-    Completed { result: T },
-}
-
-impl<T> ComputationState<T> {
-    fn is_running(&self) -> bool {
-        match self {
-            &ComputationState::NothingDone => false,
-            &ComputationState::Completed { .. } => false,
-            &ComputationState::Running { .. } => true,
-            &ComputationState::RunningFirstTime => true,
-        }
-    }
-
-    fn to_running(&mut self) {
-        debug_assert!(!self.is_running(), "State is not running!");
-        let interim = ComputationState::NothingDone;
-        let prev = mem::replace(self, interim);
-        let next = match prev {
-            ComputationState::NothingDone => ComputationState::RunningFirstTime,
-            ComputationState::Completed { result } => ComputationState::Running {
-                previous_result: result,
-            },
-            _ => panic!("Expected computation state to not be running."),
-        };
-        mem::replace(self, next);
-    }
-
-    fn complete(&mut self, result: T) {
-        *self = ComputationState::Completed { result };
-    }
-
-    pub fn result(&self) -> Option<&T> {
-        match self {
-            ComputationState::NothingDone => None,
-            ComputationState::Completed { result } => Some(result),
-            ComputationState::Running { previous_result } => Some(previous_result),
-            ComputationState::RunningFirstTime => None,
-        }
-    }
 }
 
 enum LinkExtremity {
