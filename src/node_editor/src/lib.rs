@@ -10,6 +10,6 @@ mod id_stack;
 mod node_state;
 mod vec2;
 
-pub use compute::ComputationState;
+pub use compute::{ComputationState, ComputeResult};
 pub use constant_editor::ConstantEditor;
 pub use editor::NodeEditor;
