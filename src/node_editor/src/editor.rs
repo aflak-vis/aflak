@@ -9,10 +9,9 @@ use cake::{self, Transformation, DST};
 use constant_editor::ConstantEditor;
 use compute::{self, ComputeResult};
 use id_stack::GetId;
-use node_state::NodeState;
+use node_state::{self, NodeStates};
 use vec2::Vec2;
 
-type NodeStates = BTreeMap<cake::NodeId, NodeState>;
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
@@ -110,7 +109,7 @@ where
         for idx in self.dst.node_ids() {
             // Initialization of node states
             if !self.node_states.contains_key(&idx) {
-                let new_node = self.init_node();
+                let new_node = node_state::init_node(&self.node_states);
                 self.node_states.insert(idx, new_node);
             }
         }
@@ -200,9 +199,9 @@ where
             let name = ImString::new(node.name(&idx));
             if ui.selectable(&name, selected, ImGuiSelectableFlags::empty(), (0.0, 0.0)) {
                 if !ui.imgui().key_ctrl() {
-                    deselect_all_nodes(&mut self.node_states);
+                    node_state::deselect_all_nodes(&mut self.node_states);
                 }
-                toggle_select_node(&mut self.node_states, &idx);
+                node_state::toggle_select_node(&mut self.node_states, &idx);
                 self.active_node = Some(idx);
             }
             ui.pop_id();
@@ -306,7 +305,7 @@ where
                 // NODE LINK CULLING?
 
                 for idx in self.dst.node_ids() {
-                    let node_pos = node_state_get(&self.node_states, &idx, |state| {
+                    let node_pos = node_state::node_state_get(&self.node_states, &idx, |state| {
                         state.get_pos(CURRENT_FONT_WINDOW_SCALE)
                     });
                     ui.push_id(idx.id());
@@ -320,14 +319,14 @@ where
 
                     let node_rect_min = offset + node_pos;
                     let node_rect_max =
-                        node_state_get(&self.node_states, &idx, |state| node_rect_min + state.size);
+                        node_state::node_state_get(&self.node_states, &idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                     self.draw_node_inside(ui, &idx); // ...
 
                     let node = self.dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
                     let item_rect_size = Vec2::new(ui.get_item_rect_size());
-                    node_state_set(node_states, &idx, |state| {
+                    node_state::node_state_set(node_states, &idx, |state| {
                         state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                     });
 
@@ -339,7 +338,7 @@ where
                     ui.set_cursor_screen_pos(node_rect_min);
                     ui.invisible_button(
                         im_str!("node##nodeinvbtn"),
-                        node_state_get(node_states, &idx, |state| state.size),
+                        node_state::node_state_get(node_states, &idx, |state| state.size),
                     );
                     // TODO: Handle selection
 
@@ -365,7 +364,7 @@ where
                         .rounding(NODE_ROUNDING)
                         .build();
                     // Line below node name
-                    if node_state_get(node_states, &idx, |state| state.open) {
+                    if node_state::node_state_get(node_states, &idx, |state| state.open) {
                         let node_title_bar_height =
                             ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.1;
                         let tmp1 = Vec2::new((
@@ -382,7 +381,7 @@ where
                     const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                     const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                     for (slot_idx, &slot_name) in node.inputs_iter().enumerate() {
-                        let connector_pos = Vec2::new(node_state_get(node_states, &idx, |state| {
+                        let connector_pos = Vec2::new(node_state::node_state_get(node_states, &idx, |state| {
                             state.get_input_slot_pos(
                                 slot_idx,
                                 node.inputs_count(),
@@ -444,7 +443,7 @@ where
                     if let cake::NodeId::Transform(t_idx) = idx {
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.outputs_iter().enumerate() {
-                            let connector_pos = node_state_get(node_states, &idx, |state| {
+                            let connector_pos = node_state::node_state_get(node_states, &idx, |state| {
                                 state.get_output_slot_pos(
                                     slot_idx,
                                     node.outputs_count(),
@@ -675,14 +674,14 @@ where
                 ui.with_color_vars(&TREE_STYLE, || {
                     if ui.tree_node(&node_name)
                         .opened(
-                            node_state_get(node_states, id, |state| state.open),
+                            node_state::node_state_get(node_states, id, |state| state.open),
                             ImGuiCond::Always,
                         )
                         .build(|| {})
                     {
-                        open_node(node_states, id, false);
+                        node_state::open_node(node_states, id, false);
                     } else {
-                        open_node(node_states, id, true);
+                        node_state::open_node(node_states, id, true);
                     }
                 });
                 ui.same_line_spacing(0.0, 2.0);
@@ -720,15 +719,15 @@ where
                 self.active_node = Some(*id);
                 self.drag_node = Some(*id);
                 if !ui.imgui().key_ctrl() {
-                    deselect_all_nodes(node_states);
+                    node_state::deselect_all_nodes(node_states);
                 }
-                toggle_select_node(node_states, id);
+                node_state::toggle_select_node(node_states, id);
             }
         }
         if self.drag_node == Some(*id) {
             if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
                 let delta = ui.imgui().mouse_delta();
-                node_state_set(node_states, id, |state| {
+                node_state::node_state_set(node_states, id, |state| {
                     state.pos = state.pos + delta.into();
                 });
             } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
@@ -736,54 +735,4 @@ where
             }
         }
     }
-}
-
-/// Manage nodes
-impl<'t, T: Clone, E, ED> NodeEditor<'t, T, E, ED> {
-    fn init_node(&self) -> NodeState {
-        let mut max = -300.0;
-        for state in self.node_states.values() {
-            if state.pos.1 > max {
-                max = state.pos.1;
-            }
-        }
-        NodeState {
-            pos: Vec2::new((0.0, max + 150.0)),
-            ..Default::default()
-        }
-    }
-}
-
-fn deselect_all_nodes(node_states: &mut NodeStates) {
-    for state in node_states.values_mut() {
-        state.selected = false;
-    }
-}
-
-fn toggle_select_node(node_states: &mut NodeStates, id: &cake::NodeId) {
-    let state = node_states.get_mut(id).unwrap();
-    state.selected = !state.selected;
-}
-
-fn open_node(node_states: &mut NodeStates, idx: &cake::NodeId, open: bool) {
-    let state = node_states.get_mut(idx).unwrap();
-    state.open = open;
-}
-
-fn node_state_get<T, F: FnOnce(&NodeState) -> T>(
-    node_states: &NodeStates,
-    id: &cake::NodeId,
-    f: F,
-) -> T {
-    let state = node_states.get(id).unwrap();
-    f(state)
-}
-
-fn node_state_set<T, F: FnOnce(&mut NodeState) -> T>(
-    node_states: &mut NodeStates,
-    id: &cake::NodeId,
-    f: F,
-) -> T {
-    let state = node_states.get_mut(id).unwrap();
-    f(state)
 }
