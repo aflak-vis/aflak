@@ -5,7 +5,6 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
 imgui = { path = "../../imgui-rs" }
-imgui-sys = { path = "../../imgui-rs/imgui-sys" }
 aflak_cake = { path = "../aflak_cake" }
 rayon = "1.0"
 
