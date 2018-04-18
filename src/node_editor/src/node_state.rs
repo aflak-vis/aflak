@@ -55,45 +55,60 @@ impl NodeState {
     }
 }
 
-pub type NodeStates = BTreeMap<cake::NodeId, NodeState>;
+pub struct NodeStates(BTreeMap<cake::NodeId, NodeState>);
 
-pub fn deselect_all_nodes(node_states: &mut NodeStates) {
-    for state in node_states.values_mut() {
-        state.selected = false;
+impl NodeStates {
+    pub fn get(&self, id: &cake::NodeId) -> Option<&NodeState> {
+        self.0.get(id)
+    }
+
+    pub fn new() -> Self {
+        NodeStates(BTreeMap::new())
+    }
+
+    pub fn init_node(&mut self, id: &cake::NodeId) {
+        if !self.0.contains_key(id) {
+            let new_node = init_node(self);
+            self.0.insert(*id, new_node);
+        }
+    }
+
+    pub fn deselect_all(&mut self) {
+        for state in self.0.values_mut() {
+            state.selected = false;
+        }
+    }
+
+    pub fn toggle_select(&mut self, id: &cake::NodeId) {
+        let state = self.0.get_mut(id).unwrap();
+        state.selected = !state.selected;
+    }
+
+    pub fn open_node(&mut self, idx: &cake::NodeId, open: bool) {
+        let state = self.0.get_mut(idx).unwrap();
+        state.open = open;
+    }
+
+    pub fn get_state<T, F>(&self, id: &cake::NodeId, f: F) -> T
+    where
+        F: FnOnce(&NodeState) -> T,
+    {
+        let state = self.0.get(id).unwrap();
+        f(state)
+    }
+
+    pub fn set_state<T, F>(&mut self, id: &cake::NodeId, f: F) -> T
+    where
+        F: FnOnce(&mut NodeState) -> T,
+    {
+        let state = self.0.get_mut(id).unwrap();
+        f(state)
     }
 }
 
-pub fn toggle_select_node(node_states: &mut NodeStates, id: &cake::NodeId) {
-    let state = node_states.get_mut(id).unwrap();
-    state.selected = !state.selected;
-}
-
-pub fn open_node(node_states: &mut NodeStates, idx: &cake::NodeId, open: bool) {
-    let state = node_states.get_mut(idx).unwrap();
-    state.open = open;
-}
-
-pub fn node_state_get<T, F: FnOnce(&NodeState) -> T>(
-    node_states: &NodeStates,
-    id: &cake::NodeId,
-    f: F,
-) -> T {
-    let state = node_states.get(id).unwrap();
-    f(state)
-}
-
-pub fn node_state_set<T, F: FnOnce(&mut NodeState) -> T>(
-    node_states: &mut NodeStates,
-    id: &cake::NodeId,
-    f: F,
-) -> T {
-    let state = node_states.get_mut(id).unwrap();
-    f(state)
-}
-
-pub fn init_node(node_states: &NodeStates) -> NodeState {
+fn init_node(node_states: &NodeStates) -> NodeState {
     let mut max = -300.0;
-    for state in node_states.values() {
+    for state in node_states.0.values() {
         if state.pos.1 > max {
             max = state.pos.1;
         }

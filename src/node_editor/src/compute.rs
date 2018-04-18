@@ -1,8 +1,8 @@
 use std::mem;
 use std::sync::{Arc, Mutex};
 
-use rayon;
 use cake::{self, DST};
+use rayon;
 
 use editor::NodeEditor;
 
@@ -67,10 +67,7 @@ where
     ///
     /// `self` should live longer as long as computing is not finished.
     /// If not, you'll get undefined behavior!
-    pub fn compute_output(
-        &self,
-        id: &cake::OutputId,
-    ) -> ComputeResult<T, E> {
+    pub fn compute_output(&self, id: &cake::OutputId) -> ComputeResult<T, E> {
         let result_lock = self.output_results.get(id).unwrap();
         let mut result = result_lock.lock().unwrap();
         if result.is_running() {

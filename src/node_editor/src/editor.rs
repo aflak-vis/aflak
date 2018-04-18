@@ -6,12 +6,11 @@ use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouse
 
 use cake::{self, Transformation, DST};
 
-use constant_editor::ConstantEditor;
 use compute::{self, ComputeResult};
+use constant_editor::ConstantEditor;
 use id_stack::GetId;
-use node_state::{self, NodeStates};
+use node_state::NodeStates;
 use vec2::Vec2;
-
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
@@ -21,8 +20,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
     new_link: Option<(cake::Output, InputSlot)>,
-    pub(crate) output_results:
-        BTreeMap<cake::OutputId, ComputeResult<T, E>>,
+    pub(crate) output_results: BTreeMap<cake::OutputId, ComputeResult<T, E>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -37,7 +35,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
         Self {
             dst: DST::new(),
             addable_nodes: &[],
-            node_states: BTreeMap::new(),
+            node_states: NodeStates::new(),
             active_node: None,
             drag_node: None,
             creating_link: None,
@@ -86,10 +84,7 @@ where
     ) -> Self {
         let mut output_results = BTreeMap::new();
         for (output_id, _) in dst.outputs_iter() {
-            output_results.insert(
-                *output_id,
-                compute::new_compute_result(),
-            );
+            output_results.insert(*output_id, compute::new_compute_result());
         }
         Self {
             dst,
@@ -108,10 +103,7 @@ where
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states
-            if !self.node_states.contains_key(&idx) {
-                let new_node = node_state::init_node(&self.node_states);
-                self.node_states.insert(idx, new_node);
-            }
+            self.node_states.init_node(&idx);
         }
         if self.show_left_pane {
             self.render_left_pane(ui);
@@ -195,13 +187,13 @@ where
     fn show_node_list(&mut self, ui: &Ui) {
         for (idx, node) in self.dst.nodes_iter() {
             ui.push_id(idx.id());
-            let selected = self.node_states.get(&idx).unwrap().selected;
+            let selected = self.node_states.get_state(&idx, |state| state.selected);
             let name = ImString::new(node.name(&idx));
             if ui.selectable(&name, selected, ImGuiSelectableFlags::empty(), (0.0, 0.0)) {
                 if !ui.imgui().key_ctrl() {
-                    node_state::deselect_all_nodes(&mut self.node_states);
+                    self.node_states.deselect_all();
                 }
-                node_state::toggle_select_node(&mut self.node_states, &idx);
+                self.node_states.toggle_select(&idx);
                 self.active_node = Some(idx);
             }
             ui.pop_id();
@@ -305,9 +297,8 @@ where
                 // NODE LINK CULLING?
 
                 for idx in self.dst.node_ids() {
-                    let node_pos = node_state::node_state_get(&self.node_states, &idx, |state| {
-                        state.get_pos(CURRENT_FONT_WINDOW_SCALE)
-                    });
+                    let node_pos = self.node_states
+                        .get_state(&idx, |state| state.get_pos(CURRENT_FONT_WINDOW_SCALE));
                     ui.push_id(idx.id());
 
                     // Display node contents first in the foreground
@@ -318,15 +309,15 @@ where
                     });
 
                     let node_rect_min = offset + node_pos;
-                    let node_rect_max =
-                        node_state::node_state_get(&self.node_states, &idx, |state| node_rect_min + state.size);
+                    let node_rect_max = self.node_states
+                        .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                     self.draw_node_inside(ui, &idx); // ...
 
                     let node = self.dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
                     let item_rect_size = Vec2::new(ui.get_item_rect_size());
-                    node_state::node_state_set(node_states, &idx, |state| {
+                    node_states.set_state(&idx, |state| {
                         state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                     });
 
@@ -338,7 +329,7 @@ where
                     ui.set_cursor_screen_pos(node_rect_min);
                     ui.invisible_button(
                         im_str!("node##nodeinvbtn"),
-                        node_state::node_state_get(node_states, &idx, |state| state.size),
+                        node_states.get_state(&idx, |state| state.size),
                     );
                     // TODO: Handle selection
 
@@ -364,7 +355,7 @@ where
                         .rounding(NODE_ROUNDING)
                         .build();
                     // Line below node name
-                    if node_state::node_state_get(node_states, &idx, |state| state.open) {
+                    if node_states.get_state(&idx, |state| state.open) {
                         let node_title_bar_height =
                             ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.1;
                         let tmp1 = Vec2::new((
@@ -381,7 +372,7 @@ where
                     const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                     const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                     for (slot_idx, &slot_name) in node.inputs_iter().enumerate() {
-                        let connector_pos = Vec2::new(node_state::node_state_get(node_states, &idx, |state| {
+                        let connector_pos = Vec2::new(node_states.get_state(&idx, |state| {
                             state.get_input_slot_pos(
                                 slot_idx,
                                 node.inputs_count(),
@@ -443,7 +434,7 @@ where
                     if let cake::NodeId::Transform(t_idx) = idx {
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
                         for (slot_idx, &slot_name) in node.outputs_iter().enumerate() {
-                            let connector_pos = node_state::node_state_get(node_states, &idx, |state| {
+                            let connector_pos = node_states.get_state(&idx, |state| {
                                 state.get_output_slot_pos(
                                     slot_idx,
                                     node.outputs_count(),
@@ -674,14 +665,14 @@ where
                 ui.with_color_vars(&TREE_STYLE, || {
                     if ui.tree_node(&node_name)
                         .opened(
-                            node_state::node_state_get(node_states, id, |state| state.open),
+                            node_states.get_state(id, |state| state.open),
                             ImGuiCond::Always,
                         )
                         .build(|| {})
                     {
-                        node_state::open_node(node_states, id, false);
+                        node_states.open_node(id, false);
                     } else {
-                        node_state::open_node(node_states, id, true);
+                        node_states.open_node(id, true);
                     }
                 });
                 ui.same_line_spacing(0.0, 2.0);
@@ -719,15 +710,15 @@ where
                 self.active_node = Some(*id);
                 self.drag_node = Some(*id);
                 if !ui.imgui().key_ctrl() {
-                    node_state::deselect_all_nodes(node_states);
+                    node_states.deselect_all();
                 }
-                node_state::toggle_select_node(node_states, id);
+                node_states.toggle_select(id);
             }
         }
         if self.drag_node == Some(*id) {
             if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
                 let delta = ui.imgui().mouse_delta();
-                node_state::node_state_set(node_states, id, |state| {
+                node_states.set_state(id, |state| {
                     state.pos = state.pos + delta.into();
                 });
             } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
