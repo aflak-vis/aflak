@@ -7,7 +7,9 @@ extern crate variant_name;
 extern crate lazy_static;
 #[macro_use]
 extern crate aflak_cake;
-extern crate ron;
+
+#[macro_use]
+extern crate serde;
 
 mod support;
 use support::*;

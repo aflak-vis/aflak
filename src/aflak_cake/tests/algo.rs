@@ -6,6 +6,9 @@ extern crate aflak_cake;
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate serde;
+
 mod support;
 use support::*;
 

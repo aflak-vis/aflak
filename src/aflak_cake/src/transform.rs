@@ -10,15 +10,6 @@ pub type TransformId = &'static str;
 /// Static string that identifies a type of a input/output variable.
 pub type TypeId = &'static str;
 
-/// Trait that defines a function to get a [`Transformation`] by its name.
-pub trait NamedAlgorithms<E>
-where
-    Self: Clone,
-{
-    /// Get a transform by name.
-    fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
-}
-
 /// Algorithm that defines the transformation
 #[derive(Clone)]
 pub enum Algorithm<T: Clone, E> {
