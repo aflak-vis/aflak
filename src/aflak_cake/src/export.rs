@@ -1,6 +1,8 @@
+use std::fmt;
 use std::marker::PhantomData;
 
 use boow::Bow;
+use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use variant_name::VariantName;
 
@@ -20,6 +22,16 @@ where
 pub enum ImportError<E> {
     TransformationNotFound(String),
     ConstructionError(&'static str, DSTError<E>),
+}
+
+impl<E> fmt::Display for ImportError<E>
+where
+    E: fmt::Debug,
+{
+    // TODO: Should make a better implementation of Display!
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Serialize)]
@@ -98,6 +110,7 @@ where
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserDST<T, E> {
     transforms: Vec<(TransformIdx, DeserTransform<T, E>)>,
     edges: Vec<(Output, Input)>,
@@ -143,5 +156,19 @@ where
         S: Serializer,
     {
         SerialDST::new(self).serialize(serializer)
+    }
+}
+
+impl<'de, 't, T, E> Deserialize<'de> for DST<'static, T, E>
+where
+    T: 't + Clone + Deserialize<'de> + NamedAlgorithms<E> + VariantName,
+    E: fmt::Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        DeserDST::deserialize(deserializer)
+            .and_then(|deser_dst| deser_dst.into().map_err(de::Error::custom))
     }
 }
