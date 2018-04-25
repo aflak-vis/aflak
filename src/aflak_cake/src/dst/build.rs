@@ -99,6 +99,19 @@ where
         idx
     }
 
+    /// Create transform with the [`TransformIdx`] of your choosing.
+    ///
+    /// You need to manage your resource yourself so take care.
+    /// Use [`DST::add_transform`] to have aflak manages resources for you
+    /// (that's probably what your want).
+    pub(crate) unsafe fn add_transform_with_idx(
+        &mut self,
+        idx: TransformIdx,
+        t: Bow<'t, Transformation<T, E>>,
+    ) {
+        self.transforms.insert(idx, t);
+    }
+
     /// Add an owned transform and return its identifier [`TransformIdx`].
     pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
         let idx = self.new_transform_idx();
@@ -173,6 +186,15 @@ where
         let idx = self.new_output_id();
         self.outputs.insert(idx, None);
         idx
+    }
+
+    /// Create output with the [`OutputId`] of your choosing.
+    ///
+    /// You need to manage your resource yourself so take care.
+    /// Use [`DST::create_output`] to have aflak manages resources for you
+    /// (that's probably what your want).
+    pub(crate) unsafe fn create_output_with_id(&mut self, output_id: OutputId) {
+        self.outputs.insert(output_id, None);
     }
 
     /// Attach an already registered output somewhere else

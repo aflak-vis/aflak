@@ -101,3 +101,33 @@ pub struct DeserDST<T, E> {
     edges: Vec<(Output, Input)>,
     outputs: Vec<(OutputId, Option<Output>)>,
 }
+
+impl<T, E> DeserDST<T, E>
+where
+    T: Clone + NamedAlgorithms<E> + VariantName,
+{
+    pub fn into(self) -> Result<DST<'static, T, E>, ImportError<E>> {
+        let mut dst = DST::new();
+        for (t_idx, t) in self.transforms {
+            let t = t.into()?;
+            unsafe {
+                dst.add_transform_with_idx(t_idx, t);
+            }
+        }
+        for (output, input) in self.edges {
+            dst.connect(output, input).map_err(|err| {
+                ImportError::ConstructionError(
+                    "Data is inconsistent. DST cannot be constructed.",
+                    err,
+                )
+            })?;
+        }
+        for (output_id, some_output) in self.outputs {
+            unsafe { dst.create_output_with_id(output_id) };
+            if let Some(output) = some_output {
+                dst.update_output(output_id, output);
+            }
+        }
+        Ok(dst)
+    }
+}
