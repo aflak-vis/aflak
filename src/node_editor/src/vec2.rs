@@ -1,7 +1,7 @@
 use imgui::ImVec2;
 use std::ops::{Add, Mul, Sub};
 
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Serialize)]
 pub struct Vec2(pub f32, pub f32);
 
 impl From<(f32, f32)> for Vec2 {

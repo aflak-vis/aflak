@@ -3,9 +3,14 @@ extern crate aflak_cake as cake;
 extern crate imgui;
 extern crate rayon;
 
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+
 mod compute;
 mod constant_editor;
 mod editor;
+mod export;
 mod id_stack;
 mod node_state;
 mod vec2;

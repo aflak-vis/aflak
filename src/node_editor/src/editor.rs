@@ -15,7 +15,7 @@ use vec2::Vec2;
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transformation<T, E>],
-    node_states: NodeStates,
+    pub(crate) node_states: NodeStates,
     active_node: Option<cake::NodeId>,
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,

@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::{btree_map, BTreeMap};
 
 use cake;
 
 use vec2::Vec2;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct NodeState {
     pub selected: bool,
     pub open: bool,
@@ -60,6 +60,10 @@ pub struct NodeStates(BTreeMap<cake::NodeId, NodeState>);
 impl NodeStates {
     pub fn get(&self, id: &cake::NodeId) -> Option<&NodeState> {
         self.0.get(id)
+    }
+
+    pub fn iter(&self) -> btree_map::Iter<cake::NodeId, NodeState> {
+        self.0.iter()
     }
 
     pub fn new() -> Self {
