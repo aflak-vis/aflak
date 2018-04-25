@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
 
 use boow::Bow;
+use serde::ser::{Serialize, Serializer};
+use variant_name::VariantName;
+
 use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, TransformId, Transformation};
-use variant_name::VariantName;
 
 /// Trait that defines a function to get a [`Transformation`] by its name.
 pub trait NamedAlgorithms<E>
@@ -129,5 +131,17 @@ where
             }
         }
         Ok(dst)
+    }
+}
+
+impl<'t, T, E> Serialize for DST<'t, T, E>
+where
+    T: 't + Clone + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        SerialDST::new(self).serialize(serializer)
     }
 }
