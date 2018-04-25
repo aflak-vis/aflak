@@ -34,14 +34,14 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 }
 
 /// Uniquely identify an ouput of a transformation node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Output {
     pub t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
 /// Uniquely identify an input of a node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Input {
     pub t_idx: TransformIdx,
     input_i: InputIdx,
@@ -98,14 +98,14 @@ impl InputList {
 }
 
 /// Identify a transformation node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct TransformIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
 struct OutputIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
 struct InputIdx(usize);
 /// Identify an output node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct OutputId(usize);
 
 /// Errors when computing or building a [`DST`].

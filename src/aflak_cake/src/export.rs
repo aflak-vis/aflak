@@ -1,4 +1,5 @@
 use boow::Bow;
+use dst::{Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, TransformId, Transformation};
 use variant_name::VariantName;
 
@@ -58,6 +59,29 @@ where
                 algorithm: Algorithm::Constant(constants),
             }),
             _ => panic!("PhantomData should not be used!"),
+        }
+    }
+}
+
+/// Vectors are more portable than hashmaps for serialization.
+#[derive(Clone, Debug, Serialize)]
+pub struct SerialDST<'d, T: 'd> {
+    transforms: Vec<(&'d TransformIdx, SerialTransform<'d, T>)>,
+    edges: Vec<(&'d Output, &'d Input)>,
+    outputs: Vec<(&'d OutputId, &'d Option<Output>)>,
+}
+
+impl<'d, T> SerialDST<'d, T>
+where
+    T: 'd + Clone,
+{
+    pub fn new<E>(dst: &'d DST<T, E>) -> Self {
+        Self {
+            transforms: dst.transforms_iter()
+                .map(|(t_idx, t)| (t_idx, SerialTransform::new(t)))
+                .collect(),
+            edges: dst.edges_iter().collect(),
+            outputs: dst.outputs_iter().collect(),
         }
     }
 }

@@ -12,11 +12,11 @@ impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone,
 {
-    fn transforms_iter(&self) -> TransformIterator<T, E> {
+    pub(crate) fn transforms_iter(&self) -> TransformIterator<T, E> {
         TransformIterator::new(self.transforms.iter())
     }
 
-    fn edges_iter(&self) -> EdgeIterator {
+    pub(crate) fn edges_iter(&self) -> EdgeIterator {
         EdgeIterator::new(self.edges.iter())
     }
 
