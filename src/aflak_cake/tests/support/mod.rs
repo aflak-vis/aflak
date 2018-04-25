@@ -1,7 +1,7 @@
 pub use aflak_cake::*;
 use variant_name::VariantName;
 
-#[derive(Clone, PartialEq, Debug, VariantName, Serialize)]
+#[derive(Clone, PartialEq, Debug, VariantName, Serialize, Deserialize)]
 pub enum AlgoIO {
     Integer(u64),
     Image2d(Vec<Vec<f64>>),
