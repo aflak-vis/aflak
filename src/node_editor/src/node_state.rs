@@ -4,7 +4,7 @@ use cake;
 
 use vec2::Vec2;
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeState {
     pub selected: bool,
     pub open: bool,
@@ -64,6 +64,10 @@ impl NodeStates {
 
     pub fn iter(&self) -> btree_map::Iter<cake::NodeId, NodeState> {
         self.0.iter()
+    }
+
+    pub(crate) unsafe fn insert(&mut self, id: cake::NodeId, state: NodeState) {
+        self.0.insert(id, state);
     }
 
     pub fn new() -> Self {

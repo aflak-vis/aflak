@@ -8,7 +8,7 @@ use transform::{Transformation, TypeId};
 /// in that case it is identified by a [`TransformIdx`], or an [`OutputId`].
 ///
 /// Use it together with [`DST::get_node`].
-#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum NodeId {
     Transform(TransformIdx),
     Output(OutputId),
