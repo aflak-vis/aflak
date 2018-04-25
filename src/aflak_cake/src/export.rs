@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use boow::Bow;
-use dst::{Input, Output, OutputId, TransformIdx, DST};
+use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, TransformId, Transformation};
 use variant_name::VariantName;
 
@@ -12,6 +12,12 @@ where
 {
     /// Get a transform by name.
     fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
+}
+
+#[derive(Debug)]
+pub enum ImportError<E> {
+    TransformationNotFound(String),
+    ConstructionError(&'static str, DSTError<E>),
 }
 
 #[derive(Copy, Clone, Debug, Serialize)]
@@ -43,21 +49,24 @@ impl<T, E> DeserTransform<T, E>
 where
     T: Clone + NamedAlgorithms<E> + VariantName,
 {
-    pub fn into(self) -> Bow<'static, Transformation<T, E>> {
+    pub fn into(self) -> Result<Bow<'static, Transformation<T, E>>, ImportError<E>> {
         match self {
             DeserTransform::Function(name) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
-                    Bow::Borrowed(t)
+                    Ok(Bow::Borrowed(t))
                 } else {
-                    panic!("Transform '{}' not found!", name)
+                    Err(ImportError::TransformationNotFound(format!(
+                        "Transform '{}' not found!",
+                        name
+                    )))
                 }
             }
-            DeserTransform::Constant(constants) => Bow::Owned(Transformation {
+            DeserTransform::Constant(constants) => Ok(Bow::Owned(Transformation {
                 name: "const",
                 input: vec![],
                 output: constants.iter().map(|t| t.variant_name()).collect(),
                 algorithm: Algorithm::Constant(constants),
-            }),
+            })),
             _ => panic!("PhantomData should not be used!"),
         }
     }
