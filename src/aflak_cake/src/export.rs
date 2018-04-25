@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use boow::Bow;
 use dst::{Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, TransformId, Transformation};
@@ -18,13 +20,11 @@ pub enum SerialTransform<'t, T: 't> {
     Constant(&'t [T]),
 }
 
-use std::marker::PhantomData;
-
 #[derive(Clone, Debug, Deserialize)]
 pub enum DeserTransform<T, E> {
     Function(String),
     Constant(Vec<T>),
-    Phantom(PhantomData<E>),
+    Phantom(PhantomData<fn() -> E>),
 }
 
 impl<'t, T> SerialTransform<'t, T>
