@@ -9,8 +9,8 @@ mod build;
 mod compute;
 mod iterators;
 mod node;
-pub use self::node::{Node, NodeId};
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
+pub use self::node::{Node, NodeId};
 
 type Cache<T> = RwLock<Option<T>>;
 
@@ -34,14 +34,14 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 }
 
 /// Uniquely identify an ouput of a transformation node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Output {
     pub t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
 /// Uniquely identify an input of a node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Input {
     pub t_idx: TransformIdx,
     input_i: InputIdx,
@@ -98,14 +98,14 @@ impl InputList {
 }
 
 /// Identify a transformation node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TransformIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct OutputIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct InputIdx(usize);
 /// Identify an output node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct OutputId(usize);
 
 /// Errors when computing or building a [`DST`].

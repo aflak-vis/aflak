@@ -85,3 +85,10 @@ where
         }
     }
 }
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct DeserDST<T, E> {
+    transforms: Vec<(TransformIdx, DeserTransform<T, E>)>,
+    edges: Vec<(Output, Input)>,
+    outputs: Vec<(OutputId, Option<Output>)>,
+}
