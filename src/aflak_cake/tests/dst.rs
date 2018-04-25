@@ -10,9 +10,13 @@ extern crate aflak_cake;
 
 #[macro_use]
 extern crate serde;
+extern crate ron;
 
 mod support;
 use support::*;
+
+use ron::de;
+use ron::ser;
 
 fn get_all_transforms() -> [Transformation<AlgoIO, !>; 4] {
     [
@@ -43,6 +47,10 @@ fn test_make_dst_and_iterate_dependencies() {
     dst.connect(Output::new(a, 0), Input::new(b, 0)).unwrap();
     dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
     dst.connect(Output::new(c, 0), Input::new(d, 0)).unwrap();
+
+    // Serialize and unserialize DST
+    let s = ser::to_string(&dst).unwrap();
+    let dst: DST<AlgoIO, !> = de::from_str(&s).unwrap();
 
     assert_eq!("TransformIdx(5)", format!("{:?}", e));
     assert_eq!("OutputId(1)", format!("{:?}", out1));
