@@ -3,6 +3,7 @@ use std::fmt;
 
 use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
             ImVec2, StyleVar, Ui};
+use serde::Serialize;
 
 use cake::{self, Transformation, DST};
 
@@ -65,7 +66,7 @@ enum InputSlot {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone + cake::EditableVariants + cake::VariantName + cake::DefaultFor,
+    T: Clone + cake::EditableVariants + cake::VariantName + cake::DefaultFor + Serialize,
     ED: ConstantEditor<T>,
     E: fmt::Debug,
 {
@@ -215,6 +216,13 @@ where
                         );
                         ui.same_line_spacing(0.0, 15.0);
                         ui.text(im_str!("Use CTRL+MW to zoom. Scroll with MMB."));
+                        ui.same_line(ui.get_window_size().0 - 180.0);
+                        if ui.button(im_str!("Export"), (0.0, 0.0)) {
+                            if let Err(e) = self.export_to_file("editor_graph_export.ron") {
+                                // TODO, show error
+                                eprintln!("Error on export: {:?}", e);
+                            }
+                        }
                         ui.same_line(ui.get_window_size().0 - 120.0);
                         ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
                         ui.text(im_str!("Double-click LMB on slots to remove their links (or SHIFT+LMB on links)."));

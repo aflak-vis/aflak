@@ -1,6 +1,11 @@
 use std::collections::BTreeMap;
+use std::fs;
+use std::io;
+use std::path::Path;
 
 use cake::{DeserDST, ImportError, NamedAlgorithms, NodeId, SerialDST, VariantName};
+use ron::ser;
+use serde::Serialize;
 
 use compute;
 use editor::NodeEditor;
@@ -36,6 +41,41 @@ where
 {
     pub fn export(&self) -> SerialEditor<T> {
         SerialEditor::new(self)
+    }
+}
+
+#[derive(Debug)]
+pub enum ExportError {
+    SerializationError(ser::Error),
+    IOError(io::Error),
+}
+
+impl From<io::Error> for ExportError {
+    fn from(io_error: io::Error) -> Self {
+        ExportError::IOError(io_error)
+    }
+}
+
+impl From<ser::Error> for ExportError {
+    fn from(serial_error: ser::Error) -> Self {
+        ExportError::SerializationError(serial_error)
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone + Serialize,
+{
+    pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
+        let serializable = self.export();
+        let serialized = ser::to_string(&serializable)?;
+        w.write(serialized.as_bytes())?;
+        Ok(w.flush()?)
+    }
+
+    pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
+        let mut f = fs::File::create(file_path)?;
+        self.export_to_buf(&mut f)
     }
 }
 

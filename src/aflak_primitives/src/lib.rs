@@ -7,17 +7,20 @@ extern crate variant_name_derive;
 extern crate aflak_cake as cake;
 extern crate fitrs;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use std::sync::Arc;
 use variant_name::VariantName;
 
-#[derive(Clone, Debug, VariantName)]
+#[derive(Clone, Debug, VariantName, Serialize)]
 pub enum IOValue {
     Integer(i64),
     Float(f32),
     Float2([f32; 2]),
     Float3([f32; 3]),
     Str(String),
+    #[serde(skip_serializing)]
     Fits(Arc<fitrs::Fits>),
     Image1d(Vec<f32>),
     Image2d(Vec<Vec<f32>>),

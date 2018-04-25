@@ -2,6 +2,7 @@ extern crate aflak_cake as cake;
 #[macro_use]
 extern crate imgui;
 extern crate rayon;
+extern crate ron;
 
 extern crate serde;
 #[macro_use]
