@@ -108,6 +108,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub enum ImportError<E> {
     DSTError(cake::ImportError<E>),
     DeserializationError(de::Error),

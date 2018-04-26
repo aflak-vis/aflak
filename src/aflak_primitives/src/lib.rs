@@ -13,7 +13,7 @@ extern crate serde_derive;
 use std::sync::Arc;
 use variant_name::VariantName;
 
-#[derive(Clone, Debug, VariantName, Serialize)]
+#[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
 pub enum IOValue {
     Integer(i64),
     Float(f32),
@@ -21,6 +21,7 @@ pub enum IOValue {
     Float3([f32; 3]),
     Str(String),
     #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
     Image1d(Vec<f32>),
     Image2d(Vec<Vec<f32>>),
