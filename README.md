@@ -32,6 +32,7 @@ This repo has several crates each with a specific and defined objective.
 Each of the crates is documented. Please refer to the doc.
 
 - **aflak_cake** (*Computational mAKE*): Manage node graph (back-end).
+
 ```sh
 cd aflak/src/aflak_cake
 # Open the doc
@@ -45,7 +46,7 @@ for aflak should be implemented. This is not a full front-end yet!
 
 ## Tests
 
-```
+```sh
 cd aflak/src
 cargo test
 ```
