@@ -95,9 +95,9 @@ fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
     let image = {
-        let primary_hdu = fits.get(0).ok_or_else(|| {
+        let primary_hdu = fits.get_by_name("FLUX").ok_or_else(|| {
             IOErr::UnexpectedInput(
-                "Could not find HDU 0 in Fits file. Is the file valid?".to_owned(),
+                "Could not find HDU FLUX in Fits file. Is the file valid?".to_owned(),
             )
         })?;
         let data = primary_hdu.read_data();
@@ -184,7 +184,7 @@ fn run_make_plane3d(
 
 #[cfg(test)]
 mod test {
-    use super::{run_open_fits, IOValue, run_fits_to_3d_image, run_make_plane3d, run_slice_3d_to_2d};
+    use super::{run_fits_to_3d_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
     #[test]
     fn test_open_fits() {
         let path = "/home/malik/workspace/lab/aflak/data/test.fits";
