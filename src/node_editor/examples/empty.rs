@@ -95,6 +95,9 @@ fn main() {
                             &primitives::IOValue::Float3(floats) => {
                                 ui.text(format!("{:?}", floats));
                             }
+                            &primitives::IOValue::Image2d(ref image) => {
+                                image_ui(ui, image);
+                            }
                             _ => {
                                 ui.text("Unimplemented");
                             }
@@ -106,4 +109,8 @@ fn main() {
         }
         true
     });
+}
+
+fn image_ui(ui: &Ui, _image: &Vec<Vec<f32>>) {
+    ui.text("Image2d");
 }
