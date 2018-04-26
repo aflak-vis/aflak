@@ -69,7 +69,7 @@ where
 {
     pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
         let serializable = self.export();
-        let serialized = ser::to_string(&serializable)?;
+        let serialized = ser::to_string_pretty(&serializable, Default::default())?;
         w.write(serialized.as_bytes())?;
         Ok(w.flush()?)
     }

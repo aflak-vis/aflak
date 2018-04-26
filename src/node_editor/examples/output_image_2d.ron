@@ -1,0 +1,174 @@
+(
+    dst: (
+        transforms: [
+            ((9), Constant([
+                Float3((0, 0, 0)),
+            ])),
+            ((1), Function("open_fits")),
+            ((8), Constant([
+                Float3((0, 0, 0)),
+            ])),
+            ((4), Constant([
+                Str("/home/malik/workspace/lab/aflak/data/manga-7443-12703-LINCUBE.fits"),
+            ])),
+            ((3), Function("fits_to_3d_image")),
+            ((7), Constant([
+                Float3((0, 0, 0)),
+            ])),
+            ((10), Constant([
+                Integer(0),
+            ])),
+            ((6), Function("make_plane3d")),
+            ((11), Constant([
+                Integer(0),
+            ])),
+            ((5), Function("slice_3d_to_2d")),
+            ((2), Function("open_fits")),
+        ],
+        edges: [
+            ((
+                t_idx: (9),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (2),
+            )),
+            ((
+                t_idx: (3),
+                output_i: (0),
+            ), (
+                t_idx: (5),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (1),
+                output_i: (0),
+            ), (
+                t_idx: (3),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (10),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (3),
+            )),
+            ((
+                t_idx: (4),
+                output_i: (0),
+            ), (
+                t_idx: (1),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (8),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (6),
+                output_i: (0),
+            ), (
+                t_idx: (5),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (7),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (11),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (4),
+            )),
+        ],
+        outputs: [
+            ((1), Some((
+                t_idx: (5),
+                output_i: (0),
+            ))),
+        ],
+    ),
+    node_states: [
+        (Transform((1)), (
+            selected: false,
+            open: false,
+            pos: (-209, -373),
+            size: (79, 100),
+        )),
+        (Transform((2)), (
+            selected: false,
+            open: false,
+            pos: (399, -311),
+            size: (79, 100),
+        )),
+        (Transform((3)), (
+            selected: true,
+            open: false,
+            pos: (-53, -280),
+            size: (128, 100),
+        )),
+        (Transform((4)), (
+            selected: false,
+            open: false,
+            pos: (-511, -264),
+            size: (207, 39),
+        )),
+        (Transform((5)), (
+            selected: false,
+            open: false,
+            pos: (127, -117),
+            size: (114, 100),
+        )),
+        (Transform((6)), (
+            selected: false,
+            open: false,
+            pos: (-77, -37),
+            size: (100, 100),
+        )),
+        (Transform((7)), (
+            selected: false,
+            open: false,
+            pos: (-425, -67),
+            size: (221, 39),
+        )),
+        (Transform((8)), (
+            selected: false,
+            open: false,
+            pos: (-474, -23),
+            size: (221, 39),
+        )),
+        (Transform((9)), (
+            selected: false,
+            open: false,
+            pos: (-509, 33),
+            size: (221, 39),
+        )),
+        (Transform((10)), (
+            selected: false,
+            open: false,
+            pos: (-381, 105),
+            size: (186, 39),
+        )),
+        (Transform((11)), (
+            selected: false,
+            open: false,
+            pos: (-402, 196),
+            size: (186, 39),
+        )),
+        (Output((1)), (
+            selected: false,
+            open: false,
+            pos: (393, -103),
+            size: (142, 100),
+        )),
+    ],
+)
