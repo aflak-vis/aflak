@@ -3,9 +3,9 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{DeserDST, ImportError, NamedAlgorithms, NodeId, SerialDST, VariantName};
-use ron::ser;
-use serde::Serialize;
+use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantName};
+use ron::{de, ser};
+use serde::{Deserialize, Serialize};
 
 use compute;
 use editor::NodeEditor;
@@ -30,6 +30,7 @@ where
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserEditor<T, E> {
     dst: DeserDST<T, E>,
     node_states: Vec<(NodeId, NodeState)>,
@@ -84,7 +85,7 @@ where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName,
     E: 'static,
 {
-    pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), ImportError<E>> {
+    pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
         self.dst = import.dst.into()?;
         self.node_states = {
             let mut node_states = NodeStates::new();
@@ -104,5 +105,45 @@ where
             output_results
         };
         Ok(())
+    }
+}
+
+pub enum ImportError<E> {
+    DSTError(cake::ImportError<E>),
+    DeserializationError(de::Error),
+    IOError(io::Error),
+}
+
+impl<E> From<io::Error> for ImportError<E> {
+    fn from(io_error: io::Error) -> Self {
+        ImportError::IOError(io_error)
+    }
+}
+
+impl<E> From<de::Error> for ImportError<E> {
+    fn from(deserial_error: de::Error) -> Self {
+        ImportError::DeserializationError(deserial_error)
+    }
+}
+
+impl<E> From<cake::ImportError<E>> for ImportError<E> {
+    fn from(e: cake::ImportError<E>) -> Self {
+        ImportError::DSTError(e)
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: 'static + Clone + NamedAlgorithms<E> + VariantName + for<'de> Deserialize<'de>,
+    E: 'static,
+{
+    pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
+        let deserialized = de::from_reader(r)?;
+        Ok(self.import(deserialized)?)
+    }
+
+    pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError<E>> {
+        let f = fs::File::open(file_path)?;
+        self.import_from_buf(f)
     }
 }
