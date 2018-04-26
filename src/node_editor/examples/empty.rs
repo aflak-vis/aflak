@@ -8,6 +8,9 @@ mod support;
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
 extern crate node_editor;
+
+use std::io::Cursor;
+
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
 use imgui::{ImString, Ui};
@@ -51,18 +54,10 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 fn main() {
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
-    let string_constant = cake::Transformation::new_constant(primitives::IOValue::Str(
-        "/home/malik/workspace/lab/aflak/data/JCMT_CO32.FITS".to_owned(),
-    ));
-    let mut dst = cake::DST::new();
-    let a = dst.add_transform(transformations[0]);
-    let _b = dst.add_transform(transformations[0]);
-    let c = dst.add_transform(transformations[1]);
-    let _d = dst.add_owned_transform(string_constant);
-    dst.connect(cake::Output::new(a, 0), cake::Input::new(c, 0))
-        .unwrap();
-    dst.attach_output(cake::Output::new(c, 0)).unwrap();
-    let mut node_editor = NodeEditor::from_dst(dst, transformations, MyConstantEditor);
+    let import_data = Cursor::new(include_str!("output_image_2d.ron"));
+    let mut node_editor =
+        NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
+            .expect("Import failed");
     support::run("Node editor example".to_owned(), CLEAR_COLOR, |ui| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);

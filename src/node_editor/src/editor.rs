@@ -66,16 +66,8 @@ enum InputSlot {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: 'static
-        + Clone
-        + cake::EditableVariants
-        + cake::NamedAlgorithms<E>
-        + cake::VariantName
-        + cake::DefaultFor
-        + Serialize
-        + for<'de> Deserialize<'de>,
-    ED: ConstantEditor<T>,
-    E: 'static + fmt::Debug,
+    T: Clone,
+    ED: Default,
 {
     pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
         Self {
@@ -107,7 +99,21 @@ where
         self.show_left_pane = show_left_pane;
         self
     }
+}
 
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: 'static
+        + Clone
+        + cake::EditableVariants
+        + cake::NamedAlgorithms<E>
+        + cake::VariantName
+        + cake::DefaultFor
+        + Serialize
+        + for<'de> Deserialize<'de>,
+    ED: ConstantEditor<T>,
+    E: 'static + fmt::Debug,
+{
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states

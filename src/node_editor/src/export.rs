@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantName};
+use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transformation, VariantName};
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
@@ -137,7 +137,33 @@ impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + for<'de> Deserialize<'de>,
     E: 'static,
+    ED: Default,
 {
+    pub fn from_export_buf<R>(
+        r: R,
+        addable_nodes: &'t [&'t Transformation<T, E>],
+        ed: ED,
+    ) -> Result<Self, ImportError<E>>
+    where
+        R: io::Read,
+    {
+        let mut editor = Self::new(addable_nodes, ed);
+        editor.import_from_buf(r)?;
+        Ok(editor)
+    }
+
+    pub fn from_ron_file<P>(
+        file_path: P,
+        addable_nodes: &'t [&'t Transformation<T, E>],
+        ed: ED,
+    ) -> Result<Self, ImportError<E>>
+    where
+        P: AsRef<Path>,
+    {
+        let f = fs::File::open(file_path)?;
+        Self::from_export_buf(f, addable_nodes, ed)
+    }
+
     pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
         let deserialized = de::from_reader(r)?;
         Ok(self.import(deserialized)?)
