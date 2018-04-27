@@ -1,0 +1,7 @@
+[package]
+name = "ui_image2d"
+version = "0.1.0"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+imgui = { path = "../../imgui-rs" }

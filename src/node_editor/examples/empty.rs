@@ -8,12 +8,14 @@ mod support;
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
 extern crate node_editor;
+extern crate ui_image2d;
 
 use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
 use imgui::{ImString, Ui};
+use ui_image2d::UiImage2d;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
@@ -96,7 +98,7 @@ fn main() {
                                 ui.text(format!("{:?}", floats));
                             }
                             &primitives::IOValue::Image2d(ref image) => {
-                                image_ui(ui, image);
+                                ui.image2d(image);
                             }
                             _ => {
                                 ui.text("Unimplemented");
@@ -109,8 +111,4 @@ fn main() {
         }
         true
     });
-}
-
-fn image_ui(ui: &Ui, _image: &Vec<Vec<f32>>) {
-    ui.text("Image2d");
 }
