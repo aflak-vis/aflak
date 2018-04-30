@@ -278,8 +278,8 @@ where
         // hover other slots while dragging links.
         const BASE_NODE_WIDTH: f32 = 120.0 * CURRENT_FONT_WINDOW_SCALE;
         ui.with_item_width(BASE_NODE_WIDTH, || {
-            let list = ui.get_window_draw_list();
-            list.channels_split(5, |draw_list| {
+            let draw_list = ui.get_window_draw_list();
+            draw_list.channels_split(5, |channels| {
                 let canvas_size = Vec2::new(ui.get_window_size());
                 let win_pos = Vec2::new(ui.get_cursor_screen_pos());
                 // TODO: Center view on a specific node
@@ -330,11 +330,7 @@ where
                     ui.push_id(idx.id());
 
                     // Display node contents first in the foreground
-                    draw_list.channels_set_current(if self.active_node == Some(idx) {
-                        4
-                    } else {
-                        2
-                    });
+                    channels.set_current(if self.active_node == Some(idx) { 4 } else { 2 });
 
                     let node_rect_min = offset + node_pos;
                     let node_rect_max = self.node_states
@@ -349,11 +345,7 @@ where
                         state.size = item_rect_size + NODE_WINDOW_PADDING * 2.0;
                     });
 
-                    draw_list.channels_set_current(if self.active_node == Some(idx) {
-                        3
-                    } else {
-                        1
-                    });
+                    channels.set_current(if self.active_node == Some(idx) { 3 } else { 1 });
                     ui.set_cursor_screen_pos(node_rect_min);
                     ui.invisible_button(
                         im_str!("node##nodeinvbtn"),
@@ -582,7 +574,7 @@ where
                 }
 
                 // Display links
-                draw_list.channels_set_current(0);
+                channels.set_current(0);
                 for (output, input_slot) in self.dst.links_iter() {
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
