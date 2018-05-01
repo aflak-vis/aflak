@@ -60,7 +60,7 @@ where
     /// Create a new Transformation always returning a single constant
     pub fn new_constant(t: T) -> Self {
         Self {
-            name: "const",
+            name: t.variant_name(),
             input: vec![],
             output: vec![t.variant_name()],
             algorithm: Algorithm::Constant(vec![t]),
@@ -69,7 +69,7 @@ where
 
     /// Set this transformation to the given constant value.
     pub fn set_constant(&mut self, t: T) {
-        self.name = "const";
+        self.name = t.variant_name();
         self.input = vec![];
         self.output = vec![t.variant_name()];
         self.algorithm = Algorithm::Constant(vec![t])
