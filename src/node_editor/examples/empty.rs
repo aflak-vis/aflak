@@ -3,18 +3,19 @@ extern crate glium;
 extern crate imgui;
 extern crate imgui_glium_renderer;
 
-mod support;
-
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
 extern crate node_editor;
 extern crate ui_image2d;
 
+use std::collections::HashMap;
 use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
+use glium::backend::Facade;
 use imgui::{ImString, Ui};
+use imgui_glium_renderer::{AppConfig, AppContext};
 use ui_image2d::UiImage2d;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
@@ -60,7 +61,18 @@ fn main() {
     let mut node_editor =
         NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
             .expect("Import failed");
-    support::run("Node editor example".to_owned(), CLEAR_COLOR, |ui| {
+
+    let mut app = AppContext::init(
+        "Node editor example".to_owned(),
+        AppConfig {
+            clear_color: CLEAR_COLOR,
+            ini_filename: Some(ImString::new("node_editor_example.ini")),
+            ..Default::default()
+        },
+    ).unwrap();
+    let gl_ctx = app.get_context().clone();
+    let mut image2d_states = HashMap::new();
+    app.run(|ui| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);
         });
@@ -98,7 +110,12 @@ fn main() {
                                 ui.text(format!("{:?}", floats));
                             }
                             &primitives::IOValue::Image2d(ref image) => {
-                                ui.image2d(image);
+                                let state = image2d_states
+                                    .entry(window_name.clone())
+                                    .or_insert_with(|| ui_image2d::State::default());
+                                if let Err(e) = ui.image2d(&gl_ctx, &window_name, image, state) {
+                                    ui.text(format!("{:?}", e));
+                                }
                             }
                             _ => {
                                 ui.text("Unimplemented");
@@ -110,5 +127,5 @@ fn main() {
             });
         }
         true
-    });
+    }).unwrap();
 }
