@@ -7,7 +7,6 @@ use vec2::Vec2;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeState {
     pub selected: bool,
-    pub open: bool,
     pub pos: Vec2,
     pub size: Vec2,
 }
@@ -16,7 +15,6 @@ impl Default for NodeState {
     fn default() -> Self {
         Self {
             selected: false,
-            open: true,
             pos: Vec2::default(),
             size: Vec2::default(),
         }
@@ -90,11 +88,6 @@ impl NodeStates {
     pub fn toggle_select(&mut self, id: &cake::NodeId) {
         let state = self.0.get_mut(id).unwrap();
         state.selected = !state.selected;
-    }
-
-    pub fn open_node(&mut self, idx: &cake::NodeId, open: bool) {
-        let state = self.0.get_mut(idx).unwrap();
-        state.open = open;
     }
 
     pub fn get_state<T, F>(&self, id: &cake::NodeId, f: F) -> T

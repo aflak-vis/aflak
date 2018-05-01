@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use imgui::{ImGuiCol, ImGuiCond, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
-            ImVec2, StyleVar, Ui};
+use imgui::{ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
+            StyleVar, Ui};
 use serde::{Deserialize, Serialize};
 
 use cake::{self, Transformation, DST};
@@ -375,19 +375,17 @@ where
                         .rounding(NODE_ROUNDING)
                         .build();
                     // Line below node name
-                    if node_states.get_state(&idx, |state| state.open) {
-                        let node_title_bar_height =
-                            ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.1;
-                        let tmp1 = Vec2::new((
-                            node_rect_min.0,
-                            node_rect_min.1 + node_title_bar_height + 1.0,
-                        ));
-                        let tmp2 = (node_rect_max.0, tmp1.1);
-                        draw_list
-                            .add_line(tmp1, tmp2, NODE_FRAME_COLOR)
-                            .thickness(line_thickness)
-                            .build();
-                    }
+                    let node_title_bar_height =
+                        ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.1;
+                    let tmp1 = Vec2::new((
+                        node_rect_min.0,
+                        node_rect_min.1 + node_title_bar_height + 1.0,
+                    ));
+                    let tmp2 = (node_rect_max.0, tmp1.1);
+                    draw_list
+                        .add_line(tmp1, tmp2, NODE_FRAME_COLOR)
+                        .thickness(line_thickness)
+                        .build();
                     // Display connectors
                     const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                     const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
@@ -676,27 +674,7 @@ where
         ui.group(|| {
             let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
             ui.with_color_var(ImGuiCol::Text, default_text_color, || {
-                const TRANSPARENT: [f32; 4] = [1.0, 1.0, 1.0, 0.0];
-                const TREE_STYLE: [(ImGuiCol, [f32; 4]); 3] = [
-                    (ImGuiCol::Header, TRANSPARENT),
-                    (ImGuiCol::HeaderActive, TRANSPARENT),
-                    (ImGuiCol::HeaderHovered, TRANSPARENT),
-                ];
-                ui.with_color_vars(&TREE_STYLE, || {
-                    if ui.tree_node(&node_name)
-                        .opened(
-                            node_states.get_state(id, |state| state.open),
-                            ImGuiCond::Always,
-                        )
-                        .build(|| {})
-                    {
-                        node_states.open_node(id, false);
-                    } else {
-                        node_states.open_node(id, true);
-                    }
-                });
-                ui.same_line_spacing(0.0, 2.0);
-                //ui.text(node.name);
+                ui.text(node_name);
                 if ui.is_item_hovered() {
                     // Show tooltip ?
                     ui.tooltip(|| ui.text("TEST TOOLTIP"));
