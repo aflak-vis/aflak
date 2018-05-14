@@ -253,7 +253,7 @@ where
                     StyleVar::WindowPadding(ImVec2 { x: 0.0, y: 0.0 }),
                 ];
                 const GRAPH_STYLE_COLOR: [(ImGuiCol, (f32, f32, f32, f32)); 1] =
-                    [(ImGuiCol::ChildWindowBg, (0.24, 0.24, 0.27, 0.78))];
+                    [(ImGuiCol::ChildBg, (0.24, 0.24, 0.27, 0.78))];
                 ui.with_style_and_color_vars(&GRAPH_STYLE_VAR, &GRAPH_STYLE_COLOR, || {
                     ui.child_frame(im_str!("scrolling_region"), (0.0, 0.0))
                         .show_borders(true)
