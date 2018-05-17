@@ -54,7 +54,9 @@ cargo test
 ## TODO
 
 - **imgui_file_explorer** crate
-- Import/Export (in progress)
-- Custom texture support for **imgui-rs**
+- Custom texture support for **imgui-rs** (in progress)
 - Aflak front-end
 - Write output to FITS files
+- Output window automatic layout: Current default layout is completely dumb.
+- Panning in node editor
+- Zooming in node editor
