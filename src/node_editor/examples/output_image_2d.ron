@@ -2,25 +2,25 @@
     dst: (
         transforms: [
             ((9), Constant([
-                Float3((0, 0, 0)),
+                Float3((0, 0, 1)),
             ])),
             ((1), Function("open_fits")),
             ((8), Constant([
-                Float3((0, 0, 0)),
+                Float3((0, 1, 0)),
             ])),
             ((4), Constant([
                 Str("/home/malik/workspace/lab/aflak/data/manga-7443-12703-LINCUBE.fits"),
             ])),
             ((3), Function("fits_to_3d_image")),
             ((7), Constant([
-                Float3((0, 0, 0)),
+                Float3((40, 0, 0)),
             ])),
             ((10), Constant([
-                Integer(0),
+                Integer(70),
             ])),
             ((6), Function("make_plane3d")),
             ((11), Constant([
-                Integer(0),
+                Integer(70),
             ])),
             ((5), Function("slice_3d_to_2d")),
             ((2), Function("open_fits")),
