@@ -315,7 +315,7 @@ where
                         y += grid_sz;
                     }
                 }
-                if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                if ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
                     let mouse_pos = ui.imgui().mouse_pos();
                     if win_pos.0 < mouse_pos.0
                         && mouse_pos.0 < win_pos.0 + canvas_size.0
