@@ -322,7 +322,7 @@ where
                         && win_pos.1 < mouse_pos.1
                         && mouse_pos.1 < win_pos.1 + canvas_size.1
                     {
-                        ui.open_popup(im_str!("TEST"));
+                        ui.open_popup(im_str!("add-new-node"));
                     }
                 }
 
@@ -643,7 +643,7 @@ where
             }
             self.new_link = None;
         }
-        ui.popup(im_str!("TEST"), || {
+        ui.popup(im_str!("add-new-node"), || {
             ui.text("Add node");
             ui.separator();
             for (i, node) in self.addable_nodes.iter().enumerate() {
