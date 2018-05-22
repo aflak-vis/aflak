@@ -315,6 +315,16 @@ where
                         y += grid_sz;
                     }
                 }
+                if ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                    let mouse_pos = ui.imgui().mouse_pos();
+                    if win_pos.0 < mouse_pos.0
+                        && mouse_pos.0 < win_pos.0 + canvas_size.0
+                        && win_pos.1 < mouse_pos.1
+                        && mouse_pos.1 < win_pos.1 + canvas_size.1
+                    {
+                        ui.open_popup(im_str!("add-new-node"));
+                    }
+                }
 
                 // Bezier control point of the links
                 const LINK_CONTROL_POINT_DISTANCE: f32 = 50.0;
@@ -633,10 +643,7 @@ where
             }
             self.new_link = None;
         }
-        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
-            ui.open_popup(im_str!("TEST"));
-        }
-        ui.popup(im_str!("TEST"), || {
+        ui.popup(im_str!("add-new-node"), || {
             ui.text("Add node");
             ui.separator();
             for (i, node) in self.addable_nodes.iter().enumerate() {
