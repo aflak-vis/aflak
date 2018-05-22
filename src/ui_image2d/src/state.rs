@@ -82,6 +82,14 @@ impl State {
                 )
                 .filled(true)
                 .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    lut::util::invert_color(min_color),
+                )
+                .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
@@ -111,6 +119,14 @@ impl State {
                     max_color,
                 )
                 .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    lut::util::invert_color(max_color),
+                )
                 .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
