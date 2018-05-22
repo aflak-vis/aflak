@@ -95,10 +95,10 @@ fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
     let image = {
-        let primary_hdu = fits.get_by_name("FLUX").ok_or_else(|| {
-            IOErr::UnexpectedInput(
-                "Could not find HDU FLUX in Fits file. Is the file valid?".to_owned(),
-            )
+        let primary_hdu = fits.get_by_name("FLUX").or_else(|| {
+            fits.get(0)
+        }).ok_or_else(|| {
+            IOErr::UnexpectedInput("Could not find HDU FLUX nor Primary HDU in FITS file. Is the file valid?".to_owned())
         })?;
         let data = primary_hdu.read_data();
         match data {
