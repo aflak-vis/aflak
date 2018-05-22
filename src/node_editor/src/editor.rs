@@ -315,14 +315,25 @@ where
                         y += grid_sz;
                     }
                 }
-                if ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
-                    let mouse_pos = ui.imgui().mouse_pos();
-                    if win_pos.0 < mouse_pos.0
-                        && mouse_pos.0 < win_pos.0 + canvas_size.0
-                        && win_pos.1 < mouse_pos.1
-                        && mouse_pos.1 < win_pos.1 + canvas_size.1
+                if ui.is_window_hovered() {
+                    // Create new node with a popup
+                    if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                        let mouse_pos = ui.imgui().mouse_pos();
+                        if win_pos.0 < mouse_pos.0
+                            && mouse_pos.0 < win_pos.0 + canvas_size.0
+                            && win_pos.1 < mouse_pos.1
+                            && mouse_pos.1 < win_pos.1 + canvas_size.1
+                        {
+                            ui.open_popup(im_str!("add-new-node"));
+                        }
+                    }
+                    // Scroll
+                    if self.drag_node.is_none()
+                        && self.creating_link.is_none()
+                        && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                     {
-                        ui.open_popup(im_str!("add-new-node"));
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
+                        self.scrolling = self.scrolling - ui.imgui().mouse_delta().into();
                     }
                 }
 
