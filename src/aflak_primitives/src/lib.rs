@@ -187,7 +187,7 @@ mod test {
     use super::{run_fits_to_3d_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
     #[test]
     fn test_open_fits() {
-        let path = "/home/malik/workspace/lab/aflak/data/test.fits";
+        let path = "test/test.fits";
         if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
             if let IOValue::Image3d(image3d) = run_fits_to_3d_image(&fits).unwrap() {
                 if let IOValue::Map2dTo3dCoords(map) =
