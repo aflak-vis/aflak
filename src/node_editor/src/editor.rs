@@ -228,7 +228,7 @@ where
                             &mut self.show_connection_names,
                         );
                         ui.same_line_spacing(0.0, 15.0);
-                        ui.text(im_str!("Use CTRL+MW to zoom. Scroll with MMB."));
+                        ui.text(im_str!("Use CTRL+MW to zoom. Scroll with Ctrl+Mouse Left Button."));
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file("editor_graph_export.ron") {
@@ -330,6 +330,7 @@ where
                     // Scroll
                     if self.drag_node.is_none()
                         && self.creating_link.is_none()
+                        && ui.imgui().key_ctrl()
                         && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                     {
                         ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
