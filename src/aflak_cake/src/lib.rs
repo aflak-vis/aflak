@@ -70,6 +70,7 @@ macro_rules! cake_fn {
 /// # Example
 ///
 /// ```rust
+/// # #![feature(never_type)]
 /// #[macro_use] extern crate variant_name_derive;
 /// #[macro_use] extern crate aflak_cake;
 /// use aflak_cake::*;

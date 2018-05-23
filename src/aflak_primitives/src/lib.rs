@@ -95,10 +95,10 @@ fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
     let image = {
-        let primary_hdu = fits.get_by_name("FLUX").ok_or_else(|| {
-            IOErr::UnexpectedInput(
-                "Could not find HDU FLUX in Fits file. Is the file valid?".to_owned(),
-            )
+        let primary_hdu = fits.get_by_name("FLUX").or_else(|| {
+            fits.get(0)
+        }).ok_or_else(|| {
+            IOErr::UnexpectedInput("Could not find HDU FLUX nor Primary HDU in FITS file. Is the file valid?".to_owned())
         })?;
         let data = primary_hdu.read_data();
         match data {
@@ -187,7 +187,7 @@ mod test {
     use super::{run_fits_to_3d_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
     #[test]
     fn test_open_fits() {
-        let path = "/home/malik/workspace/lab/aflak/data/test.fits";
+        let path = "test/test.fits";
         if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
             if let IOValue::Image3d(image3d) = run_fits_to_3d_image(&fits).unwrap() {
                 if let IOValue::Map2dTo3dCoords(map) =
