@@ -82,7 +82,8 @@ where
     /// Purge all cache in the given output and all its children.
     pub(crate) fn purge_cache(&mut self, output: Output) {
         self.cache.insert(output, RwLock::new(None));
-        let inputs: Option<Vec<_>> = self.inputs_attached_to(&output)
+        let inputs: Option<Vec<_>> = self
+            .inputs_attached_to(&output)
             .map(|inputs| inputs.map(|input| *input))
             .map(Iterator::collect);
         if let Some(inputs) = inputs {

@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use imgui::{ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
-            StyleVar, Ui};
+use imgui::{
+    ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2, StyleVar, Ui,
+};
 use serde::{Deserialize, Serialize};
 
 use cake::{self, Transformation, DST};
@@ -136,14 +137,16 @@ where
     fn render_left_pane(&mut self, ui: &Ui) {
         const LEFT_PANE_DEFAULT_RELATIVE_WIDTH: f32 = 0.2;
         let window_size = Vec2::new(ui.get_window_size());
-        let pane_width = *self.left_pane_size
+        let pane_width = *self
+            .left_pane_size
             .get_or_insert_with(|| window_size.0 * LEFT_PANE_DEFAULT_RELATIVE_WIDTH);
 
         ui.child_frame(im_str!("node_list"), (pane_width, 0.0))
             .build(|| {
                 ui.spacing();
                 ui.separator();
-                if ui.collapsing_header(im_str!("Node List##node_list_1"))
+                if ui
+                    .collapsing_header(im_str!("Node List##node_list_1"))
                     .default_open(true)
                     .build()
                 {
@@ -154,7 +157,8 @@ where
                 self.active_node.map(|node| {
                     ui.spacing();
                     ui.separator();
-                    if ui.collapsing_header(im_str!("Active Node##activeNode"))
+                    if ui
+                        .collapsing_header(im_str!("Active Node##activeNode"))
                         .default_open(true)
                         .build()
                     {
@@ -228,7 +232,9 @@ where
                             &mut self.show_connection_names,
                         );
                         ui.same_line_spacing(0.0, 15.0);
-                        ui.text(im_str!("Use CTRL+MW to zoom. Scroll with Ctrl+Mouse Left Button."));
+                        ui.text(im_str!(
+                            "Use CTRL+MW to zoom. Scroll with Ctrl+Mouse Left Button."
+                        ));
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file("editor_graph_export.ron") {
@@ -347,7 +353,8 @@ where
                 // NODE LINK CULLING?
 
                 for idx in self.dst.node_ids() {
-                    let node_pos = self.node_states
+                    let node_pos = self
+                        .node_states
                         .get_state(&idx, |state| state.get_pos(CURRENT_FONT_WINDOW_SCALE));
                     ui.push_id(idx.id());
 
@@ -355,7 +362,8 @@ where
                     channels.set_current(if self.active_node == Some(idx) { 4 } else { 2 });
 
                     let node_rect_min = offset + node_pos;
-                    let node_rect_max = self.node_states
+                    let node_rect_max = self
+                        .node_states
                         .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
                     self.draw_node_inside(ui, &idx); // ...
@@ -534,7 +542,8 @@ where
                             &LinkExtremity::Output(output) => {
                                 let output_node_count =
                                     self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                                let output_node_state = self.node_states
+                                let output_node_state = self
+                                    .node_states
                                     .get(&cake::NodeId::Transform(output.t_idx))
                                     .unwrap();
                                 let connector_pos = output_node_state.get_output_slot_pos(
@@ -551,12 +560,14 @@ where
                             &LinkExtremity::Input(input_slot) => {
                                 let connector_pos = match input_slot {
                                     InputSlot::Transform(input) => {
-                                        let input_node_count = self.dst
+                                        let input_node_count = self
+                                            .dst
                                             .get_transform(&input.t_idx)
                                             .unwrap()
                                             .input
                                             .len();
-                                        let input_node_state = self.node_states
+                                        let input_node_state = self
+                                            .node_states
                                             .get(&cake::NodeId::Transform(input.t_idx))
                                             .unwrap();
                                         input_node_state.get_input_slot_pos(
@@ -566,7 +577,8 @@ where
                                         )
                                     }
                                     InputSlot::Output(output_id) => {
-                                        let input_node_state = self.node_states
+                                        let input_node_state = self
+                                            .node_states
                                             .get(&cake::NodeId::Output(output_id))
                                             .unwrap();
                                         input_node_state.get_input_slot_pos(
@@ -600,7 +612,8 @@ where
                         cake::InputSlot::Transform(input) => {
                             let input_node_count =
                                 self.dst.get_transform(&input.t_idx).unwrap().input.len();
-                            let input_node_state = self.node_states
+                            let input_node_state = self
+                                .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))
                                 .unwrap();
                             input_node_state.get_input_slot_pos(
@@ -610,7 +623,8 @@ where
                             )
                         }
                         cake::InputSlot::Output(output_id) => {
-                            let input_node_state = self.node_states
+                            let input_node_state = self
+                                .node_states
                                 .get(&cake::NodeId::Output(*output_id))
                                 .unwrap();
                             input_node_state.get_input_slot_pos(
@@ -623,7 +637,8 @@ where
                     let p1 = offset + connector_in_pos;
                     let output_node_count =
                         self.dst.get_transform(&output.t_idx).unwrap().output.len();
-                    let output_node_state = self.node_states
+                    let output_node_state = self
+                        .node_states
                         .get(&cake::NodeId::Transform(output.t_idx))
                         .unwrap();
 

@@ -39,7 +39,8 @@ where
     pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
         match idx {
             &NodeId::Transform(ref t_idx) => self.get_transform(t_idx).map(Node::Transform),
-            &NodeId::Output(ref output_id) => self.outputs
+            &NodeId::Output(ref output_id) => self
+                .outputs
                 .get(output_id)
                 .map(|some_output| Node::Output(some_output.as_ref())),
         }
@@ -50,7 +51,8 @@ where
     /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
     /// provided in the graph, Some(Output) otherwise.
     pub(crate) fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
-        let t = self.get_transform(idx)
+        let t = self
+            .get_transform(idx)
             .expect(&format!("Transform not found {:?}", idx));
         let len = t.input.len();
         (0..len)
@@ -80,7 +82,8 @@ where
                 let output = Output::new(*t_idx, i);
                 if self.edges.contains_key(&output) {
                     outputs.push(output)
-                } else if self.outputs
+                } else if self
+                    .outputs
                     .values()
                     .find(|&val| &Some(output) == val)
                     .is_some()
