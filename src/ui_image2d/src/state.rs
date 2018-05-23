@@ -7,11 +7,14 @@ use hist;
 use image;
 use lut::{self, BuiltinLUT, ColorLUT};
 
+/// Current state of the visualization of a 2D image
 pub struct State {
-    pub lut: ColorLUT,
-    pub vmin: f32,
-    pub vmax: f32,
+    pub(crate) lut: ColorLUT,
+    pub(crate) vmin: f32,
+    pub(crate) vmax: f32,
+    /// Mouse position relative to the image (in pixels)
     pub mouse_pos: (f32, f32),
+    /// Control whether histogram uses a log scale
     pub hist_logscale: bool,
     lut_min_moving: bool,
     lut_max_moving: bool,
@@ -33,7 +36,7 @@ impl Default for State {
 }
 
 impl State {
-    pub fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
+    pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
     where
         P: Into<ImVec2>,
         S: Into<ImVec2>,
@@ -190,7 +193,7 @@ impl State {
         }
     }
 
-    pub fn show_image<F>(
+    pub(crate) fn show_image<F>(
         &mut self,
         ui: &Ui,
         ctx: &F,
@@ -273,7 +276,7 @@ impl State {
         Ok([p, size])
     }
 
-    pub fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Vec<Vec<f32>>)
+    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Vec<Vec<f32>>)
     where
         P: Into<ImVec2>,
         S: Into<ImVec2>,

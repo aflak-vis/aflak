@@ -17,6 +17,26 @@ use glium::backend::Facade;
 use imgui::{ImStr, Ui};
 
 impl<'ui> UiImage2d for Ui<'ui> {
+    /// Show image given as input. `name` is used as an ID to register the
+    /// provided image as an OpenGL texture in [`Ui`].
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// #[macro_use] extern crate imgui;
+    /// extern crate imgui_glium_renderer;
+    /// extern crate ui_image2d;
+    ///
+    /// use imgui::Ui;
+    /// use imgui_glium_renderer::AppContext;
+    /// use ui_image2d::UiImage2d;
+    ///
+    /// fn run(ui: &Ui, ctx: &AppContext) -> Result<(), ui_image2d::Error> {
+    ///     let data = vec![vec![0.0; 10]; 10];
+    ///     let mut state = ui_image2d::State::default();
+    ///     ui.image2d(ctx, im_str!("Show my image!"), &data, &mut state)
+    /// }
+    /// ```
     fn image2d<F>(
         &self,
         ctx: &F,
@@ -50,6 +70,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     }
 }
 
+/// Implementation of a UI to visualize a 2D image with ImGui and OpenGL
 pub trait UiImage2d {
     fn image2d<F>(
         &self,
