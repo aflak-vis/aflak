@@ -10,6 +10,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+mod roi;
+
 use std::sync::Arc;
 use variant_name::VariantName;
 
@@ -27,6 +29,7 @@ pub enum IOValue {
     Image2d(Vec<Vec<f32>>),
     Image3d(Vec<Vec<Vec<f32>>>),
     Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
+    Roi(roi::ROI),
 }
 
 #[derive(Clone, Debug)]
@@ -50,6 +53,9 @@ lazy_static! {
             }),
             cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3, dir1: Float3, dir2: Float3, count1: Integer, count2: Integer) -> Map2dTo3dCoords {
                 vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
+            }),
+            cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi) -> Image1d {
+                vec![run_extract_wave(image, roi)]
             }),
         ]
     };
@@ -184,6 +190,10 @@ fn run_make_plane3d(
         map.push(row);
     }
     Ok(IOValue::Map2dTo3dCoords(map))
+}
+
+fn run_extract_wave(image: &Vec<Vec<Vec<f32>>>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+    Ok(IOValue::Image1d(vec![]))
 }
 
 #[cfg(test)]
