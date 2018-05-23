@@ -27,4 +27,5 @@ fmt:
   image: rustdocker/rust:nightly
   script:
     - rustup component add rustfmt-preview
+    - cargo fmt --version
     - cargo fmt --all -- --check
