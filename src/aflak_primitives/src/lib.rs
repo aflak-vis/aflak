@@ -79,6 +79,7 @@ impl cake::DefaultFor for IOValue {
             "Float" => IOValue::Float(0.0),
             "Float2" => IOValue::Float2([0.0; 2]),
             "Float3" => IOValue::Float3([0.0; 3]),
+            "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
@@ -87,7 +88,7 @@ impl cake::DefaultFor for IOValue {
 
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
-        &["Integer", "Float", "Float2", "Float3", "Str"]
+        &["Integer", "Float", "Float2", "Float3", "Roi", "Str"]
     }
 }
 
