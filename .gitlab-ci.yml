@@ -22,3 +22,9 @@ nightly:
   script:
     - cargo build --all --verbose
     - cargo test --all --verbose
+
+fmt:
+  image: rustdocker/rust:nightly
+  script:
+    - rustup component add rustfmt-preview
+    - cargo fmt --all -- --check
