@@ -4,4 +4,6 @@ version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
+glium = "0.20"
 imgui = { path = "../../imgui-rs" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
