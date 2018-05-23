@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate imgui;
 
 use imgui::Ui;
@@ -7,7 +8,11 @@ pub trait UiImage1d {
 }
 
 impl<'ui> UiImage1d for Ui<'ui> {
-    fn image1d(&self, _image: &[f32], _state: &mut State) -> Result<(), Error> {
+    fn image1d(&self, image: &[f32], _state: &mut State) -> Result<(), Error> {
+        self.plot_lines(im_str!("Plot"), image)
+            .graph_size([0.0, 400.0])
+            .build();
+        self.text(format!("{} data points", image.len()));
         Ok(())
     }
 }

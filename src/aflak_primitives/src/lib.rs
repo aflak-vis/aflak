@@ -194,7 +194,15 @@ fn run_make_plane3d(
 }
 
 fn run_extract_wave(image: &Vec<Vec<Vec<f32>>>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
-    Ok(IOValue::Image1d(vec![]))
+    let mut wave = Vec::with_capacity(image.len());
+    for frame in image.iter() {
+        let mut res = 0.0;
+        for (_, val) in roi.filter(&frame) {
+            res += val;
+        }
+        wave.push(res);
+    }
+    Ok(IOValue::Image1d(wave))
 }
 
 #[cfg(test)]
