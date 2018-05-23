@@ -128,7 +128,8 @@ where
 
     /// Panic if expected type is not provided or if too many arguments are supplied.
     fn check_type(&mut self, input: &T) {
-        let expected_type = *self.expected_input_types
+        let expected_type = *self
+            .expected_input_types
             .next()
             .expect("Not all type consumed");
         if input.variant_name() != expected_type {
@@ -149,7 +150,8 @@ where
             TransformationResult {
                 output: match self.algorithm {
                     &Algorithm::Function(f) => f(self.input).into_iter(),
-                    &Algorithm::Constant(ref c) => c.clone()
+                    &Algorithm::Constant(ref c) => c
+                        .clone()
                         .into_iter()
                         .map(Ok)
                         .collect::<Vec<_>>()

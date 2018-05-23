@@ -100,7 +100,8 @@ where
 {
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
-            transforms: dst.transforms_iter()
+            transforms: dst
+                .transforms_iter()
                 .map(|(t_idx, t)| (t_idx, SerialTransform::new(t)))
                 .collect(),
             edges: dst.edges_iter().collect(),
