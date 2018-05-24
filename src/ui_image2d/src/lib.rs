@@ -2,6 +2,7 @@ extern crate glium;
 #[macro_use]
 extern crate imgui;
 extern crate imgui_glium_renderer;
+extern crate ndarray;
 
 mod err;
 mod hist;
@@ -15,6 +16,7 @@ pub use state::State;
 
 use glium::backend::Facade;
 use imgui::{ImStr, Ui};
+use ndarray::Array2;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input. `name` is used as an ID to register the
@@ -25,14 +27,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// ```rust
     /// #[macro_use] extern crate imgui;
     /// extern crate imgui_glium_renderer;
+    /// extern crate ndarray;
     /// extern crate ui_image2d;
     ///
     /// use imgui::Ui;
     /// use imgui_glium_renderer::AppContext;
+    /// use ndarray::Array2;
     /// use ui_image2d::UiImage2d;
     ///
     /// fn run(ui: &Ui, ctx: &AppContext) -> Result<(), ui_image2d::Error> {
-    ///     let data = vec![vec![0.0; 10]; 10];
+    ///     let data = Array2::eye(10);
     ///     let mut state = ui_image2d::State::default();
     ///     ui.image2d(ctx, im_str!("Show my image!"), &data, &mut state)
     /// }
@@ -41,7 +45,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         &self,
         ctx: &F,
         name: &ImStr,
-        image: &Vec<Vec<f32>>,
+        image: &Array2<f32>,
         state: &mut State,
     ) -> Result<(), Error>
     where
@@ -76,7 +80,7 @@ pub trait UiImage2d {
         &self,
         ctx: &F,
         name: &ImStr,
-        image: &Vec<Vec<f32>>,
+        image: &Array2<f32>,
         state: &mut State,
     ) -> Result<(), Error>
     where

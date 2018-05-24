@@ -1,3 +1,5 @@
+use ndarray::Array2;
+
 #[derive(Copy, Clone, Debug)]
 pub struct Bin {
     pub start: f32,
@@ -5,7 +7,7 @@ pub struct Bin {
     pub count: usize,
 }
 
-pub fn histogram(data: &Vec<Vec<f32>>, min: f32, max: f32) -> Vec<Bin> {
+pub fn histogram(data: &Array2<f32>, min: f32, max: f32) -> Vec<Bin> {
     const HISTOGRAM_BIN_COUNT: usize = 100;
     let mut bins = Vec::with_capacity(HISTOGRAM_BIN_COUNT);
     let size = (max - min) / HISTOGRAM_BIN_COUNT as f32;
@@ -17,12 +19,10 @@ pub fn histogram(data: &Vec<Vec<f32>>, min: f32, max: f32) -> Vec<Bin> {
         });
     }
 
-    for row in data.iter() {
-        for val in row.iter() {
-            for bin in bins.iter_mut() {
-                if bin.start <= *val && *val <= bin.end {
-                    bin.count += 1;
-                }
+    for val in data.iter() {
+        for bin in bins.iter_mut() {
+            if bin.start <= *val && *val <= bin.end {
+                bin.count += 1;
             }
         }
     }

@@ -15,7 +15,7 @@ mod roi;
 
 use std::sync::Arc;
 
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub enum IOValue {
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
     Image1d(Array1<f32>),
-    Image2d(Vec<Vec<f32>>),
+    Image2d(Array2<f32>),
     Image3d(Vec<Vec<Vec<f32>>>),
     Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
     Roi(roi::ROI),
@@ -40,6 +40,7 @@ pub enum IOErr {
     NotFound(String),
     FITSErr(String),
     UnexpectedInput(String),
+    ShapeError(ndarray::ShapeError),
 }
 
 lazy_static! {
@@ -148,8 +149,10 @@ fn run_slice_3d_to_2d(
     map: &Vec<Vec<[f32; 3]>>,
 ) -> Result<IOValue, IOErr> {
     let mut out = Vec::with_capacity(map.len());
+    let mut width = 0;
+    let height = map.len();
     for row in map {
-        let mut out_rows = Vec::with_capacity(row.len());
+        width = row.len();
         for &[x, y, z] in row {
             // Interpolate to nearest
             let out_val = *input_img
@@ -162,11 +165,12 @@ fn run_slice_3d_to_2d(
                         x, y, z
                     ))
                 })?;
-            out_rows.push(out_val);
+            out.push(out_val);
         }
-        out.push(out_rows);
     }
-    Ok(IOValue::Image2d(out))
+    Array2::from_shape_vec((width, height), out)
+        .map(IOValue::Image2d)
+        .map_err(IOErr::ShapeError)
 }
 
 /// Make a 2D plane slicing the 3D space

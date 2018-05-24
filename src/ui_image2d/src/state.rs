@@ -1,6 +1,7 @@
 use glium::backend::Facade;
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
+use ndarray::Array2;
 
 use super::Error;
 use hist;
@@ -198,7 +199,7 @@ impl State {
         ui: &Ui,
         ctx: &F,
         name: &ImStr,
-        image: &Vec<Vec<f32>>,
+        image: &Array2<f32>,
     ) -> Result<[(f32, f32); 2], Error>
     where
         F: Facade,
@@ -276,7 +277,7 @@ impl State {
         Ok([p, size])
     }
 
-    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Vec<Vec<f32>>)
+    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Array2<f32>)
     where
         P: Into<ImVec2>,
         S: Into<ImVec2>,
