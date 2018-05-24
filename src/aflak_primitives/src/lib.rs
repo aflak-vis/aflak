@@ -62,6 +62,12 @@ lazy_static! {
             cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi) -> Image1d {
                 vec![run_extract_wave(image, roi)]
             }),
+            cake_transform!(linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float, coef2: Float) -> Image1d {
+                vec![run_linear_composition_1d(i1, i2, *coef1, *coef2)]
+            }),
+            cake_transform!(linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float, coef2: Float) -> Image2d {
+                vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
+            }),
         ]
     };
 }
@@ -187,6 +193,26 @@ fn run_extract_wave(image: &Array3<f32>, roi: &roi::ROI) -> Result<IOValue, IOEr
         wave.push(res);
     }
     Ok(IOValue::Image1d(Array1::from_vec(wave)))
+}
+
+fn run_linear_composition_1d(
+    i1: &Array1<f32>,
+    i2: &Array1<f32>,
+    coef1: f32,
+    coef2: f32,
+) -> Result<IOValue, IOErr> {
+    let out = i1 * coef1 + i2 * coef2;
+    Ok(IOValue::Image1d(out))
+}
+
+fn run_linear_composition_2d(
+    i1: &Array2<f32>,
+    i2: &Array2<f32>,
+    coef1: f32,
+    coef2: f32,
+) -> Result<IOValue, IOErr> {
+    let out = i1 * coef1 + i2 * coef2;
+    Ok(IOValue::Image2d(out))
 }
 
 #[cfg(test)]
