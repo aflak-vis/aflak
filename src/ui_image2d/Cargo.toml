@@ -7,3 +7,4 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 glium = "0.20"
 imgui = { path = "../../imgui-rs" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
+ndarray = "0.11"

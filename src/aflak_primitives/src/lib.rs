@@ -6,6 +6,8 @@ extern crate variant_name_derive;
 #[macro_use]
 extern crate aflak_cake as cake;
 extern crate fitrs;
+#[macro_use]
+extern crate ndarray;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -13,6 +15,8 @@ extern crate serde_derive;
 mod roi;
 
 use std::sync::Arc;
+
+use ndarray::{Array1, Array2, Array3};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -25,10 +29,10 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
-    Image1d(Vec<f32>),
-    Image2d(Vec<Vec<f32>>),
-    Image3d(Vec<Vec<Vec<f32>>>),
-    Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
+    Image1d(Array1<f32>),
+    Image2d(Array2<f32>),
+    Image3d(Array3<f32>),
+    Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
 
@@ -37,6 +41,7 @@ pub enum IOErr {
     NotFound(String),
     FITSErr(String),
     UnexpectedInput(String),
+    ShapeError(ndarray::ShapeError),
 }
 
 lazy_static! {
@@ -113,26 +118,10 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
             })?;
         let data = primary_hdu.read_data();
         match data {
-            &fitrs::FitsData::FloatingPoint32(ref image) => {
-                let (x_max, y_max, z_max) = (image.shape[0], image.shape[1], image.shape[2]);
-                let mut frames = Vec::with_capacity(z_max);
-                let mut iter = image.data.iter();
-                for _ in 0..z_max {
-                    let mut rows = Vec::with_capacity(y_max);
-                    for _ in 0..y_max {
-                        let mut values = Vec::with_capacity(x_max);
-                        for _ in 0..x_max {
-                            let val = iter.next().ok_or_else(|| {
-                                IOErr::FITSErr("Unexpected length of in FITS file".to_owned())
-                            })?;
-                            values.push(*val);
-                        }
-                        rows.push(values);
-                    }
-                    frames.push(rows);
-                }
-                frames
-            }
+            &fitrs::FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
+                (image.shape[2], image.shape[1], image.shape[0]),
+                image.data.clone(),
+            ).map_err(IOErr::ShapeError)?,
             _ => unimplemented!(),
         }
     };
@@ -140,30 +129,23 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(
-    input_img: &Vec<Vec<Vec<f32>>>,
-    map: &Vec<Vec<[f32; 3]>>,
-) -> Result<IOValue, IOErr> {
+fn run_slice_3d_to_2d(input_img: &Array3<f32>, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
     let mut out = Vec::with_capacity(map.len());
-    for row in map {
-        let mut out_rows = Vec::with_capacity(row.len());
-        for &[x, y, z] in row {
-            // Interpolate to nearest
-            let out_val = *input_img
-                .get(x as usize)
-                .and_then(|f| f.get(y as usize))
-                .and_then(|r| r.get(z as usize))
-                .ok_or_else(|| {
-                    IOErr::UnexpectedInput(format!(
-                        "Input maps to out of bound pixel!: [{}, {}, {}]",
-                        x, y, z
-                    ))
-                })?;
-            out_rows.push(out_val);
-        }
-        out.push(out_rows);
+    for &[x, y, z] in map {
+        // Interpolate to nearest
+        let out_val = *input_img
+            .get([x as usize, y as usize, z as usize])
+            .ok_or_else(|| {
+                IOErr::UnexpectedInput(format!(
+                    "Input maps to out of bound pixel!: [{}, {}, {}]",
+                    x, y, z
+                ))
+            })?;
+        out.push(out_val);
     }
-    Ok(IOValue::Image2d(out))
+    Array2::from_shape_vec(map.dim(), out)
+        .map(IOValue::Image2d)
+        .map_err(IOErr::ShapeError)
 }
 
 /// Make a 2D plane slicing the 3D space
@@ -176,33 +158,35 @@ fn run_make_plane3d(
     count2: i64,
 ) -> Result<IOValue, IOErr> {
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
-    let mut map = Vec::with_capacity(count1 as usize);
+    let count1 = count1 as usize;
+    let count2 = count2 as usize;
+    let mut map = Vec::with_capacity(count1 * count2);
     for i in 0..count1 {
         let i = i as f32;
-        let mut row = Vec::with_capacity(count2 as usize);
         for j in 0..count2 {
             let j = j as f32;
-            row.push([
+            map.push([
                 x0 + i * dx1 + j * dx2,
                 y0 + i * dy1 + j * dy2,
                 z0 + i * dz1 + j * dz2,
             ]);
         }
-        map.push(row);
     }
-    Ok(IOValue::Map2dTo3dCoords(map))
+    Array2::from_shape_vec((count1, count2), map)
+        .map(IOValue::Map2dTo3dCoords)
+        .map_err(IOErr::ShapeError)
 }
 
-fn run_extract_wave(image: &Vec<Vec<Vec<f32>>>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+fn run_extract_wave(image: &Array3<f32>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let mut wave = Vec::with_capacity(image.len());
-    for frame in image.iter() {
+    for i in 0..image.dim().0 {
         let mut res = 0.0;
-        for (_, val) in roi.filter(&frame) {
+        for (_, val) in roi.filter(image.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
     }
-    Ok(IOValue::Image1d(wave))
+    Ok(IOValue::Image1d(Array1::from_vec(wave)))
 }
 
 #[cfg(test)]
