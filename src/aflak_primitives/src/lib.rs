@@ -6,6 +6,7 @@ extern crate variant_name_derive;
 #[macro_use]
 extern crate aflak_cake as cake;
 extern crate fitrs;
+extern crate ndarray;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -13,6 +14,8 @@ extern crate serde_derive;
 mod roi;
 
 use std::sync::Arc;
+
+use ndarray::Array1;
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -25,7 +28,7 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
-    Image1d(Vec<f32>),
+    Image1d(Array1<f32>),
     Image2d(Vec<Vec<f32>>),
     Image3d(Vec<Vec<Vec<f32>>>),
     Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
@@ -202,7 +205,7 @@ fn run_extract_wave(image: &Vec<Vec<Vec<f32>>>, roi: &roi::ROI) -> Result<IOValu
         }
         wave.push(res);
     }
-    Ok(IOValue::Image1d(wave))
+    Ok(IOValue::Image1d(Array1::from_vec(wave)))
 }
 
 #[cfg(test)]

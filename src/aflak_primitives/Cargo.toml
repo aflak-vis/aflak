@@ -8,6 +8,7 @@ aflak_cake = { path = "../aflak_cake" }
 fitrs = "0.1"
 # fitrs = { path = "../../fitrs" }
 lazy_static = "1.0"
+ndarray = { version = "0.11", features = ["serde-1"] }
 serde = "1.0"
 serde_derive = "1.0"
 variant_name = { path = "../variant_name" }
