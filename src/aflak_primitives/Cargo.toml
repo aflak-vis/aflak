@@ -4,11 +4,11 @@ version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
-serde = "1.0"
-serde_derive = "1.0"
 aflak_cake = { path = "../aflak_cake" }
 fitrs = "0.1"
 # fitrs = { path = "../../fitrs" }
+lazy_static = "1.0"
+serde = "1.0"
+serde_derive = "1.0"
 variant_name = { path = "../variant_name" }
 variant_name_derive = { path = "../variant_name_derive" }
-lazy_static = "1.0"
