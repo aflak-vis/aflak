@@ -16,7 +16,6 @@ fn main() {
     };
     let mut app = AppContext::init("Example".to_owned(), config).unwrap();
     let gl_ctx = app.get_context().clone();
-    let mut t = 0.0;
     let mut state = ui_image2d::State::default();
     app.run(|ui| {
         let image_data = {
@@ -30,10 +29,6 @@ fn main() {
             }
             ndarray::Array2::from_shape_vec((WIDTH, HEIGHT), image_data).unwrap()
         };
-        t += 1.0;
-        if t > 255.0 {
-            t = 0.0;
-        }
         ui.window(im_str!("Gradient")).build(|| {
             ui.image2d(&gl_ctx, im_str!("Gradient"), &image_data, &mut state)
                 .expect("Image2d failed");
