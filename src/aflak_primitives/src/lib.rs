@@ -32,7 +32,7 @@ pub enum IOValue {
     Image1d(Array1<f32>),
     Image2d(Array2<f32>),
     Image3d(Array3<f32>),
-    Map2dTo3dCoords(Vec<Vec<[f32; 3]>>),
+    Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
 
@@ -129,26 +129,21 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(input_img: &Array3<f32>, map: &Vec<Vec<[f32; 3]>>) -> Result<IOValue, IOErr> {
+fn run_slice_3d_to_2d(input_img: &Array3<f32>, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
     let mut out = Vec::with_capacity(map.len());
-    let mut width = 0;
-    let height = map.len();
-    for row in map {
-        width = row.len();
-        for &[x, y, z] in row {
-            // Interpolate to nearest
-            let out_val = *input_img
-                .get([x as usize, y as usize, z as usize])
-                .ok_or_else(|| {
-                    IOErr::UnexpectedInput(format!(
-                        "Input maps to out of bound pixel!: [{}, {}, {}]",
-                        x, y, z
-                    ))
-                })?;
-            out.push(out_val);
-        }
+    for &[x, y, z] in map {
+        // Interpolate to nearest
+        let out_val = *input_img
+            .get([x as usize, y as usize, z as usize])
+            .ok_or_else(|| {
+                IOErr::UnexpectedInput(format!(
+                    "Input maps to out of bound pixel!: [{}, {}, {}]",
+                    x, y, z
+                ))
+            })?;
+        out.push(out_val);
     }
-    Array2::from_shape_vec((width, height), out)
+    Array2::from_shape_vec(map.dim(), out)
         .map(IOValue::Image2d)
         .map_err(IOErr::ShapeError)
 }
@@ -163,21 +158,23 @@ fn run_make_plane3d(
     count2: i64,
 ) -> Result<IOValue, IOErr> {
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
-    let mut map = Vec::with_capacity(count1 as usize);
+    let count1 = count1 as usize;
+    let count2 = count2 as usize;
+    let mut map = Vec::with_capacity(count1 * count2);
     for i in 0..count1 {
         let i = i as f32;
-        let mut row = Vec::with_capacity(count2 as usize);
         for j in 0..count2 {
             let j = j as f32;
-            row.push([
+            map.push([
                 x0 + i * dx1 + j * dx2,
                 y0 + i * dy1 + j * dy2,
                 z0 + i * dz1 + j * dz2,
             ]);
         }
-        map.push(row);
     }
-    Ok(IOValue::Map2dTo3dCoords(map))
+    Array2::from_shape_vec((count1, count2), map)
+        .map(IOValue::Map2dTo3dCoords)
+        .map_err(IOErr::ShapeError)
 }
 
 fn run_extract_wave(image: &Array3<f32>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
