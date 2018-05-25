@@ -1,3 +1,5 @@
+use std::collections::{btree_map, BTreeMap};
+
 use glium::backend::Facade;
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
@@ -19,6 +21,15 @@ pub struct State {
     pub hist_logscale: bool,
     lut_min_moving: bool,
     lut_max_moving: bool,
+    pub(crate) out_values: BTreeMap<u64, Value>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Value {
+    Integer(i64),
+    Float(f32),
+    Float2([f32; 2]),
+    Float3([f32; 3]),
 }
 
 impl Default for State {
@@ -32,11 +43,16 @@ impl Default for State {
             hist_logscale: true,
             lut_min_moving: false,
             lut_max_moving: false,
+            out_values: BTreeMap::new(),
         }
     }
 }
 
 impl State {
+    pub fn stored_values(&self) -> btree_map::Iter<u64, Value> {
+        self.out_values.iter()
+    }
+
     pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
     where
         P: Into<ImVec2>,

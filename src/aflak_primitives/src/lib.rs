@@ -36,6 +36,25 @@ pub enum IOValue {
     Roi(roi::ROI),
 }
 
+impl PartialEq for IOValue {
+    fn eq(&self, val: &Self) -> bool {
+        use IOValue::*;
+        match (self, val) {
+            (Integer(i1), Integer(i2)) => i1 == i2,
+            (Float(f1), Float(f2)) => f1 == f2,
+            (Float2(f1), Float2(f2)) => f1 == f2,
+            (Float3(f1), Float3(f2)) => f1 == f2,
+            (Str(s1), Str(s2)) => s1 == s2,
+            (Image1d(i1), Image1d(i2)) => i1 == i2,
+            (Image2d(i1), Image2d(i2)) => i1 == i2,
+            (Image3d(i1), Image3d(i2)) => i1 == i2,
+            (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
+            (Roi(r1), Roi(r2)) => r1 == r2,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum IOErr {
     NotFound(String),
