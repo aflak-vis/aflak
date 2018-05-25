@@ -167,10 +167,10 @@ fn run_make_plane3d(
     let count1 = count1 as usize;
     let count2 = count2 as usize;
     let mut map = Vec::with_capacity(count1 * count2);
-    for i in 0..count1 {
-        let i = i as f32;
-        for j in 0..count2 {
-            let j = j as f32;
+    for j in 0..count2 {
+        let j = j as f32;
+        for i in 0..count1 {
+            let i = i as f32;
             map.push([
                 x0 + i * dx1 + j * dx2,
                 y0 + i * dy1 + j * dy2,
