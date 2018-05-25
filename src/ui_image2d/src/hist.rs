@@ -20,11 +20,12 @@ pub fn histogram(data: &Array2<f32>, min: f32, max: f32) -> Vec<Bin> {
     }
 
     for val in data.iter() {
-        for bin in bins.iter_mut() {
-            if bin.start <= *val && *val <= bin.end {
-                bin.count += 1;
-            }
+        let i = (*val - min) / (max - min) * HISTOGRAM_BIN_COUNT as f32;
+        let mut i = i as usize;
+        if i >= HISTOGRAM_BIN_COUNT {
+            i = HISTOGRAM_BIN_COUNT - 1;
         }
+        bins[i].count += 1;
     }
     bins
 }
