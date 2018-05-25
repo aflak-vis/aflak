@@ -3,11 +3,14 @@ use imgui::ImStr;
 use std::iter;
 use std::slice;
 
-#[derive(Clone, Debug, PartialEq)]
+const LUT_SIZE: usize = 65536;
+
+#[derive(Clone)]
 pub struct ColorLUT {
     /// Linear gradient
     /// Takes a series of color stops that indicate how to interpolate between the colors
     gradient: Vec<(f32, [u8; 3])>,
+    lut: [[u8; 3]; LUT_SIZE],
     lims: (f32, f32),
 }
 
@@ -82,10 +85,13 @@ impl ColorLUT {
         for (c, color) in colors {
             vec.push((c.into(), color))
         }
-        ColorLUT {
+        let mut color_lut = ColorLUT {
             gradient: vec,
+            lut: [[0; 3]; LUT_SIZE],
             lims: (0.0, 1.0),
-        }
+        };
+        color_lut.lut_init();
+        color_lut
     }
 
     pub fn color_at_bounds(&self, mut point: f32, vmin: f32, vmax: f32) -> [u8; 3] {
@@ -98,6 +104,18 @@ impl ColorLUT {
     }
 
     pub fn color_at(&self, point: f32) -> [u8; 3] {
+        let mut i = (point - self.lims.0) / (self.lims.1 - self.lims.0) * (LUT_SIZE - 1) as f32;
+        if i < 0.0 {
+            i = 0.0
+        }
+        let mut i = i as usize;
+        if i >= LUT_SIZE {
+            i = LUT_SIZE - 1;
+        }
+        self.lut[i]
+    }
+
+    fn color_at_init(&self, point: f32) -> [u8; 3] {
         for ((v1, c1), (v2, c2)) in self.bounds() {
             let dv = v2 - v1;
             if v1 <= point && point <= v2 {
@@ -123,6 +141,12 @@ impl ColorLUT {
             }
         }
         [0, 0, 0]
+    }
+
+    fn lut_init(&mut self) {
+        for i in 0..LUT_SIZE {
+            self.lut[i] = self.color_at_init(i as f32 / (LUT_SIZE - 1) as f32);
+        }
     }
 
     pub fn bounds(&self) -> iter::Zip<StopIter, iter::Skip<StopIter>> {
@@ -161,10 +185,11 @@ impl ColorLUT {
 
     pub fn set_gradient<G: Into<Vec<(f32, [u8; 3])>>>(&mut self, gradient: G) {
         self.gradient = gradient.into();
+        self.lut_init();
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct StopIter<'a> {
     lut: &'a ColorLUT,
     i: isize,
@@ -220,7 +245,7 @@ mod test {
         ]);
         assert_eq!(lut.color_at(0.0), [0, 0, 255]);
         assert_eq!(lut.color_at(1.0), [255, 0, 0]);
-        assert_eq!(lut.color_at(0.5), [255, 255, 255]);
+        assert_eq!(lut.color_at(0.5), [254, 254, 255]);
         assert_eq!(lut.color_at(0.25), [127, 127, 255]);
     }
 
