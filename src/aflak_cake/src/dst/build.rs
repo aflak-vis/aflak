@@ -129,6 +129,41 @@ where
         idx
     }
 
+    /// Remove [`Transformation`] from [`DST`] graph.
+    pub fn remove_transform(&mut self, t_idx: &TransformIdx) -> Option<Bow<Transformation<T, E>>> {
+        // Remove all connections attached to this transform's outputs
+        if let Some(outputs) = self.outputs_of_transformation(t_idx) {
+            for output in outputs {
+                if let Some(inputs) = self
+                    .inputs_attached_to(&output)
+                    .map(|inputs| inputs.map(|i| *i).collect::<Vec<_>>())
+                {
+                    for input in inputs {
+                        self.disconnect(&output, &input);
+                    }
+                    for (_, some_output) in self.outputs.iter_mut() {
+                        if some_output == &Some(output) {
+                            *some_output = None;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Remove all connections attached to this transform's inputs
+        if let Some(some_outputs) = self.outputs_attached_to_transform(t_idx) {
+            for (i, some_output) in some_outputs.into_iter().enumerate() {
+                if let Some(output) = some_output {
+                    let input = Input::new(*t_idx, i);
+                    self.disconnect(&output, &input);
+                }
+            }
+        }
+
+        // Remove transform
+        self.transforms.remove(t_idx)
+    }
+
     /// Connect an output to an input.
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
@@ -172,6 +207,15 @@ where
             }
             self.purge_cache(output);
             Ok(())
+        }
+    }
+
+    /// Disconnect an output from an input
+    pub fn disconnect(&mut self, output: &Output, input: &Input) {
+        if self.edges.contains_key(output) {
+            self.purge_cache(*output);
+            let input_list = self.edges.get_mut(output).unwrap();
+            input_list.inputs.retain(|input_| input_ != input);
         }
     }
 
