@@ -34,14 +34,14 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 }
 
 /// Uniquely identify an ouput of a transformation node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Output {
     pub t_idx: TransformIdx,
     output_i: OutputIdx,
 }
 
 /// Uniquely identify an input of a node
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Input {
     pub t_idx: TransformIdx,
     input_i: InputIdx,
@@ -100,9 +100,9 @@ impl InputList {
 /// Identify a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TransformIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct OutputIdx(usize);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct InputIdx(usize);
 /// Identify an output node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -153,7 +153,7 @@ impl OutputId {
 
 /// Identify an input slot, i.e., the input of a transform or the input of a
 /// final output node.
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum InputSlot<'a> {
     Transform(&'a Input),
     Output(&'a OutputId),
