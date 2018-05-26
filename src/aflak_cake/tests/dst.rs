@@ -104,3 +104,51 @@ fn test_cache_reset() {
     dst.connect(Output::new(b, 0), Input::new(c, 0)).unwrap();
     assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(2));
 }
+
+#[test]
+fn test_remove_node() {
+    let [plus1, minus1, get1, _image] = get_all_transforms();
+
+    // a, get1 -------------------> c, plus1 -> d, plus1 -> OUT1
+    // \-> b, minus1 -> OUT2        \-> e, plus1
+
+    let mut dst = DST::new();
+    let a = dst.add_transform(&get1);
+    let b = dst.add_transform(&minus1);
+    let c = dst.add_transform(&plus1);
+    let d = dst.add_transform(&plus1);
+    let e = dst.add_transform(&plus1);
+
+    let d_out0 = Output::new(d, 0);
+    let b_out0 = Output::new(b, 0);
+
+    let out1 = dst.attach_output(d_out0).unwrap();
+    let out2 = dst.attach_output(b_out0).unwrap();
+
+    let a_out0 = Output::new(a, 0);
+    let b_in0 = Input::new(b, 0);
+
+    dst.connect(a_out0, Input::new(c, 0)).unwrap();
+    dst.connect(a_out0, b_in0).unwrap();
+    dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
+    dst.connect(Output::new(c, 0), Input::new(d, 0)).unwrap();
+
+    // We will remove "c"
+    // After removal, the graph will be come as below
+    //
+    // a, get1                         d, plus1 -> OUT1
+    // \-> b, minus1 -> OUT2           e, plus1
+
+    dst.remove_transform(&c);
+    let mut links: Vec<_> = dst.links_iter().collect();
+    links.sort();
+    assert_eq!(links, {
+        let mut vec = vec![
+            (&a_out0, aflak_cake::InputSlot::Transform(&b_in0)),
+            (&d_out0, aflak_cake::InputSlot::Output(&out1)),
+            (&b_out0, aflak_cake::InputSlot::Output(&out2)),
+        ];
+        vec.sort();
+        vec
+    });
+}
