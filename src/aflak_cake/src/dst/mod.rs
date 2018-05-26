@@ -153,7 +153,7 @@ impl OutputId {
 
 /// Identify an input slot, i.e., the input of a transform or the input of a
 /// final output node.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum InputSlot<'a> {
     Transform(&'a Input),
     Output(&'a OutputId),
