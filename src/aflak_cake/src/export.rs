@@ -126,9 +126,7 @@ where
         let mut dst = DST::new();
         for (t_idx, t) in self.transforms {
             let t = t.into()?;
-            unsafe {
-                dst.add_transform_with_idx(t_idx, t);
-            }
+            dst.add_transform_with_idx(t_idx, t);
         }
         for (output, input) in self.edges {
             dst.connect(output, input).map_err(|err| {
@@ -139,7 +137,7 @@ where
             })?;
         }
         for (output_id, some_output) in self.outputs {
-            unsafe { dst.create_output_with_id(output_id) };
+            dst.create_output_with_id(output_id);
             if let Some(output) = some_output {
                 dst.update_output(output_id, output);
             }

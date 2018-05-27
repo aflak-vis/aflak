@@ -83,7 +83,7 @@ fn main() {
         for output in outputs {
             let window_name = ImString::new(format!("{:?}", output));
             ui.window(&window_name).build(|| {
-                let compute_state = node_editor.compute_output(&output);
+                let compute_state = unsafe { node_editor.compute_output(&output) };
                 let compute_state = &*compute_state.lock().unwrap();
                 match compute_state {
                     &ComputationState::NothingDone => {

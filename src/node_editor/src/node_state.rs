@@ -64,7 +64,9 @@ impl NodeStates {
         self.0.iter()
     }
 
-    pub(crate) unsafe fn insert(&mut self, id: cake::NodeId, state: NodeState) {
+    /// Insert/Replace state for specific [`cake::NodeId`].
+    /// Only used to reconstruct [`NodeStates`] during import.
+    pub fn insert(&mut self, id: cake::NodeId, state: NodeState) {
         self.0.insert(id, state);
     }
 
