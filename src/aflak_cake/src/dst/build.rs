@@ -50,14 +50,18 @@ where
     /// TransformIdx.
     /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
     /// provided in the graph, Some(Output) otherwise.
-    pub(crate) fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
-        let t = self
-            .get_transform(idx)
-            .expect(&format!("Transform not found {:?}", idx));
-        let len = t.input.len();
-        (0..len)
-            .map(|i| self.output_attached_to(&Input::new(*idx, i)))
-            .collect()
+    ///
+    /// Return [`None`] if [`TransformIdx`] does not exist.
+    pub(crate) fn outputs_attached_to_transform(
+        &self,
+        idx: &TransformIdx,
+    ) -> Option<Vec<Option<Output>>> {
+        self.get_transform(idx).map(|t| {
+            let len = t.input.len();
+            (0..len)
+                .map(|i| self.output_attached_to(&Input::new(*idx, i)))
+                .collect()
+        })
     }
 
     fn output_attached_to(&self, input: &Input) -> Option<Output> {

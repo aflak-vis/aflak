@@ -99,22 +99,28 @@ where
     /// If value has no parents, pop the stack and return it.
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_output) = self.stack.pop() {
-            let mut parent_outputs = self.dst.get_transform_dependencies(&current_output.t_idx);
-            let dep = Dependency {
-                t_idx: current_output.t_idx,
-            };
-            if parent_outputs.is_empty() {
-                Some(dep)
+            if let Some(mut parent_outputs) = self
+                .dst
+                .outputs_attached_to_transform(&current_output.t_idx)
+            {
+                let dep = Dependency {
+                    t_idx: current_output.t_idx,
+                };
+                if parent_outputs.is_empty() {
+                    Some(dep)
+                } else {
+                    parent_outputs.retain(Option::is_some);
+                    self.stack.extend(
+                        parent_outputs
+                            .into_iter()
+                            .map(Option::unwrap)
+                            .collect::<Vec<_>>(),
+                    );
+                    self.completed_stack.push(dep);
+                    self.next()
+                }
             } else {
-                parent_outputs.retain(Option::is_some);
-                self.stack.extend(
-                    parent_outputs
-                        .into_iter()
-                        .map(Option::unwrap)
-                        .collect::<Vec<_>>(),
-                );
-                self.completed_stack.push(dep);
-                self.next()
+                self.completed_stack.pop()
             }
         } else {
             self.completed_stack.pop()

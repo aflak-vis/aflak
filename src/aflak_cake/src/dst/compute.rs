@@ -22,7 +22,11 @@ where
                 return Ok(cache.clone());
             }
         }
-        let deps = self.get_transform_dependencies(&output.t_idx);
+        let deps = self
+            .outputs_attached_to_transform(&output.t_idx)
+            .ok_or_else(|| {
+                DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
+            })?;
         let mut op = t.start();
         let mut results = Vec::with_capacity(deps.len());
         for _ in 0..(deps.len()) {
