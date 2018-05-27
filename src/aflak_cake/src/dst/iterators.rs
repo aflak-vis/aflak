@@ -5,7 +5,7 @@ use std::slice;
 use boow::Bow;
 
 use dst::node::{Node, NodeId};
-use dst::{DSTError, Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
+use dst::{Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
@@ -50,26 +50,6 @@ where
             completed_stack: vec![],
         }
     }
-
-    /// Get dependency list for specific output id.
-    ///
-    /// Target for deprecation.
-    pub fn dependencies(
-        &'t self,
-        output_id: &OutputId,
-    ) -> Result<DependencyIter<'t, T, E>, DSTError<E>> {
-        self.outputs
-            .get(output_id)
-            .ok_or_else(|| {
-                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
-            })
-            .and_then(|output| {
-                output.ok_or_else(|| {
-                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
-                })
-            })
-            .map(|output| self._dependencies(output))
-    }
 }
 
 /// Make a post-order tree traversal to look for deepest dependencies first.
@@ -99,22 +79,28 @@ where
     /// If value has no parents, pop the stack and return it.
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_output) = self.stack.pop() {
-            let mut parent_outputs = self.dst.get_transform_dependencies(&current_output.t_idx);
-            let dep = Dependency {
-                t_idx: current_output.t_idx,
-            };
-            if parent_outputs.is_empty() {
-                Some(dep)
+            if let Some(mut parent_outputs) = self
+                .dst
+                .outputs_attached_to_transform(&current_output.t_idx)
+            {
+                let dep = Dependency {
+                    t_idx: current_output.t_idx,
+                };
+                if parent_outputs.is_empty() {
+                    Some(dep)
+                } else {
+                    parent_outputs.retain(Option::is_some);
+                    self.stack.extend(
+                        parent_outputs
+                            .into_iter()
+                            .map(Option::unwrap)
+                            .collect::<Vec<_>>(),
+                    );
+                    self.completed_stack.push(dep);
+                    self.next()
+                }
             } else {
-                parent_outputs.retain(Option::is_some);
-                self.stack.extend(
-                    parent_outputs
-                        .into_iter()
-                        .map(Option::unwrap)
-                        .collect::<Vec<_>>(),
-                );
-                self.completed_stack.push(dep);
-                self.next()
+                self.completed_stack.pop()
             }
         } else {
             self.completed_stack.pop()

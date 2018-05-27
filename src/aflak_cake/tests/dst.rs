@@ -56,17 +56,6 @@ fn test_make_dst_and_iterate_dependencies() {
     assert_eq!("TransformIdx(5)", format!("{:?}", e));
     assert_eq!("OutputId(1)", format!("{:?}", out1));
 
-    let mut deps = dst.dependencies(&out1).unwrap();
-    assert_eq!(deps.next().unwrap().transform_idx(), a);
-    assert_eq!(deps.next().unwrap().transform_idx(), c);
-    assert_eq!(deps.next().unwrap().transform_idx(), d);
-    assert_eq!(deps.next().as_ref().map(Dependency::transform_idx), None);
-
-    let mut deps = dst.dependencies(&out2).unwrap();
-    assert_eq!(deps.next().unwrap().transform_idx(), a);
-    assert_eq!(deps.next().unwrap().transform_idx(), b);
-    assert_eq!(deps.next().as_ref().map(Dependency::transform_idx), None);
-
     assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
 }

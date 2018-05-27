@@ -50,17 +50,21 @@ where
     /// TransformIdx.
     /// The dependencies are ordered by InputIdx. Contains None if argument is currently not
     /// provided in the graph, Some(Output) otherwise.
-    pub(crate) fn get_transform_dependencies(&self, idx: &TransformIdx) -> Vec<Option<Output>> {
-        let t = self
-            .get_transform(idx)
-            .expect(&format!("Transform not found {:?}", idx));
-        let len = t.input.len();
-        (0..len)
-            .map(|i| self.find_output_attached_to(&Input::new(*idx, i)))
-            .collect()
+    ///
+    /// Return [`None`] if [`TransformIdx`] does not exist.
+    pub(crate) fn outputs_attached_to_transform(
+        &self,
+        idx: &TransformIdx,
+    ) -> Option<Vec<Option<Output>>> {
+        self.get_transform(idx).map(|t| {
+            let len = t.input.len();
+            (0..len)
+                .map(|i| self.output_attached_to(&Input::new(*idx, i)))
+                .collect()
+        })
     }
 
-    fn find_output_attached_to(&self, input: &Input) -> Option<Output> {
+    fn output_attached_to(&self, input: &Input) -> Option<Output> {
         for (output, inputs) in self.edges.iter() {
             if inputs.contains(input) {
                 return Some(*output);
@@ -75,6 +79,9 @@ where
             .map(|input_list| input_list.inputs.iter())
     }
 
+    /// Get [`Output`]s of given transformation that are currently in use.
+    ///
+    /// Return [`None`] if transformation does not exist.
     pub(crate) fn outputs_of_transformation(&self, t_idx: &TransformIdx) -> Option<Vec<Output>> {
         self.get_transform(&t_idx).map(|t| {
             let mut outputs = Vec::with_capacity(t.output.len());
@@ -206,8 +213,20 @@ where
         self.cache.insert(output, RwLock::new(None));
     }
 
-    /// Detach output with given ID. Does nothing if output does not exist.
+    /// Detach output with given ID. Does nothing if output does not exist or
+    /// is already detached.
     pub fn detach_output<O>(&mut self, output_id: &O)
+    where
+        OutputId: Borrow<O>,
+        O: Hash + Eq,
+    {
+        if let Some(output) = self.outputs.get_mut(output_id) {
+            *output = None;
+        }
+    }
+
+    /// Remove output with given ID. Does nothing if output does not exist.
+    pub fn remove_output<O>(&mut self, output_id: &O)
     where
         OutputId: Borrow<O>,
         O: Hash + Eq,
