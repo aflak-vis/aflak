@@ -56,11 +56,11 @@ where
             .expect(&format!("Transform not found {:?}", idx));
         let len = t.input.len();
         (0..len)
-            .map(|i| self.find_output_attached_to(&Input::new(*idx, i)))
+            .map(|i| self.output_attached_to(&Input::new(*idx, i)))
             .collect()
     }
 
-    fn find_output_attached_to(&self, input: &Input) -> Option<Output> {
+    fn output_attached_to(&self, input: &Input) -> Option<Output> {
         for (output, inputs) in self.edges.iter() {
             if inputs.contains(input) {
                 return Some(*output);
