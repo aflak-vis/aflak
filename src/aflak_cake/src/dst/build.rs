@@ -75,6 +75,9 @@ where
             .map(|input_list| input_list.inputs.iter())
     }
 
+    /// Get [`Output`]s of given transformation that are currently in use.
+    ///
+    /// Return [`None`] if transformation does not exist.
     pub(crate) fn outputs_of_transformation(&self, t_idx: &TransformIdx) -> Option<Vec<Output>> {
         self.get_transform(&t_idx).map(|t| {
             let mut outputs = Vec::with_capacity(t.output.len());
