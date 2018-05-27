@@ -114,7 +114,7 @@ where
     /// You need to manage your resource yourself so take care.
     /// Use [`DST::add_transform`] to have aflak manages resources for you
     /// (that's probably what your want).
-    pub(crate) unsafe fn add_transform_with_idx(
+    pub(crate) fn add_transform_with_idx(
         &mut self,
         idx: TransformIdx,
         t: Bow<'t, Transformation<T, E>>,
@@ -203,7 +203,7 @@ where
     /// You need to manage your resource yourself so take care.
     /// Use [`DST::create_output`] to have aflak manages resources for you
     /// (that's probably what your want).
-    pub(crate) unsafe fn create_output_with_id(&mut self, output_id: OutputId) {
+    pub(crate) fn create_output_with_id(&mut self, output_id: OutputId) {
         self.outputs.insert(output_id, None);
     }
 

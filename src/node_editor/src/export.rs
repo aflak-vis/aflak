@@ -90,9 +90,7 @@ where
         self.node_states = {
             let mut node_states = NodeStates::new();
             for (node_id, state) in import.node_states {
-                unsafe {
-                    node_states.insert(node_id, state);
-                }
+                node_states.insert(node_id, state);
             }
             node_states
         };
