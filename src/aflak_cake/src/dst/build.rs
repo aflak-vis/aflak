@@ -278,6 +278,18 @@ where
         self.outputs.remove(output_id);
     }
 
+    /// Remove node with given ID.
+    pub fn remove_node(&mut self, node_id: &NodeId) {
+        match node_id {
+            NodeId::Output(output_id) => {
+                self.remove_output(output_id);
+            }
+            NodeId::Transform(t_idx) => {
+                self.remove_transform(t_idx);
+            }
+        }
+    }
+
     /// Check that input exists in the current graph
     fn input_exists(&self, input: &Input) -> bool {
         match self.transforms.get(&input.t_idx) {
