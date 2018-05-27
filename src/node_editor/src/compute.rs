@@ -88,3 +88,14 @@ where
         result_lock.clone()
     }
 }
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone,
+{
+    pub fn is_compute_running(&self) -> bool {
+        self.output_results
+            .values()
+            .any(|result| result.lock().unwrap().is_running())
+    }
+}
