@@ -209,8 +209,20 @@ where
         self.cache.insert(output, RwLock::new(None));
     }
 
-    /// Detach output with given ID. Does nothing if output does not exist.
+    /// Detach output with given ID. Does nothing if output does not exist or
+    /// is already detached.
     pub fn detach_output<O>(&mut self, output_id: &O)
+    where
+        OutputId: Borrow<O>,
+        O: Hash + Eq,
+    {
+        if let Some(output) = self.outputs.get_mut(output_id) {
+            *output = None;
+        }
+    }
+
+    /// Remove output with given ID. Does nothing if output does not exist.
+    pub fn remove_output<O>(&mut self, output_id: &O)
     where
         OutputId: Borrow<O>,
         O: Hash + Eq,
