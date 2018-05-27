@@ -232,9 +232,7 @@ where
                             &mut self.show_connection_names,
                         );
                         ui.same_line_spacing(0.0, 15.0);
-                        ui.text(im_str!(
-                            "Use CTRL+MW to zoom. Scroll with Ctrl+Mouse Left Button."
-                        ));
+                        ui.text(im_str!("Scroll with Ctrl+Left Mouse Button."));
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file("editor_graph_export.ron") {
@@ -251,7 +249,7 @@ where
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
                         ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
-                        ui.text(im_str!("Double-click LMB on slots to remove their links (or SHIFT+LMB on links)."));
+                        ui.text(im_str!("Double-click LMB on slots to remove their links."));
                     });
                 }
                 const GRAPH_STYLE_VAR: [StyleVar; 2] = [
