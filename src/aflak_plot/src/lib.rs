@@ -7,5 +7,8 @@ extern crate ndarray;
 pub mod imshow;
 pub mod plot;
 
+mod err;
 mod ticks;
 mod util;
+
+pub use err::Error;
