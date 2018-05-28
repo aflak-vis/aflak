@@ -260,6 +260,17 @@ impl State {
                     const LINE_COLOR: u32 = 0xFFFFFFFF;
                     let x = p.0;
                     let y = p.1 + size.1 - height / tex_size.1 as f32 * size.1;
+
+                    const CLICKABLE_WIDTH: f32 = 5.0;
+
+                    if x <= abs_mouse_pos.0
+                        && abs_mouse_pos.0 <= x + size.1
+                        && y - CLICKABLE_WIDTH <= abs_mouse_pos.1
+                        && abs_mouse_pos.1 <= y + CLICKABLE_WIDTH
+                    {
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
+                    }
+
                     draw_list
                         .add_line([x, y], [x + size.0, y], LINE_COLOR)
                         .build();
