@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul, Sub};
+
 pub fn clamp<T>(v: T, min: T, max: T) -> T
 where
     T: PartialOrd,
@@ -9,6 +11,14 @@ where
     } else {
         v
     }
+}
+
+pub fn lerp<V, T>(a: V, b: V, t: T) -> <V as Add>::Output
+where
+    V: Copy + Add + Sub<Output = V> + Mul<Output = V>,
+    T: Into<V>,
+{
+    a + (b - a) * t.into()
 }
 
 pub fn to_u32_color(c: &[u8; 3]) -> u32 {

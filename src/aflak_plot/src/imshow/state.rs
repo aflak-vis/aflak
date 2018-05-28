@@ -182,7 +182,7 @@ impl State {
         const TICK_COUNT: usize = 10;
         const TICK_STEP: f32 = 1.0 / TICK_COUNT as f32;
         while i >= -0.01 {
-            let tick_y_pos = pos.y + size.y - i * size.y;
+            let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
             let y_pos = tick_y_pos - text_height / 2.5;
             let val = self.vmin + (self.vmax - self.vmin) * i;
             draw_list.add_text(
@@ -225,22 +225,8 @@ impl State {
             const MIN_WIDTH: f32 = 100.0;
             const MIN_HEIGHT: f32 = 100.0;
             let available_size = (
-                {
-                    let width = max_size.0 - IMAGE_LEFT_PADDING;
-                    if width < MIN_WIDTH {
-                        MIN_WIDTH
-                    } else {
-                        width
-                    }
-                },
-                {
-                    let height = max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING;
-                    if height < MIN_HEIGHT {
-                        MIN_HEIGHT
-                    } else {
-                        height
-                    }
-                },
+                MIN_WIDTH.max(max_size.0 - IMAGE_LEFT_PADDING),
+                MIN_HEIGHT.max(max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING),
             );
             let original_size = (tex_size.0 as f32, tex_size.1 as f32);
             let zoom = (available_size.0 / original_size.0).min(available_size.1 / original_size.1);
@@ -310,13 +296,7 @@ impl State {
                         }
                     }
                     if *moving {
-                        *height = if self.mouse_pos.1 < 0.0 {
-                            0.0
-                        } else if self.mouse_pos.1 > tex_size.1 as f32 {
-                            tex_size.1 as f32
-                        } else {
-                            self.mouse_pos.1
-                        };
+                        *height = util::clamp(self.mouse_pos.1, 0.0, tex_size.1 as f32);
                     }
                     if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                         *moving = false;
