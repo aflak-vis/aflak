@@ -207,6 +207,7 @@ impl State {
         ctx: &F,
         name: &ImStr,
         image: &Array2<f32>,
+        max_size: (f32, f32),
     ) -> Result<[(f32, f32); 2], Error>
     where
         F: Facade,
@@ -218,7 +219,33 @@ impl State {
         let raw = image::make_raw_image(image, self)?;
         let texture = ui.replace_texture(name, Texture::from_data(ctx, raw)?);
         let tex_size = texture.get_size();
-        let size = image::get_size(tex_size);
+        let size = {
+            const BOTTOM_PADDING: f32 = 60.0;
+            const MIN_WIDTH: f32 = 100.0;
+            const MIN_HEIGHT: f32 = 100.0;
+            let available_size = (
+                {
+                    let width = max_size.0 - IMAGE_LEFT_PADDING;
+                    if width < MIN_WIDTH {
+                        MIN_WIDTH
+                    } else {
+                        width
+                    }
+                },
+                {
+                    let height = max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING;
+                    if height < MIN_HEIGHT {
+                        MIN_HEIGHT
+                    } else {
+                        height
+                    }
+                },
+            );
+            let original_size = (tex_size.0 as f32, tex_size.1 as f32);
+            let zoom = (available_size.0 / original_size.0).min(available_size.1 / original_size.1);
+            (original_size.0 * zoom, original_size.1 * zoom)
+        };
+
         let p = ui.get_cursor_screen_pos();
         ui.set_cursor_screen_pos([p.0 + IMAGE_LEFT_PADDING, p.1 + IMAGE_TOP_PADDING]);
         let p = ui.get_cursor_screen_pos();

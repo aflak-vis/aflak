@@ -5,11 +5,6 @@ use ndarray::Array2;
 
 use super::{Error, State};
 
-pub fn get_size(original_size: (u32, u32)) -> (f32, f32) {
-    const ZOOM: f32 = 10.0;
-    (original_size.0 as f32 * ZOOM, original_size.1 as f32 * ZOOM)
-}
-
 pub fn make_raw_image<'a>(image: &Array2<f32>, state: &State) -> Result<RawImage2d<'a, u8>, Error> {
     let size = image.dim();
     let mut data = Vec::with_capacity(4 * size.0 * size.1);

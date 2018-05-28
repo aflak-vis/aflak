@@ -56,10 +56,18 @@ impl<'ui> UiImage2d for Ui<'ui> {
         state.vmin = lims::get_vmin(image)?;
         state.vmax = lims::get_vmax(image)?;
 
-        let [p, size] = state.show_image(self, ctx, name, image)?;
-
+        let window_size = self.get_window_size();
         const HIST_WIDTH: f32 = 40.0;
         const BAR_WIDTH: f32 = 20.0;
+
+        const LEFT_PADDING: f32 = 100.0;
+        let image_max_size = (
+            // Add left padding so that left legend fits
+            window_size.0 - HIST_WIDTH - BAR_WIDTH - LEFT_PADDING,
+            window_size.1,
+        );
+        let [p, size] = state.show_image(self, ctx, name, image, image_max_size)?;
+
         state.show_hist(
             self,
             [p.0 + size.0 as f32, p.1],
