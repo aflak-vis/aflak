@@ -1,10 +1,14 @@
 use std::cmp::Ordering;
 
-use ndarray::Array2;
+use ndarray::{self, ArrayBase};
 
 use super::Error;
 
-pub fn get_vmin(image: &Array2<f32>) -> Result<f32, Error> {
+pub fn get_vmin<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
+where
+    S: ndarray::Data<Elem = f32>,
+    D: ndarray::Dimension,
+{
     let min = image
         .iter()
         .min_by(|&f1, &f2| float_compare_nan_max(f1, f2));
@@ -15,7 +19,11 @@ pub fn get_vmin(image: &Array2<f32>) -> Result<f32, Error> {
     }
 }
 
-pub fn get_vmax(image: &Array2<f32>) -> Result<f32, Error> {
+pub fn get_vmax<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
+where
+    S: ndarray::Data<Elem = f32>,
+    D: ndarray::Dimension,
+{
     let max = image
         .iter()
         .max_by(|&f1, &f2| float_compare_nan_min(f1, f2));

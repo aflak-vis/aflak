@@ -1,7 +1,6 @@
 mod hist;
 mod image;
 mod interactions;
-mod lims;
 mod lut;
 mod state;
 
@@ -13,6 +12,7 @@ use imgui::{ImStr, Ui};
 use ndarray::Array2;
 
 use err::Error;
+use lims;
 use ticks;
 use util;
 

@@ -8,6 +8,7 @@ pub mod imshow;
 pub mod plot;
 
 mod err;
+mod lims;
 mod ticks;
 mod util;
 
