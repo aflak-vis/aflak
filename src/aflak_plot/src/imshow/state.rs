@@ -3,11 +3,11 @@ use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
 use ndarray::Array2;
 
+use super::hist;
+use super::image;
+use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
+use super::lut::{self, BuiltinLUT, ColorLUT};
 use super::Error;
-use hist;
-use image;
-use interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
-use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
 pub struct State {
