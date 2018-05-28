@@ -56,10 +56,10 @@ impl<'ui> UiImage2d for Ui<'ui> {
         const HIST_WIDTH: f32 = 40.0;
         const BAR_WIDTH: f32 = 20.0;
 
-        const LEFT_PADDING: f32 = 100.0;
+        const RIGHT_PADDING: f32 = 100.0;
         let image_max_size = (
-            // Add left padding so that left legend fits
-            window_size.0 - HIST_WIDTH - BAR_WIDTH - LEFT_PADDING,
+            // Add right padding so that ticks and labels on the right fits
+            window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size.1,
         );
         let [p, size] = state.show_image(self, ctx, name, image, image_max_size)?;
