@@ -13,6 +13,7 @@ pub use self::state::State;
 use glium::backend::Facade;
 use imgui::{ImStr, Ui};
 use ndarray::Array2;
+use ticks;
 use util;
 
 impl<'ui> UiImage2d for Ui<'ui> {

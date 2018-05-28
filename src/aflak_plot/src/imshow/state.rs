@@ -1,5 +1,5 @@
 use glium::backend::Facade;
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
 use ndarray::Array2;
 
@@ -7,6 +7,7 @@ use super::hist;
 use super::image;
 use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
 use super::lut::{BuiltinLUT, ColorLUT};
+use super::ticks;
 use super::util;
 use super::Error;
 
@@ -320,46 +321,14 @@ impl State {
             self.interactions.remove(&line_id);
         }
 
-        // Add ticks
-        const COLOR: u32 = 0xFFFFFFFF;
-        const TICK_COUNT: u32 = 10;
-        const TICK_SIZE: f32 = 3.0;
-        const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
-
-        // X-axis
-        let x_step = size.0 / TICK_COUNT as f32;
-        let mut x_pos = p.0;
-        let y_pos = p.1 + size.1;
-        for i in 0..=TICK_COUNT {
-            draw_list
-                .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
-                .build();
-            let label = ImString::new(format!("{:.0}", i * tex_size.0 / TICK_COUNT));
-            let text_size = ui.calc_text_size(&label, false, -1.0);
-            draw_list.add_text([x_pos - text_size.x / 2.0, y_pos], COLOR, label.to_str());
-            x_pos += x_step;
-        }
-
-        // Y-axis
-        let y_step = size.1 / TICK_COUNT as f32;
-        let mut y_pos = p.1 + size.1;
-        let x_pos = p.0;
-        for i in 0..=TICK_COUNT {
-            draw_list
-                .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
-                .build();
-            let label = ImString::new(format!("{:.0}", i * tex_size.1 / TICK_COUNT));
-            let text_size = ui.calc_text_size(&label, false, -1.0);
-            draw_list.add_text(
-                [
-                    x_pos - text_size.x - LABEL_HORIZONTAL_PADDING,
-                    y_pos - text_size.y / 2.0,
-                ],
-                COLOR,
-                label.to_str(),
-            );
-            y_pos -= y_step;
-        }
+        ticks::add_ticks(
+            ui,
+            &draw_list,
+            p,
+            size,
+            (0.0, tex_size.0 as f32),
+            (0.0, tex_size.1 as f32),
+        );
 
         Ok([p, size])
     }
