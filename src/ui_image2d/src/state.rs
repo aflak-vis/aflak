@@ -1,5 +1,3 @@
-use std::collections::{btree_map, BTreeMap};
-
 use glium::backend::Facade;
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
@@ -8,6 +6,7 @@ use ndarray::Array2;
 use super::Error;
 use hist;
 use image;
+use interactions::{Interactions, ValueIter};
 use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
@@ -21,15 +20,7 @@ pub struct State {
     pub hist_logscale: bool,
     lut_min_moving: bool,
     lut_max_moving: bool,
-    pub(crate) out_values: BTreeMap<ValueId, Value>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Value {
-    Integer(i64),
-    Float(f32),
-    Float2([f32; 2]),
-    Float3([f32; 3]),
+    interactions: Interactions,
 }
 
 impl Default for State {
@@ -43,26 +34,14 @@ impl Default for State {
             hist_logscale: true,
             lut_min_moving: false,
             lut_max_moving: false,
-            out_values: BTreeMap::new(),
+            interactions: Interactions::new(),
         }
-    }
-}
-
-#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
-pub struct ValueId(pub(crate) usize);
-
-pub struct ValueIter<'a>(btree_map::Iter<'a, ValueId, Value>);
-
-impl<'a> Iterator for ValueIter<'a> {
-    type Item = (&'a ValueId, &'a Value);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
     }
 }
 
 impl State {
     pub fn stored_values(&self) -> ValueIter {
-        ValueIter(self.out_values.iter())
+        self.interactions.value_iter()
     }
 
     pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)

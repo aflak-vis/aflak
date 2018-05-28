@@ -129,10 +129,10 @@ fn main() {
                                 for (id, value) in state.stored_values() {
                                     use self::ui_image2d::Value;
                                     let val = match value {
-                                        Value::Integer(i) => primitives::IOValue::Integer(*i),
-                                        Value::Float(f) => primitives::IOValue::Float(*f),
-                                        Value::Float2(f) => primitives::IOValue::Float2(*f),
-                                        Value::Float3(f) => primitives::IOValue::Float3(*f),
+                                        Value::Integer(i) => primitives::IOValue::Integer(i),
+                                        Value::Float(f) => primitives::IOValue::Float(f),
+                                        Value::Float2(f) => primitives::IOValue::Float2(f),
+                                        Value::Float3(f) => primitives::IOValue::Float3(f),
                                     };
                                     let value_id = (output, *id);
                                     if image2d_values.contains_key(&value_id) {
