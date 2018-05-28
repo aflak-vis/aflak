@@ -10,7 +10,22 @@ pub enum Value {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Interaction {
-    HorizontalLine(f32),
+    HorizontalLine(HorizontalLine),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct HorizontalLine {
+    pub height: f32,
+    pub moving: bool,
+}
+
+impl HorizontalLine {
+    pub fn new(height: f32) -> Self {
+        Self {
+            height,
+            moving: false,
+        }
+    }
 }
 
 pub struct Interactions(BTreeMap<InteractionId, Interaction>);
@@ -45,13 +60,20 @@ impl Interactions {
 impl Interaction {
     pub(crate) fn value(&self) -> Value {
         match self {
-            Interaction::HorizontalLine(height) => Value::Float(*height),
+            Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
         }
     }
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct InteractionId(usize);
+
+impl InteractionId {
+    /// Get ImGui unique ID
+    pub fn id(&self) -> i32 {
+        self.0 as i32
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);

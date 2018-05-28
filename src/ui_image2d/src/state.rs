@@ -6,7 +6,7 @@ use ndarray::Array2;
 use super::Error;
 use hist;
 use image;
-use interactions::{Interaction, Interactions, ValueIter};
+use interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
 use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
@@ -250,25 +250,43 @@ impl State {
             ui.text("Add interaction handle");
             ui.separator();
             if ui.menu_item(im_str!("Horizontal Line")).build() {
-                let new = Interaction::HorizontalLine(self.mouse_pos.1);
+                let new = Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1));
                 self.interactions.insert(new);
             }
         });
-        for (_, interaction) in self.interactions.iter() {
+        for (id, interaction) in self.interactions.iter_mut() {
+            ui.push_id(id.id());
             match interaction {
-                Interaction::HorizontalLine(height) => {
+                Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
                     const LINE_COLOR: u32 = 0xFFFFFFFF;
                     let x = p.0;
-                    let y = p.1 + size.1 - height / tex_size.1 as f32 * size.1;
+                    let y = p.1 + size.1 - *height / tex_size.1 as f32 * size.1;
 
-                    const CLICKABLE_WIDTH: f32 = 5.0;
+                    const CLICKABLE_HEIGHT: f32 = 5.0;
 
-                    if x <= abs_mouse_pos.0
-                        && abs_mouse_pos.0 <= x + size.1
-                        && y - CLICKABLE_WIDTH <= abs_mouse_pos.1
-                        && abs_mouse_pos.1 <= y + CLICKABLE_WIDTH
-                    {
+                    ui.set_cursor_screen_pos([x, y - CLICKABLE_HEIGHT]);
+
+                    ui.invisible_button(
+                        im_str!("horizontal-line"),
+                        [size.0, 2.0 * CLICKABLE_HEIGHT],
+                    );
+                    if ui.is_item_hovered() {
                         ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                            *moving = true;
+                        }
+                    }
+                    if *moving {
+                        *height = if self.mouse_pos.1 < 0.0 {
+                            0.0
+                        } else if self.mouse_pos.1 > tex_size.1 as f32 {
+                            tex_size.1 as f32
+                        } else {
+                            self.mouse_pos.1
+                        };
+                    }
+                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                        *moving = false;
                     }
 
                     draw_list
@@ -276,6 +294,7 @@ impl State {
                         .build();
                 }
             }
+            ui.pop_id();
         }
 
         // Add ticks
