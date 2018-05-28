@@ -39,10 +39,6 @@ impl Interactions {
         ValueIter(self.0.iter())
     }
 
-    pub(crate) fn iter(&self) -> InteractionIter {
-        InteractionIter(self.0.iter())
-    }
-
     pub(crate) fn iter_mut(&mut self) -> InteractionIterMut {
         InteractionIterMut(self.0.iter_mut())
     }
@@ -78,9 +74,6 @@ impl InteractionId {
 #[derive(Clone, Debug)]
 pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 
-#[derive(Clone, Debug)]
-pub struct InteractionIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
-
 #[derive(Debug)]
 pub struct InteractionIterMut<'a>(btree_map::IterMut<'a, InteractionId, Interaction>);
 
@@ -88,13 +81,6 @@ impl<'a> Iterator for ValueIter<'a> {
     type Item = (&'a InteractionId, Value);
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|(id, inter)| (id, inter.value()))
-    }
-}
-
-impl<'a> Iterator for InteractionIter<'a> {
-    type Item = (&'a InteractionId, &'a Interaction);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
     }
 }
 
