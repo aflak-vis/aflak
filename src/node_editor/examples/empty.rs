@@ -139,9 +139,7 @@ fn main() {
                                         let t_idx = image2d_values.get(&value_id).unwrap();
                                         node_editor.update_constant_node(t_idx, vec![val]);
                                     } else {
-                                        let t_idx = node_editor.create_constant_node(
-                                            cake::Transformation::new_constant(val),
-                                        );
+                                        let t_idx = node_editor.create_constant_node(val);
                                         image2d_values.insert(value_id, t_idx);
                                     }
                                 }

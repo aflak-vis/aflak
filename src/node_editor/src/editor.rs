@@ -104,10 +104,11 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone,
+    T: Clone + cake::VariantName,
 {
-    pub fn create_constant_node(&mut self, t: Transformation<T, E>) -> cake::TransformIdx {
-        self.dst.add_owned_transform(t)
+    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
+        self.dst
+            .add_owned_transform(Transformation::new_constant(t))
     }
 }
 
