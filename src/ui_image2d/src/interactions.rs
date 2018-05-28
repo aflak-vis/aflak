@@ -28,11 +28,15 @@ impl HorizontalLine {
     }
 }
 
-pub struct Interactions(BTreeMap<InteractionId, Interaction>);
+/// Record all interactions.
+///
+/// Contains a counter that counts the number of interactions inserted.
+/// The counter is used to set a unique ID to all interactions that ever existed.
+pub struct Interactions(BTreeMap<InteractionId, Interaction>, usize);
 
 impl Interactions {
     pub(crate) fn new() -> Self {
-        Interactions(BTreeMap::new())
+        Interactions(BTreeMap::new(), 0)
     }
 
     pub(crate) fn value_iter(&self) -> ValueIter {
@@ -44,12 +48,13 @@ impl Interactions {
     }
 
     pub(crate) fn insert(&mut self, interaction: Interaction) -> Option<Interaction> {
-        let new_id = if let Some(InteractionId(max)) = self.0.keys().max() {
-            InteractionId(max + 1)
-        } else {
-            InteractionId(0)
-        };
+        let new_id = InteractionId(self.1 + 1);
+        self.1 += 1;
         self.0.insert(new_id, interaction)
+    }
+
+    pub(crate) fn remove(&mut self, id: &InteractionId) -> Option<Interaction> {
+        self.0.remove(id)
     }
 }
 

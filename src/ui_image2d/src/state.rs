@@ -254,6 +254,8 @@ impl State {
                 self.interactions.insert(new);
             }
         });
+
+        let mut line_marked_for_deletion = None;
         for (id, interaction) in self.interactions.iter_mut() {
             ui.push_id(id.id());
             match interaction {
@@ -275,6 +277,9 @@ impl State {
                         if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                             *moving = true;
                         }
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                            ui.open_popup(im_str!("edit-horizontal-line"))
+                        }
                     }
                     if *moving {
                         *height = if self.mouse_pos.1 < 0.0 {
@@ -292,9 +297,19 @@ impl State {
                     draw_list
                         .add_line([x, y], [x + size.0, y], LINE_COLOR)
                         .build();
+
+                    ui.popup(im_str!("edit-horizontal-line"), || {
+                        if ui.menu_item(im_str!("Delete Line")).build() {
+                            line_marked_for_deletion = Some(*id);
+                        }
+                    });
                 }
             }
             ui.pop_id();
+        }
+
+        if let Some(line_id) = line_marked_for_deletion {
+            self.interactions.remove(&line_id);
         }
 
         // Add ticks
