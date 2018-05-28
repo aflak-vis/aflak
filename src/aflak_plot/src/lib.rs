@@ -4,6 +4,5 @@ extern crate imgui;
 extern crate imgui_glium_renderer;
 extern crate ndarray;
 
-mod imshow;
-
-pub use imshow::*;
+pub mod imshow;
+pub mod plot;
