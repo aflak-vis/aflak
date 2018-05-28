@@ -117,7 +117,9 @@ fn main() {
                                 let state = image1d_states
                                     .entry(window_name.clone())
                                     .or_insert_with(|| ui_image1d::State::default());
-                                ui.image1d(image, state);
+                                if let Err(e) = ui.image1d(image, state) {
+                                    ui.text(format!("{:?}", e))
+                                }
                             }
                             &primitives::IOValue::Image2d(ref image) => {
                                 let state = image2d_states
