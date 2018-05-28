@@ -75,6 +75,7 @@ fn main() {
     let gl_ctx = app.get_context().clone();
     let mut image1d_states = HashMap::new();
     let mut image2d_states = HashMap::new();
+    let mut image2d_values = HashMap::new();
     app.run(|ui| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);
@@ -124,6 +125,23 @@ fn main() {
                                     .or_insert_with(|| ui_image2d::State::default());
                                 if let Err(e) = ui.image2d(&gl_ctx, &window_name, image, state) {
                                     ui.text(format!("{:?}", e));
+                                }
+                                for (id, value) in state.stored_values() {
+                                    use self::ui_image2d::Value;
+                                    let val = match value {
+                                        Value::Integer(i) => primitives::IOValue::Integer(i),
+                                        Value::Float(f) => primitives::IOValue::Float(f),
+                                        Value::Float2(f) => primitives::IOValue::Float2(f),
+                                        Value::Float3(f) => primitives::IOValue::Float3(f),
+                                    };
+                                    let value_id = (output, *id);
+                                    if image2d_values.contains_key(&value_id) {
+                                        let t_idx = image2d_values.get(&value_id).unwrap();
+                                        node_editor.update_constant_node(t_idx, vec![val]);
+                                    } else {
+                                        let t_idx = node_editor.create_constant_node(val);
+                                        image2d_values.insert(value_id, t_idx);
+                                    }
                                 }
                             }
                             _ => {

@@ -6,6 +6,7 @@ use ndarray::Array2;
 use super::Error;
 use hist;
 use image;
+use interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
 use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
@@ -19,6 +20,7 @@ pub struct State {
     pub hist_logscale: bool,
     lut_min_moving: bool,
     lut_max_moving: bool,
+    interactions: Interactions,
 }
 
 impl Default for State {
@@ -32,11 +34,16 @@ impl Default for State {
             hist_logscale: true,
             lut_min_moving: false,
             lut_max_moving: false,
+            interactions: Interactions::new(),
         }
     }
 }
 
 impl State {
+    pub fn stored_values(&self) -> ValueIter {
+        self.interactions.value_iter()
+    }
+
     pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
     where
         P: Into<ImVec2>,
@@ -230,11 +237,83 @@ impl State {
                 "X: {:.1}, Y: {:.1}",
                 self.mouse_pos.0, self.mouse_pos.1
             ));
+
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                ui.open_popup(im_str!("add-interaction-handle"))
+            }
+        }
+
+        let draw_list = ui.get_window_draw_list();
+
+        // Add interaction handlers
+        ui.popup(im_str!("add-interaction-handle"), || {
+            ui.text("Add interaction handle");
+            ui.separator();
+            if ui.menu_item(im_str!("Horizontal Line")).build() {
+                let new = Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1));
+                self.interactions.insert(new);
+            }
+        });
+
+        let mut line_marked_for_deletion = None;
+        for (id, interaction) in self.interactions.iter_mut() {
+            ui.push_id(id.id());
+            match interaction {
+                Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
+                    const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    let x = p.0;
+                    let y = p.1 + size.1 - *height / tex_size.1 as f32 * size.1;
+
+                    const CLICKABLE_HEIGHT: f32 = 5.0;
+
+                    ui.set_cursor_screen_pos([x, y - CLICKABLE_HEIGHT]);
+
+                    ui.invisible_button(
+                        im_str!("horizontal-line"),
+                        [size.0, 2.0 * CLICKABLE_HEIGHT],
+                    );
+                    if ui.is_item_hovered() {
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                            *moving = true;
+                        }
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                            ui.open_popup(im_str!("edit-horizontal-line"))
+                        }
+                    }
+                    if *moving {
+                        *height = if self.mouse_pos.1 < 0.0 {
+                            0.0
+                        } else if self.mouse_pos.1 > tex_size.1 as f32 {
+                            tex_size.1 as f32
+                        } else {
+                            self.mouse_pos.1
+                        };
+                    }
+                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                        *moving = false;
+                    }
+
+                    draw_list
+                        .add_line([x, y], [x + size.0, y], LINE_COLOR)
+                        .build();
+
+                    ui.popup(im_str!("edit-horizontal-line"), || {
+                        if ui.menu_item(im_str!("Delete Line")).build() {
+                            line_marked_for_deletion = Some(*id);
+                        }
+                    });
+                }
+            }
+            ui.pop_id();
+        }
+
+        if let Some(line_id) = line_marked_for_deletion {
+            self.interactions.remove(&line_id);
         }
 
         // Add ticks
         const COLOR: u32 = 0xFFFFFFFF;
-        let draw_list = ui.get_window_draw_list();
         const TICK_COUNT: u32 = 10;
         const TICK_SIZE: f32 = 3.0;
         const LABEL_HORIZONTAL_PADDING: f32 = 2.0;

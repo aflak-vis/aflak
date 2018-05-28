@@ -104,6 +104,38 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
+    T: Clone + cake::VariantName,
+{
+    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
+        self.dst
+            .add_owned_transform(Transformation::new_constant(t))
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone + PartialEq,
+{
+    pub fn update_constant_node(&mut self, id: &cake::TransformIdx, val: Vec<T>) {
+        let mut purge = false;
+        if let Some(t) = self.dst.get_transform_mut(id) {
+            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
+                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
+                    if *c != val {
+                        *c = val;
+                        purge = true;
+                    }
+                }
+            }
+        }
+        if purge {
+            self.dst.purge_cache_node(&cake::NodeId::Transform(*id));
+        }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
     T: 'static
         + Clone
         + cake::EditableVariants

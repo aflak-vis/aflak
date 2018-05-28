@@ -7,11 +7,13 @@ extern crate ndarray;
 mod err;
 mod hist;
 mod image;
+mod interactions;
 mod lims;
 mod lut;
 mod state;
 
 pub use err::Error;
+pub use interactions::{InteractionId, Value, ValueIter};
 pub use state::State;
 
 use glium::backend::Facade;
