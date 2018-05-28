@@ -6,7 +6,7 @@ use ndarray::Array2;
 use super::Error;
 use hist;
 use image;
-use interactions::{Interactions, ValueIter};
+use interactions::{Interaction, Interactions, ValueIter};
 use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
@@ -237,11 +237,38 @@ impl State {
                 "X: {:.1}, Y: {:.1}",
                 self.mouse_pos.0, self.mouse_pos.1
             ));
+
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                ui.open_popup(im_str!("add-interaction-handle"))
+            }
+        }
+
+        let draw_list = ui.get_window_draw_list();
+
+        // Add interaction handlers
+        ui.popup(im_str!("add-interaction-handle"), || {
+            ui.text("Add interaction handle");
+            ui.separator();
+            if ui.menu_item(im_str!("Horizontal Line")).build() {
+                let new = Interaction::HorizontalLine(self.mouse_pos.1);
+                self.interactions.insert(new);
+            }
+        });
+        for (_, interaction) in self.interactions.iter() {
+            match interaction {
+                Interaction::HorizontalLine(height) => {
+                    const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    let x = p.0;
+                    let y = p.1 + size.1 - height / tex_size.1 as f32 * size.1;
+                    draw_list
+                        .add_line([x, y], [x + size.0, y], LINE_COLOR)
+                        .build();
+                }
+            }
         }
 
         // Add ticks
         const COLOR: u32 = 0xFFFFFFFF;
-        let draw_list = ui.get_window_draw_list();
         const TICK_COUNT: u32 = 10;
         const TICK_SIZE: f32 = 3.0;
         const LABEL_HORIZONTAL_PADDING: f32 = 2.0;

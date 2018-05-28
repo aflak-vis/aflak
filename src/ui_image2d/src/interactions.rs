@@ -24,8 +24,17 @@ impl Interactions {
         ValueIter(self.0.iter())
     }
 
-    pub(crate) fn interaction_iter(&self) -> InteractionIter {
+    pub(crate) fn iter(&self) -> InteractionIter {
         InteractionIter(self.0.iter())
+    }
+
+    pub(crate) fn insert(&mut self, interaction: Interaction) -> Option<Interaction> {
+        let new_id = if let Some(InteractionId(max)) = self.0.keys().max() {
+            InteractionId(max + 1)
+        } else {
+            InteractionId(0)
+        };
+        self.0.insert(new_id, interaction)
     }
 }
 
