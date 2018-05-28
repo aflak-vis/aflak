@@ -21,7 +21,7 @@ pub struct State {
     pub hist_logscale: bool,
     lut_min_moving: bool,
     lut_max_moving: bool,
-    pub(crate) out_values: BTreeMap<u64, Value>,
+    pub(crate) out_values: BTreeMap<ValueId, Value>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -48,9 +48,21 @@ impl Default for State {
     }
 }
 
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub struct ValueId(pub(crate) usize);
+
+pub struct ValueIter<'a>(btree_map::Iter<'a, ValueId, Value>);
+
+impl<'a> Iterator for ValueIter<'a> {
+    type Item = (&'a ValueId, &'a Value);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
 impl State {
-    pub fn stored_values(&self) -> btree_map::Iter<u64, Value> {
-        self.out_values.iter()
+    pub fn stored_values(&self) -> ValueIter {
+        ValueIter(self.out_values.iter())
     }
 
     pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)

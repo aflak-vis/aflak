@@ -12,7 +12,7 @@ mod lut;
 mod state;
 
 pub use err::Error;
-pub use state::{State, Value};
+pub use state::{State, Value, ValueId, ValueIter};
 
 use glium::backend::Facade;
 use imgui::{ImStr, Ui};
