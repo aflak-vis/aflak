@@ -28,6 +28,10 @@ impl Interactions {
         InteractionIter(self.0.iter())
     }
 
+    pub(crate) fn iter_mut(&mut self) -> InteractionIterMut {
+        InteractionIterMut(self.0.iter_mut())
+    }
+
     pub(crate) fn insert(&mut self, interaction: Interaction) -> Option<Interaction> {
         let new_id = if let Some(InteractionId(max)) = self.0.keys().max() {
             InteractionId(max + 1)
@@ -55,6 +59,9 @@ pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 #[derive(Clone, Debug)]
 pub struct InteractionIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 
+#[derive(Debug)]
+pub struct InteractionIterMut<'a>(btree_map::IterMut<'a, InteractionId, Interaction>);
+
 impl<'a> Iterator for ValueIter<'a> {
     type Item = (&'a InteractionId, Value);
     fn next(&mut self) -> Option<Self::Item> {
@@ -64,6 +71,13 @@ impl<'a> Iterator for ValueIter<'a> {
 
 impl<'a> Iterator for InteractionIter<'a> {
     type Item = (&'a InteractionId, &'a Interaction);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<'a> Iterator for InteractionIterMut<'a> {
+    type Item = (&'a InteractionId, &'a mut Interaction);
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
