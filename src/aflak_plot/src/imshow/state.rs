@@ -6,7 +6,8 @@ use ndarray::Array2;
 use super::hist;
 use super::image;
 use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
-use super::lut::{self, BuiltinLUT, ColorLUT};
+use super::lut::{BuiltinLUT, ColorLUT};
+use super::util;
 use super::Error;
 
 /// Current state of the visualization of a 2D image
@@ -81,7 +82,7 @@ impl State {
             let lims = self.lut.lims();
 
             // Min triangle
-            let min_color = lut::util::to_u32_color(&self.lut.color_at(lims.0));
+            let min_color = util::to_u32_color(&self.lut.color_at(lims.0));
             let x_pos = pos.x + size.x + TRIANGLE_LEFT_PADDING;
             let y_pos = pos.y + size.y * (1.0 - lims.0);
             draw_list
@@ -98,7 +99,7 @@ impl State {
                     [x_pos, y_pos],
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
-                    lut::util::invert_color(min_color),
+                    util::invert_color(min_color),
                 )
                 .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
@@ -120,7 +121,7 @@ impl State {
             }
 
             // Max triangle
-            let max_color = lut::util::to_u32_color(&self.lut.color_at(lims.1));
+            let max_color = util::to_u32_color(&self.lut.color_at(lims.1));
             let y_pos = pos.y + size.y * (1.0 - lims.1);
             draw_list
                 .add_triangle(
@@ -136,7 +137,7 @@ impl State {
                     [x_pos, y_pos],
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
-                    lut::util::invert_color(max_color),
+                    util::invert_color(max_color),
                 )
                 .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
@@ -160,8 +161,8 @@ impl State {
 
         let x_pos = pos.x + 5.0;
         for ((v1, c1), (v2, c2)) in self.lut.bounds() {
-            let bottom_col = lut::util::to_u32_color(&c1);
-            let top_col = lut::util::to_u32_color(&c2);
+            let bottom_col = util::to_u32_color(&c1);
+            let top_col = util::to_u32_color(&c2);
             let bottom_y_pos = pos.y + size.y * (1.0 - v1);
             let top_y_pos = pos.y + size.y * (1.0 - v2);
             draw_list.add_rect_filled_multicolor(

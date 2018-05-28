@@ -6,3 +6,5 @@ extern crate ndarray;
 
 pub mod imshow;
 pub mod plot;
+
+mod util;
