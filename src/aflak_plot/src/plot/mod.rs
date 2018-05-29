@@ -6,6 +6,7 @@ use ndarray::Array1;
 use super::interactions;
 use super::lims;
 use super::ticks;
+use super::util;
 use super::Error;
 
 pub use self::state::State;

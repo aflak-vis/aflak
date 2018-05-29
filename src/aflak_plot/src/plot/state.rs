@@ -4,6 +4,7 @@ use ndarray::Array1;
 use super::interactions::{Interaction, Interactions, VerticalLine};
 use super::lims;
 use super::ticks::XYTicks;
+use super::util;
 use super::Error;
 
 #[derive(Debug)]
@@ -137,6 +138,56 @@ impl State {
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
                 ui.open_popup(im_str!("add-interaction-handle"))
             }
+        }
+
+        let mut line_marked_for_deletion = None;
+        for (id, interaction) in self.interactions.iter_mut() {
+            ui.push_id(id.id());
+            match interaction {
+                Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
+                    const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    let x = p.0 + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size.x;
+                    let y = p.1;
+
+                    const CLICKABLE_WIDTH: f32 = 5.0;
+
+                    ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
+
+                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.y]);
+                    if ui.is_item_hovered() {
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                            *moving = true;
+                        }
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                            ui.open_popup(im_str!("edit-vertical-line"))
+                        }
+                    }
+                    if *moving {
+                        *x_pos = util::clamp(self.mouse_pos.x, xvlims.0, xvlims.1);
+                    }
+                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                        *moving = false;
+                    }
+
+                    draw_list
+                        .add_line([x, y], [x, y + size.y], LINE_COLOR)
+                        .build();
+
+                    ui.popup(im_str!("edit-vertical-line"), || {
+                        if ui.menu_item(im_str!("Delete Line")).build() {
+                            line_marked_for_deletion = Some(*id);
+                        }
+                    });
+                }
+                // Unused in plot
+                Interaction::HorizontalLine(_) => {}
+            }
+            ui.pop_id();
+        }
+
+        if let Some(line_id) = line_marked_for_deletion {
+            self.interactions.remove(&line_id);
         }
 
         ticks.draw(&draw_list, p, size);
