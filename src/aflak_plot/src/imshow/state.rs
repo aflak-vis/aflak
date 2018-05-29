@@ -1,13 +1,15 @@
 use glium::backend::Facade;
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImString, ImVec2, Ui};
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImVec2, Ui};
 use imgui_glium_renderer::Texture;
 use ndarray::Array2;
 
+use super::hist;
+use super::image;
+use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter, VerticalLine};
+use super::lut::{BuiltinLUT, ColorLUT};
+use super::ticks;
+use super::util;
 use super::Error;
-use hist;
-use image;
-use interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
-use lut::{self, BuiltinLUT, ColorLUT};
 
 /// Current state of the visualization of a 2D image
 pub struct State {
@@ -81,7 +83,7 @@ impl State {
             let lims = self.lut.lims();
 
             // Min triangle
-            let min_color = lut::util::to_u32_color(&self.lut.color_at(lims.0));
+            let min_color = util::to_u32_color(&self.lut.color_at(lims.0));
             let x_pos = pos.x + size.x + TRIANGLE_LEFT_PADDING;
             let y_pos = pos.y + size.y * (1.0 - lims.0);
             draw_list
@@ -98,7 +100,7 @@ impl State {
                     [x_pos, y_pos],
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
-                    lut::util::invert_color(min_color),
+                    util::invert_color(min_color),
                 )
                 .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
@@ -120,7 +122,7 @@ impl State {
             }
 
             // Max triangle
-            let max_color = lut::util::to_u32_color(&self.lut.color_at(lims.1));
+            let max_color = util::to_u32_color(&self.lut.color_at(lims.1));
             let y_pos = pos.y + size.y * (1.0 - lims.1);
             draw_list
                 .add_triangle(
@@ -136,7 +138,7 @@ impl State {
                     [x_pos, y_pos],
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
-                    lut::util::invert_color(max_color),
+                    util::invert_color(max_color),
                 )
                 .build();
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
@@ -160,8 +162,8 @@ impl State {
 
         let x_pos = pos.x + 5.0;
         for ((v1, c1), (v2, c2)) in self.lut.bounds() {
-            let bottom_col = lut::util::to_u32_color(&c1);
-            let top_col = lut::util::to_u32_color(&c2);
+            let bottom_col = util::to_u32_color(&c1);
+            let top_col = util::to_u32_color(&c2);
             let bottom_y_pos = pos.y + size.y * (1.0 - v1);
             let top_y_pos = pos.y + size.y * (1.0 - v2);
             draw_list.add_rect_filled_multicolor(
@@ -181,7 +183,7 @@ impl State {
         const TICK_COUNT: usize = 10;
         const TICK_STEP: f32 = 1.0 / TICK_COUNT as f32;
         while i >= -0.01 {
-            let tick_y_pos = pos.y + size.y - i * size.y;
+            let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
             let y_pos = tick_y_pos - text_height / 2.5;
             let val = self.vmin + (self.vmax - self.vmin) * i;
             draw_list.add_text(
@@ -224,22 +226,8 @@ impl State {
             const MIN_WIDTH: f32 = 100.0;
             const MIN_HEIGHT: f32 = 100.0;
             let available_size = (
-                {
-                    let width = max_size.0 - IMAGE_LEFT_PADDING;
-                    if width < MIN_WIDTH {
-                        MIN_WIDTH
-                    } else {
-                        width
-                    }
-                },
-                {
-                    let height = max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING;
-                    if height < MIN_HEIGHT {
-                        MIN_HEIGHT
-                    } else {
-                        height
-                    }
-                },
+                MIN_WIDTH.max(max_size.0 - IMAGE_LEFT_PADDING),
+                MIN_HEIGHT.max(max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING),
             );
             let original_size = (tex_size.0 as f32, tex_size.1 as f32);
             let zoom = (available_size.0 / original_size.0).min(available_size.1 / original_size.1);
@@ -259,11 +247,10 @@ impl State {
         );
 
         if ui.is_item_hovered() {
-            ui.dummy((0.0, 5.0));
-            ui.text(format!(
-                "X: {:.1}, Y: {:.1}",
-                self.mouse_pos.0, self.mouse_pos.1
-            ));
+            let index = [self.mouse_pos.0 as usize, self.mouse_pos.1 as usize];
+            if let Some(val) = image.get(index) {
+                ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", index[0], index[1], val));
+            }
 
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
                 ui.open_popup(im_str!("add-interaction-handle"))
@@ -280,14 +267,18 @@ impl State {
                 let new = Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1));
                 self.interactions.insert(new);
             }
+            if ui.menu_item(im_str!("Vertical Line")).build() {
+                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0));
+                self.interactions.insert(new);
+            }
         });
 
         let mut line_marked_for_deletion = None;
         for (id, interaction) in self.interactions.iter_mut() {
             ui.push_id(id.id());
+            const LINE_COLOR: u32 = 0xFFFFFFFF;
             match interaction {
                 Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
-                    const LINE_COLOR: u32 = 0xFFFFFFFF;
                     let x = p.0;
                     let y = p.1 + size.1 - *height / tex_size.1 as f32 * size.1;
 
@@ -309,13 +300,7 @@ impl State {
                         }
                     }
                     if *moving {
-                        *height = if self.mouse_pos.1 < 0.0 {
-                            0.0
-                        } else if self.mouse_pos.1 > tex_size.1 as f32 {
-                            tex_size.1 as f32
-                        } else {
-                            self.mouse_pos.1
-                        };
+                        *height = util::clamp(self.mouse_pos.1, 0.0, tex_size.1 as f32);
                     }
                     if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                         *moving = false;
@@ -331,6 +316,41 @@ impl State {
                         }
                     });
                 }
+                Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
+                    let x = p.0 + *x_pos / tex_size.0 as f32 * size.0;
+                    let y = p.1;
+
+                    const CLICKABLE_WIDTH: f32 = 5.0;
+
+                    ui.set_cursor_screen_pos([x, y - CLICKABLE_WIDTH]);
+
+                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.1]);
+                    if ui.is_item_hovered() {
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                            *moving = true;
+                        }
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                            ui.open_popup(im_str!("edit-vertical-line"))
+                        }
+                    }
+                    if *moving {
+                        *x_pos = util::clamp(self.mouse_pos.0, 0.0, tex_size.0 as f32);
+                    }
+                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                        *moving = false;
+                    }
+
+                    draw_list
+                        .add_line([x, y], [x, y + size.1], LINE_COLOR)
+                        .build();
+
+                    ui.popup(im_str!("edit-vertical-line"), || {
+                        if ui.menu_item(im_str!("Delete Line")).build() {
+                            line_marked_for_deletion = Some(*id);
+                        }
+                    });
+                }
             }
             ui.pop_id();
         }
@@ -339,46 +359,14 @@ impl State {
             self.interactions.remove(&line_id);
         }
 
-        // Add ticks
-        const COLOR: u32 = 0xFFFFFFFF;
-        const TICK_COUNT: u32 = 10;
-        const TICK_SIZE: f32 = 3.0;
-        const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
-
-        // X-axis
-        let x_step = size.0 / TICK_COUNT as f32;
-        let mut x_pos = p.0;
-        let y_pos = p.1 + size.1;
-        for i in 0..=TICK_COUNT {
-            draw_list
-                .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
-                .build();
-            let label = ImString::new(format!("{:.0}", i * tex_size.0 / TICK_COUNT));
-            let text_size = ui.calc_text_size(&label, false, -1.0);
-            draw_list.add_text([x_pos - text_size.x / 2.0, y_pos], COLOR, label.to_str());
-            x_pos += x_step;
-        }
-
-        // Y-axis
-        let y_step = size.1 / TICK_COUNT as f32;
-        let mut y_pos = p.1 + size.1;
-        let x_pos = p.0;
-        for i in 0..=TICK_COUNT {
-            draw_list
-                .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
-                .build();
-            let label = ImString::new(format!("{:.0}", i * tex_size.1 / TICK_COUNT));
-            let text_size = ui.calc_text_size(&label, false, -1.0);
-            draw_list.add_text(
-                [
-                    x_pos - text_size.x - LABEL_HORIZONTAL_PADDING,
-                    y_pos - text_size.y / 2.0,
-                ],
-                COLOR,
-                label.to_str(),
-            );
-            y_pos -= y_step;
-        }
+        ticks::add_ticks(
+            ui,
+            &draw_list,
+            p,
+            size,
+            (0.0, tex_size.0 as f32),
+            (0.0, tex_size.1 as f32),
+        );
 
         Ok([p, size])
     }

@@ -3,6 +3,8 @@ use imgui::ImStr;
 use std::iter;
 use std::slice;
 
+use super::util;
+
 const LUT_SIZE: usize = 65536;
 
 #[derive(Clone)]
@@ -94,12 +96,8 @@ impl ColorLUT {
         color_lut
     }
 
-    pub fn color_at_bounds(&self, mut point: f32, vmin: f32, vmax: f32) -> [u8; 3] {
-        if point < vmin {
-            point = vmin;
-        } else if point > vmax {
-            point = vmax;
-        }
+    pub fn color_at_bounds(&self, point: f32, vmin: f32, vmax: f32) -> [u8; 3] {
+        let point = util::clamp(point, vmin, vmax);
         self.color_at((point - vmin) / (vmax - vmin))
     }
 
@@ -220,16 +218,6 @@ impl<'a> Iterator for StopIter<'a> {
                 )
             })
         }
-    }
-}
-
-pub mod util {
-    pub fn to_u32_color(c: &[u8; 3]) -> u32 {
-        (c[0] as u32) << 0 | (c[1] as u32) << 8 | (c[2] as u32) << 16 | 0xFF << 24
-    }
-
-    pub fn invert_color(c: u32) -> u32 {
-        0xFFFFFFFF - c + 0xFF000000
     }
 }
 

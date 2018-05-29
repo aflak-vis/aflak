@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "aflak_cake",
+    "aflak_plot",
     "aflak_primitives",
     "node_editor",
     "ui_image1d",

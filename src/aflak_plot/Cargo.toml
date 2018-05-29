@@ -1,13 +1,13 @@
 [package]
-name = "ui_image2d"
+name = "aflak_plot"
 version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
-aflak_plot = { path = "../aflak_plot" }
-
-[dev-dependencies]
 glium = "0.20"
 imgui = { path = "../../imgui-rs" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
 ndarray = "0.11"
+
+[dev-dependencies]
+ui_image2d = { path = "../ui_image2d" }
