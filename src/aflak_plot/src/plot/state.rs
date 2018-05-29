@@ -156,8 +156,6 @@ impl State {
 
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
-                    ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
-
                     let mouse_pos = ui.imgui().mouse_pos();
                     if ui.is_item_hovered()
                         && x - CLICKABLE_WIDTH <= mouse_pos.0
