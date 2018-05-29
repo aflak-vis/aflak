@@ -1,7 +1,7 @@
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
 use ndarray::Array1;
 
-use super::interactions::{Interaction, Interactions, VerticalLine};
+use super::interactions::{Interaction, Interactions, ValueIter, VerticalLine};
 use super::lims;
 use super::ticks::XYTicks;
 use super::util;
@@ -31,6 +31,10 @@ impl Default for State {
 }
 
 impl State {
+    pub fn stored_values(&self) -> ValueIter {
+        self.interactions.value_iter()
+    }
+
     pub(crate) fn plot<P, S>(
         &mut self,
         ui: &Ui,

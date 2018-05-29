@@ -14,4 +14,4 @@ mod ticks;
 mod util;
 
 pub use err::Error;
-pub use interactions::{Value, ValueIter};
+pub use interactions::{InteractionId, Value, ValueIter};
