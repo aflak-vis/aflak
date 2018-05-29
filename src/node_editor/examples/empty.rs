@@ -18,7 +18,7 @@ use glium::backend::Facade;
 use imgui::{ImString, Ui};
 use imgui_glium_renderer::{AppConfig, AppContext};
 use ui_image1d::UiImage1d;
-use ui_image2d::UiImage2d;
+use ui_image2d::{InteractionId, UiImage2d, ValueIter};
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
@@ -75,7 +75,7 @@ fn main() {
     let gl_ctx = app.get_context().clone();
     let mut image1d_states = HashMap::new();
     let mut image2d_states = HashMap::new();
-    let mut image2d_values = HashMap::new();
+    let mut editable_values = HashMap::new();
     app.run(|ui| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);
@@ -120,6 +120,12 @@ fn main() {
                                 if let Err(e) = ui.image1d(image, state) {
                                     ui.text(format!("{:?}", e))
                                 }
+                                update_editor_from_state(
+                                    &output,
+                                    state.stored_values(),
+                                    &mut editable_values,
+                                    &mut node_editor,
+                                );
                             }
                             &primitives::IOValue::Image2d(ref image) => {
                                 let state = image2d_states
@@ -128,23 +134,12 @@ fn main() {
                                 if let Err(e) = ui.image2d(&gl_ctx, &window_name, image, state) {
                                     ui.text(format!("{:?}", e));
                                 }
-                                for (id, value) in state.stored_values() {
-                                    use self::ui_image2d::Value;
-                                    let val = match value {
-                                        Value::Integer(i) => primitives::IOValue::Integer(i),
-                                        Value::Float(f) => primitives::IOValue::Float(f),
-                                        Value::Float2(f) => primitives::IOValue::Float2(f),
-                                        Value::Float3(f) => primitives::IOValue::Float3(f),
-                                    };
-                                    let value_id = (output, *id);
-                                    if image2d_values.contains_key(&value_id) {
-                                        let t_idx = image2d_values.get(&value_id).unwrap();
-                                        node_editor.update_constant_node(t_idx, vec![val]);
-                                    } else {
-                                        let t_idx = node_editor.create_constant_node(val);
-                                        image2d_values.insert(value_id, t_idx);
-                                    }
-                                }
+                                update_editor_from_state(
+                                    &output,
+                                    state.stored_values(),
+                                    &mut editable_values,
+                                    &mut node_editor,
+                                );
                             }
                             _ => {
                                 ui.text("Unimplemented");
@@ -157,4 +152,29 @@ fn main() {
         }
         true
     }).unwrap();
+}
+
+fn update_editor_from_state(
+    output: &cake::OutputId,
+    value_iter: ValueIter,
+    store: &mut HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
+    node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
+) {
+    for (id, value) in value_iter {
+        use self::ui_image2d::Value;
+        let val = match value {
+            Value::Integer(i) => primitives::IOValue::Integer(i),
+            Value::Float(f) => primitives::IOValue::Float(f),
+            Value::Float2(f) => primitives::IOValue::Float2(f),
+            Value::Float3(f) => primitives::IOValue::Float3(f),
+        };
+        let value_id = (*output, *id);
+        if store.contains_key(&value_id) {
+            let t_idx = store.get(&value_id).unwrap();
+            node_editor.update_constant_node(t_idx, vec![val]);
+        } else {
+            let t_idx = node_editor.create_constant_node(val);
+            store.insert(value_id, t_idx);
+        }
+    }
 }
