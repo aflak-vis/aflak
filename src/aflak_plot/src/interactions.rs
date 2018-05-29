@@ -72,6 +72,13 @@ impl Interactions {
     pub(crate) fn remove(&mut self, id: &InteractionId) -> Option<Interaction> {
         self.0.remove(id)
     }
+
+    pub(crate) fn any_moving(&self) -> bool {
+        self.0.iter().any(|(_, interaction)| match interaction {
+            Interaction::HorizontalLine(HorizontalLine { moving, .. }) => *moving,
+            Interaction::VerticalLine(VerticalLine { moving, .. }) => *moving,
+        })
+    }
 }
 
 impl Interaction {

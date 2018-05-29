@@ -128,7 +128,8 @@ impl State {
             }
 
             // Scroll using mouse wheel
-            if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+            if !self.interactions.any_moving() && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
+            {
                 ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
                 let delta = ui.imgui().mouse_delta();
                 self.offset.x -= delta.0 / size.x * (xlims.1 - xlims.0);
@@ -153,8 +154,13 @@ impl State {
 
                     ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
 
-                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.y]);
-                    if ui.is_item_hovered() {
+                    let mouse_pos = ui.imgui().mouse_pos();
+                    if ui.is_item_hovered()
+                        && x - CLICKABLE_WIDTH <= mouse_pos.0
+                        && mouse_pos.0 < x + CLICKABLE_WIDTH
+                        && y <= mouse_pos.1
+                        && mouse_pos.1 <= y + size.y
+                    {
                         ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
                         if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                             *moving = true;
