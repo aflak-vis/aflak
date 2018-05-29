@@ -1,13 +1,19 @@
-use imgui::{ImString, Ui, WindowDrawList};
+use imgui::{ImString, ImVec2, Ui, WindowDrawList};
 
-pub fn add_ticks(
+pub fn add_ticks<P, S>(
     ui: &Ui,
     draw_list: &WindowDrawList,
-    p: (f32, f32),
-    size: (f32, f32),
+    p: P,
+    size: S,
     xlims: (f32, f32),
     ylims: (f32, f32),
-) {
+) where
+    P: Into<ImVec2>,
+    S: Into<ImVec2>,
+{
+    let p = p.into();
+    let size = size.into();
+
     // Add ticks
     const COLOR: u32 = 0xFFFFFFFF;
     const TICK_COUNT: u32 = 10;
@@ -15,9 +21,9 @@ pub fn add_ticks(
     const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
 
     // X-axis
-    let x_step = size.0 / TICK_COUNT as f32;
-    let mut x_pos = p.0;
-    let y_pos = p.1 + size.1;
+    let x_step = size.x / TICK_COUNT as f32;
+    let mut x_pos = p.x;
+    let y_pos = p.y + size.y;
     for i in 0..=TICK_COUNT {
         draw_list
             .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
@@ -30,9 +36,9 @@ pub fn add_ticks(
     }
 
     // Y-axis
-    let y_step = size.1 / TICK_COUNT as f32;
-    let mut y_pos = p.1 + size.1;
-    let x_pos = p.0;
+    let y_step = size.y / TICK_COUNT as f32;
+    let mut y_pos = p.y + size.y;
+    let x_pos = p.x;
     for i in 0..=TICK_COUNT {
         draw_list
             .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
