@@ -8,8 +8,10 @@ pub mod imshow;
 pub mod plot;
 
 mod err;
+mod interactions;
 mod lims;
 mod ticks;
 mod util;
 
 pub use err::Error;
+pub use interactions::{Value, ValueIter};

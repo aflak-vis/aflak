@@ -1,10 +1,8 @@
 mod hist;
 mod image;
-mod interactions;
 mod lut;
 mod state;
 
-pub use self::interactions::{InteractionId, Value, ValueIter};
 pub use self::state::State;
 
 use glium::backend::Facade;
@@ -12,6 +10,7 @@ use imgui::{ImStr, Ui};
 use ndarray::Array2;
 
 use err::Error;
+use interactions;
 use lims;
 use ticks;
 use util;
