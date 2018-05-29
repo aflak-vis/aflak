@@ -247,11 +247,10 @@ impl State {
         );
 
         if ui.is_item_hovered() {
-            ui.dummy((0.0, 5.0));
-            ui.text(format!(
-                "X: {:.1}, Y: {:.1}",
-                self.mouse_pos.0, self.mouse_pos.1
-            ));
+            let index = [self.mouse_pos.0 as usize, self.mouse_pos.1 as usize];
+            if let Some(val) = image.get(index) {
+                ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", index[0], index[1], val));
+            }
 
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
                 ui.open_popup(im_str!("add-interaction-handle"))
