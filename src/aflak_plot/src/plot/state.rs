@@ -2,7 +2,7 @@ use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
 use ndarray::Array1;
 
 use super::lims;
-use super::ticks;
+use super::ticks::XYTicks;
 use super::Error;
 
 #[derive(Clone, Debug)]
@@ -32,6 +32,7 @@ impl State {
         P: Into<ImVec2>,
         S: Into<ImVec2>,
     {
+        let pos = pos.into();
         let size = size.into();
 
         let min = lims::get_vmin(image)?;
@@ -48,7 +49,21 @@ impl State {
             yvlims.1 * self.zoom.y + self.offset.y,
         );
 
-        ui.set_cursor_screen_pos(pos);
+        // Pre-compute tick size to accurately position and resize the figure
+        // to fit everything in the "size" given as input to this function.
+        let ticks = XYTicks::prepare(ui, xlims, ylims);
+        let x_labels_width = ticks.x_labels_width();
+        let y_labels_height = ticks.y_labels_height();
+
+        const BOTTOM_PADDING: f32 = 20.0;
+        let line_height = ui.get_text_line_height_with_spacing();
+        let size = ImVec2 {
+            x: size.x,
+            y: size.y - y_labels_height - line_height * 2.0 - BOTTOM_PADDING,
+        };
+
+        // Start drawing the figure
+        ui.set_cursor_screen_pos([pos.x + x_labels_width, pos.y]);
         let p = ui.get_cursor_screen_pos();
 
         ui.invisible_button(im_str!("plot"), size);
@@ -112,7 +127,7 @@ impl State {
             }
         }
 
-        ticks::add_ticks(ui, &draw_list, p, size, xlims, ylims);
+        ticks.draw(&draw_list, p, size);
 
         ui.text(format!("{} data points", image.len()));
 
