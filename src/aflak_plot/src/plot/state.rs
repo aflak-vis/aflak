@@ -92,8 +92,16 @@ impl State {
 
             // Zoom along X-axis
             let wheel_delta = ui.imgui().mouse_wheel();
-            const ZOOM_SPEED: f32 = 0.5;
-            self.zoom.x *= 1.0 + wheel_delta * ZOOM_SPEED;
+
+            if wheel_delta != 0.0 {
+                const ZOOM_SPEED: f32 = 0.5;
+
+                let zoom_before = self.zoom.x;
+                self.zoom.x *= 1.0 - wheel_delta * ZOOM_SPEED;
+                // Correct offset value so that the zoom be centered on the mouse position
+                self.offset.x -= (self.zoom.x - zoom_before)
+                    * (xvlims.0 + (mouse_x - p.0) / size.x * (xvlims.1 - xvlims.0));
+            }
 
             // Scroll using mouse wheel
             if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
