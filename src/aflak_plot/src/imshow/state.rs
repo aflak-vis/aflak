@@ -5,7 +5,7 @@ use ndarray::Array2;
 
 use super::hist;
 use super::image;
-use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter};
+use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter, VerticalLine};
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks;
 use super::util;
@@ -268,14 +268,18 @@ impl State {
                 let new = Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1));
                 self.interactions.insert(new);
             }
+            if ui.menu_item(im_str!("Vertical Line")).build() {
+                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0));
+                self.interactions.insert(new);
+            }
         });
 
         let mut line_marked_for_deletion = None;
         for (id, interaction) in self.interactions.iter_mut() {
             ui.push_id(id.id());
+            const LINE_COLOR: u32 = 0xFFFFFFFF;
             match interaction {
                 Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
-                    const LINE_COLOR: u32 = 0xFFFFFFFF;
                     let x = p.0;
                     let y = p.1 + size.1 - *height / tex_size.1 as f32 * size.1;
 
@@ -313,7 +317,41 @@ impl State {
                         }
                     });
                 }
-                Interaction::VerticalLine(_) => unimplemented!("TODO"),
+                Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
+                    let x = p.0 + *x_pos / tex_size.0 as f32 * size.0;
+                    let y = p.1;
+
+                    const CLICKABLE_WIDTH: f32 = 5.0;
+
+                    ui.set_cursor_screen_pos([x, y - CLICKABLE_WIDTH]);
+
+                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.1]);
+                    if ui.is_item_hovered() {
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                            *moving = true;
+                        }
+                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                            ui.open_popup(im_str!("edit-vertical-line"))
+                        }
+                    }
+                    if *moving {
+                        *x_pos = util::clamp(self.mouse_pos.0, 0.0, tex_size.0 as f32);
+                    }
+                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                        *moving = false;
+                    }
+
+                    draw_list
+                        .add_line([x, y], [x, y + size.1], LINE_COLOR)
+                        .build();
+
+                    ui.popup(im_str!("edit-vertical-line"), || {
+                        if ui.menu_item(im_str!("Delete Line")).build() {
+                            line_marked_for_deletion = Some(*id);
+                        }
+                    });
+                }
             }
             ui.pop_id();
         }
