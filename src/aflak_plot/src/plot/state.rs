@@ -1,21 +1,30 @@
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
 use ndarray::Array1;
 
+use super::interactions::{Interaction, Interactions, VerticalLine};
 use super::lims;
 use super::ticks::XYTicks;
 use super::Error;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct State {
     offset: ImVec2,
     zoom: ImVec2,
+    mouse_pos: ImVec2,
+    interactions: Interactions,
 }
 
 impl Default for State {
     fn default() -> Self {
+        use std::f32;
         State {
             offset: ImVec2 { x: 0.0, y: 0.0 },
             zoom: ImVec2 { x: 1.0, y: 1.0 },
+            mouse_pos: ImVec2 {
+                x: f32::NAN,
+                y: f32::NAN,
+            },
+            interactions: Interactions::new(),
         }
     }
 }
@@ -99,9 +108,9 @@ impl State {
 
         if ui.is_item_hovered() {
             let mouse_x = ui.imgui().mouse_pos().0;
-            let x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
-            if let Some(y) = image.get(x as usize) {
-                ui.tooltip_text(format!("X: {:.0}, VAL: {:.2}", x, y));
+            self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
+            if let Some(y) = image.get(self.mouse_pos.x as usize) {
+                ui.tooltip_text(format!("X: {:.0}, VAL: {:.2}", self.mouse_pos.x, y));
             }
 
             // Zoom along X-axis
@@ -124,9 +133,23 @@ impl State {
                 self.offset.x -= delta.0 / size.x * (xlims.1 - xlims.0);
                 self.offset.y += delta.1 / size.y * (ylims.1 - ylims.0);
             }
+
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                ui.open_popup(im_str!("add-interaction-handle"))
+            }
         }
 
         ticks.draw(&draw_list, p, size);
+
+        // Add interaction handlers
+        ui.popup(im_str!("add-interaction-handle"), || {
+            ui.text("Add interaction handle");
+            ui.separator();
+            if ui.menu_item(im_str!("Vertical Line")).build() {
+                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.x));
+                self.interactions.insert(new);
+            }
+        });
 
         Ok(())
     }

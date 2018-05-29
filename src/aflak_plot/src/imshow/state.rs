@@ -313,6 +313,7 @@ impl State {
                         }
                     });
                 }
+                Interaction::VerticalLine(_) => unimplemented!("TODO"),
             }
             ui.pop_id();
         }

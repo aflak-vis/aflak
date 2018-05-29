@@ -11,11 +11,17 @@ pub enum Value {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Interaction {
     HorizontalLine(HorizontalLine),
+    VerticalLine(VerticalLine),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct HorizontalLine {
     pub height: f32,
+    pub moving: bool,
+}
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct VerticalLine {
+    pub x_pos: f32,
     pub moving: bool,
 }
 
@@ -28,10 +34,20 @@ impl HorizontalLine {
     }
 }
 
+impl VerticalLine {
+    pub fn new(x_pos: f32) -> Self {
+        Self {
+            x_pos,
+            moving: false,
+        }
+    }
+}
+
 /// Record all interactions.
 ///
 /// Contains a counter that counts the number of interactions inserted.
 /// The counter is used to set a unique ID to all interactions that ever existed.
+#[derive(Debug)]
 pub struct Interactions(BTreeMap<InteractionId, Interaction>, usize);
 
 impl Interactions {
@@ -62,6 +78,7 @@ impl Interaction {
     pub(crate) fn value(&self) -> Value {
         match self {
             Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
+            Interaction::VerticalLine(VerticalLine { x_pos, .. }) => Value::Float(*x_pos),
         }
     }
 }

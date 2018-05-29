@@ -3,6 +3,7 @@ mod state;
 use imgui::Ui;
 use ndarray::Array1;
 
+use super::interactions;
 use super::lims;
 use super::ticks;
 use super::Error;
