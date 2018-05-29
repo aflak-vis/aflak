@@ -146,6 +146,8 @@ impl State {
         }
 
         let mut line_marked_for_deletion = None;
+        // Flag to only allow line to be moved at a time
+        let mut moved_one = false;
         for (id, interaction) in self.interactions.iter_mut() {
             ui.push_id(id.id());
             match interaction {
@@ -171,7 +173,8 @@ impl State {
                             ui.open_popup(im_str!("edit-vertical-line"))
                         }
                     }
-                    if *moving {
+                    if !moved_one && *moving {
+                        moved_one = true;
                         *x_pos = util::clamp(self.mouse_pos.x, xvlims.0, xvlims.1);
                     }
                     if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
