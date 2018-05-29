@@ -102,7 +102,7 @@ impl YTicks {
                     ylims.0 + i as f32 * ylims.1 / TICK_COUNT as f32
                 ));
                 let text_size = ui.calc_text_size(&label, false, -1.0);
-                height = text_size.y.max(height);
+                height = (text_size.y + LABEL_HORIZONTAL_PADDING).max(height);
                 (label, text_size)
             })
             .collect();

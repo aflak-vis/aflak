@@ -55,11 +55,10 @@ impl State {
         let x_labels_width = ticks.x_labels_width();
         let y_labels_height = ticks.y_labels_height();
 
-        const BOTTOM_PADDING: f32 = 20.0;
-        let line_height = ui.get_text_line_height_with_spacing();
+        const BOTTOM_PADDING: f32 = 40.0;
         let size = ImVec2 {
             x: size.x,
-            y: size.y - y_labels_height - line_height * 2.0 - BOTTOM_PADDING,
+            y: size.y - y_labels_height - BOTTOM_PADDING,
         };
 
         // Start drawing the figure
@@ -102,7 +101,7 @@ impl State {
             let mouse_x = ui.imgui().mouse_pos().0;
             let x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
             if let Some(y) = image.get(x as usize) {
-                ui.text(format!("X: {:.0}, VAL: {:.2}", x, y));
+                ui.tooltip_text(format!("X: {:.0}, VAL: {:.2}", x, y));
             }
 
             // Zoom along X-axis
@@ -128,8 +127,6 @@ impl State {
         }
 
         ticks.draw(&draw_list, p, size);
-
-        ui.text(format!("{} data points", image.len()));
 
         Ok(())
     }
