@@ -1,4 +1,4 @@
-use imgui::{ImVec2, Ui};
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
 use ndarray::Array1;
 
 use super::lims;
@@ -7,12 +7,16 @@ use super::Error;
 
 #[derive(Clone, Debug)]
 pub struct State {
-    offset: (f32, f32),
+    offset: ImVec2,
+    zoom: ImVec2,
 }
 
 impl Default for State {
     fn default() -> Self {
-        State { offset: (0.0, 0.0) }
+        State {
+            offset: ImVec2 { x: 0.0, y: 0.0 },
+            zoom: ImVec2 { x: 1.0, y: 1.0 },
+        }
     }
 }
 
@@ -33,8 +37,16 @@ impl State {
         let min = lims::get_vmin(image)?;
         let max = lims::get_vmax(image)?;
 
-        let xlims = (0.0, (image.len() - 1) as f32);
-        let ylims = (min, max);
+        let xvlims = (0.0, (image.len() - 1) as f32);
+        let yvlims = (min, max);
+        let xlims = (
+            xvlims.0 * self.zoom.x + self.offset.x,
+            xvlims.1 * self.zoom.x + self.offset.x,
+        );
+        let ylims = (
+            yvlims.0 * self.zoom.y + self.offset.y,
+            yvlims.1 * self.zoom.y + self.offset.y,
+        );
 
         ui.set_cursor_screen_pos(pos);
         let p = ui.get_cursor_screen_pos();
@@ -76,6 +88,19 @@ impl State {
             let x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
             if let Some(y) = image.get(x as usize) {
                 ui.text(format!("X: {:.0}, VAL: {:.2}", x, y));
+            }
+
+            // Zoom along X-axis
+            let wheel_delta = ui.imgui().mouse_wheel();
+            const ZOOM_SPEED: f32 = 0.5;
+            self.zoom.x *= 1.0 + wheel_delta * ZOOM_SPEED;
+
+            // Scroll using mouse wheel
+            if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
+                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
+                let delta = ui.imgui().mouse_delta();
+                self.offset.x -= delta.0 / size.x * (xlims.1 - xlims.0);
+                self.offset.y += delta.1 / size.y * (ylims.1 - ylims.0);
             }
         }
 
