@@ -14,7 +14,7 @@ pub fn get_plus1_transform() -> Transformation<AlgoIO, !> {
 }
 
 pub fn get_minus1_transform() -> Transformation<AlgoIO, !> {
-    cake_transform!(minus1<AlgoIO, !>(i: Integer = 0) -> Integer {
+    cake_transform!(minus1<AlgoIO, !>(i: Integer) -> Integer {
         vec![Ok(AlgoIO::Integer(i - 1))]
     })
 }
