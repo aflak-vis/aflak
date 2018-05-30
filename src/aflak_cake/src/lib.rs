@@ -97,7 +97,7 @@ macro_rules! cake_transform {
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
         $crate::Transformation {
             name: stringify!($fn_name),
-            input: vec![$(stringify!($x_type), )*],
+            input: vec![$((stringify!($x_type), None), )*],
             output: vec![$(stringify!($out_type), )*],
             algorithm: $crate::Algorithm::Function($fn_name),
         }

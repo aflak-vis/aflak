@@ -39,12 +39,13 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
     }
 
     /// Iterate over each type of the inputs
-    pub fn inputs_iter(&'a self) -> slice::Iter<'a, TypeId> {
-        const OUTPUT_NODE_SLOTS: [TypeId; 1] = ["Out"];
+    pub fn inputs_iter(&'a self) -> impl Iterator<Item = &'a TypeId> {
+        const OUTPUT_NODE_SLOT: TypeId = "Out";
         match self {
-            &Node::Transform(t) => t.input.iter(),
-            &Node::Output(_) => OUTPUT_NODE_SLOTS.iter(),
-        }
+            &Node::Transform(t) => t.input.as_slice(),
+            &Node::Output(_) => &[(OUTPUT_NODE_SLOT, None)],
+        }.iter()
+            .map(|(id, _)| id)
     }
 
     /// Return number of inputs
