@@ -104,9 +104,7 @@ where
 
     /// Add a borrowed transform and return its identifier [`TransformIdx`].
     pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
-        let idx = self.new_transform_idx();
-        self.transforms.insert(idx, Bow::Borrowed(t));
-        idx
+        self.add_transform_impl(Bow::Borrowed(t))
     }
 
     /// Create transform with the [`TransformIdx`] of your choosing.
@@ -124,8 +122,12 @@ where
 
     /// Add an owned transform and return its identifier [`TransformIdx`].
     pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
+        self.add_transform_impl(Bow::Owned(t))
+    }
+
+    fn add_transform_impl(&mut self, t: Bow<'t, Transformation<T, E>>) -> TransformIdx {
         let idx = self.new_transform_idx();
-        self.transforms.insert(idx, Bow::Owned(t));
+        self.transforms.insert(idx, t);
         idx
     }
 
