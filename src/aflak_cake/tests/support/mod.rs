@@ -8,13 +8,13 @@ pub enum AlgoIO {
 }
 
 pub fn get_plus1_transform() -> Transformation<AlgoIO, !> {
-    cake_transform!(plus1<AlgoIO, !>(i: Integer) -> Integer {
+    cake_transform!(plus1<AlgoIO, !>(i: Integer = 0) -> Integer {
         vec![Ok(AlgoIO::Integer(i + 1))]
     })
 }
 
 pub fn get_minus1_transform() -> Transformation<AlgoIO, !> {
-    cake_transform!(minus1<AlgoIO, !>(i: Integer) -> Integer {
+    cake_transform!(minus1<AlgoIO, !>(i: Integer = 0) -> Integer {
         vec![Ok(AlgoIO::Integer(i - 1))]
     })
 }

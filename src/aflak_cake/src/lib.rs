@@ -93,11 +93,11 @@ macro_rules! cake_fn {
 /// ```
 #[macro_export]
 macro_rules! cake_transform {
-    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
+    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident = $x_default_val: expr),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
         $crate::Transformation {
             name: stringify!($fn_name),
-            input: vec![$((stringify!($x_type), None), )*],
+            input: vec![$((stringify!($x_type), Some($enum_name::$x_type($x_default_val))), )*],
             output: vec![$(stringify!($out_type), )*],
             algorithm: $crate::Algorithm::Function($fn_name),
         }
