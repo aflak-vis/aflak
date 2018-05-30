@@ -5,10 +5,41 @@ use std::slice;
 use std::sync::RwLock;
 
 use boow::Bow;
+use variant_name::VariantName;
 
 use dst::node::{Node, NodeId};
 use dst::{DSTError, Input, InputList, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
+
+impl<'t, T: 't, E: 't> DST<'t, T, E>
+where
+    T: Clone + VariantName,
+{
+    /// Add a borrowed transform and return its identifier [`TransformIdx`].
+    pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
+        self.add_transform_impl(Bow::Borrowed(t))
+    }
+
+    /// Add an owned transform and return its identifier [`TransformIdx`].
+    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
+        self.add_transform_impl(Bow::Owned(t))
+    }
+
+    fn add_transform_impl(&mut self, t: Bow<'t, Transformation<T, E>>) -> TransformIdx {
+        let idx = self.new_transform_idx();
+        let default_vals: Vec<_> = t.input.iter().map(|(_, default)| default.clone()).collect();
+        self.transforms.insert(idx, t);
+
+        // Add nodes containing default values
+        for (i, some_default_val) in default_vals.into_iter().enumerate() {
+            if let Some(default_val) = some_default_val {
+                let input_idx = self.add_owned_transform(Transformation::new_constant(default_val));
+                let _ = self.connect(Output::new(input_idx, 0), Input::new(idx, i));
+            }
+        }
+        idx
+    }
+}
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -102,11 +133,6 @@ where
         })
     }
 
-    /// Add a borrowed transform and return its identifier [`TransformIdx`].
-    pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Borrowed(t))
-    }
-
     /// Create transform with the [`TransformIdx`] of your choosing.
     ///
     /// You need to manage your resource yourself so take care.
@@ -118,17 +144,6 @@ where
         t: Bow<'t, Transformation<T, E>>,
     ) {
         self.transforms.insert(idx, t);
-    }
-
-    /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Owned(t))
-    }
-
-    fn add_transform_impl(&mut self, t: Bow<'t, Transformation<T, E>>) -> TransformIdx {
-        let idx = self.new_transform_idx();
-        self.transforms.insert(idx, t);
-        idx
     }
 
     /// Remove [`Transformation`] from [`DST`] graph.
