@@ -8,6 +8,7 @@ use boow::Bow;
 use variant_name::VariantName;
 
 use dst::node::{Node, NodeId};
+use dst::MetaTransform;
 use dst::{DSTError, Input, InputList, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
 
@@ -27,16 +28,7 @@ where
 
     fn add_transform_impl(&mut self, t: Bow<'t, Transformation<T, E>>) -> TransformIdx {
         let idx = self.new_transform_idx();
-        let default_vals: Vec<_> = t.input.iter().map(|(_, default)| default.clone()).collect();
-        self.transforms.insert(idx, t);
-
-        // Add nodes containing default values
-        for (i, some_default_val) in default_vals.into_iter().enumerate() {
-            if let Some(default_val) = some_default_val {
-                let input_idx = self.add_owned_transform(Transformation::new_constant(default_val));
-                let _ = self.connect(Output::new(input_idx, 0), Input::new(idx, i));
-            }
-        }
+        self.transforms.insert(idx, MetaTransform::new(t));
         idx
     }
 }
@@ -57,13 +49,13 @@ where
 
     /// Get a transform from its [`TransformIdx`].
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
-        self.transforms.get(idx).map(|t| t.borrow())
+        self.transforms.get(idx).map(|t| t.transform())
     }
 
     /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
     pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
-        self.transforms.get_mut(idx).and_then(|t| t.borrow_mut())
+        self.transforms.get_mut(idx).and_then(|t| t.transform_mut())
     }
 
     /// Get a node from its [`NodeId`].
@@ -143,11 +135,15 @@ where
         idx: TransformIdx,
         t: Bow<'t, Transformation<T, E>>,
     ) {
-        self.transforms.insert(idx, t);
+        // TODO for Serialization
+        self.transforms.insert(idx, MetaTransform::new(t));
     }
 
     /// Remove [`Transformation`] from [`DST`] graph.
-    pub fn remove_transform(&mut self, t_idx: &TransformIdx) -> Option<Bow<Transformation<T, E>>> {
+    pub fn remove_transform(
+        &mut self,
+        t_idx: &TransformIdx,
+    ) -> Option<(Bow<Transformation<T, E>>, Vec<Option<T>>)> {
         // Remove all connections attached to this transform's outputs
         if let Some(outputs) = self.outputs_of_transformation(t_idx) {
             for output in outputs {
@@ -178,7 +174,7 @@ where
         }
 
         // Remove transform
-        self.transforms.remove(t_idx)
+        self.transforms.remove(t_idx).map(|meta| (meta.tokenize()))
     }
 
     /// Connect an output to an input.
@@ -311,7 +307,7 @@ where
     fn input_exists(&self, input: &Input) -> bool {
         match self.transforms.get(&input.t_idx) {
             None => false,
-            Some(transform) => transform.input_exists(input.input_i.into()),
+            Some(meta) => meta.transform().input_exists(input.input_i.into()),
         }
     }
 
@@ -319,7 +315,7 @@ where
     fn output_exists(&self, output: &Output) -> bool {
         match self.transforms.get(&output.t_idx) {
             None => false,
-            Some(transform) => transform.output_exists(output.output_i.into()),
+            Some(meta) => meta.transform().output_exists(output.output_i.into()),
         }
     }
 
