@@ -98,7 +98,7 @@ macro_rules! cake_transform {
         $crate::Transformation {
             name: stringify!($fn_name),
             input: vec![$((stringify!($x_type), {
-                cake_some_first_value!($( $enum_name::$x_type($x_default_val), )*)
+                cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
             }), )*],
             output: vec![$(stringify!($out_type), )*],
             algorithm: $crate::Algorithm::Function($fn_name),
@@ -130,7 +130,10 @@ macro_rules! cake_some_first_value {
     () => {
         None
     };
-    ($x:expr, $($xs:expr)*) => {
+    ($x:expr) => {
         Some($x)
+    };
+    ($x:expr, $($xs:expr)+) => {
+        compile_error!("Only zero or one value is expected.")
     };
 }
