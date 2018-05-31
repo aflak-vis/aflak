@@ -40,6 +40,7 @@ pub trait EditableVariants: VariantName {
 
 /// Make it easier to define a function used for a transform. Used internally
 /// by [`cake_transform`]. You probably want to directly use [`cake_transform`].
+#[doc(hidden)]
 #[macro_export]
 macro_rules! cake_fn {
     // Special case where no argument is provided
@@ -125,6 +126,7 @@ macro_rules! cake_constant {
 }
 
 /// Helper macro for internal use.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! cake_some_first_value {
     () => {
