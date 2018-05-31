@@ -58,6 +58,20 @@ where
         self.transforms.get_mut(idx).and_then(|t| t.transform_mut())
     }
 
+    /// Get a reference to a transform's default inputs from its
+    /// [`TransformIdx`].
+    /// Return [`None`] if the target transform does not exist.
+    pub fn get_default_inputs(&mut self, idx: &TransformIdx) -> Option<&[Option<T>]> {
+        self.transforms.get(idx).map(|t| t.defaults())
+    }
+
+    /// Get a mutable reference to a transform's default inputs from its
+    /// [`TransformIdx`].
+    /// Return [`None`] if the target transform does not exist.
+    pub fn get_default_inputs_mut(&mut self, idx: &TransformIdx) -> Option<&mut [Option<T>]> {
+        self.transforms.get_mut(idx).map(|t| t.defaults_mut())
+    }
+
     /// Get a node from its [`NodeId`].
     pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
         match idx {

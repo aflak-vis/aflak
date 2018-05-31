@@ -60,6 +60,10 @@ where
         self.t.borrow_mut()
     }
 
+    pub fn defaults_mut(&mut self) -> &mut [Option<T>] {
+        &mut self.input_defaults
+    }
+
     pub fn tokenize(self) -> (Bow<'t, Transformation<T, E>>, Vec<Option<T>>) {
         (self.t, self.input_defaults)
     }
