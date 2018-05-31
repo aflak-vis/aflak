@@ -52,6 +52,10 @@ where
         self.t.as_ref()
     }
 
+    pub fn defaults(&self) -> &[Option<T>] {
+        &self.input_defaults
+    }
+
     pub fn transform_mut(&mut self) -> Option<&mut Transformation<T, E>> {
         self.t.borrow_mut()
     }

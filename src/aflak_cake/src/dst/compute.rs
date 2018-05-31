@@ -12,9 +12,10 @@ where
     E: Send,
 {
     fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
-        let t = self.get_transform(&output.t_idx).ok_or_else(|| {
+        let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
         })?;
+        let t = meta.transform();
         let output_cache_lock = self.cache.get(&output).expect("Get output cache");
         {
             let output_cache = output_cache_lock.read().unwrap();
@@ -32,14 +33,19 @@ where
         for _ in 0..(deps.len()) {
             results.push(Err(DSTError::NothingDoneYet));
         }
+        let defaults = meta.defaults().to_vec();
         rayon::scope(|s| {
-            for (result, parent_output) in results.iter_mut().zip(deps) {
+            for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults) {
                 s.spawn(move |_| {
-                    *result = parent_output
-                        .ok_or_else(|| {
-                            DSTError::ComputeError("Missing dependency! Cannot compute.".to_owned())
-                        })
-                        .and_then(|output| self._compute(output));
+                    *result = if let Some(output) = parent_output {
+                        self._compute(output)
+                    } else if let Some(default) = default {
+                        Ok(default)
+                    } else {
+                        Err(DSTError::ComputeError(
+                            "Missing dependency! Cannot compute.".to_owned(),
+                        ))
+                    }
                 })
             }
         });
