@@ -28,7 +28,9 @@ struct MyConstantEditor;
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
     fn editor(&self, ui: &Ui, constant: &mut primitives::IOValue) -> bool {
         use primitives::IOValue;
-        match constant {
+
+        ui.push_id(constant as *const primitives::IOValue as i32);
+        let changed = match constant {
             &mut IOValue::Str(ref mut string) => {
                 let mut out = ImString::with_capacity(1024);
                 out.push_str(string);
@@ -52,7 +54,10 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 ui.input_float3(im_str!("3 floats value"), floats).build()
             }
             _ => false,
-        }
+        };
+        ui.pop_id();
+
+        changed
     }
 }
 
