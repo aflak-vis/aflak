@@ -75,7 +75,7 @@ lazy_static! {
             cake_transform!(slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
                 vec![run_slice_3d_to_2d(image, map)]
             }),
-            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0; 3], dir2: Float3 = [0.0; 3], count1: Integer = 0, count2: Integer = 0) -> Map2dTo3dCoords {
+            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 1.0, 0.0], dir2: Float3 = [0.0, 0.0, 1.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
                 vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
             }),
             cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi = roi::ROI::All) -> Image1d {
