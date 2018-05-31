@@ -758,6 +758,16 @@ where
                         }
                     }
                 }
+                if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
+                    for default_input in default_inputs.iter_mut() {
+                        if let Some(default_input) = default_input {
+                            if constant_editor.editor(ui, default_input) {
+                                purge_list.push(id);
+                            }
+                            constant_editor_in_use = true;
+                        }
+                    }
+                }
             }
             for node_id in purge_list {
                 dst.purge_cache_node(node_id);
