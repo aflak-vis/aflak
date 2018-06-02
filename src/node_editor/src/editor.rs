@@ -136,7 +136,7 @@ where
 }
 
 const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
-const NODE_WINDOW_PADDING: Vec2 = Vec2(0.0, 0.0);
+const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
@@ -739,6 +739,7 @@ where
                     ui.tooltip(|| ui.text("TEST TOOLTIP"));
                 }
             });
+            ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
             let mut purge_list = Vec::new();
             if let &cake::NodeId::Transform(ref t_idx) = id {
                 if let Some(t) = dst.get_transform_mut(t_idx) {
@@ -778,10 +779,13 @@ where
         } * CURRENT_FONT_WINDOW_SCALE;
         draw_list
             .add_line(
-                [p.0, p.1 + title_bar_height + NODE_WINDOW_PADDING.1],
                 [
-                    p.0 + node_size.0,
-                    p.1 + title_bar_height + NODE_WINDOW_PADDING.1,
+                    p.0 - NODE_WINDOW_PADDING.0,
+                    p.1 + title_bar_height + NODE_WINDOW_PADDING.1 / 2.0,
+                ],
+                [
+                    p.0 + node_size.0 + NODE_WINDOW_PADDING.0,
+                    p.1 + title_bar_height + NODE_WINDOW_PADDING.1 / 2.0,
                 ],
                 NODE_FRAME_COLOR,
             )
