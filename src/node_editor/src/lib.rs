@@ -1,3 +1,4 @@
+#![feature(extern_prelude)]
 extern crate aflak_cake as cake;
 #[macro_use]
 extern crate imgui;

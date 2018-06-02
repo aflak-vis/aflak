@@ -1,6 +1,7 @@
 //! # aflak - Computational mAKE
 //!
 //! A crate to manage a graph of interdependent functions.
+#![feature(extern_prelude)]
 extern crate rayon;
 
 extern crate boow;
