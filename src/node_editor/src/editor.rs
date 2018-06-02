@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use imgui::{
-    ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2, StyleVar, Ui,
+    ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2, StyleVar,
+    Ui, WindowDrawList,
 };
 use serde::{Deserialize, Serialize};
 
@@ -133,6 +134,10 @@ where
         }
     }
 }
+
+const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
+const NODE_WINDOW_PADDING: Vec2 = Vec2(0.0, 0.0);
+const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
@@ -305,10 +310,8 @@ where
     }
 
     fn render_graph_canvas(&mut self, ui: &Ui) {
-        const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
         const NODE_SLOT_RADIUS: f32 = 5.0 * CURRENT_FONT_WINDOW_SCALE;
         const NODE_SLOT_RADIUS_SQUARED: f32 = NODE_SLOT_RADIUS * NODE_SLOT_RADIUS;
-        const NODE_WINDOW_PADDING: Vec2 = Vec2(0.0, 0.0);
         // We don't detect "mouse release" events while dragging links onto slots.
         // Instead we check that our mouse delta is small enough. Otherwise we couldn't
         // hover other slots while dragging links.
@@ -396,7 +399,7 @@ where
                         .node_states
                         .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
-                    self.draw_node_inside(ui, &idx); // ...
+                    self.draw_node_inside(ui, &draw_list, &idx); // ...
 
                     let node = self.dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
@@ -423,7 +426,6 @@ where
                         .build();
 
                     // Display frame
-                    const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
                     let line_thickness = if self.active_node == Some(idx) {
                         3.0
                     } else {
@@ -434,18 +436,7 @@ where
                         .thickness(line_thickness)
                         .rounding(NODE_ROUNDING)
                         .build();
-                    // Line below node name
-                    let node_title_bar_height =
-                        ui.get_text_line_height_with_spacing() + NODE_WINDOW_PADDING.1;
-                    let tmp1 = Vec2::new((
-                        node_rect_min.0,
-                        node_rect_min.1 + node_title_bar_height + 1.0,
-                    ));
-                    let tmp2 = (node_rect_max.0, tmp1.1);
-                    draw_list
-                        .add_line(tmp1, tmp2, NODE_FRAME_COLOR)
-                        .thickness(line_thickness)
-                        .build();
+
                     // Display connectors
                     const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                     const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
@@ -727,7 +718,7 @@ where
         });
     }
 
-    fn draw_node_inside(&mut self, ui: &Ui, id: &cake::NodeId) {
+    fn draw_node_inside(&mut self, ui: &Ui, draw_list: &WindowDrawList, id: &cake::NodeId) {
         let node_name = {
             let node = self.dst.get_node(id).unwrap();
             ImString::new(node.name(id))
@@ -735,10 +726,14 @@ where
         let node_states = &mut self.node_states;
         let dst = &mut self.dst;
         let constant_editor = &self.constant_editor;
+        let mut title_bar_height = 0.0;
+        let p = ui.get_cursor_screen_pos();
+
         ui.group(|| {
             let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
             ui.with_color_var(ImGuiCol::Text, default_text_color, || {
                 ui.text(node_name);
+                title_bar_height = ui.get_item_rect_size().1;
                 if ui.is_item_hovered() {
                     // Show tooltip ?
                     ui.tooltip(|| ui.text("TEST TOOLTIP"));
@@ -777,6 +772,26 @@ where
             }
             // TODO: Add copy-paste buttons
         });
+
+        // Line below node name
+        let node_size = ui.get_item_rect_size();
+        let line_thickness = if self.active_node == Some(*id) {
+            3.0
+        } else {
+            1.0
+        } * CURRENT_FONT_WINDOW_SCALE;
+        draw_list
+            .add_line(
+                [p.0, p.1 + title_bar_height + NODE_WINDOW_PADDING.1],
+                [
+                    p.0 + node_size.0,
+                    p.1 + title_bar_height + NODE_WINDOW_PADDING.1,
+                ],
+                NODE_FRAME_COLOR,
+            )
+            .thickness(line_thickness)
+            .build();
+
         if ui.is_item_hovered() {
             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                 self.active_node = Some(*id);
