@@ -7,7 +7,7 @@ nightly:
   image: rustdocker/rust:nightly
   script:
     - cargo build --all --verbose
-    - cargo test --all --verbose
+    - cargo test --all --verbose -- --test-threads=1
 
 fmt:
   image: rustdocker/rust:nightly
