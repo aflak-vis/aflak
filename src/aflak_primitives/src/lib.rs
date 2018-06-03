@@ -75,16 +75,16 @@ lazy_static! {
             cake_transform!(slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
                 vec![run_slice_3d_to_2d(image, map)]
             }),
-            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3, dir1: Float3, dir2: Float3, count1: Integer, count2: Integer) -> Map2dTo3dCoords {
+            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 1.0, 0.0], dir2: Float3 = [0.0, 0.0, 1.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
                 vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
             }),
-            cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi) -> Image1d {
+            cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi = roi::ROI::All) -> Image1d {
                 vec![run_extract_wave(image, roi)]
             }),
-            cake_transform!(linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float, coef2: Float) -> Image1d {
+            cake_transform!(linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image1d {
                 vec![run_linear_composition_1d(i1, i2, *coef1, *coef2)]
             }),
-            cake_transform!(linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float, coef2: Float) -> Image2d {
+            cake_transform!(linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image2d {
                 vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
             }),
             cake_transform!(make_float3<IOValue, IOErr>(f1: Float, f2: Float, f3: Float) -> Float3 {

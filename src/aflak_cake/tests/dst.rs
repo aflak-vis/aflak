@@ -53,9 +53,6 @@ fn test_make_dst_and_iterate_dependencies() {
     let s = ser::to_string(&dst).unwrap();
     let dst: DST<AlgoIO, !> = de::from_str(&s).unwrap();
 
-    assert_eq!("TransformIdx(5)", format!("{:?}", e));
-    assert_eq!("OutputId(1)", format!("{:?}", out1));
-
     assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
 }

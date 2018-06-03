@@ -89,9 +89,15 @@ where
 /// Vectors are more portable than hashmaps for serialization.
 #[derive(Clone, Debug, Serialize)]
 pub struct SerialDST<'d, T: 'd> {
-    transforms: Vec<(&'d TransformIdx, SerialTransform<'d, T>)>,
+    transforms: Vec<(&'d TransformIdx, SerialMetaTransform<'d, T>)>,
     edges: Vec<(&'d Output, &'d Input)>,
     outputs: Vec<(&'d OutputId, &'d Option<Output>)>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SerialMetaTransform<'d, T: 'd> {
+    t: SerialTransform<'d, T>,
+    input_defaults: Vec<Option<T>>,
 }
 
 impl<'d, T> SerialDST<'d, T>
@@ -101,8 +107,16 @@ where
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
             transforms: dst
-                .transforms_iter()
-                .map(|(t_idx, t)| (t_idx, SerialTransform::new(t)))
+                .meta_transforms_iter()
+                .map(|(t_idx, meta)| {
+                    (
+                        t_idx,
+                        SerialMetaTransform {
+                            t: SerialTransform::new(meta.transform()),
+                            input_defaults: meta.defaults().to_vec(),
+                        },
+                    )
+                })
                 .collect(),
             edges: dst.edges_iter().collect(),
             outputs: dst.outputs_iter().collect(),
@@ -113,9 +127,16 @@ where
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserDST<T, E> {
-    transforms: Vec<(TransformIdx, DeserTransform<T, E>)>,
+    transforms: Vec<(TransformIdx, DeserMetaTransform<T, E>)>,
     edges: Vec<(Output, Input)>,
     outputs: Vec<(OutputId, Option<Output>)>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
+pub struct DeserMetaTransform<T, E> {
+    t: DeserTransform<T, E>,
+    input_defaults: Vec<Option<T>>,
 }
 
 impl<T, E> DeserDST<T, E>
@@ -124,9 +145,9 @@ where
 {
     pub fn into(self) -> Result<DST<'static, T, E>, ImportError<E>> {
         let mut dst = DST::new();
-        for (t_idx, t) in self.transforms {
+        for (t_idx, DeserMetaTransform { t, input_defaults }) in self.transforms {
             let t = t.into()?;
-            dst.add_transform_with_idx(t_idx, t);
+            dst.add_transform_with_idx(t_idx, t, input_defaults);
         }
         for (output, input) in self.edges {
             dst.connect(output, input).map_err(|err| {

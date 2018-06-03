@@ -23,6 +23,8 @@ pub enum Node<'a, T: 'a + Clone, E: 'a> {
     Output(Option<&'a Output>),
 }
 
+const OUTPUT_NODE_SLOT: TypeId = "Out";
+
 impl<'a, T: Clone, E> Node<'a, T, E> {
     /// Get node's name.
     pub fn name(&'a self, id: &NodeId) -> Cow<'static, str> {
@@ -39,12 +41,21 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
     }
 
     /// Iterate over each type of the inputs
-    pub fn inputs_iter(&'a self) -> slice::Iter<'a, TypeId> {
-        const OUTPUT_NODE_SLOTS: [TypeId; 1] = ["Out"];
+    pub fn inputs_iter(&'a self) -> impl Iterator<Item = &'a TypeId> {
         match self {
-            &Node::Transform(t) => t.input.iter(),
-            &Node::Output(_) => OUTPUT_NODE_SLOTS.iter(),
-        }
+            &Node::Transform(t) => t.input.as_slice(),
+            &Node::Output(_) => &[(OUTPUT_NODE_SLOT, None)],
+        }.iter()
+            .map(|(id, _)| id)
+    }
+
+    /// Iterate over each default value
+    pub fn inputs_default_iter(&'a self) -> impl Iterator<Item = Option<&'a T>> {
+        match self {
+            &Node::Transform(t) => t.input.as_slice(),
+            &Node::Output(_) => &[(OUTPUT_NODE_SLOT, None)],
+        }.iter()
+            .map(|(_, default)| default.as_ref())
     }
 
     /// Return number of inputs

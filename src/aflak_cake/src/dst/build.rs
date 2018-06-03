@@ -5,10 +5,33 @@ use std::slice;
 use std::sync::RwLock;
 
 use boow::Bow;
+use variant_name::VariantName;
 
 use dst::node::{Node, NodeId};
+use dst::MetaTransform;
 use dst::{DSTError, Input, InputList, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
+
+impl<'t, T: 't, E: 't> DST<'t, T, E>
+where
+    T: Clone + VariantName,
+{
+    /// Add a borrowed transform and return its identifier [`TransformIdx`].
+    pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
+        self.add_transform_impl(Bow::Borrowed(t))
+    }
+
+    /// Add an owned transform and return its identifier [`TransformIdx`].
+    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
+        self.add_transform_impl(Bow::Owned(t))
+    }
+
+    fn add_transform_impl(&mut self, t: Bow<'t, Transformation<T, E>>) -> TransformIdx {
+        let idx = self.new_transform_idx();
+        self.transforms.insert(idx, MetaTransform::new(t));
+        idx
+    }
+}
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -26,13 +49,27 @@ where
 
     /// Get a transform from its [`TransformIdx`].
     pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
-        self.transforms.get(idx).map(|t| t.borrow())
+        self.transforms.get(idx).map(|t| t.transform())
     }
 
     /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
     pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
-        self.transforms.get_mut(idx).and_then(|t| t.borrow_mut())
+        self.transforms.get_mut(idx).and_then(|t| t.transform_mut())
+    }
+
+    /// Get a reference to a transform's default inputs from its
+    /// [`TransformIdx`].
+    /// Return [`None`] if the target transform does not exist.
+    pub fn get_default_inputs(&mut self, idx: &TransformIdx) -> Option<&[Option<T>]> {
+        self.transforms.get(idx).map(|t| t.defaults())
+    }
+
+    /// Get a mutable reference to a transform's default inputs from its
+    /// [`TransformIdx`].
+    /// Return [`None`] if the target transform does not exist.
+    pub fn get_default_inputs_mut(&mut self, idx: &TransformIdx) -> Option<&mut [Option<T>]> {
+        self.transforms.get_mut(idx).map(|t| t.defaults_mut())
     }
 
     /// Get a node from its [`NodeId`].
@@ -102,13 +139,6 @@ where
         })
     }
 
-    /// Add a borrowed transform and return its identifier [`TransformIdx`].
-    pub fn add_transform(&mut self, t: &'t Transformation<T, E>) -> TransformIdx {
-        let idx = self.new_transform_idx();
-        self.transforms.insert(idx, Bow::Borrowed(t));
-        idx
-    }
-
     /// Create transform with the [`TransformIdx`] of your choosing.
     ///
     /// You need to manage your resource yourself so take care.
@@ -118,19 +148,17 @@ where
         &mut self,
         idx: TransformIdx,
         t: Bow<'t, Transformation<T, E>>,
+        input_defaults: Vec<Option<T>>,
     ) {
-        self.transforms.insert(idx, t);
-    }
-
-    /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
-        let idx = self.new_transform_idx();
-        self.transforms.insert(idx, Bow::Owned(t));
-        idx
+        self.transforms
+            .insert(idx, MetaTransform::new_with_defaults(t, input_defaults));
     }
 
     /// Remove [`Transformation`] from [`DST`] graph.
-    pub fn remove_transform(&mut self, t_idx: &TransformIdx) -> Option<Bow<Transformation<T, E>>> {
+    pub fn remove_transform(
+        &mut self,
+        t_idx: &TransformIdx,
+    ) -> Option<(Bow<Transformation<T, E>>, Vec<Option<T>>)> {
         // Remove all connections attached to this transform's outputs
         if let Some(outputs) = self.outputs_of_transformation(t_idx) {
             for output in outputs {
@@ -161,7 +189,7 @@ where
         }
 
         // Remove transform
-        self.transforms.remove(t_idx)
+        self.transforms.remove(t_idx).map(|meta| (meta.tokenize()))
     }
 
     /// Connect an output to an input.
@@ -294,7 +322,7 @@ where
     fn input_exists(&self, input: &Input) -> bool {
         match self.transforms.get(&input.t_idx) {
             None => false,
-            Some(transform) => transform.input_exists(input.input_i.into()),
+            Some(meta) => meta.transform().input_exists(input.input_i.into()),
         }
     }
 
@@ -302,7 +330,7 @@ where
     fn output_exists(&self, output: &Output) -> bool {
         match self.transforms.get(&output.t_idx) {
             None => false,
-            Some(transform) => transform.output_exists(output.output_i.into()),
+            Some(meta) => meta.transform().output_exists(output.output_i.into()),
         }
     }
 

@@ -36,8 +36,8 @@ impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
 pub struct Transformation<T: Clone, E> {
     /// Transformation name
     pub name: TransformId,
-    /// Inputs of the transformation
-    pub input: Vec<TypeId>,
+    /// Inputs of the transformation, may include a default value
+    pub input: Vec<(TypeId, Option<T>)>,
     /// Outputs of the transformation
     pub output: Vec<TypeId>,
     /// Algorithm defining the transformation
@@ -48,7 +48,7 @@ pub struct Transformation<T: Clone, E> {
 ///
 /// Stores the state of the transformation just before it is called.
 pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
-    expected_input_types: slice::Iter<'a, TypeId>,
+    expected_input_types: slice::Iter<'a, (TypeId, Option<T>)>,
     algorithm: &'a Algorithm<T, E>,
     input: Vec<Cow<'b, T>>,
 }
@@ -106,7 +106,7 @@ where
 
     /// Return nth input type. Panic if input_i > self.input.len()
     pub fn nth_input_type(&self, input_i: usize) -> TypeId {
-        self.input[input_i]
+        self.input[input_i].0
     }
 }
 
@@ -128,10 +128,11 @@ where
 
     /// Panic if expected type is not provided or if too many arguments are supplied.
     fn check_type(&mut self, input: &T) {
-        let expected_type = *self
+        let expected_type = self
             .expected_input_types
             .next()
-            .expect("Not all type consumed");
+            .expect("Not all type consumed")
+            .0;
         if input.variant_name() != expected_type {
             panic!("Wrong type on feeding algorithm!");
         }

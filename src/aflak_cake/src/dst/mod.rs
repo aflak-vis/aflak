@@ -27,10 +27,53 @@ type Cache<T> = RwLock<Option<T>>;
 /// node is identified by a [`TransformIdx`].
 #[derive(Debug)]
 pub struct DST<'t, T: Clone + 't, E: 't> {
-    transforms: HashMap<TransformIdx, Bow<'t, Transformation<T, E>>>,
+    transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
     cache: HashMap<Output, Cache<T>>,
+}
+
+#[derive(Debug)]
+pub struct MetaTransform<'t, T: Clone + 't, E: 't> {
+    t: Bow<'t, Transformation<T, E>>,
+    input_defaults: Vec<Option<T>>,
+}
+
+impl<'t, T, E> MetaTransform<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn new(t: Bow<'t, Transformation<T, E>>) -> Self {
+        let input_defaults: Vec<_> = t.input.iter().map(|(_, default)| default.clone()).collect();
+        Self { t, input_defaults }
+    }
+
+    pub fn new_with_defaults(
+        t: Bow<'t, Transformation<T, E>>,
+        input_defaults: Vec<Option<T>>,
+    ) -> Self {
+        Self { t, input_defaults }
+    }
+
+    pub fn transform(&self) -> &Transformation<T, E> {
+        self.t.as_ref()
+    }
+
+    pub fn defaults(&self) -> &[Option<T>] {
+        &self.input_defaults
+    }
+
+    pub fn transform_mut(&mut self) -> Option<&mut Transformation<T, E>> {
+        self.t.borrow_mut()
+    }
+
+    pub fn defaults_mut(&mut self) -> &mut [Option<T>] {
+        &mut self.input_defaults
+    }
+
+    pub fn tokenize(self) -> (Bow<'t, Transformation<T, E>>, Vec<Option<T>>) {
+        (self.t, self.input_defaults)
+    }
 }
 
 /// Uniquely identify an ouput of a transformation node

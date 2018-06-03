@@ -1,10 +1,8 @@
-use std::borrow::Borrow;
 use std::collections::hash_map;
 use std::slice;
 
-use boow::Bow;
-
 use dst::node::{Node, NodeId};
+use dst::MetaTransform;
 use dst::{Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
 use transform::Transformation;
 
@@ -14,6 +12,10 @@ where
 {
     pub(crate) fn transforms_iter(&self) -> TransformIterator<T, E> {
         TransformIterator::new(self.transforms.iter())
+    }
+
+    pub(crate) fn meta_transforms_iter(&self) -> hash_map::Iter<TransformIdx, MetaTransform<T, E>> {
+        self.transforms.iter()
     }
 
     pub(crate) fn edges_iter(&self) -> EdgeIterator {
@@ -141,10 +143,10 @@ impl<'a> Iterator for EdgeIterator<'a> {
 }
 
 pub struct TransformIterator<'a, T: 'a + Clone, E: 'a> {
-    iter: hash_map::Iter<'a, TransformIdx, Bow<'a, Transformation<T, E>>>,
+    iter: hash_map::Iter<'a, TransformIdx, MetaTransform<'a, T, E>>,
 }
 impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
-    fn new(iter: hash_map::Iter<'a, TransformIdx, Bow<'a, Transformation<T, E>>>) -> Self {
+    fn new(iter: hash_map::Iter<'a, TransformIdx, MetaTransform<T, E>>) -> Self {
         Self { iter }
     }
 }
@@ -152,7 +154,7 @@ impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
 impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
     type Item = (&'a TransformIdx, &'a Transformation<T, E>);
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(idx, t)| (idx, t.borrow()))
+        self.iter.next().map(|(idx, t)| (idx, t.transform()))
     }
 }
 

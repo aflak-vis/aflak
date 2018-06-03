@@ -40,6 +40,7 @@ pub trait EditableVariants: VariantName {
 
 /// Make it easier to define a function used for a transform. Used internally
 /// by [`cake_transform`]. You probably want to directly use [`cake_transform`].
+#[doc(hidden)]
 #[macro_export]
 macro_rules! cake_fn {
     // Special case where no argument is provided
@@ -85,19 +86,21 @@ macro_rules! cake_fn {
 /// //                                                        Error type   Input arguments    Output types
 /// //      key identifying transformation  In/Out types_____/  __________/   _______________/
 /// //                                   \       |     /       /             /
-/// let plus_one_trans = cake_transform!(plus1<AlgoIO, !>(i: Integer) -> Integer {
-///     // Define the body of the transformation.
-///     // Must return a Vec<Result<AlgoIO, !>>!
+/// let plus_one_trans = cake_transform!(plus1<AlgoIO, !>(i: Integer = 0) -> Integer {
+///     // Define the body of the transformation.                      \
+///     // Must return a Vec<Result<AlgoIO, !>>!                        ~~ Default value (optional)
 ///     vec![Ok(AlgoIO::Integer(i + 1))]
 /// });
 /// ```
 #[macro_export]
 macro_rules! cake_transform {
-    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) -> $($out_type: ident),* $fn_block: block) => {{
+    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
         $crate::Transformation {
             name: stringify!($fn_name),
-            input: vec![$(stringify!($x_type), )*],
+            input: vec![$((stringify!($x_type), {
+                cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
+            }), )*],
             output: vec![$(stringify!($out_type), )*],
             algorithm: $crate::Algorithm::Function($fn_name),
         }
@@ -120,4 +123,19 @@ macro_rules! cake_constant {
             algorithm: $crate::Algorithm::Constant(constant),
         }
     }};
+}
+
+/// Helper macro for internal use.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cake_some_first_value {
+    () => {
+        None
+    };
+    ($x:expr) => {
+        Some($x)
+    };
+    ($x:expr, $($xs:expr)+) => {
+        compile_error!("Only zero or one value is expected.")
+    };
 }
