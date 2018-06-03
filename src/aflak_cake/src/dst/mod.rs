@@ -48,6 +48,13 @@ where
         Self { t, input_defaults }
     }
 
+    pub fn new_with_defaults(
+        t: Bow<'t, Transformation<T, E>>,
+        input_defaults: Vec<Option<T>>,
+    ) -> Self {
+        Self { t, input_defaults }
+    }
+
     pub fn transform(&self) -> &Transformation<T, E> {
         self.t.as_ref()
     }

@@ -148,9 +148,10 @@ where
         &mut self,
         idx: TransformIdx,
         t: Bow<'t, Transformation<T, E>>,
+        input_defaults: Vec<Option<T>>,
     ) {
-        // TODO for Serialization
-        self.transforms.insert(idx, MetaTransform::new(t));
+        self.transforms
+            .insert(idx, MetaTransform::new_with_defaults(t, input_defaults));
     }
 
     /// Remove [`Transformation`] from [`DST`] graph.

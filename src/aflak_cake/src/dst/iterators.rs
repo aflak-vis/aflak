@@ -14,6 +14,10 @@ where
         TransformIterator::new(self.transforms.iter())
     }
 
+    pub(crate) fn meta_transforms_iter(&self) -> hash_map::Iter<TransformIdx, MetaTransform<T, E>> {
+        self.transforms.iter()
+    }
+
     pub(crate) fn edges_iter(&self) -> EdgeIterator {
         EdgeIterator::new(self.edges.iter())
     }
