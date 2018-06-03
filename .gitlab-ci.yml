@@ -3,25 +3,11 @@ before_script:
   - git submodule update --init --recursive
   - cd src
 
-stable:
-  image: rust:latest
-  allow_failure: true
-  script:
-    - cargo build --all --verbose
-    - cargo test --all --verbose
-
-beta:
-  image: rustdocker/rust:beta
-  allow_failure: true
-  script:
-    - cargo build --all --verbose
-    - cargo test --all --verbose
-
 nightly:
   image: rustdocker/rust:nightly
   script:
     - cargo build --all --verbose
-    - cargo test --all --verbose
+    - cargo test --all --verbose -- --test-threads=1
 
 fmt:
   image: rustdocker/rust:nightly
