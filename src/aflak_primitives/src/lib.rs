@@ -87,7 +87,7 @@ lazy_static! {
             cake_transform!(linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image2d {
                 vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
             }),
-            cake_transform!(make_float3<IOValue, IOErr>(f1: Float, f2: Float, f3: Float) -> Float3 {
+            cake_transform!(make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
                 vec![run_make_float3(*f1, *f2, *f3)]
             }),
         ]
