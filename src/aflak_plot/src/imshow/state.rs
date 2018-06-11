@@ -5,7 +5,7 @@ use ndarray::Array2;
 use super::hist;
 use super::image;
 use super::interactions::{
-    HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine,
+    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -326,6 +326,10 @@ impl State {
                 let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
                 self.interactions.insert(new);
             }
+            if ui.menu_item(im_str!("Region of interest")).build() {
+                let new = Interaction::FinedGrainedROI(FinedGrainedROI::new());
+                self.interactions.insert(new);
+            }
         });
 
         let mut line_marked_for_deletion = None;
@@ -405,6 +409,38 @@ impl State {
                             line_marked_for_deletion = Some(*id);
                         }
                     });
+                }
+                Interaction::FinedGrainedROI(FinedGrainedROI { pixels }) => {
+                    let pixel_size_x = size.0 / tex_size.0 as f32;
+                    let pixel_size_y = size.1 / tex_size.1 as f32;
+                    const ROI_COLOR: u32 = 0x40FFFFFF;
+
+                    for &(i, j) in pixels.iter() {
+                        let i = i as f32;
+                        let j = j as f32;
+                        let x = p.0 + i / tex_size.0 as f32 * size.0;
+                        let y = p.1 + size.1 - j / tex_size.1 as f32 * size.1;
+                        draw_list.add_rect_filled_multicolor(
+                            [x, y],
+                            [x + pixel_size_x, y - pixel_size_y],
+                            ROI_COLOR,
+                            ROI_COLOR,
+                            ROI_COLOR,
+                            ROI_COLOR,
+                        )
+                    }
+
+                    // TODO: This is a very basic interface to create/delete ROI
+                    // It should be improved.
+                    if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                        let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
+                        let some_position = pixels.iter().position(|&pixel_| pixel_ == pixel);
+                        if let Some(position) = some_position {
+                            pixels.remove(position);
+                        } else {
+                            pixels.push(pixel);
+                        }
+                    }
                 }
             }
             ui.pop_id();

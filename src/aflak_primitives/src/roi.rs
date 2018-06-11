@@ -3,6 +3,7 @@ use ndarray::ArrayView2;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ROI {
     All,
+    PixelList(Vec<(usize, usize)>),
 }
 
 impl ROI {
@@ -14,6 +15,15 @@ impl ROI {
                 for j in 0..size.1 {
                     for i in 0..size.0 {
                         out.push(((i, j), *data.get([i, j]).unwrap()));
+                    }
+                }
+                out
+            }
+            ROI::PixelList(ref pixels) => {
+                let mut out = Vec::with_capacity(pixels.len());
+                for &(i, j) in pixels {
+                    if let Some(val) = data.get([i, j]) {
+                        out.push(((i, j), *val));
                     }
                 }
                 out

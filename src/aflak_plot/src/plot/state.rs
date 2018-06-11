@@ -218,6 +218,7 @@ impl State {
                 }
                 // Unused in plot
                 Interaction::HorizontalLine(_) => {}
+                Interaction::FinedGrainedROI(_) => {}
             }
             ui.pop_id();
         }

@@ -66,6 +66,10 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                     false
                 }
             }
+            IOValue::Roi(_) => {
+                ui.text("Non-writable");
+                false
+            }
             _ => false,
         };
         ui.pop_id();

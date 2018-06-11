@@ -6,6 +6,7 @@ pub enum Value {
     Float(f32),
     Float2([f32; 2]),
     Float3([f32; 3]),
+    FinedGrainedROI(Vec<(usize, usize)>),
 }
 
 impl From<i64> for Value {
@@ -33,6 +34,7 @@ impl From<[f32; 3]> for Value {
 pub enum Interaction {
     HorizontalLine(HorizontalLine),
     VerticalLine(VerticalLine),
+    FinedGrainedROI(FinedGrainedROI),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -44,6 +46,10 @@ pub struct HorizontalLine {
 pub struct VerticalLine {
     pub x_pos: f32,
     pub moving: bool,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct FinedGrainedROI {
+    pub pixels: Vec<(usize, usize)>,
 }
 
 impl HorizontalLine {
@@ -61,6 +67,12 @@ impl VerticalLine {
             x_pos,
             moving: false,
         }
+    }
+}
+
+impl FinedGrainedROI {
+    pub fn new() -> Self {
+        Self { pixels: vec![] }
     }
 }
 
@@ -98,6 +110,7 @@ impl Interactions {
         self.0.iter().any(|(_, interaction)| match interaction {
             Interaction::HorizontalLine(HorizontalLine { moving, .. }) => *moving,
             Interaction::VerticalLine(VerticalLine { moving, .. }) => *moving,
+            Interaction::FinedGrainedROI(..) => false,
         })
     }
 }
@@ -107,6 +120,9 @@ impl Interaction {
         match self {
             Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
             Interaction::VerticalLine(VerticalLine { x_pos, .. }) => Value::Float(*x_pos),
+            Interaction::FinedGrainedROI(FinedGrainedROI { pixels }) => {
+                Value::FinedGrainedROI(pixels.clone())
+            }
         }
     }
 

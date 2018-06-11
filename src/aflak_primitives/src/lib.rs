@@ -17,6 +17,7 @@ mod roi;
 mod unit;
 
 pub use export::ExportError;
+pub use roi::ROI;
 pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
 
 use std::error::Error;

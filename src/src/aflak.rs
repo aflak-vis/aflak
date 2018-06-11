@@ -10,7 +10,7 @@ use aflak_plot::{
 };
 use cake::{OutputId, TransformIdx};
 use node_editor::{ComputationState, NodeEditor};
-use primitives::{IOErr, IOValue};
+use primitives::{IOErr, IOValue, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
@@ -284,6 +284,7 @@ impl OutputWindow {
                 Value::Float(f) => IOValue::Float(f),
                 Value::Float2(f) => IOValue::Float2(f),
                 Value::Float3(f) => IOValue::Float3(f),
+                Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             };
             let value_id = (self.output, *id);
             if store.contains_key(&value_id) {
