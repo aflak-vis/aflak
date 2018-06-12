@@ -57,7 +57,7 @@ impl XTicks {
             .map(|i| {
                 let label = ImString::new(format!(
                     "{:.0}",
-                    xlims.0 + i as f32 * xlims.1 / TICK_COUNT as f32
+                    xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32
                 ));
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 width = text_size.x.max(width);
@@ -99,7 +99,7 @@ impl YTicks {
             .map(|i| {
                 let label = ImString::new(format!(
                     "{:.0}",
-                    ylims.0 + i as f32 * ylims.1 / TICK_COUNT as f32
+                    ylims.0 + i as f32 * (ylims.1 - ylims.0) / TICK_COUNT as f32
                 ));
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 height = (text_size.y + LABEL_HORIZONTAL_PADDING).max(height);
