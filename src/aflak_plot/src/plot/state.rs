@@ -91,7 +91,7 @@ impl State {
 
         draw_list.with_clip_rect_intersect(p, bottom_right_corner, || {
             draw_list
-                .add_rect(p, [p.0 + size.x, p.1 + size.y], BG_COLOR)
+                .add_rect(p, bottom_right_corner, BG_COLOR)
                 .filled(true)
                 .build();
 
