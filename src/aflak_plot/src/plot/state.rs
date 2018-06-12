@@ -153,6 +153,9 @@ impl State {
             match interaction {
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
                     const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    const LINE_LABEL_LELT_PADDING: f32 = 10.0;
+                    const LINE_LABEL_TOP_PADDING: f32 = 10.0;
+
                     let x = p.0 + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size.x;
                     let y = p.1;
 
@@ -184,6 +187,11 @@ impl State {
                     draw_list
                         .add_line([x, y], [x, y + size.y], LINE_COLOR)
                         .build();
+                    draw_list.add_text(
+                        [x + LINE_LABEL_LELT_PADDING, y + LINE_LABEL_TOP_PADDING],
+                        LINE_COLOR,
+                        &format!("{:.0}", x_pos),
+                    );
 
                     ui.popup(im_str!("edit-vertical-line"), || {
                         if ui.menu_item(im_str!("Delete Line")).build() {
