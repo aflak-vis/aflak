@@ -220,6 +220,11 @@ impl State {
                 let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.x));
                 self.interactions.insert(new);
             }
+            ui.separator();
+            if ui.menu_item(im_str!("Reset view")).build() {
+                self.zoom = ImVec2 { x: 1.0, y: 1.0 };
+                self.offset = ImVec2 { x: 0.0, y: 0.0 };
+            }
         });
 
         Ok(())
