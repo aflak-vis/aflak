@@ -70,8 +70,9 @@ impl State {
         let y_labels_height = ticks.y_labels_height();
 
         const BOTTOM_PADDING: f32 = 40.0;
+        const RIGHT_PADDING: f32 = 20.0;
         let size = ImVec2 {
-            x: size.x,
+            x: size.x - x_labels_width - RIGHT_PADDING,
             y: size.y - y_labels_height - BOTTOM_PADDING,
         };
 
