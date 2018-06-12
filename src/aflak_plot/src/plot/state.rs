@@ -132,7 +132,7 @@ impl State {
                     * (xvlims.0 + (mouse_x - p.0) / size.x * (xvlims.1 - xvlims.0));
             }
 
-            // Scroll using mouse wheel
+            // Pan by dragging mouse
             if !self.interactions.any_moving() && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
             {
                 ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
