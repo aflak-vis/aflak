@@ -185,7 +185,7 @@ impl State {
         while i >= -0.01 {
             let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
             let y_pos = tick_y_pos - text_height / 2.5;
-            let val = self.vmin + (self.vmax - self.vmin) * i;
+            let val = self.vmax + (self.vmin - self.vmax) * i;
             draw_list.add_text(
                 [x_pos + size.x + LABEL_HORIZONTAL_PADDING, y_pos],
                 COLOR,
