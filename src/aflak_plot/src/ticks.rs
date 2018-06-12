@@ -79,7 +79,7 @@ impl XTicks {
         let p = p.into();
         let size = size.into();
 
-        let x_step = size.x / self.labels.len() as f32;
+        let x_step = size.x / (self.labels.len() - 1) as f32;
         let mut x_pos = p.x;
         let y_pos = p.y + size.y;
         for (label, text_size) in self.labels {
@@ -121,7 +121,7 @@ impl YTicks {
         let p = p.into();
         let size = size.into();
 
-        let y_step = size.y / TICK_COUNT as f32;
+        let y_step = size.y / (self.labels.len() - 1) as f32;
         let mut y_pos = p.y + size.y;
         let x_pos = p.x;
         for (label, text_size) in self.labels {
