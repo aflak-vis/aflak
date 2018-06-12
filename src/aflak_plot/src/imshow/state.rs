@@ -413,7 +413,7 @@ impl State {
                 Interaction::FinedGrainedROI(FinedGrainedROI { pixels }) => {
                     let pixel_size_x = size.0 / tex_size.0 as f32;
                     let pixel_size_y = size.1 / tex_size.1 as f32;
-                    const ROI_COLOR: u32 = 0x40FFFFFF;
+                    const ROI_COLOR: u32 = 0xA0000000;
 
                     for &(i, j) in pixels.iter() {
                         let i = i as f32;
