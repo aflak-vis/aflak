@@ -70,8 +70,9 @@ impl State {
         let y_labels_height = ticks.y_labels_height();
 
         const BOTTOM_PADDING: f32 = 40.0;
+        const RIGHT_PADDING: f32 = 20.0;
         let size = ImVec2 {
-            x: size.x,
+            x: size.x - x_labels_width - RIGHT_PADDING,
             y: size.y - y_labels_height - BOTTOM_PADDING,
         };
 
@@ -90,7 +91,7 @@ impl State {
 
         draw_list.with_clip_rect_intersect(p, bottom_right_corner, || {
             draw_list
-                .add_rect(p, [p.0 + size.x, p.1 + size.y], BG_COLOR)
+                .add_rect(p, bottom_right_corner, BG_COLOR)
                 .filled(true)
                 .build();
 
@@ -131,7 +132,7 @@ impl State {
                     * (xvlims.0 + (mouse_x - p.0) / size.x * (xvlims.1 - xvlims.0));
             }
 
-            // Scroll using mouse wheel
+            // Pan by dragging mouse
             if !self.interactions.any_moving() && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
             {
                 ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
@@ -153,6 +154,9 @@ impl State {
             match interaction {
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
                     const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    const LINE_LABEL_LELT_PADDING: f32 = 10.0;
+                    const LINE_LABEL_TOP_PADDING: f32 = 10.0;
+
                     let x = p.0 + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size.x;
                     let y = p.1;
 
@@ -184,6 +188,11 @@ impl State {
                     draw_list
                         .add_line([x, y], [x, y + size.y], LINE_COLOR)
                         .build();
+                    draw_list.add_text(
+                        [x + LINE_LABEL_LELT_PADDING, y + LINE_LABEL_TOP_PADDING],
+                        LINE_COLOR,
+                        &format!("{:.0}", x_pos),
+                    );
 
                     ui.popup(im_str!("edit-vertical-line"), || {
                         if ui.menu_item(im_str!("Delete Line")).build() {
@@ -210,6 +219,11 @@ impl State {
             if ui.menu_item(im_str!("Vertical Line")).build() {
                 let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.x));
                 self.interactions.insert(new);
+            }
+            ui.separator();
+            if ui.menu_item(im_str!("Reset view")).build() {
+                self.zoom = ImVec2 { x: 1.0, y: 1.0 };
+                self.offset = ImVec2 { x: 0.0, y: 0.0 };
             }
         });
 

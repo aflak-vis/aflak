@@ -57,7 +57,7 @@ impl XTicks {
             .map(|i| {
                 let label = ImString::new(format!(
                     "{:.0}",
-                    xlims.0 + i as f32 * xlims.1 / TICK_COUNT as f32
+                    xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32
                 ));
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 width = text_size.x.max(width);
@@ -79,7 +79,7 @@ impl XTicks {
         let p = p.into();
         let size = size.into();
 
-        let x_step = size.x / self.labels.len() as f32;
+        let x_step = size.x / (self.labels.len() - 1) as f32;
         let mut x_pos = p.x;
         let y_pos = p.y + size.y;
         for (label, text_size) in self.labels {
@@ -99,7 +99,7 @@ impl YTicks {
             .map(|i| {
                 let label = ImString::new(format!(
                     "{:.0}",
-                    ylims.0 + i as f32 * ylims.1 / TICK_COUNT as f32
+                    ylims.0 + i as f32 * (ylims.1 - ylims.0) / TICK_COUNT as f32
                 ));
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 height = (text_size.y + LABEL_HORIZONTAL_PADDING).max(height);
@@ -121,7 +121,7 @@ impl YTicks {
         let p = p.into();
         let size = size.into();
 
-        let y_step = size.y / TICK_COUNT as f32;
+        let y_step = size.y / (self.labels.len() - 1) as f32;
         let mut y_pos = p.y + size.y;
         let x_pos = p.x;
         for (label, text_size) in self.labels {

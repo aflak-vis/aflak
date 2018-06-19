@@ -185,7 +185,7 @@ impl State {
         while i >= -0.01 {
             let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
             let y_pos = tick_y_pos - text_height / 2.5;
-            let val = self.vmin + (self.vmax - self.vmin) * i;
+            let val = self.vmax + (self.vmin - self.vmax) * i;
             draw_list.add_text(
                 [x_pos + size.x + LABEL_HORIZONTAL_PADDING, y_pos],
                 COLOR,
@@ -247,9 +247,11 @@ impl State {
         );
 
         if ui.is_item_hovered() {
-            let index = [self.mouse_pos.0 as usize, self.mouse_pos.1 as usize];
+            let x = self.mouse_pos.0 as usize;
+            let y = self.mouse_pos.1 as usize;
+            let index = [image.dim().1 - 1 - y, x];
             if let Some(val) = image.get(index) {
-                ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", index[0], index[1], val));
+                ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", x, y, val));
             }
 
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
