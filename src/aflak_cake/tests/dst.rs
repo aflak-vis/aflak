@@ -1,6 +1,3 @@
-#![feature(never_type)]
-#![feature(slice_patterns)]
-
 #[macro_use]
 extern crate variant_name_derive;
 extern crate variant_name;
@@ -19,7 +16,7 @@ use support::*;
 use ron::de;
 use ron::ser;
 
-fn get_all_transforms() -> [Transformation<AlgoIO, !>; 4] {
+fn get_all_transforms() -> [Transformation<AlgoIO, E>; 4] {
     [
         get_plus1_transform(),
         get_minus1_transform(),
@@ -51,7 +48,7 @@ fn test_make_dst_and_iterate_dependencies() {
 
     // Serialize and unserialize DST
     let s = ser::to_string(&dst).unwrap();
-    let dst: DST<AlgoIO, !> = de::from_str(&s).unwrap();
+    let dst: DST<AlgoIO, E> = de::from_str(&s).unwrap();
 
     assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
     assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
