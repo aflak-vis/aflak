@@ -1,7 +1,6 @@
 //! # aflak - Computational mAKE
 //!
 //! A crate to manage a graph of interdependent functions.
-#![feature(extern_prelude)]
 extern crate rayon;
 
 extern crate boow;
@@ -72,7 +71,6 @@ macro_rules! cake_fn {
 /// # Example
 ///
 /// ```rust
-/// # #![feature(never_type)]
 /// #[macro_use] extern crate variant_name_derive;
 /// #[macro_use] extern crate aflak_cake;
 /// use aflak_cake::*;
@@ -83,10 +81,12 @@ macro_rules! cake_fn {
 ///     Image2d(Vec<Vec<f64>>),
 /// }
 ///
+/// pub enum E {}
+///
 /// //                                                        Error type   Input arguments    Output types
 /// //      key identifying transformation  In/Out types_____/  __________/   _______________/
 /// //                                   \       |     /       /             /
-/// let plus_one_trans = cake_transform!(plus1<AlgoIO, !>(i: Integer = 0) -> Integer {
+/// let plus_one_trans = cake_transform!(plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
 ///     // Define the body of the transformation.                      \
 ///     // Must return a Vec<Result<AlgoIO, !>>!                        ~~ Default value (optional)
 ///     vec![Ok(AlgoIO::Integer(i + 1))]

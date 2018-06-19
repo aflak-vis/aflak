@@ -9,7 +9,7 @@ by providing a visual programming language interface.
 
 ## Getting started
 
-Install rust **nightly** toolchain with [rustup](https://rustup.rs/).
+Install the rust toolchain with [rustup](https://rustup.rs/).
 Then clone the git repository.
 
 You need to initialize the git submodules.

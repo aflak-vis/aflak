@@ -1,5 +1,3 @@
-#![feature(never_type)]
-
 #[macro_use]
 extern crate variant_name_derive;
 extern crate variant_name;
