@@ -1,5 +1,12 @@
 # Aflak - アフラーク
 
+**Aflak** - A visualization environment to analyze astronomical datasets
+by providing a visual programming language interface.
+
+![Screenshot of Aflak](images/aflak-screen.png)
+
+**IN ACTIVE DEVELOPMENT: Features and API highly unstable!**
+
 ## Getting started
 
 Install rust **nightly** toolchain with [rustup](https://rustup.rs/).
