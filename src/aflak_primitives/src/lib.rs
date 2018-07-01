@@ -14,6 +14,7 @@ extern crate serde_derive;
 
 mod roi;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use ndarray::{Array1, Array2, Array3};
@@ -26,6 +27,7 @@ pub enum IOValue {
     Float2([f32; 2]),
     Float3([f32; 3]),
     Str(String),
+    Path(PathBuf),
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
@@ -50,6 +52,7 @@ impl PartialEq for IOValue {
             (Image3d(i1), Image3d(i2)) => i1 == i2,
             (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
             (Roi(r1), Roi(r2)) => r1 == r2,
+            (Path(p1), Path(p2)) => p1 == p2,
             _ => false,
         }
     }
@@ -66,7 +69,7 @@ pub enum IOErr {
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
         vec![
-            cake_transform!(open_fits<IOValue, IOErr>(path: Str) -> Fits {
+            cake_transform!(open_fits<IOValue, IOErr>(path: Path) -> Fits {
                 vec![run_open_fits(path)]
             }),
             cake_transform!(fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
@@ -114,6 +117,7 @@ impl cake::DefaultFor for IOValue {
             "Float3" => IOValue::Float3([0.0; 3]),
             "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
+            "Path" => IOValue::Path(PathBuf::from("/")),
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
     }
@@ -121,13 +125,13 @@ impl cake::DefaultFor for IOValue {
 
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
-        &["Integer", "Float", "Float2", "Float3", "Roi", "Str"]
+        &["Integer", "Float", "Float2", "Float3", "Roi", "Str", "Path"]
     }
 }
 
 /// Open FITS file
-fn run_open_fits(path: &str) -> Result<IOValue, IOErr> {
-    fitrs::Fits::open(path)
+fn run_open_fits(path: &PathBuf) -> Result<IOValue, IOErr> {
+    fitrs::Fits::open(path.to_str().unwrap_or(""))
         .map(|fits| IOValue::Fits(Arc::new(fits)))
         .map_err(|err| IOErr::NotFound(err.to_string()))
 }
