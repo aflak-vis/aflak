@@ -17,3 +17,4 @@ glium = { version = "0.20", default-features = true }
 aflak_primitives = { path = "../aflak_primitives" }
 ui_image1d = { path = "../ui_image1d" }
 ui_image2d = { path = "../ui_image2d" }
+imgui_file_explorer = { path = "../imgui_file_explorer" }
