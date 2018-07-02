@@ -8,7 +8,5 @@ authors = ["Rikuo Uchiki <dbkn_rikuo@keio.jp>"]
 imgui = {path = "../../imgui-rs" }
 
 [dev-dependencies]
-gfx = "0.17"
 glium = { version = "0.21", default-features = true }
-imgui-gfx-renderer = { version = "0.0.19-pre", path = "imgui-rs/imgui-gfx-renderer" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
