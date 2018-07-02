@@ -5,14 +5,12 @@ before_script:
 
 stable:
   image: rust:latest
-  allow_failure: true
   script:
     - cargo build --all --verbose
     - cargo test --all --verbose -- --test-threads=1
 
 beta:
   image: rustdocker/rust:beta
-  allow_failure: true
   script:
     - cargo build --all --verbose
     - cargo test --all --verbose -- --test-threads=1
