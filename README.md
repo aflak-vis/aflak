@@ -23,15 +23,20 @@ git submodule update --init --recursive
 
 ```sh
 cd aflak/src
-cargo build
+cargo build --release
 ```
 
-## Run NodeEditor example
+## Run aflak
 
 ```sh
-cd aflak/src/node_editor
-cargo run --example empty
+cd aflak/src
+cargo run --release
 ```
+
+**NB**: The first time you run aflak, the window layout will be completely
+messed up. You will need to resize all the windows with the mouse only the
+very first time your run aflak. This needs to be fixed.
+Hopefully, aflak remembers the arrangement of your windows between sessions.
 
 ## Development
 
@@ -48,20 +53,16 @@ cargo doc --open
 - **aflak_primitives**: Define transformation types and primitives for use in
 astrophysics.
 - **node_editor**: Node editor built on *aflak_cake* and *imgui*.
-**node_editor** contains an example called *empty* showing how the front-end
-for aflak should be implemented. This is not a full front-end yet!
 
 ## Tests
 
 ```sh
 cd aflak/src
-cargo test
+cargo test --all
 ```
 
 ## TODO
 
-- **imgui_file_explorer** crate
-- Aflak complete front-end
 - Write output to FITS files
 - Output window automatic layout: Current default layout is completely dumb.
 - Zooming in node editor
