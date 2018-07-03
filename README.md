@@ -58,7 +58,7 @@ astrophysics.
 
 ```sh
 cd aflak/src
-cargo test
+cargo test --all
 ```
 
 ## TODO
