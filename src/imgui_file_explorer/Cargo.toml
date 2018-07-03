@@ -5,6 +5,7 @@ authors = ["Rikuo Uchiki <dbkn_rikuo@keio.jp>"]
 
 
 [dependencies]
+cfg-if = "0.1"
 imgui = {path = "../../imgui-rs" }
 
 [dev-dependencies]

@@ -63,7 +63,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 ui.child_frame(im_str!("edit"), (size.0.max(200.0), 150.0))
                     .scrollbar_horizontal(true)
                     .build(|| {
-                        ret = ui.file_explorer("/home", &["fits"]);
+                        ret = ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["fits"]);
                     });
                 if let Ok(Some(new_file)) = ret {
                     if *file != new_file {

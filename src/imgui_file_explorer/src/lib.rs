@@ -1,4 +1,7 @@
 extern crate imgui;
+#[macro_use]
+extern crate cfg_if;
+
 use std::cmp::Ordering;
 use std::path::*;
 use std::{fs, io};
@@ -27,6 +30,14 @@ fn has_extension<P: AsRef<Path>, S: AsRef<str>>(path: P, extensions: &[S]) -> bo
         }
     } else {
         false
+    }
+}
+
+cfg_if! {
+    if #[cfg(unix)] {
+        pub const TOP_FOLDER: &str = "/";
+    } else {
+        pub const TOP_FOLDER: &str = "C:";
     }
 }
 
