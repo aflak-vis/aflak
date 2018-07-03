@@ -1,4 +1,5 @@
 extern crate imgui;
+use std::cmp::Ordering;
 use std::path::*;
 use std::{fs, io};
 
@@ -10,66 +11,90 @@ pub trait UiFileExplorer {
     /// Return the selected path, if any.
     fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
     where
-        T: AsRef<str>,
+        T: AsRef<Path>,
         S: AsRef<str>;
+}
+
+fn has_extension<P: AsRef<Path>, S: AsRef<str>>(path: P, extensions: &[S]) -> bool {
+    let path = path.as_ref();
+    if let Some(test_ext) = path.extension() {
+        if let Some(test_ext) = test_ext.to_str() {
+            extensions
+                .iter()
+                .any(|ext| test_ext.to_lowercase() == ext.as_ref().to_lowercase())
+        } else {
+            false
+        }
+    } else {
+        false
+    }
 }
 
 /// Ui extends
 impl<'ui> UiFileExplorer for Ui<'ui> {
     fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
     where
-        T: AsRef<str>,
+        T: AsRef<Path>,
         S: AsRef<str>,
     {
         let ret = view_dirs(&self, target, extensions);
-        fn view_dirs<'a, T: AsRef<str>, S: AsRef<str>>(
+
+        fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             ui: &Ui<'a>,
             target: T,
             extensions: &[S],
         ) -> io::Result<Option<PathBuf>> {
-            let mut files: Vec<String> = Vec::new();
-            for path in fs::read_dir(target.as_ref())? {
-                let path = path?;
-                files.push(
-                    path.path()
-                        .display()
-                        .to_string()
-                        .replacen(target.as_ref(), "", 1),
-                );
-            }
-            files.sort();
-            let mut ret = Ok(None);
-            for i in files {
-                let each_target = target.as_ref().to_string() + &i;
-                if Path::new(&each_target).is_dir() && Path::new(&each_target).exists() {
-                    ui.tree_node(im_str!("{}", i.replacen(MAIN_SEPARATOR, "", 1)))
-                        .build(|| {
-                            ret = view_dirs(ui, &each_target, extensions);
-                        });
-                } else {
-                    let mut isprint = false;
-                    for file_ext in extensions {
-                        if Path::new(&each_target).extension() != None
-                            && file_ext.as_ref().to_string().replacen(".", "", 1)
-                                == Path::new(&each_target)
-                                    .extension()
-                                    .unwrap_or(std::ffi::OsStr::new(""))
-                                    .to_str()
-                                    .unwrap_or("")
-                        {
-                            isprint = true;
-                            break;
+            let target = target.as_ref();
+            let mut files = Vec::new();
+
+            for direntry in fs::read_dir(target)? {
+                match direntry {
+                    Ok(direntry) => {
+                        let path = direntry.path();
+                        if path.is_dir() || has_extension(&path, extensions) {
+                            files.push(path);
                         }
                     }
-                    if isprint == true {
-                        ui.bullet_text(im_str!(""));
-                        ui.same_line(0.0);
-                        if ui.small_button(im_str!("Open {:?}", i.replacen(MAIN_SEPARATOR, "", 1)))
-                        {
-                            println!("Open \"{}\"", i.replacen(MAIN_SEPARATOR, "", 1));
-                            ret = Ok(Some(PathBuf::from(each_target)));
-                            /*some load events*/
+                    Err(e) => eprintln!("Error on listing files: {:?}", e),
+                }
+            }
+
+            // Sort folder first
+            files.sort_by(|path1, path2| match (path1.is_dir(), path2.is_dir()) {
+                (true, true) => path1.cmp(path2),
+                (false, false) => path1.cmp(path2),
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+            });
+
+            let mut ret = Ok(None);
+            for i in files {
+                if i.is_dir() {
+                    if let Some(dirname) = i.file_name() {
+                        if let Some(dirname) = dirname.to_str() {
+                            let im_dirname = ImString::new(dirname);
+                            ui.tree_node(&im_dirname).build(|| {
+                                ret = view_dirs(ui, &i, extensions);
+                            });
+                        } else {
+                            eprintln!("Could not get str out of directory: {:?}", i);
                         }
+                    } else {
+                        eprintln!("Could not get dirname for path: {:?}", i);
+                    }
+                } else {
+                    if let Some(file_name) = i.file_name() {
+                        if let Some(file_name) = file_name.to_str() {
+                            ui.bullet_text(im_str!(""));
+                            ui.same_line(0.0);
+                            if ui.small_button(&ImString::new(file_name)) {
+                                ret = Ok(Some(i.clone()));
+                            }
+                        } else {
+                            eprintln!("Could not get str out of file: {:?}", i);
+                        }
+                    } else {
+                        eprintln!("Could not get file_name for path: {:?}", i);
                     }
                 }
             }

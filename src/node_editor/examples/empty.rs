@@ -56,8 +56,25 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 ui.input_float3(im_str!("3 floats value"), floats).build()
             }
             &mut IOValue::Path(ref mut file) => {
-                let ret = ui.file_explorer(file.to_str().unwrap_or(""), &[".fits", ".csv"]);
-                ret.is_ok()
+                ui.text(file.to_str().unwrap_or("Unrepresentable path"));
+                let size = ui.get_item_rect_size();
+
+                let mut ret = Ok(None);
+                ui.child_frame(im_str!("edit"), (size.0.max(200.0), 150.0))
+                    .scrollbar_horizontal(true)
+                    .build(|| {
+                        ret = ui.file_explorer("/home", &["fits"]);
+                    });
+                if let Ok(Some(new_file)) = ret {
+                    if *file != new_file {
+                        *file = new_file;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
             }
             _ => false,
         };

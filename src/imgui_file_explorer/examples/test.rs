@@ -16,7 +16,7 @@ fn test(ui: &Ui) {
         .position((200.0, 200.0), ImGuiCond::FirstUseEver);
     window.build(|| {
         ui.push_item_width(-140.0);
-        let file = ui.file_explorer("/", &[".fits", ".csv"]);
+        let file = ui.file_explorer("/", &["fits", "csv"]);
         if let Ok(Some(file)) = file {
             println!("{:?}", file);
         }
