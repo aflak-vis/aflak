@@ -14,7 +14,7 @@ extern crate serde_derive;
 
 mod roi;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use ndarray::{Array1, Array2, Array3};
@@ -130,8 +130,8 @@ impl cake::EditableVariants for IOValue {
 }
 
 /// Open FITS file
-fn run_open_fits(path: &PathBuf) -> Result<IOValue, IOErr> {
-    fitrs::Fits::open(path.to_str().unwrap_or(""))
+fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
+    fitrs::Fits::open(path)
         .map(|fits| IOValue::Fits(Arc::new(fits)))
         .map_err(|err| IOErr::NotFound(err.to_string()))
 }
