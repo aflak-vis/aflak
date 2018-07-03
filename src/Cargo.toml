@@ -1,3 +1,20 @@
+[package]
+name = "aflak"
+version = "0.1.0"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+aflak_cake = { path = "./aflak_cake" }
+aflak_primitives = { path = "./aflak_primitives" }
+imgui_file_explorer = { path = "./imgui_file_explorer" }
+node_editor = { path = "./node_editor" }
+ui_image1d = { path = "./ui_image1d" }
+ui_image2d = { path = "./ui_image2d" }
+
+glium = { version = "0.20", default-features = true }
+imgui = { path = "../imgui-rs" }
+imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer" }
+
 [workspace]
 members = [
     "aflak_cake",
