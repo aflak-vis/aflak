@@ -46,7 +46,7 @@
             )),
             ((1), (
                 t: Constant([
-                    Str("/home/malik/workspace/lab/aflak/data/manga-7443-12703-LINCUBE.fits"),
+                    Path("/path/to/my/fits/file/data/manga-7443-12703-LINCUBE.fits"),
                 ]),
                 input_defaults: [
                 ],

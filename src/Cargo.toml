@@ -3,6 +3,7 @@ members = [
     "aflak_cake",
     "aflak_plot",
     "aflak_primitives",
+    "imgui_file_explorer",
     "node_editor",
     "ui_image1d",
     "ui_image2d",

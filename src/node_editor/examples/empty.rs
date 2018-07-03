@@ -5,6 +5,7 @@ extern crate imgui_glium_renderer;
 
 extern crate aflak_cake as cake;
 extern crate aflak_primitives as primitives;
+extern crate imgui_file_explorer;
 extern crate node_editor;
 extern crate ui_image1d;
 extern crate ui_image2d;
@@ -16,6 +17,7 @@ use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
 use glium::backend::Facade;
 use imgui::{ImString, Ui};
+use imgui_file_explorer::UiFileExplorer;
 use imgui_glium_renderer::{AppConfig, AppContext};
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
@@ -52,6 +54,27 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             }
             &mut IOValue::Float3(ref mut floats) => {
                 ui.input_float3(im_str!("3 floats value"), floats).build()
+            }
+            &mut IOValue::Path(ref mut file) => {
+                ui.text(file.to_str().unwrap_or("Unrepresentable path"));
+                let size = ui.get_item_rect_size();
+
+                let mut ret = Ok(None);
+                ui.child_frame(im_str!("edit"), (size.0.max(200.0), 150.0))
+                    .scrollbar_horizontal(true)
+                    .build(|| {
+                        ret = ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["fits"]);
+                    });
+                if let Ok(Some(new_file)) = ret {
+                    if *file != new_file {
+                        *file = new_file;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
             }
             _ => false,
         };
