@@ -249,9 +249,11 @@ impl State {
         if ui.is_item_hovered() {
             let x = self.mouse_pos.0 as usize;
             let y = self.mouse_pos.1 as usize;
-            let index = [image.dim().1 - 1 - y, x];
-            if let Some(val) = image.get(index) {
-                ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", x, y, val));
+            if y < image.dim().1 {
+                let index = [image.dim().1 - 1 - y, x];
+                if let Some(val) = image.get(index) {
+                    ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", x, y, val));
+                }
             }
 
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
