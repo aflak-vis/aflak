@@ -63,8 +63,6 @@ cargo test --all
 
 ## TODO
 
-- **imgui_file_explorer** crate
-- Aflak complete front-end
 - Write output to FITS files
 - Output window automatic layout: Current default layout is completely dumb.
 - Zooming in node editor
