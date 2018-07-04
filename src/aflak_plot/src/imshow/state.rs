@@ -103,6 +103,14 @@ impl State {
                     util::invert_color(min_color),
                 )
                 .build();
+            if lims.0 != 0.0 {
+                let min_threshold = util::lerp(self.vmin, self.vmax, lims.0);
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("{:.2}", min_threshold),
+                );
+            }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
@@ -141,6 +149,14 @@ impl State {
                     util::invert_color(max_color),
                 )
                 .build();
+            if lims.1 != 1.0 {
+                let max_threshold = util::lerp(self.vmin, self.vmax, lims.1);
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("{:.2}", max_threshold),
+                );
+            }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
