@@ -22,7 +22,7 @@ nightly:
     - cargo test --all --verbose -- --test-threads=1
 
 fmt:
-  image: rustdocker/rust:nightly
+  image: rust:latest
   script:
     - rustup component add rustfmt-preview
     - cargo fmt --version
