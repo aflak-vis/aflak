@@ -9,7 +9,7 @@ license = "GPL-3.0-only"
 aflak_plot = { path = "../aflak_plot", version = "0.0.1" }
 
 [dev-dependencies]
-glium = "0.20"
+glium = "0.22"
 aflak_imgui = { path = "../../imgui-rs" }
 aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
 ndarray = "0.11"

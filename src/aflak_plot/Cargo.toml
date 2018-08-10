@@ -6,7 +6,7 @@ description = "Plotting library using imgui made for aflak"
 license = "GPL-3.0-only"
 
 [dependencies]
-glium = "0.20"
+glium = "0.22"
 aflak_imgui = { path = "../../imgui-rs", version = "0.18.1" }
 aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.18.1" }
 ndarray = "0.11"

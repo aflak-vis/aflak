@@ -10,5 +10,5 @@ cfg-if = "0.1"
 aflak_imgui = {path = "../../imgui-rs", version = "0.18.1" }
 
 [dev-dependencies]
-glium = { version = "0.20", default-features = true }
+glium = { version = "0.22", default-features = true }
 aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.18.1" }

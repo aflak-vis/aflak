@@ -13,6 +13,7 @@ extern crate ui_image1d;
 extern crate ui_image2d;
 
 use std::collections::HashMap;
+use std::env;
 use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
@@ -87,6 +88,8 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 }
 
 fn main() {
+    env::set_var("WINIT_HIDPI_FACTOR", "1");
+
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
     let import_data = Cursor::new(include_str!("output_image_2d.ron"));

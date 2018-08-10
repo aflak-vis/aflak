@@ -16,7 +16,7 @@ node_editor = { path = "./node_editor", version = "0.0.1" }
 ui_image1d = { path = "./ui_image1d", version = "0.0.1" }
 ui_image2d = { path = "./ui_image2d", version = "0.0.1" }
 
-glium = { version = "0.20", default-features = true }
+glium = { version = "0.22", default-features = true }
 aflak_imgui = { path = "../imgui-rs", version = "0.18.1" }
 aflak_imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.18.1" }
 
