@@ -1,9 +1,11 @@
 [package]
 name = "variant_name"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+description = "Trait to extract the name of an enumeration's variants"
+license = "GPL-3.0-only"
 
 [dependencies]
 
 [dev-dependencies]
-variant_name_derive = { path = "../variant_name_derive" }
+variant_name_derive = { path = "../variant_name_derive", version = "0.0.1" }

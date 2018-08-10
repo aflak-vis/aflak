@@ -1,10 +1,12 @@
 [package]
 name = "aflak_cake"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+description = "Computational mAKE: Manage a graph of interdependent functions"
+license = "GPL-3.0-only"
 
 [dependencies]
-variant_name = { path = "../variant_name" }
+variant_name = { path = "../variant_name", version = "0.0.1" }
 boow = "0.1"
 rayon = "1.0"
 serde = "1.0"
@@ -13,4 +15,4 @@ serde_derive = "1.0"
 [dev-dependencies]
 ron = "0.2"
 lazy_static = "1.0"
-variant_name_derive = { path = "../variant_name_derive" }
+variant_name_derive = { path = "../variant_name_derive", version = "0.0.1" }

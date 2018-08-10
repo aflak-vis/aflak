@@ -1,13 +1,15 @@
 [package]
 name = "ui_image2d"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+description = "Wrap aflak_plot's 2D image visualization functions"
+license = "GPL-3.0-only"
 
 [dependencies]
-aflak_plot = { path = "../aflak_plot" }
+aflak_plot = { path = "../aflak_plot", version = "0.0.1" }
 
 [dev-dependencies]
 glium = "0.20"
-imgui = { path = "../../imgui-rs" }
-imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
+aflak_imgui = { path = "../../imgui-rs" }
+aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
 ndarray = "0.11"

@@ -1,6 +1,6 @@
 extern crate aflak_cake as cake;
 #[macro_use]
-extern crate imgui;
+extern crate aflak_imgui as imgui;
 extern crate rayon;
 extern crate ron;
 
