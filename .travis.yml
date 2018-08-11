@@ -16,3 +16,12 @@ before_install:
 script:
   - cargo build --all --verbose
   - cargo test --all --verbose -- --test-threads=1
+
+jobs:
+  include:
+    - stage: fmt
+      install:
+        - rustup component add rustfmt-preview
+        - cargo fmt --version
+      script:
+        - cargo fmt --all -- --check
