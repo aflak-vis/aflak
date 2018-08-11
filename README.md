@@ -12,6 +12,8 @@ by providing a visual programming language interface.
 
 ## Getting started
 
+Minimum Rust version: 1.26.2.
+
 Install the rust toolchain with [rustup](https://rustup.rs/).
 Then clone the git repository.
 
