@@ -3,6 +3,12 @@ before_script:
   - git submodule update --init --recursive
   - cd src
 
+oldest-stable:
+  image: rust:1.26
+  script:
+    - cargo build --all --verbose
+    - cargo test --all --verbose -- --test-threads=1
+
 stable:
   image: rust:latest
   script:
