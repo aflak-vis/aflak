@@ -1,9 +1,12 @@
 [package]
 name = "aflak"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Advanced Framework for Learning Astrophysical Knowledge"
 license = "GPL-3.0-only"
+homepage = "https://github.com/aflak-vis/aflak"
+repository = "https://github.com/aflak-vis/aflak"
+readme = "../README.md"
 
 [dependencies]
 aflak_cake = { path = "./aflak_cake", version = "0.0.1" }

@@ -1,3 +1,5 @@
+//! # aflak - Advanced Framework for Learning Astrophysical Knowledge
+//!
 extern crate glium;
 #[macro_use]
 extern crate aflak_imgui as imgui;

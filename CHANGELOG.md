@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [v0.0.2] - 2018-08-11
+
+- Improve doc
+
 ## [v0.0.1] - 2018-07-04
 
 - Very first release
