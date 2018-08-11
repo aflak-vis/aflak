@@ -4,6 +4,7 @@
 by providing a visual programming language interface.
 
 [![Build Status](https://travis-ci.org/aflak-vis/aflak.svg?branch=master)](https://travis-ci.org/aflak-vis/aflak)
+[![Latest release on crates.io](https://meritbadge.herokuapp.com/aflak)](https://crates.io/crates/aflak)
 
 ![Screenshot of Aflak](images/aflak-screen.png)
 
