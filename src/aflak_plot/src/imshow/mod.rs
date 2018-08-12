@@ -21,21 +21,27 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// #[macro_use] extern crate aflak_imgui as imgui;
-    /// extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
+    /// extern crate imgui_glium_support as support;
     /// extern crate ndarray;
     /// extern crate ui_image2d;
     ///
     /// use imgui::Ui;
-    /// use imgui_glium_renderer::AppContext;
     /// use ndarray::Array2;
     /// use ui_image2d::UiImage2d;
     ///
-    /// fn run(ui: &Ui, ctx: &AppContext) -> Result<(), ui_image2d::Error> {
+    /// fn main() {
     ///     let data = Array2::eye(10);
     ///     let mut state = ui_image2d::State::default();
-    ///     ui.image2d(ctx, im_str!("Show my image!"), &data, &mut state)
+    ///     support::run(Default::default(), |ui, gl_ctx| {
+    ///         if let Err(e) = ui.image2d(gl_ctx, im_str!("Show my image!"), &data, &mut state) {
+    ///             eprintln!("{:?}", e);
+    ///             false
+    ///         } else {
+    ///             true
+    ///         }
+    ///     }).unwrap()
     /// }
     /// ```
     fn image2d<F>(
