@@ -11,5 +11,5 @@ aflak_plot = { path = "../aflak_plot", version = "0.0.1" }
 [dev-dependencies]
 glium = "0.22"
 aflak_imgui = { path = "../../imgui-rs" }
-aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
+imgui_glium_support = { path = "../imgui_glium_support" }
 ndarray = "0.11"
