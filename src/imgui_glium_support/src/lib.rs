@@ -1,3 +1,7 @@
+extern crate aflak_imgui as imgui;
+extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
+extern crate glium;
+
 use std::rc::Rc;
 use std::result;
 use std::time::Instant;

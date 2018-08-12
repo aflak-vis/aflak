@@ -1,0 +1,9 @@
+[package]
+name = "imgui_glium_support"
+version = "0.0.1"
+authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+
+[dependencies]
+glium = { version = "0.22", features = ["glutin"] }
+aflak_imgui = { path = "../../imgui-rs", version = "0.18.1" }
+aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.18.1" }

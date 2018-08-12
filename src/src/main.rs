@@ -8,11 +8,10 @@ extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
 extern crate aflak_cake as cake;
 extern crate aflak_imgui_file_explorer as imgui_file_explorer;
 extern crate aflak_primitives as primitives;
+extern crate imgui_glium_support as support;
 extern crate node_editor;
 extern crate ui_image1d;
 extern crate ui_image2d;
-
-mod support;
 
 use std::collections::HashMap;
 use std::env;
