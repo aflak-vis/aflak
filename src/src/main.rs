@@ -12,16 +12,16 @@ extern crate node_editor;
 extern crate ui_image1d;
 extern crate ui_image2d;
 
+mod support;
+
 use std::collections::HashMap;
 use std::env;
 use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
-use glium::backend::Facade;
 use imgui::{ImString, Ui};
 use imgui_file_explorer::UiFileExplorer;
-use imgui_glium_renderer::{AppConfig, AppContext};
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
 
@@ -97,19 +97,16 @@ fn main() {
         NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
             .expect("Import failed");
 
-    let mut app = AppContext::init(
-        "Node editor example".to_owned(),
-        AppConfig {
-            clear_color: CLEAR_COLOR,
-            ini_filename: Some(ImString::new("node_editor_example.ini")),
-            ..Default::default()
-        },
-    ).unwrap();
-    let gl_ctx = app.get_context().clone();
     let mut image1d_states = HashMap::new();
     let mut image2d_states = HashMap::new();
     let mut editable_values = HashMap::new();
-    app.run(|ui| {
+    let config = support::AppConfig {
+        title: "Node editor example".to_owned(),
+        clear_color: CLEAR_COLOR,
+        ini_filename: Some(ImString::new("node_editor_example.ini")),
+        ..Default::default()
+    };
+    support::run(config, |ui, gl_ctx| {
         ui.window(im_str!("Node editor")).build(|| {
             node_editor.render(ui);
         });
@@ -164,7 +161,7 @@ fn main() {
                                 let state = image2d_states
                                     .entry(window_name.clone())
                                     .or_insert_with(|| ui_image2d::State::default());
-                                if let Err(e) = ui.image2d(&gl_ctx, &window_name, image, state) {
+                                if let Err(e) = ui.image2d(gl_ctx, &window_name, image, state) {
                                     ui.text(format!("{:?}", e));
                                 }
                                 update_editor_from_state(
