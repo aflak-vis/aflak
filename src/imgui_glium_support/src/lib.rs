@@ -1,6 +1,16 @@
-extern crate aflak_imgui as imgui;
-extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
+#[macro_use]
+extern crate cfg_if;
 extern crate glium;
+
+cfg_if! {
+    if #[cfg(feature = "aflak")] {
+        extern crate aflak_imgui as imgui;
+        extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
+    } else {
+        extern crate imgui;
+        extern crate imgui_glium_renderer;
+    }
+}
 
 use std::rc::Rc;
 use std::result;

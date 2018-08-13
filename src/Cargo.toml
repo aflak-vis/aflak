@@ -12,7 +12,7 @@ readme = "../README.md"
 aflak_cake = { path = "./aflak_cake", version = "0.0.1" }
 aflak_primitives = { path = "./aflak_primitives", version = "0.0.1" }
 aflak_imgui_file_explorer = { path = "./imgui_file_explorer", version = "0.0.1" }
-imgui_glium_support = { path = "./imgui_glium_support", version = "0.0.1" }
+imgui_glium_support = { path = "./imgui_glium_support", version = "0.0.1", features = ["aflak"] }
 node_editor = { path = "./node_editor", version = "0.0.1" }
 ui_image1d = { path = "./ui_image1d", version = "0.0.1" }
 ui_image2d = { path = "./ui_image2d", version = "0.0.1" }
