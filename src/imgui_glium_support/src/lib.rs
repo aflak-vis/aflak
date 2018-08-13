@@ -10,7 +10,7 @@ use glium::{
     backend::{glutin::DisplayCreationError, Context, Facade},
     glutin, Display, Surface, SwapBuffersError,
 };
-use imgui::{ImGui, ImGuiMouseCursor, ImString, Ui};
+use imgui::{FrameSize, ImGui, ImGuiMouseCursor, ImString, Ui};
 use imgui_glium_renderer::{Renderer, RendererError};
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
@@ -186,13 +186,16 @@ pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F
             });
         }
 
-        let size_points = gl_window
+        let logical_size = gl_window
             .get_inner_size()
             .ok_or_else(|| Error::Message("Window no longer exists!".to_owned()))?;
-        let hdipi = gl_window.get_hidpi_factor();
-        let size_pixels = size_points.to_physical(hdipi);
 
-        let ui = imgui.frame(size_points.into(), size_pixels.into(), delta_s);
+        let frame_size = FrameSize {
+            logical_size: logical_size.into(),
+            hidpi_factor: gl_window.get_hidpi_factor(),
+        };
+
+        let ui = imgui.frame(frame_size, delta_s);
         if !run_ui(&ui, display.get_context()) {
             break;
         }
@@ -241,7 +244,7 @@ fn configure_keys(imgui: &mut ImGui) {
 
 fn update_mouse(imgui: &mut ImGui, mouse_state: &mut MouseState) {
     imgui.set_mouse_pos(mouse_state.pos.0 as f32, mouse_state.pos.1 as f32);
-    imgui.set_mouse_down(&[
+    imgui.set_mouse_down([
         mouse_state.pressed.0,
         mouse_state.pressed.1,
         mouse_state.pressed.2,

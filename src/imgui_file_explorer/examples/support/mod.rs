@@ -1,4 +1,4 @@
-use imgui::{FontGlyphRange, ImFontConfig, ImGui, ImGuiMouseCursor, Ui};
+use imgui::{FontGlyphRange, FrameSize, ImFontConfig, ImGui, ImGuiMouseCursor, Ui};
 use std::time::Instant;
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
@@ -133,11 +133,14 @@ pub fn run<F: FnMut(&Ui) -> bool>(title: String, clear_color: [f32; 4], mut run_
             });
         }
 
-        let size_points = gl_window.get_inner_size().unwrap();
-        let hdipi = gl_window.get_hidpi_factor();
-        let size_pixels = size_points.to_physical(hdipi);
+        let logical_size = gl_window.get_inner_size().unwrap();
 
-        let ui = imgui.frame(size_points.into(), size_pixels.into(), delta_s);
+        let frame_size = FrameSize {
+            logical_size: logical_size.into(),
+            hidpi_factor: gl_window.get_hidpi_factor(),
+        };
+
+        let ui = imgui.frame(frame_size, delta_s);
         if !run_ui(&ui) {
             break;
         }
@@ -184,7 +187,7 @@ fn configure_keys(imgui: &mut ImGui) {
 
 fn update_mouse(imgui: &mut ImGui, mouse_state: &mut MouseState) {
     imgui.set_mouse_pos(mouse_state.pos.0 as f32, mouse_state.pos.1 as f32);
-    imgui.set_mouse_down(&[
+    imgui.set_mouse_down([
         mouse_state.pressed.0,
         mouse_state.pressed.1,
         mouse_state.pressed.2,
