@@ -73,13 +73,14 @@ impl From<SwapBuffersError> for Error {
 pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F) -> Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let context = glutin::ContextBuilder::new().with_vsync(true);
-    let window = glutin::WindowBuilder::new()
+    let builder = glutin::WindowBuilder::new()
         .with_title(config.title)
         .with_dimensions(glutin::dpi::LogicalSize::new(
             config.window_width as f64,
             config.window_height as f64,
         ));
-    let display = Display::new(window, context, &events_loop)?;
+    let display = Display::new(builder, context, &events_loop)?;
+    let window = display.gl_window();
 
     let mut imgui = ImGui::init();
     imgui.set_ini_filename(config.ini_filename);
@@ -165,16 +166,14 @@ pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F
 
         update_mouse(&mut imgui, &mut mouse_state);
 
-        let gl_window = display.gl_window();
-
         let mouse_cursor = imgui.mouse_cursor();
         if imgui.mouse_draw_cursor() || mouse_cursor == ImGuiMouseCursor::None {
             // Hide OS cursor
-            gl_window.hide_cursor(true);
+            window.hide_cursor(true);
         } else {
             // Set OS cursor
-            gl_window.hide_cursor(false);
-            gl_window.set_cursor(match mouse_cursor {
+            window.hide_cursor(false);
+            window.set_cursor(match mouse_cursor {
                 ImGuiMouseCursor::None => unreachable!("mouse_cursor was None!"),
                 ImGuiMouseCursor::Arrow => glutin::MouseCursor::Arrow,
                 ImGuiMouseCursor::TextInput => glutin::MouseCursor::Text,
@@ -186,13 +185,13 @@ pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F
             });
         }
 
-        let logical_size = gl_window
+        let logical_size = window
             .get_inner_size()
             .ok_or_else(|| Error::Message("Window no longer exists!".to_owned()))?;
 
         let frame_size = FrameSize {
             logical_size: logical_size.into(),
-            hidpi_factor: gl_window.get_hidpi_factor(),
+            hidpi_factor: window.get_hidpi_factor(),
         };
 
         let ui = imgui.frame(frame_size, delta_s);
