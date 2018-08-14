@@ -7,7 +7,7 @@ license = "GPL-3.0-only"
 
 [dependencies]
 cfg-if = "0.1"
-aflak_imgui = {path = "../../imgui-rs", version = "0.19.1" }
+aflak_imgui = {path = "../../imgui-rs", version = "0.20.1" }
 
 [dev-dependencies]
 glium = { version = "0.22", default-features = true }
