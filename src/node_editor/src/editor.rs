@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use imgui::{
-    ImGuiCol, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2, StyleVar,
-    Ui, WindowDrawList,
+    ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
+    StyleVar, Ui, WindowDrawList,
 };
 use serde::{Deserialize, Serialize};
 
@@ -161,6 +161,12 @@ where
             self.render_left_pane(ui);
         }
         self.render_graph_node(ui);
+        if ui.is_window_focused() {
+            let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
+            if ui.imgui().is_key_down(delete_index) {
+                self.delete_selected_nodes();
+            }
+        }
     }
 
     pub fn outputs(&self) -> Vec<cake::OutputId> {
@@ -811,6 +817,24 @@ where
             } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                 self.drag_node = None;
             }
+        }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone,
+{
+    fn delete_selected_nodes(&mut self) {
+        let selected_node_ids: Vec<_> = self
+            .node_states
+            .iter()
+            .filter(|(_, state)| state.selected)
+            .map(|(id, _)| *id)
+            .collect();
+        for node_id in selected_node_ids {
+            self.dst.remove_node(&node_id);
+            self.node_states.remove_node(&node_id);
         }
     }
 }

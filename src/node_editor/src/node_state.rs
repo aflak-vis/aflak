@@ -107,6 +107,10 @@ impl NodeStates {
         let state = self.0.get_mut(id).unwrap();
         f(state)
     }
+
+    pub fn remove_node(&mut self, id: &cake::NodeId) -> Option<NodeState> {
+        self.0.remove(id)
+    }
 }
 
 fn init_node(node_states: &NodeStates) -> NodeState {
