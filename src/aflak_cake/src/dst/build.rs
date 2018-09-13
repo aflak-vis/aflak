@@ -169,10 +169,10 @@ where
                     for input in inputs {
                         self.disconnect(&output, &input);
                     }
-                    for (_, some_output) in self.outputs.iter_mut() {
-                        if some_output == &Some(output) {
-                            *some_output = None;
-                        }
+                }
+                for (_, some_output) in self.outputs.iter_mut() {
+                    if some_output == &Some(output) {
+                        *some_output = None;
                     }
                 }
             }
