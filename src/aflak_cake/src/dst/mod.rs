@@ -1,6 +1,7 @@
 use boow::Bow;
 
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::RwLock;
 
 use transform::Transformation;
@@ -200,4 +201,60 @@ impl OutputId {
 pub enum InputSlot<'a> {
     Transform(&'a Input),
     Output(&'a OutputId),
+}
+
+/// Convenient implementation for debugging
+impl<'t, T, E> fmt::Display for DST<'t, T, E>
+where
+    T: 't + Clone,
+    E: 't,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (output_id, output) in self.outputs_iter() {
+            write!(f, "{:?}\n", output_id)?;
+            if let Some(output) = output {
+                self.write_output(f, 1, output)?;
+            } else {
+                write!(f, "{}*\n", pad(1))?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E>
+where
+    T: 't + Clone,
+    E: 't,
+{
+    fn write_output(&self, f: &mut fmt::Formatter, depth: usize, output: &Output) -> fmt::Result {
+        if let Some(meta) = self.transforms.get(&output.t_idx) {
+            let t = meta.transform();
+            write!(f, "{}{}\n", pad(depth), t.name)?;
+            let deps = self.outputs_attached_to_transform(&output.t_idx).unwrap();
+            for (i, dep) in deps.into_iter().enumerate() {
+                write!(f, "{}{}", pad(depth + 1), i)?;
+                if let Some(dep) = dep {
+                    write!(f, "\n")?;
+                    self.write_output(f, depth + 2, &dep)?;
+                } else {
+                    write!(f, " (no node)\n")?;
+                }
+            }
+            Ok(())
+        } else {
+            write!(f, "{}(missing node)\n", pad(depth))
+        }
+    }
+}
+
+fn pad(depth: usize) -> String {
+    const SEPARATOR: &'static str = "\\_ ";
+    const PADDER: &'static str = "    ";
+    let mut out = String::with_capacity(depth * PADDER.len() + SEPARATOR.len());
+    for _ in 0..depth {
+        out.push_str(PADDER);
+    }
+    out.push_str(SEPARATOR);
+    out
 }
