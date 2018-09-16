@@ -25,6 +25,7 @@ impl LayoutEngine {
         EDITOR_WINDOW_DEFAULT_SIZE
     }
 
+    /// Align windows on a 4-column-wide grid
     pub fn default_output_window_position_size(
         &mut self,
         name: &ImString,
@@ -32,15 +33,21 @@ impl LayoutEngine {
         if self.outputs.contains(name) {
             ((NAN, NAN), (NAN, NAN))
         } else {
-            let n = self.outputs.len() as f32;
+            let (row, col) = {
+                let n = self.outputs.len();
+                let row = n / 4;
+                let col = n % 4;
+                (row as f32, col as f32)
+            };
             self.outputs.push(name.clone());
             (
                 (
                     EDITOR_WINDOW_DEFAULT_POSITION.0
-                        + n * (OUTPUT_WINDOW_DEFAULT_SIZE.0 + OUTPUT_WINDOW_DEFAULT_MARGIN),
+                        + col * (OUTPUT_WINDOW_DEFAULT_SIZE.0 + OUTPUT_WINDOW_DEFAULT_MARGIN),
                     EDITOR_WINDOW_DEFAULT_POSITION.1
                         + EDITOR_WINDOW_DEFAULT_SIZE.1
-                        + OUTPUT_WINDOW_DEFAULT_MARGIN,
+                        + OUTPUT_WINDOW_DEFAULT_MARGIN
+                        + row * (OUTPUT_WINDOW_DEFAULT_SIZE.1 + OUTPUT_WINDOW_DEFAULT_MARGIN),
                 ),
                 OUTPUT_WINDOW_DEFAULT_SIZE,
             )
