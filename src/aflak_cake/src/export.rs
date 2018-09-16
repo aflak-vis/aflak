@@ -22,6 +22,7 @@ where
 pub enum ImportError<E> {
     TransformationNotFound(String),
     ConstructionError(&'static str, DSTError<E>),
+    EmptyConstant,
 }
 
 impl<E> fmt::Display for ImportError<E>
@@ -76,7 +77,11 @@ where
                 }
             }
             DeserTransform::Constant(constants) => Ok(Bow::Owned(Transformation {
-                name: "const",
+                name: constants
+                    .iter()
+                    .nth(0)
+                    .map(|t| t.variant_name())
+                    .ok_or(ImportError::EmptyConstant)?,
                 input: vec![],
                 output: constants.iter().map(|t| t.variant_name()).collect(),
                 algorithm: Algorithm::Constant(constants),
