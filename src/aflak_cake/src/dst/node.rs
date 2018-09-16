@@ -46,7 +46,7 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
             &Node::Transform(t) => t.input.as_slice(),
             &Node::Output(_) => &[(OUTPUT_NODE_SLOT, None)],
         }.iter()
-            .map(|(id, _)| id)
+        .map(|(id, _)| id)
     }
 
     /// Iterate over each default value
@@ -55,7 +55,7 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
             &Node::Transform(t) => t.input.as_slice(),
             &Node::Output(_) => &[(OUTPUT_NODE_SLOT, None)],
         }.iter()
-            .map(|(_, default)| default.as_ref())
+        .map(|(_, default)| default.as_ref())
     }
 
     /// Return number of inputs

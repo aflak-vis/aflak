@@ -74,13 +74,11 @@ where
             .get(output_id)
             .ok_or_else(|| {
                 DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
-            })
-            .and_then(|output| {
+            }).and_then(|output| {
                 output.ok_or_else(|| {
                     DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
                 })
-            })
-            .and_then(|output| self._compute(output))
+            }).and_then(|output| self._compute(output))
     }
 }
 

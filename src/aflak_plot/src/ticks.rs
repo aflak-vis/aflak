@@ -62,8 +62,7 @@ impl XTicks {
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 width = text_size.x.max(width);
                 (label, text_size)
-            })
-            .collect();
+            }).collect();
         XTicks { labels, width }
     }
 
@@ -104,8 +103,7 @@ impl YTicks {
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 height = (text_size.y + LABEL_HORIZONTAL_PADDING).max(height);
                 (label, text_size)
-            })
-            .collect();
+            }).collect();
         YTicks { labels, height }
     }
 

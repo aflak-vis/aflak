@@ -92,8 +92,7 @@ impl State {
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
                     min_color,
-                )
-                .filled(true)
+                ).filled(true)
                 .build();
             draw_list
                 .add_triangle(
@@ -101,8 +100,7 @@ impl State {
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
                     util::invert_color(min_color),
-                )
-                .build();
+                ).build();
             if lims.0 != 0.0 {
                 let min_threshold = util::lerp(self.vmin, self.vmax, lims.0);
                 draw_list.add_text(
@@ -138,8 +136,7 @@ impl State {
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
                     max_color,
-                )
-                .filled(true)
+                ).filled(true)
                 .build();
             draw_list
                 .add_triangle(
@@ -147,8 +144,7 @@ impl State {
                     [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
                     util::invert_color(max_color),
-                )
-                .build();
+                ).build();
             if lims.1 != 1.0 {
                 let max_threshold = util::lerp(self.vmin, self.vmax, lims.1);
                 draw_list.add_text(
@@ -212,8 +208,7 @@ impl State {
                     [x_pos + size.x - TICK_SIZE, tick_y_pos],
                     [x_pos + size.x, tick_y_pos],
                     COLOR,
-                )
-                .build();
+                ).build();
             // TODO: Make step editable
             i -= TICK_STEP;
         }
@@ -419,8 +414,7 @@ impl State {
                         [x_pos + size.x - length, y_pos],
                         [x_pos + size.x, y_pos_end],
                         FILL_COLOR,
-                    )
-                    .filled(true)
+                    ).filled(true)
                     .build();
             }
 

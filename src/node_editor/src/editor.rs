@@ -522,8 +522,7 @@ where
                                     connector_screen_pos,
                                     NODE_SLOT_RADIUS,
                                     OUTPUT_SLOT_COLOR,
-                                )
-                                .thickness(CONNECTOR_BORDER_THICKNESS)
+                                ).thickness(CONNECTOR_BORDER_THICKNESS)
                                 .filled(true)
                                 .build();
                             if self.show_connection_names {
@@ -794,8 +793,7 @@ where
                     p.1 + title_bar_height + NODE_WINDOW_PADDING.1 / 2.0,
                 ],
                 NODE_FRAME_COLOR,
-            )
-            .thickness(line_thickness)
+            ).thickness(line_thickness)
             .build();
 
         if ui.is_item_hovered() {
