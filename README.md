@@ -38,9 +38,9 @@ cd aflak/src
 cargo run --release
 ```
 
-**NB**: The first time you run aflak, the window layout will be completely
-messed up. You will need to resize all the windows with the mouse only the
-very first time your run aflak. This needs to be fixed.
+**NB**: The first time you run aflak, the window layout may not be what you
+prefer. You may want to resize / move some windows with the mouse the
+very first time your run aflak.
 Hopefully, aflak remembers the arrangement of your windows between sessions.
 
 ## Development
@@ -69,5 +69,4 @@ cargo test --all
 ## TODO
 
 - Write output to FITS files
-- Output window automatic layout: Current default layout is completely dumb.
 - Zooming in node editor
