@@ -10,11 +10,13 @@ use serde::{Deserialize, Serialize};
 use compute;
 use editor::NodeEditor;
 use node_state::{NodeState, NodeStates};
+use vec2::Vec2;
 
 #[derive(Serialize)]
 pub struct SerialEditor<'e, T: 'e> {
     dst: SerialDST<'e, T>,
     node_states: Vec<(&'e NodeId, &'e NodeState)>,
+    scrolling: Vec2,
 }
 
 impl<'e, T> SerialEditor<'e, T>
@@ -25,6 +27,7 @@ where
         Self {
             dst: SerialDST::new(&editor.dst),
             node_states: editor.node_states.iter().collect(),
+            scrolling: editor.scrolling,
         }
     }
 }
@@ -34,6 +37,7 @@ where
 pub struct DeserEditor<T, E> {
     dst: DeserDST<T, E>,
     node_states: Vec<(NodeId, NodeState)>,
+    scrolling: Vec2,
 }
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
@@ -110,6 +114,9 @@ where
             }
             node_states
         };
+        // Set scrolling offset
+        self.scrolling = import.scrolling;
+
         // Reset cache
         self.output_results = {
             let mut output_results = BTreeMap::new();

@@ -28,7 +28,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
     pub show_connection_names: bool,
-    scrolling: Vec2,
+    pub(crate) scrolling: Vec2,
     pub show_grid: bool,
     constant_editor: ED,
 }
