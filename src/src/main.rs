@@ -13,6 +13,8 @@ extern crate node_editor;
 extern crate ui_image1d;
 extern crate ui_image2d;
 
+mod layout;
+
 use std::collections::HashMap;
 use std::env;
 use std::io::Cursor;
@@ -23,6 +25,8 @@ use imgui::{ImGuiCond, ImString, Ui};
 use imgui_file_explorer::UiFileExplorer;
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
+
+use layout::LayoutEngine;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
@@ -87,9 +91,6 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 }
 
 fn main() {
-    const EDITOR_WINDOW_DEFAULT_POSITION: (f32, f32) = (50.0, 50.0);
-    const EDITOR_WINDOW_DEFAULT_SIZE: (f32, f32) = (1200.0, 800.0);
-
     env::set_var("WINIT_HIDPI_FACTOR", "1");
 
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
@@ -98,6 +99,8 @@ fn main() {
     let mut node_editor =
         NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
             .expect("Import failed");
+
+    let mut layout_engine = LayoutEngine::new();
 
     let mut image1d_states = HashMap::new();
     let mut image2d_states = HashMap::new();
@@ -110,15 +113,24 @@ fn main() {
     };
     support::run(config, |ui, gl_ctx| {
         ui.window(im_str!("Node editor"))
-            .position(EDITOR_WINDOW_DEFAULT_POSITION, ImGuiCond::FirstUseEver)
-            .size(EDITOR_WINDOW_DEFAULT_SIZE, ImGuiCond::FirstUseEver)
-            .build(|| {
+            .position(
+                layout_engine.default_editor_window_position(),
+                ImGuiCond::FirstUseEver,
+            ).size(
+                layout_engine.default_editor_window_size(),
+                ImGuiCond::FirstUseEver,
+            ).build(|| {
                 node_editor.render(ui);
             });
         let outputs = node_editor.outputs();
         for output in outputs {
             let window_name = ImString::new(format!("{:?}", output));
-            ui.window(&window_name).build(|| {
+            let (position, size) = layout_engine.default_output_window_position_size(&window_name);
+            let window = ui
+                .window(&window_name)
+                .position(position, ImGuiCond::FirstUseEver)
+                .size(size, ImGuiCond::FirstUseEver);
+            window.build(|| {
                 let compute_state = unsafe { node_editor.compute_output(&output) };
                 let compute_state = &*compute_state.lock().unwrap();
                 match compute_state {
