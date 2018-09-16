@@ -328,12 +328,11 @@ where
                 let canvas_size = Vec2::new(ui.get_window_size());
                 let win_pos = Vec2::new(ui.get_cursor_screen_pos());
                 // TODO: Center view on a specific node
-                let effective_scrolling = self.scrolling - canvas_size * 0.5;
-                let offset = win_pos - effective_scrolling;
+                let offset = win_pos - self.scrolling;
 
                 if self.show_grid {
                     let cursor_pos = Vec2::new(ui.get_cursor_pos());
-                    let offset2 = cursor_pos - effective_scrolling;
+                    let offset2 = cursor_pos - self.scrolling;
                     const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
                     const GRID_SIZE: f32 = 64.0;
                     const GRID_LINE_WIDTH: f32 = 1.0;
