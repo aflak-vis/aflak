@@ -110,7 +110,7 @@
     node_states: [
         (Transform((1)), (
             selected: false,
-            pos: (-585, -296),
+            pos: (-785, -596),
             size: (217, 47.5),
         )),
         (Transform((2)), (
