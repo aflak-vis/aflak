@@ -19,7 +19,7 @@ use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
-use imgui::{ImString, Ui};
+use imgui::{ImGuiCond, ImString, Ui};
 use imgui_file_explorer::UiFileExplorer;
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
@@ -87,6 +87,9 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 }
 
 fn main() {
+    const EDITOR_WINDOW_DEFAULT_POSITION: (f32, f32) = (50.0, 50.0);
+    const EDITOR_WINDOW_DEFAULT_SIZE: (f32, f32) = (1200.0, 800.0);
+
     env::set_var("WINIT_HIDPI_FACTOR", "1");
 
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
@@ -106,9 +109,12 @@ fn main() {
         ..Default::default()
     };
     support::run(config, |ui, gl_ctx| {
-        ui.window(im_str!("Node editor")).build(|| {
-            node_editor.render(ui);
-        });
+        ui.window(im_str!("Node editor"))
+            .position(EDITOR_WINDOW_DEFAULT_POSITION, ImGuiCond::FirstUseEver)
+            .size(EDITOR_WINDOW_DEFAULT_SIZE, ImGuiCond::FirstUseEver)
+            .build(|| {
+                node_editor.render(ui);
+            });
         let outputs = node_editor.outputs();
         for output in outputs {
             let window_name = ImString::new(format!("{:?}", output));
