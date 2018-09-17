@@ -197,7 +197,7 @@ where
                     self.show_node_list(ui);
                 }
                 ui.separator();
-                self.active_node.map(|node| {
+                self.active_node.map(|node_id| {
                     ui.spacing();
                     ui.separator();
                     if ui
@@ -206,8 +206,20 @@ where
                         .build()
                     {
                         ui.separator();
-                        // TODO: Show active node info
-                        ui.text(ImString::new(format!("Selected node's ID: {:?}", node)));
+                        let node = self.dst.get_node(&node_id).unwrap();
+                        match node {
+                            cake::Node::Transform(t) => {
+                                ui.text_wrapped(&ImString::new(format!(
+                                    "#{} {}:\n{}",
+                                    node_id.id(),
+                                    t.name,
+                                    t.description
+                                )));
+                            }
+                            cake::Node::Output(_) => {
+                                ui.text(format!("#{} Output", -node_id.id()));
+                            }
+                        }
                     }
                     ui.separator();
                 });
