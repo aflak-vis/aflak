@@ -431,7 +431,7 @@ where
                         .build();
 
                     // Display frame
-                    let line_thickness = if self.active_node == Some(idx) {
+                    let line_thickness = if node_states.get_state(&idx, |s| s.selected) {
                         3.0
                     } else {
                         1.0
