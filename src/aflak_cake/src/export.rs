@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -76,16 +77,23 @@ where
                     )))
                 }
             }
-            DeserTransform::Constant(constants) => Ok(Bow::Owned(Transformation {
-                name: constants
+            DeserTransform::Constant(constants) => {
+                let first_variant = constants
                     .iter()
                     .nth(0)
                     .map(|t| t.variant_name())
-                    .ok_or(ImportError::EmptyConstant)?,
-                input: vec![],
-                output: constants.iter().map(|t| t.variant_name()).collect(),
-                algorithm: Algorithm::Constant(constants),
-            })),
+                    .ok_or(ImportError::EmptyConstant)?;
+                Ok(Bow::Owned(Transformation {
+                    name: first_variant,
+                    description: Cow::Owned(format!(
+                        "Constant variable of type '{}'",
+                        first_variant
+                    )),
+                    input: vec![],
+                    output: constants.iter().map(|t| t.variant_name()).collect(),
+                    algorithm: Algorithm::Constant(constants),
+                }))
+            }
             _ => panic!("PhantomData should not be used!"),
         }
     }

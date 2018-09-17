@@ -12,13 +12,13 @@ pub enum AlgoIO {
 pub enum E {}
 
 pub fn get_plus1_transform() -> Transformation<AlgoIO, E> {
-    cake_transform!(plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
+    cake_transform!("Add 1", plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
         vec![Ok(AlgoIO::Integer(i + 1))]
     })
 }
 
 pub fn get_minus1_transform() -> Transformation<AlgoIO, E> {
-    cake_transform!(minus1<AlgoIO, E>(i: Integer) -> Integer {
+    cake_transform!("Substract 1", minus1<AlgoIO, E>(i: Integer) -> Integer {
         vec![Ok(AlgoIO::Integer(i - 1))]
     })
 }

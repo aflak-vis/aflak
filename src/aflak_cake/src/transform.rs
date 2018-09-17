@@ -36,6 +36,7 @@ impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
 pub struct Transformation<T: Clone, E> {
     /// Transformation name
     pub name: TransformId,
+    pub description: Cow<'static, str>,
     /// Inputs of the transformation, may include a default value
     pub input: Vec<(TypeId, Option<T>)>,
     /// Outputs of the transformation
@@ -61,6 +62,7 @@ where
     pub fn new_constant(t: T) -> Self {
         Self {
             name: t.variant_name(),
+            description: Cow::Owned(format!("Constant variable of type '{}'", t.variant_name())),
             input: vec![],
             output: vec![t.variant_name()],
             algorithm: Algorithm::Constant(vec![t]),

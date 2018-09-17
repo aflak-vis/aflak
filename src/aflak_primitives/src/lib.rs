@@ -69,30 +69,68 @@ pub enum IOErr {
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
         vec![
-            cake_transform!(open_fits<IOValue, IOErr>(path: Path) -> Fits {
-                vec![run_open_fits(path)]
-            }),
-            cake_transform!(fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
-                vec![run_fits_to_3d_image(fits)]
-            }),
-            cake_transform!(slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
-                vec![run_slice_3d_to_2d(image, map)]
-            }),
-            cake_transform!(make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 1.0, 0.0], dir2: Float3 = [0.0, 0.0, 1.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
-                vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
-            }),
-            cake_transform!(extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi = roi::ROI::All) -> Image1d {
-                vec![run_extract_wave(image, roi)]
-            }),
-            cake_transform!(linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image1d {
-                vec![run_linear_composition_1d(i1, i2, *coef1, *coef2)]
-            }),
-            cake_transform!(linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image2d {
-                vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
-            }),
-            cake_transform!(make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
-                vec![run_make_float3(*f1, *f2, *f3)]
-            }),
+            cake_transform!(
+                "Open FITS file from a Path.",
+                open_fits<IOValue, IOErr>(path: Path) -> Fits {
+                    vec![run_open_fits(path)]
+                }
+            ),
+            cake_transform!(
+                "Extract 3D dataset from FITS file.",
+                fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
+                    vec![run_fits_to_3d_image(fits)]
+                }
+            ),
+            cake_transform!(
+                "Slice an arbitrary plane through a 3D dataset and return the slice.",
+                slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
+                    vec![run_slice_3d_to_2d(image, map)]
+                }
+            ),
+            cake_transform!(
+                "Make a 2D mesh on a specific plane.
+Parameters:
+1. Starting point: (x, y, z)
+2. Directional unit d1: (d1_x, d1_y, d1_z)
+3. Directional unit d2: (d2_x, d2_y, d2_z)
+4. Integer n
+5. Integer m
+
+With the above parameters, a 2D mesh with the points as below:
+( x + i * d1_x + j * d2_x,
+  y + i * d1_y + j * d2_y,
+  z + i * d1_z + j * d2_z )
+for 0 <= i < n and 0 <= j < m",
+                make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 1.0, 0.0], dir2: Float3 = [0.0, 0.0, 1.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
+                    vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
+                }
+            ),
+            cake_transform!(
+                "Extract waveform from 3D image with the provided region of interest.",
+                extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi = roi::ROI::All) -> Image1d {
+                    vec![run_extract_wave(image, roi)]
+                }
+            ),
+            cake_transform!(
+                "Compose 2 1D-vectors. Parameters: u, v, a, b.
+Compute a*u + b*v.",
+                linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image1d {
+                    vec![run_linear_composition_1d(i1, i2, *coef1, *coef2)]
+                }
+            ),
+            cake_transform!(
+                "Compose 2 2D-vectors. Parameters: u, v, a, b.
+Compute a*u + b*v.",
+                linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image2d {
+                    vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
+                }
+            ),
+            cake_transform!(
+                "Make a Float3 from 3 float values.",
+                make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
+                    vec![run_make_float3(*f1, *f2, *f3)]
+                }
+            ),
         ]
     };
 }

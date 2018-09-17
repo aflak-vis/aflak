@@ -83,21 +83,26 @@ macro_rules! cake_fn {
 ///
 /// pub enum E {}
 ///
-/// //                                                        Error type   Input arguments    Output types
-/// //      key identifying transformation  In/Out types_____/  __________/   _______________/
-/// //                                   \       |     /       /             /
-/// let plus_one_trans = cake_transform!(plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
-///     // Define the body of the transformation.                      \
-///     // Must return a Vec<Result<AlgoIO, !>>!                        ~~ Default value (optional)
+/// let plus_one_trans = cake_transform!(
+///     "Long description of the transform",
+/// // key identifying transformation   Input arguments with default value (optional)
+/// //   \  In/Out types /- Error type  /        _ Output type(s)
+/// //    \       /     / /------------/        /
+///     plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
+///     // Define the body of the transformation.
+///     // Must return a Vec<Result<AlgoIO, !>>!
 ///     vec![Ok(AlgoIO::Integer(i + 1))]
 /// });
 /// ```
 #[macro_export]
 macro_rules! cake_transform {
-    ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
+    ($description: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
+        use std::borrow::Cow;
+
         $crate::Transformation {
             name: stringify!($fn_name),
+            description: Cow::Borrowed($description),
             input: vec![$((stringify!($x_type), {
                 cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
             }), )*],
@@ -114,10 +119,15 @@ macro_rules! cake_transform {
 #[macro_export]
 macro_rules! cake_constant {
     ($const_name: ident, $($x: expr),*) => {{
+        use std::borrow::Cow;
         use $crate::VariantName;
+
         let constant = vec![$($x, )*];
         $crate::Transformation {
             name: stringify!($const_name),
+            description: Cow::Borrowed(
+                concat!("Constant variable of type '", stringify!($const_name), "'")
+            ),
             input: vec![],
             output: constant.iter().map(|c| c.variant_name()).collect(),
             algorithm: $crate::Algorithm::Constant(constant),
