@@ -832,6 +832,9 @@ where
         for node_id in selected_node_ids {
             self.dst.remove_node(&node_id);
             self.node_states.remove_node(&node_id);
+            if self.active_node == Some(node_id) {
+                self.active_node.take();
+            }
         }
     }
 }
