@@ -748,11 +748,19 @@ where
         ui.group(|| {
             let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
             ui.with_color_var(ImGuiCol::Text, default_text_color, || {
-                ui.text(node_name);
+                ui.text(&node_name);
                 title_bar_height = ui.get_item_rect_size().1;
                 if ui.is_item_hovered() {
-                    // Show tooltip ?
-                    ui.tooltip(|| ui.text("TEST TOOLTIP"));
+                    ui.tooltip(|| {
+                        ui.text(format!(
+                            "Node #{}: {:?}",
+                            match id {
+                                cake::NodeId::Output(_) => -id.id(),
+                                cake::NodeId::Transform(_) => id.id(),
+                            },
+                            &node_name
+                        ))
+                    });
                 }
             });
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
