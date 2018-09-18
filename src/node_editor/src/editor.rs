@@ -13,6 +13,7 @@ use compute::{self, ComputeResult};
 use constant_editor::ConstantEditor;
 use id_stack::GetId;
 use node_state::NodeStates;
+use scrolling::Scrolling;
 use vec2::Vec2;
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
@@ -28,7 +29,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
     pub show_connection_names: bool,
-    pub(crate) scrolling: Vec2,
+    pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
     constant_editor: ED,
 }
@@ -48,7 +49,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
             left_pane_size: None,
             show_top_pane: true,
             show_connection_names: true,
-            scrolling: Vec2::default(),
+            scrolling: Default::default(),
             show_grid: true,
             constant_editor: ED::default(),
         }
@@ -270,8 +271,9 @@ where
                 }
                 self.node_states.toggle_select(&idx);
                 self.active_node = Some(idx);
-                self.scrolling =
-                    self.node_states.get_state(&idx, |s| s.pos) + SCROLL_OVER_NODE_OFFSET;
+                self.scrolling.set_target(
+                    self.node_states.get_state(&idx, |s| s.pos) + SCROLL_OVER_NODE_OFFSET,
+                )
             }
             ui.pop_id();
         }
@@ -344,11 +346,11 @@ where
                 let canvas_size = Vec2::new(ui.get_window_size());
                 let win_pos = Vec2::new(ui.get_cursor_screen_pos());
                 // TODO: Center view on a specific node
-                let offset = win_pos - self.scrolling;
+                let offset = win_pos - self.scrolling.get_current();
 
                 if self.show_grid {
                     let cursor_pos = Vec2::new(ui.get_cursor_pos());
-                    let offset2 = cursor_pos - self.scrolling;
+                    let offset2 = cursor_pos - self.scrolling.get_current();
                     const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
                     const GRID_SIZE: f32 = 64.0;
                     const GRID_LINE_WIDTH: f32 = 1.0;
@@ -394,7 +396,8 @@ where
                         && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                     {
                         ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
-                        self.scrolling = self.scrolling - ui.imgui().mouse_delta().into();
+                        let delta = Vec2(0.0, 0.0) - ui.imgui().mouse_delta().into();
+                        self.scrolling.set_delta(delta);
                     }
                 }
 

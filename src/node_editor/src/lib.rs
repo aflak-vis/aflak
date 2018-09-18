@@ -14,6 +14,7 @@ mod editor;
 mod export;
 mod id_stack;
 mod node_state;
+mod scrolling;
 mod vec2;
 
 pub use compute::{ComputationState, ComputeResult};

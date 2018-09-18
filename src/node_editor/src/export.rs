@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use compute;
 use editor::NodeEditor;
 use node_state::{NodeState, NodeStates};
+use scrolling::Scrolling;
 use vec2::Vec2;
 
 #[derive(Serialize)]
@@ -27,7 +28,7 @@ where
         Self {
             dst: SerialDST::new(&editor.dst),
             node_states: editor.node_states.iter().collect(),
-            scrolling: editor.scrolling,
+            scrolling: editor.scrolling.get_current(),
         }
     }
 }
@@ -115,7 +116,7 @@ where
             node_states
         };
         // Set scrolling offset
-        self.scrolling = import.scrolling;
+        self.scrolling = Scrolling::new(import.scrolling);
 
         // Reset cache
         self.output_results = {
