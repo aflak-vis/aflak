@@ -124,7 +124,7 @@ fn main() {
             });
         let outputs = node_editor.outputs();
         for output in outputs {
-            let window_name = ImString::new(format!("{:?}", output));
+            let window_name = ImString::new(format!("Output #{}", output.id()));
             let (position, size) = layout_engine.default_output_window_position_size(&window_name);
             let window = ui
                 .window(&window_name)
