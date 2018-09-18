@@ -258,6 +258,8 @@ where
     }
 
     fn show_node_list(&mut self, ui: &Ui) {
+        const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
+
         for (idx, node) in self.dst.nodes_iter() {
             ui.push_id(idx.id());
             let selected = self.node_states.get_state(&idx, |state| state.selected);
@@ -268,6 +270,8 @@ where
                 }
                 self.node_states.toggle_select(&idx);
                 self.active_node = Some(idx);
+                self.scrolling =
+                    self.node_states.get_state(&idx, |s| s.pos) + SCROLL_OVER_NODE_OFFSET;
             }
             ui.pop_id();
         }
