@@ -106,9 +106,9 @@ fn main() {
     let mut image2d_states = HashMap::new();
     let mut editable_values = HashMap::new();
     let config = support::AppConfig {
-        title: "Node editor example".to_owned(),
+        title: "aflak".to_owned(),
         clear_color: CLEAR_COLOR,
-        ini_filename: Some(ImString::new("node_editor_example.ini")),
+        ini_filename: Some(ImString::new("aflak.ini")),
         ..Default::default()
     };
     support::run(config, |ui, gl_ctx| {
