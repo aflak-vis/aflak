@@ -57,6 +57,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         state.vmin = lims::get_vmin(image)?;
         state.vmax = lims::get_vmax(image)?;
 
+        let window_pos = self.get_window_pos();
+        let cursor_pos = self.get_cursor_screen_pos();
         let window_size = self.get_window_size();
         const HIST_WIDTH: f32 = 40.0;
         const BAR_WIDTH: f32 = 20.0;
@@ -65,7 +67,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         let image_max_size = (
             // Add right padding so that ticks and labels on the right fits
             window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
-            window_size.1,
+            window_size.1 - (cursor_pos.1 - window_pos.1),
         );
         let [p, size] = state.show_image(self, ctx, name, image, image_max_size)?;
 
