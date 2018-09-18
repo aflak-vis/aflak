@@ -32,7 +32,8 @@ impl<'a, T: Clone, E> Node<'a, T, E> {
             &Node::Transform(t) => Cow::Borrowed(t.name),
             &Node::Output(_) => {
                 if let NodeId::Output(output_id) = id {
-                    Cow::Owned(format!("Output {:?}", output_id))
+                    let OutputId(id) = output_id;
+                    Cow::Owned(format!("Output #{}", id))
                 } else {
                     panic!("Expected id to be output")
                 }
