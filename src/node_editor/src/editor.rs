@@ -168,6 +168,7 @@ where
                 self.delete_selected_nodes();
             }
         }
+        self.scrolling.tick();
     }
 
     pub fn outputs(&self) -> Vec<cake::OutputId> {
