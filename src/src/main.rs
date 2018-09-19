@@ -21,7 +21,7 @@ use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
-use imgui::{ImGuiCond, ImString, Ui};
+use imgui::{ImGuiCond, ImStr, ImString, Ui};
 use imgui_file_explorer::UiFileExplorer;
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
@@ -140,65 +140,86 @@ fn main() {
                     &ComputationState::RunningFirstTime => {
                         ui.text("Computing...");
                     }
-                    _ => match compute_state.result() {
-                        Some(Err(ref e)) => {
-                            ui.text(format!("{:?}", e));
+                    _ => {
+                        if let Some(result) = compute_state.result() {
+                            match result {
+                                Err(e) => ui.text(format!("{:?}", e)),
+                                Ok(result) => output_window_computed_content(
+                                    ui,
+                                    result,
+                                    &output,
+                                    &window_name,
+                                    &mut image1d_states,
+                                    &mut image2d_states,
+                                    &mut editable_values,
+                                    &mut node_editor,
+                                    gl_ctx,
+                                ),
+                            };
+                        } else {
+                            // As per the present computation state,
+                            // a result should be present. Else it's a bug.
+                            unreachable!();
                         }
-                        Some(Ok(ref result)) => match result {
-                            &primitives::IOValue::Str(ref string) => {
-                                ui.text(format!("{:?}", string));
-                            }
-                            &primitives::IOValue::Integer(integer) => {
-                                ui.text(format!("{:?}", integer));
-                            }
-                            &primitives::IOValue::Float(float) => {
-                                ui.text(format!("{:?}", float));
-                            }
-                            &primitives::IOValue::Float2(floats) => {
-                                ui.text(format!("{:?}", floats));
-                            }
-                            &primitives::IOValue::Float3(floats) => {
-                                ui.text(format!("{:?}", floats));
-                            }
-                            &primitives::IOValue::Image1d(ref image) => {
-                                let state = image1d_states
-                                    .entry(window_name.clone())
-                                    .or_insert_with(|| ui_image1d::State::default());
-                                if let Err(e) = ui.image1d(image, state) {
-                                    ui.text(format!("{:?}", e))
-                                }
-                                update_editor_from_state(
-                                    &output,
-                                    state.stored_values(),
-                                    &mut editable_values,
-                                    &mut node_editor,
-                                );
-                            }
-                            &primitives::IOValue::Image2d(ref image) => {
-                                let state = image2d_states
-                                    .entry(window_name.clone())
-                                    .or_insert_with(|| ui_image2d::State::default());
-                                if let Err(e) = ui.image2d(gl_ctx, &window_name, image, state) {
-                                    ui.text(format!("{:?}", e));
-                                }
-                                update_editor_from_state(
-                                    &output,
-                                    state.stored_values(),
-                                    &mut editable_values,
-                                    &mut node_editor,
-                                );
-                            }
-                            _ => {
-                                ui.text("Unimplemented");
-                            }
-                        },
-                        None => unreachable!(),
-                    },
+                    }
                 }
             });
         }
         true
     }).unwrap();
+}
+
+fn output_window_computed_content<F>(
+    ui: &Ui,
+    result: &primitives::IOValue,
+    output: &cake::OutputId,
+    window_name: &ImStr,
+    image1d_states: &mut HashMap<ImString, ui_image1d::State>,
+    image2d_states: &mut HashMap<ImString, ui_image2d::State>,
+    editable_values: &mut HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
+    node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
+    gl_ctx: &F,
+) where
+    F: glium::backend::Facade,
+{
+    match result {
+        &primitives::IOValue::Str(ref string) => {
+            ui.text(format!("{:?}", string));
+        }
+        &primitives::IOValue::Integer(integer) => {
+            ui.text(format!("{:?}", integer));
+        }
+        &primitives::IOValue::Float(float) => {
+            ui.text(format!("{:?}", float));
+        }
+        &primitives::IOValue::Float2(floats) => {
+            ui.text(format!("{:?}", floats));
+        }
+        &primitives::IOValue::Float3(floats) => {
+            ui.text(format!("{:?}", floats));
+        }
+        &primitives::IOValue::Image1d(ref image) => {
+            let state = image1d_states
+                .entry(window_name.to_owned())
+                .or_insert_with(|| ui_image1d::State::default());
+            if let Err(e) = ui.image1d(image, state) {
+                ui.text(format!("{:?}", e))
+            }
+            update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
+        }
+        &primitives::IOValue::Image2d(ref image) => {
+            let state = image2d_states
+                .entry(window_name.to_owned())
+                .or_insert_with(|| ui_image2d::State::default());
+            if let Err(e) = ui.image2d(gl_ctx, &window_name, image, state) {
+                ui.text(format!("{:?}", e));
+            }
+            update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
+        }
+        _ => {
+            ui.text("Unimplemented");
+        }
+    }
 }
 
 fn update_editor_from_state(
