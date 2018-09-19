@@ -14,6 +14,7 @@ extern crate ui_image1d;
 extern crate ui_image2d;
 
 mod layout;
+mod save_output;
 
 use std::collections::HashMap;
 use std::env;
@@ -182,6 +183,13 @@ fn output_window_computed_content<F>(
 ) where
     F: glium::backend::Facade,
 {
+    if ui.button(im_str!("Save data"), (0.0, 0.0)) {
+        if let Err(e) = save_output::save(result) {
+            eprintln!("Error on saving output: {:?}", e);
+        }
+    }
+    ui.new_line();
+
     match result {
         &primitives::IOValue::Str(ref string) => {
             ui.text(format!("{:?}", string));
