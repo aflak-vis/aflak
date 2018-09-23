@@ -185,7 +185,7 @@ fn output_window_computed_content<F>(
 {
     if ui.button(im_str!("Save data"), (0.0, 0.0)) {
         if let Err(e) = save_output::save(output, result) {
-            eprintln!("Error on saving output: {:?}", e);
+            eprintln!("Error on saving output: '{}'", e);
         }
     }
     ui.new_line();

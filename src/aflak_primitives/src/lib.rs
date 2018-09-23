@@ -15,6 +15,8 @@ extern crate serde_derive;
 mod export;
 mod roi;
 
+pub use export::ExportError;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
