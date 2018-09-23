@@ -49,4 +49,10 @@ impl fmt::Display for ExportError {
     }
 }
 
-impl Error for ExportError {}
+impl Error for ExportError {
+    /// description is deprecated. See https://github.com/rust-lang/rust/issues/44842
+    /// Implement for compilation to succeed on older compilers.
+    fn description(&self) -> &str {
+        "ExportError"
+    }
+}
