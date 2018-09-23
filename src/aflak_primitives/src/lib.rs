@@ -12,6 +12,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+mod export;
 mod roi;
 
 use std::path::{Path, PathBuf};
