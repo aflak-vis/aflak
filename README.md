@@ -68,5 +68,4 @@ cargo test --all
 
 ## TODO
 
-- Write output to FITS files
 - Zooming in node editor
