@@ -186,8 +186,20 @@ fn output_window_computed_content<F>(
     if ui.button(im_str!("Save data"), (0.0, 0.0)) {
         if let Err(e) = save_output::save(output, result) {
             eprintln!("Error on saving output: '{}'", e);
+        } else {
+            ui.open_popup(im_str!("saved"));
         }
     }
+    ui.popup_modal(im_str!("saved")).build(|| {
+        ui.text(format!(
+            "File saved with success to '{}'.",
+            save_output::file_name(output)
+        ));
+        if ui.button(im_str!("Close"), (0.0, 0.0)) {
+            ui.close_current_popup();
+        }
+    });
+
     ui.new_line();
 
     match result {
