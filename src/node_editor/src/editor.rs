@@ -136,6 +136,21 @@ where
     }
 }
 
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+where
+    T: Clone,
+{
+    pub fn constant_node_value(&self, id: &cake::TransformIdx) -> Option<&[T]> {
+        self.dst.get_transform(id).and_then(|t| {
+            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
+                Some(constants.as_slice())
+            } else {
+                None
+            }
+        })
+    }
+}
+
 const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
