@@ -8,6 +8,27 @@ pub enum Value {
     Float3([f32; 3]),
 }
 
+impl From<i64> for Value {
+    fn from(v: i64) -> Self {
+        Value::Integer(v)
+    }
+}
+impl From<f32> for Value {
+    fn from(v: f32) -> Self {
+        Value::Float(v)
+    }
+}
+impl From<[f32; 2]> for Value {
+    fn from(v: [f32; 2]) -> Self {
+        Value::Float2(v)
+    }
+}
+impl From<[f32; 3]> for Value {
+    fn from(v: [f32; 3]) -> Self {
+        Value::Float3(v)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Interaction {
     HorizontalLine(HorizontalLine),
@@ -86,6 +107,27 @@ impl Interaction {
         match self {
             Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
             Interaction::VerticalLine(VerticalLine { x_pos, .. }) => Value::Float(*x_pos),
+        }
+    }
+
+    pub fn set_value<V: Into<Value>>(&mut self, value: V) -> Result<(), String> {
+        let value = value.into();
+        match (self, &value) {
+            (
+                Interaction::HorizontalLine(HorizontalLine { ref mut height, .. }),
+                Value::Float(f),
+            ) => {
+                *height = *f;
+                Ok(())
+            }
+            (Interaction::VerticalLine(VerticalLine { ref mut x_pos, .. }), Value::Float(f)) => {
+                *x_pos = *f;
+                Ok(())
+            }
+            interaction => Err(format!(
+                "Got unexpected value type: '{:?}' for an interaction '{:?}'",
+                value, interaction
+            )),
         }
     }
 }
