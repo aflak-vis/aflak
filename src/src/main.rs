@@ -7,6 +7,7 @@ extern crate aflak_imgui_glium_renderer as imgui_glium_renderer;
 
 extern crate aflak_cake as cake;
 extern crate aflak_imgui_file_explorer as imgui_file_explorer;
+extern crate aflak_plot as plot;
 extern crate aflak_primitives as primitives;
 extern crate imgui_glium_support as support;
 extern crate node_editor;
@@ -222,6 +223,13 @@ fn output_window_computed_content<F>(
             let state = image1d_states
                 .entry(window_name.to_owned())
                 .or_insert_with(|| ui_image1d::State::default());
+
+            update_state_from_editor(
+                &output,
+                state.stored_values_mut(),
+                editable_values,
+                node_editor,
+            );
             if let Err(e) = ui.image1d(image, state) {
                 ui.text(format!("{:?}", e))
             }
@@ -238,6 +246,40 @@ fn output_window_computed_content<F>(
         }
         _ => {
             ui.text("Unimplemented");
+        }
+    }
+}
+
+fn update_state_from_editor(
+    output: &cake::OutputId,
+    interactions: plot::InteractionIterMut,
+    store: &HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
+    node_editor: &NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
+) {
+    for (id, interaction) in interactions {
+        let value_id = (*output, *id);
+        if store.contains_key(&value_id) {
+            let t_idx = store.get(&value_id).unwrap();
+            if let Some(value) = node_editor.constant_node_value(t_idx) {
+                assert!(
+                    value.len() == 1,
+                    "Only constant nodes with exactly one value are supported",
+                );
+                let value = &value[0];
+                if let Err(e) = match value {
+                    primitives::IOValue::Integer(i) => interaction.set_value(*i),
+                    primitives::IOValue::Float(f) => interaction.set_value(*f),
+                    primitives::IOValue::Float2(f) => interaction.set_value(*f),
+                    primitives::IOValue::Float3(f) => interaction.set_value(*f),
+                    value => Err(format!("Cannot convert value '{:?}'", value)),
+                } {
+                    eprintln!("Could not update state from editor: {}", e);
+                }
+            } else {
+                eprintln!("No constant node found for transform '{:?}'", t_idx);
+            }
+        } else {
+            eprintln!("ValueID '{:?}' not found in store", value_id);
         }
     }
 }
