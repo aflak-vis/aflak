@@ -239,6 +239,13 @@ fn output_window_computed_content<F>(
             let state = image2d_states
                 .entry(window_name.to_owned())
                 .or_insert_with(|| ui_image2d::State::default());
+
+            update_state_from_editor(
+                &output,
+                state.stored_values_mut(),
+                editable_values,
+                node_editor,
+            );
             if let Err(e) = ui.image2d(gl_ctx, &window_name, image, state) {
                 ui.text(format!("{:?}", e));
             }

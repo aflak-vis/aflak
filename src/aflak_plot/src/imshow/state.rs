@@ -5,7 +5,9 @@ use ndarray::Array2;
 
 use super::hist;
 use super::image;
-use super::interactions::{HorizontalLine, Interaction, Interactions, ValueIter, VerticalLine};
+use super::interactions::{
+    HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine,
+};
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks;
 use super::util;
@@ -44,6 +46,10 @@ impl Default for State {
 impl State {
     pub fn stored_values(&self) -> ValueIter {
         self.interactions.value_iter()
+    }
+
+    pub fn stored_values_mut(&mut self) -> InteractionIterMut {
+        self.interactions.iter_mut()
     }
 
     pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
