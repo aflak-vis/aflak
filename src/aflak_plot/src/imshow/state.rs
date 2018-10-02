@@ -285,11 +285,12 @@ impl State {
             ui.text("Add interaction handle");
             ui.separator();
             if ui.menu_item(im_str!("Horizontal Line")).build() {
-                let new = Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1));
+                let new =
+                    Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1.round()));
                 self.interactions.insert(new);
             }
             if ui.menu_item(im_str!("Vertical Line")).build() {
-                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0));
+                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
                 self.interactions.insert(new);
             }
         });
@@ -321,7 +322,7 @@ impl State {
                         }
                     }
                     if *moving {
-                        *height = util::clamp(self.mouse_pos.1, 0.0, tex_size.1 as f32);
+                        *height = util::clamp(self.mouse_pos.1.round(), 0.0, tex_size.1 as f32);
                     }
                     if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                         *moving = false;
@@ -356,7 +357,7 @@ impl State {
                         }
                     }
                     if *moving {
-                        *x_pos = util::clamp(self.mouse_pos.0, 0.0, tex_size.0 as f32);
+                        *x_pos = util::clamp(self.mouse_pos.0.round(), 0.0, tex_size.0 as f32);
                     }
                     if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                         *moving = false;
