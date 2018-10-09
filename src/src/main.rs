@@ -188,10 +188,10 @@ fn output_window_computed_content<F>(
         if let Err(e) = save_output::save(output, result) {
             eprintln!("Error on saving output: '{}'", e);
         } else {
-            ui.open_popup(im_str!("saved"));
+            ui.open_popup(im_str!("FITS export completed!"));
         }
     }
-    ui.popup_modal(im_str!("saved")).build(|| {
+    ui.popup_modal(im_str!("FITS export completed!")).build(|| {
         ui.text(format!(
             "File saved with success to '{}'.",
             save_output::file_name(output)
