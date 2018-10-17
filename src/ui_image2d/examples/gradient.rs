@@ -1,6 +1,6 @@
 extern crate glium;
 #[macro_use]
-extern crate aflak_imgui as imgui;
+extern crate imgui;
 extern crate imgui_glium_support as support;
 extern crate ndarray;
 extern crate ui_image2d;

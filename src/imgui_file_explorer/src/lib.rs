@@ -1,4 +1,4 @@
-extern crate aflak_imgui as imgui;
+extern crate imgui;
 #[macro_use]
 extern crate cfg_if;
 

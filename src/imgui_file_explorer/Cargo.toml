@@ -1,5 +1,5 @@
 [package]
-name = "aflak_imgui_file_explorer"
+name = "imgui_file_explorer"
 version = "0.0.1"
 authors = ["Rikuo Uchiki <dbkn_rikuo@keio.jp>"]
 description = "File explorer plugin for imgui-rs"
@@ -7,8 +7,8 @@ license = "GPL-3.0-only"
 
 [dependencies]
 cfg-if = "0.1"
-aflak_imgui = {path = "../../imgui-rs", version = "0.20.1" }
+imgui = {path = "../../imgui-rs", version = "0.0.21-pre" }
 
 [dev-dependencies]
 glium = { version = "0.22", default-features = true }
-aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer" }

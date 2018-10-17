@@ -7,8 +7,8 @@ license = "GPL-3.0-only"
 
 [dependencies]
 glium = "0.22"
-aflak_imgui = { path = "../../imgui-rs", version = "0.20.1" }
-aflak_imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.20.1" }
+imgui = { path = "../../imgui-rs", version = "0.0.21-pre" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21-pre" }
 ndarray = "0.11"
 
 [dev-dependencies]

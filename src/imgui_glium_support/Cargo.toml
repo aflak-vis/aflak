@@ -3,21 +3,7 @@ name = "imgui_glium_support"
 version = "0.0.1"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
-[features]
-aflak = ["aflak_imgui", "aflak_imgui-glium-renderer"]
-
 [dependencies]
-cfg-if = "0.1"
 glium = { version = "0.22", features = ["glutin"] }
-imgui = "0.0.20"
-imgui-glium-renderer = "0.0.20"
-
-[dependencies.aflak_imgui]
-path = "../../imgui-rs"
-version = "0.20.1"
-optional = true
-
-[dependencies.aflak_imgui-glium-renderer]
-path = "../../imgui-rs/imgui-glium-renderer"
-version = "0.20.1"
-optional = true
+imgui = { path = "../../imgui-rs", version = "0.0.21-pre" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21-pre" }
