@@ -25,15 +25,15 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// #[macro_use] extern crate imgui;
     /// extern crate imgui_glium_support as support;
     /// extern crate ndarray;
-    /// extern crate ui_image2d;
+    /// extern crate aflak_plot;
     ///
     /// use imgui::{ImTexture, Ui};
     /// use ndarray::Array2;
-    /// use ui_image2d::UiImage2d;
+    /// use aflak_plot::imshow::{self, UiImage2d};
     ///
     /// fn main() {
     ///     let data = Array2::eye(10);
-    ///     let mut state = ui_image2d::State::default();
+    ///     let mut state = imshow::State::default();
     ///     support::run(Default::default(), |ui, gl_ctx, textures| {
     ///         let texture_id = ImTexture::from(1);
     ///         if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, &data, &mut state) {

@@ -12,5 +12,4 @@ imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version =
 ndarray = "0.11"
 
 [dev-dependencies]
-ui_image2d = { path = "../ui_image2d" }
 imgui_glium_support = { path = "../imgui_glium_support" }

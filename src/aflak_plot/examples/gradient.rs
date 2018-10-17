@@ -1,11 +1,11 @@
 extern crate glium;
 #[macro_use]
 extern crate imgui;
+extern crate aflak_plot;
 extern crate imgui_glium_support as support;
 extern crate ndarray;
-extern crate ui_image2d;
 
-use ui_image2d::UiImage2d;
+use aflak_plot::imshow::{self, UiImage2d};
 
 fn main() {
     let config = support::AppConfig {
@@ -13,7 +13,7 @@ fn main() {
         ini_filename: Some(imgui::ImString::new("gradient.ini")),
         ..Default::default()
     };
-    let mut state = ui_image2d::State::default();
+    let mut state = imshow::State::default();
     support::run(config, |ui, gl_ctx, textures| {
         let image_data = {
             const WIDTH: usize = 100;
