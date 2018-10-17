@@ -1,9 +1,0 @@
-[package]
-name = "ui_image1d"
-version = "0.0.1"
-authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
-description = "Wrap aflak_plot's 1D image visualization functions"
-license = "GPL-3.0-only"
-
-[dependencies]
-aflak_plot = { path = "../aflak_plot", version = "0.0.1" }

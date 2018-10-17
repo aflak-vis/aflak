@@ -6,12 +6,11 @@ extern crate imgui;
 extern crate imgui_glium_renderer;
 
 extern crate aflak_cake as cake;
-extern crate aflak_plot as plot;
+extern crate aflak_plot;
 extern crate aflak_primitives as primitives;
 extern crate imgui_file_explorer;
 extern crate imgui_glium_support as support;
 extern crate node_editor;
-extern crate ui_image1d;
 extern crate ui_image2d;
 
 mod layout;
@@ -23,9 +22,10 @@ use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
+use aflak_plot::plot;
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
 use imgui_file_explorer::UiFileExplorer;
-use ui_image1d::UiImage1d;
+use plot::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
 
 use layout::LayoutEngine;
@@ -177,7 +177,7 @@ fn output_window_computed_content<F>(
     result: &primitives::IOValue,
     output: &cake::OutputId,
     window_name: &ImStr,
-    image1d_states: &mut HashMap<ImString, ui_image1d::State>,
+    image1d_states: &mut HashMap<ImString, plot::State>,
     image2d_states: &mut HashMap<ImString, ui_image2d::State>,
     editable_values: &mut HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
     node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
@@ -224,7 +224,7 @@ fn output_window_computed_content<F>(
         &primitives::IOValue::Image1d(ref image) => {
             let state = image1d_states
                 .entry(window_name.to_owned())
-                .or_insert_with(|| ui_image1d::State::default());
+                .or_insert_with(|| plot::State::default());
 
             update_state_from_editor(
                 &output,
@@ -262,7 +262,7 @@ fn output_window_computed_content<F>(
 
 fn update_state_from_editor(
     output: &cake::OutputId,
-    interactions: plot::InteractionIterMut,
+    interactions: aflak_plot::InteractionIterMut,
     store: &HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
     node_editor: &NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
 ) {
