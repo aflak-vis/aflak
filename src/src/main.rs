@@ -11,7 +11,6 @@ extern crate aflak_primitives as primitives;
 extern crate imgui_file_explorer;
 extern crate imgui_glium_support as support;
 extern crate node_editor;
-extern crate ui_image2d;
 
 mod layout;
 mod save_output;
@@ -22,11 +21,13 @@ use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
-use aflak_plot::plot;
+use aflak_plot::{
+    imshow::{self, UiImage2d},
+    plot::{self, UiImage1d},
+    InteractionId, ValueIter,
+};
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
 use imgui_file_explorer::UiFileExplorer;
-use plot::UiImage1d;
-use ui_image2d::{InteractionId, UiImage2d, ValueIter};
 
 use layout::LayoutEngine;
 
@@ -178,7 +179,7 @@ fn output_window_computed_content<F>(
     output: &cake::OutputId,
     window_name: &ImStr,
     image1d_states: &mut HashMap<ImString, plot::State>,
-    image2d_states: &mut HashMap<ImString, ui_image2d::State>,
+    image2d_states: &mut HashMap<ImString, imshow::State>,
     editable_values: &mut HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
     node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
     gl_ctx: &F,
@@ -240,7 +241,7 @@ fn output_window_computed_content<F>(
         &primitives::IOValue::Image2d(ref image) => {
             let state = image2d_states
                 .entry(window_name.to_owned())
-                .or_insert_with(|| ui_image2d::State::default());
+                .or_insert_with(|| imshow::State::default());
 
             update_state_from_editor(
                 &output,
@@ -301,7 +302,7 @@ fn update_editor_from_state(
     node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
 ) {
     for (id, value) in value_iter {
-        use self::ui_image2d::Value;
+        use aflak_plot::Value;
         let val = match value {
             Value::Integer(i) => primitives::IOValue::Integer(i),
             Value::Float(f) => primitives::IOValue::Float(f),
