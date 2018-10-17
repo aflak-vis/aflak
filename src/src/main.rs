@@ -23,7 +23,7 @@ use std::io::Cursor;
 
 use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 
-use imgui::{ImGuiCond, ImStr, ImString, Ui};
+use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
 use imgui_file_explorer::UiFileExplorer;
 use ui_image1d::UiImage1d;
 use ui_image2d::{InteractionId, UiImage2d, ValueIter};
@@ -113,7 +113,7 @@ fn main() {
         ini_filename: Some(ImString::new("aflak.ini")),
         ..Default::default()
     };
-    support::run(config, |ui, gl_ctx| {
+    support::run(config, |ui, gl_ctx, textures| {
         ui.window(im_str!("Node editor"))
             .position(
                 layout_engine.default_editor_window_position(),
@@ -156,6 +156,7 @@ fn main() {
                                     &mut editable_values,
                                     &mut node_editor,
                                     gl_ctx,
+                                    textures,
                                 ),
                             };
                         } else {
@@ -181,6 +182,7 @@ fn output_window_computed_content<F>(
     editable_values: &mut HashMap<(cake::OutputId, InteractionId), cake::TransformIdx>,
     node_editor: &mut NodeEditor<primitives::IOValue, primitives::IOErr, MyConstantEditor>,
     gl_ctx: &F,
+    textures: &mut Textures<glium::Texture2d>,
 ) where
     F: glium::backend::Facade,
 {
@@ -246,7 +248,8 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            if let Err(e) = ui.image2d(gl_ctx, &window_name, image, state) {
+            let texture_id = ImTexture::from(hash_imstring(window_name));
+            if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, image, state) {
                 ui.text(format!("{:?}", e));
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
@@ -314,4 +317,14 @@ fn update_editor_from_state(
             store.insert(value_id, t_idx);
         }
     }
+}
+
+/// Used to compute the ID of a texture
+fn hash_imstring(string: &ImStr) -> usize {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+
+    let mut h = DefaultHasher::new();
+    h.write(string.to_str().as_bytes());
+    h.finish() as usize
 }

@@ -5,8 +5,8 @@ mod state;
 
 pub use self::state::State;
 
-use glium::backend::Facade;
-use imgui::{ImStr, Ui};
+use glium::{backend::Facade, Texture2d};
+use imgui::{ImTexture, Textures, Ui};
 use ndarray::Array2;
 
 use err::Error;
@@ -27,15 +27,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// extern crate ndarray;
     /// extern crate ui_image2d;
     ///
-    /// use imgui::Ui;
+    /// use imgui::{ImTexture, Ui};
     /// use ndarray::Array2;
     /// use ui_image2d::UiImage2d;
     ///
     /// fn main() {
     ///     let data = Array2::eye(10);
     ///     let mut state = ui_image2d::State::default();
-    ///     support::run(Default::default(), |ui, gl_ctx| {
-    ///         if let Err(e) = ui.image2d(gl_ctx, im_str!("Show my image!"), &data, &mut state) {
+    ///     support::run(Default::default(), |ui, gl_ctx, textures| {
+    ///         let texture_id = ImTexture::from(1);
+    ///         if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, &data, &mut state) {
     ///             eprintln!("{:?}", e);
     ///             false
     ///         } else {
@@ -47,7 +48,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
     fn image2d<F>(
         &self,
         ctx: &F,
-        name: &ImStr,
+        textures: &mut Textures<Texture2d>,
+        texture_id: ImTexture,
         image: &Array2<f32>,
         state: &mut State,
     ) -> Result<(), Error>
@@ -69,7 +71,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size.1 - (cursor_pos.1 - window_pos.1),
         );
-        let [p, size] = state.show_image(self, ctx, name, image, image_max_size)?;
+        let [p, size] = state.show_image(self, ctx, textures, texture_id, image, image_max_size)?;
 
         state.show_hist(
             self,
@@ -92,7 +94,8 @@ pub trait UiImage2d {
     fn image2d<F>(
         &self,
         ctx: &F,
-        name: &ImStr,
+        textures: &mut Textures<Texture2d>,
+        texture_id: ImTexture,
         image: &Array2<f32>,
         state: &mut State,
     ) -> Result<(), Error>

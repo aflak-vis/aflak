@@ -14,7 +14,7 @@ fn main() {
         ..Default::default()
     };
     let mut state = ui_image2d::State::default();
-    support::run(config, |ui, gl_ctx| {
+    support::run(config, |ui, gl_ctx, textures| {
         let image_data = {
             const WIDTH: usize = 100;
             const HEIGHT: usize = 100;
@@ -27,8 +27,13 @@ fn main() {
             ndarray::Array2::from_shape_vec((WIDTH, HEIGHT), image_data).unwrap()
         };
         ui.window(im_str!("Gradient")).build(|| {
-            ui.image2d(gl_ctx, im_str!("Gradient"), &image_data, &mut state)
-                .expect("Image2d failed");
+            ui.image2d(
+                gl_ctx,
+                textures,
+                imgui::ImTexture::from(1),
+                &image_data,
+                &mut state,
+            ).expect("Image2d failed");
         });
         true
     }).unwrap();

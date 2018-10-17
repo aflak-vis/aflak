@@ -1,6 +1,5 @@
-use glium::backend::Facade;
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImStr, ImVec2, Ui};
-use imgui_glium_renderer::Texture;
+use glium::{backend::Facade, Texture2d};
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImTexture, ImVec2, Textures, Ui};
 use ndarray::Array2;
 
 use super::hist;
@@ -224,7 +223,8 @@ impl State {
         &mut self,
         ui: &Ui,
         ctx: &F,
-        name: &ImStr,
+        textures: &mut Textures<Texture2d>,
+        texture_id: ImTexture,
         image: &Array2<f32>,
         max_size: (f32, f32),
     ) -> Result<[(f32, f32); 2], Error>
@@ -236,8 +236,9 @@ impl State {
 
         // Returns a handle to the mutable texture (we could write on it)
         let raw = image::make_raw_image(image, self)?;
-        let texture = ui.replace_texture(name, Texture::from_data(ctx, raw)?);
-        let tex_size = texture.get_size();
+        let gl_texture = Texture2d::new(ctx, raw)?;
+        let tex_size = gl_texture.dimensions();
+        textures.replace(texture_id, gl_texture);
         let size = {
             const BOTTOM_PADDING: f32 = 60.0;
             const MIN_WIDTH: f32 = 100.0;
@@ -255,7 +256,7 @@ impl State {
         ui.set_cursor_screen_pos([p.0 + IMAGE_LEFT_PADDING, p.1 + IMAGE_TOP_PADDING]);
         let p = ui.get_cursor_screen_pos();
 
-        ui.image(&texture, size).build();
+        ui.image(texture_id, size).build();
         let abs_mouse_pos = ui.imgui().mouse_pos();
         let mouse_pos = (abs_mouse_pos.0 - p.0, -abs_mouse_pos.1 + p.1 + size.1);
         self.mouse_pos = (

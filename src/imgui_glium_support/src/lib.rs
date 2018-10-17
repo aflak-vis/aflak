@@ -9,9 +9,9 @@ use std::time::Instant;
 
 use glium::{
     backend::{glutin::DisplayCreationError, Context, Facade},
-    glutin, Display, Surface, SwapBuffersError,
+    glutin, Display, Surface, SwapBuffersError, Texture2d,
 };
-use imgui::{FrameSize, ImGui, ImGuiMouseCursor, ImString, Ui};
+use imgui::{FrameSize, ImGui, ImGuiMouseCursor, ImString, Textures, Ui};
 use imgui_glium_renderer::{Renderer, RendererError};
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
@@ -71,7 +71,10 @@ impl From<SwapBuffersError> for Error {
     }
 }
 
-pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F) -> Result<()> {
+pub fn run<F>(config: AppConfig, mut run_ui: F) -> Result<()>
+where
+    F: FnMut(&Ui, &Rc<Context>, &mut Textures<Texture2d>) -> bool,
+{
     let mut events_loop = glutin::EventsLoop::new();
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let builder = glutin::WindowBuilder::new()
@@ -196,7 +199,7 @@ pub fn run<F: FnMut(&Ui, &Rc<Context>) -> bool>(config: AppConfig, mut run_ui: F
         };
 
         let ui = imgui.frame(frame_size, delta_s);
-        if !run_ui(&ui, display.get_context()) {
+        if !run_ui(&ui, display.get_context(), renderer.textures()) {
             break;
         }
 
