@@ -411,7 +411,7 @@ where
                         && ui.imgui().key_ctrl()
                         && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
                     {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
+                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeAll);
                         let delta = Vec2(0.0, 0.0) - ui.imgui().mouse_delta().into();
                         self.scrolling.set_delta(delta);
                     }

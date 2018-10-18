@@ -139,7 +139,7 @@ impl State {
             // Pan by dragging mouse
             if !self.interactions.any_moving() && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
             {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::Move);
+                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeAll);
                 let delta = ui.imgui().mouse_delta();
                 self.offset.x -= delta.0 / size.x * (xlims.1 - xlims.0);
                 self.offset.y += delta.1 / size.y * (ylims.1 - ylims.0);

@@ -7,5 +7,5 @@ license = "GPL-3.0-only"
 
 [dependencies]
 glium = { version = "0.22", features = ["glutin"] }
-imgui = { path = "../../imgui-rs", version = "0.0.21" }
-imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21" }
+imgui = { path = "../../imgui-rs", version = "0.0.22-pre" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }

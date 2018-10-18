@@ -8,8 +8,8 @@ repository = "https://github.com/aflak-vis/aflak"
 
 [dependencies]
 cfg-if = "0.1"
-imgui = {path = "../../imgui-rs", version = "0.0.21" }
+imgui = {path = "../../imgui-rs", version = "0.0.22-pre" }
 
 [dev-dependencies]
 glium = { version = "0.22", default-features = true }
-imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }
