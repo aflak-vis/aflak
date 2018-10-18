@@ -2,6 +2,8 @@
 name = "aflak_imgui_glium_support"
 version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
+description = "Support crate for using glium with imgui, made for aflak project"
+license = "GPL-3.0-only"
 
 [dependencies]
 glium = { version = "0.22", features = ["glutin"] }
