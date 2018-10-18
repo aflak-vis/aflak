@@ -1,6 +1,6 @@
 [package]
 name = "imgui_glium_support"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]

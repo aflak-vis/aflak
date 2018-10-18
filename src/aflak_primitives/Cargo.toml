@@ -1,12 +1,12 @@
 [package]
 name = "aflak_primitives"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Define primitive functions for use with aflak"
 license = "GPL-3.0-only"
 
 [dependencies]
-aflak_cake = { path = "../aflak_cake", version = "0.0.1" }
+aflak_cake = { path = "../aflak_cake", version = "0.0.3" }
 fitrs = "0.2.2"
 lazy_static = "1.0"
 ndarray = { version = "0.11", features = ["serde-1"] }

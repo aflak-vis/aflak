@@ -1,6 +1,6 @@
 [package]
 name = "imgui_file_explorer"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Rikuo Uchiki <dbkn_rikuo@keio.jp>"]
 description = "File explorer plugin for imgui-rs"
 license = "GPL-3.0-only"

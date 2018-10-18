@@ -1,6 +1,6 @@
 [package]
 name = "aflak_plot"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Plotting library using imgui made for aflak"
 license = "GPL-3.0-only"
