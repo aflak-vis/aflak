@@ -6,10 +6,10 @@ extern crate imgui;
 extern crate imgui_glium_renderer;
 
 extern crate aflak_cake as cake;
+extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate aflak_primitives as primitives;
 extern crate imgui_file_explorer;
-extern crate imgui_glium_support as support;
 extern crate node_editor;
 
 mod layout;

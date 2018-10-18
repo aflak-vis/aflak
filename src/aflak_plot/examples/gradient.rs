@@ -1,8 +1,8 @@
 extern crate glium;
 #[macro_use]
 extern crate imgui;
+extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
-extern crate imgui_glium_support as support;
 extern crate ndarray;
 
 use aflak_plot::imshow::{self, UiImage2d};

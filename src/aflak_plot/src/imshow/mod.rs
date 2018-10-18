@@ -23,7 +23,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///
     /// ```rust,no_run
     /// #[macro_use] extern crate imgui;
-    /// extern crate imgui_glium_support as support;
+    /// extern crate aflak_imgui_glium_support as support;
     /// extern crate ndarray;
     /// extern crate aflak_plot;
     ///
