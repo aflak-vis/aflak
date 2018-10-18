@@ -5,5 +5,5 @@ authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
 glium = { version = "0.22", features = ["glutin"] }
-imgui = { path = "../../imgui-rs", version = "0.0.21-pre" }
-imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21-pre" }
+imgui = { path = "../../imgui-rs", version = "0.0.21" }
+imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.21" }

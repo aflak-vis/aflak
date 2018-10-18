@@ -17,8 +17,8 @@ imgui_glium_support = { path = "./imgui_glium_support", version = "0.0.1" }
 node_editor = { path = "./node_editor", version = "0.0.1" }
 
 glium = { version = "0.22", default-features = true }
-imgui = { path = "../imgui-rs", version = "0.0.21-pre" }
-imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.0.21-pre" }
+imgui = { path = "../imgui-rs", version = "0.0.21" }
+imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.0.21" }
 
 [workspace]
 members = [
