@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [v0.0.3] - 2018-10-18
+
+- Double-feedback-loop for variables
+- FITS export
+- Node removal
+- Auto-layout of output windows
+- Show explanations for each node
+- Smoother scrolling on node editor
+- Fix constant node names after import
+- Miscellaneous internal improvements
+
 ## [v0.0.2] - 2018-08-11
 
 - Improve doc
