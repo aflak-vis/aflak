@@ -181,6 +181,14 @@ fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
 
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
+    fn read_unit(hdu: &fitrs::Hdu, key: &str) -> Unit {
+        if let Some(fitrs::HeaderValue::CharacterString(unit)) = hdu.value(key) {
+            Unit::Custom(unit.to_owned())
+        } else {
+            Unit::None
+        }
+    }
+
     let (image, unit) = {
         let primary_hdu = fits
             .get_by_name("FLUX")
@@ -199,12 +207,7 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
             ).map_err(IOErr::ShapeError)?,
             _ => unimplemented!(),
         };
-        let unit =
-            if let Some(fitrs::HeaderValue::CharacterString(unit)) = primary_hdu.value("BUNIT") {
-                Unit::Custom(unit.to_owned())
-            } else {
-                Unit::None
-            };
+        let unit = read_unit(primary_hdu, "BUNIT");
         (image, unit)
     };
     Ok(IOValue::Image3d(unit.new(image)))
