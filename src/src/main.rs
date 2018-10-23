@@ -250,8 +250,14 @@ fn output_window_computed_content<F>(
                 node_editor,
             );
             let texture_id = ImTexture::from(hash_imstring(window_name));
-            // TODO: Show unit for image
-            if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, image.scalar(), state) {
+            if let Err(e) = ui.image2d(
+                gl_ctx,
+                textures,
+                texture_id,
+                image.scalar(),
+                &format!("{}", image.unit()),
+                state,
+            ) {
                 ui.text(format!("{:?}", e));
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);

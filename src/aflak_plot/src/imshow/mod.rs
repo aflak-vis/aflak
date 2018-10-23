@@ -36,7 +36,14 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     let mut state = imshow::State::default();
     ///     support::run(Default::default(), |ui, gl_ctx, textures| {
     ///         let texture_id = ImTexture::from(1);
-    ///         if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, &data, &mut state) {
+    ///         if let Err(e) = ui.image2d(
+    ///             gl_ctx,
+    ///             textures,
+    ///             texture_id,
+    ///             &data,
+    ///             "<unit>",
+    ///             &mut state,
+    ///         ) {
     ///             eprintln!("{:?}", e);
     ///             false
     ///         } else {
@@ -51,6 +58,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
         image: &Array2<f32>,
+        vunit: &str,
         state: &mut State,
     ) -> Result<(), Error>
     where
@@ -71,7 +79,15 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size.1 - (cursor_pos.1 - window_pos.1),
         );
-        let [p, size] = state.show_image(self, ctx, textures, texture_id, image, image_max_size)?;
+        let [p, size] = state.show_image(
+            self,
+            ctx,
+            textures,
+            texture_id,
+            image,
+            vunit,
+            image_max_size,
+        )?;
 
         state.show_hist(
             self,
@@ -97,6 +113,7 @@ pub trait UiImage2d {
         textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
         image: &Array2<f32>,
+        vunit: &str,
         state: &mut State,
     ) -> Result<(), Error>
     where

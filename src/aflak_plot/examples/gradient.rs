@@ -32,6 +32,7 @@ fn main() {
                 textures,
                 imgui::ImTexture::from(1),
                 &image_data,
+                "gradient value",
                 &mut state,
             ).expect("Image2d failed");
         });

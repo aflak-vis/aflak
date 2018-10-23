@@ -226,6 +226,7 @@ impl State {
         textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
         image: &Array2<f32>,
+        vunit: &str,
         max_size: (f32, f32),
     ) -> Result<[(f32, f32); 2], Error>
     where
@@ -270,7 +271,11 @@ impl State {
             if y < image.dim().1 {
                 let index = [image.dim().1 - 1 - y, x];
                 if let Some(val) = image.get(index) {
-                    ui.tooltip_text(format!("X: {}, Y: {}, VAL: {:.2}", x, y, val));
+                    ui.tooltip_text(if vunit.is_empty() {
+                        format!("X: {}, Y: {},  VAL: {:.2}", x, y, val)
+                    } else {
+                        format!("X: {}, Y: {},  VAL: {:.2} {}", x, y, val, vunit)
+                    });
                 }
             }
 
