@@ -1,4 +1,4 @@
-use std::ops;
+use std::{fmt, ops};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Unit {
@@ -30,6 +30,10 @@ impl<V> Dimensioned<V> {
 
     pub fn scalar(&self) -> &V {
         &self.value
+    }
+
+    pub fn unit(&self) -> &Unit {
+        &self.unit
     }
 
     pub fn with_new_value<W>(&self, value: W) -> Dimensioned<W> {
@@ -84,5 +88,18 @@ where
             unit: self.unit,
             homogeneous,
         }
+    }
+}
+
+impl fmt::Display for Unit {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                Unit::None => "",
+                Unit::Custom(ref s) => s,
+            }
+        )
     }
 }

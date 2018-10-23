@@ -233,8 +233,7 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            // TODO: Show unit for image
-            if let Err(e) = ui.image1d(image.scalar(), state) {
+            if let Err(e) = ui.image1d(image.scalar(), &format!("{}", image.unit()), state) {
                 ui.text(format!("{:?}", e))
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);

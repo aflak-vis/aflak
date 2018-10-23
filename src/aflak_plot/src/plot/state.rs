@@ -43,6 +43,7 @@ impl State {
         &mut self,
         ui: &Ui,
         image: &Array1<f32>,
+        vunit: &str,
         pos: P,
         size: S,
     ) -> Result<(), Error>
@@ -120,7 +121,11 @@ impl State {
             let mouse_x = ui.imgui().mouse_pos().0;
             self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
             if let Some(y) = image.get(self.mouse_pos.x as usize) {
-                ui.tooltip_text(format!("X: {:.0}, VAL: {:.2}", self.mouse_pos.x, y));
+                ui.tooltip_text(if vunit.is_empty() {
+                    format!("X: {:.0},  VAL: {:.2}", self.mouse_pos.x, y)
+                } else {
+                    format!("X: {:.0},  VAL: {:.2} {}", self.mouse_pos.x, y, vunit)
+                });
             }
 
             // Zoom along X-axis
