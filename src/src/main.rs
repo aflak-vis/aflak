@@ -28,6 +28,7 @@ use aflak_plot::{
 };
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
 use imgui_file_explorer::UiFileExplorer;
+use primitives::{Unit, DIMENSIONLESS};
 
 use layout::LayoutEngine;
 
@@ -50,9 +51,9 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 changed
             }
             &mut IOValue::Integer(ref mut int) => {
-                let mut out = *int as i32;
+                let mut out = *int.scalar() as i32;
                 let changed = ui.input_int(im_str!("Int value"), &mut out).build();
-                *int = out as i64;
+                *int = int.unit().new(out as i64);
                 changed
             }
             &mut IOValue::Float(ref mut float) => {
@@ -278,7 +279,7 @@ fn update_state_from_editor(
                 );
                 let value = &value[0];
                 if let Err(e) = match value {
-                    primitives::IOValue::Integer(i) => interaction.set_value(*i),
+                    primitives::IOValue::Integer(i) => interaction.set_value(*i.scalar()),
                     primitives::IOValue::Float(f) => interaction.set_value(*f),
                     primitives::IOValue::Float2(f) => interaction.set_value(*f),
                     primitives::IOValue::Float3(f) => interaction.set_value(*f),
@@ -304,7 +305,7 @@ fn update_editor_from_state(
     for (id, value) in value_iter {
         use aflak_plot::Value;
         let val = match value {
-            Value::Integer(i) => primitives::IOValue::Integer(i),
+            Value::Integer(i) => primitives::IOValue::Integer(DIMENSIONLESS.new(i)),
             Value::Float(f) => primitives::IOValue::Float(f),
             Value::Float2(f) => primitives::IOValue::Float2(f),
             Value::Float3(f) => primitives::IOValue::Float3(f),
