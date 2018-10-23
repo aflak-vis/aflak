@@ -22,6 +22,7 @@ pub trait Unit: Sized {
         Dimensioned {
             value,
             unit: self.composed_unit(),
+            homogeneous: true,
         }
     }
 
@@ -52,14 +53,16 @@ impl Unit for SiComposedUnit {
 pub struct Dimensioned<V> {
     value: V,
     unit: SiComposedUnit,
+    homogeneous: bool,
 }
 
 impl<V> Dimensioned<V> {
     pub fn new<U: Unit>(value: V, unit: U) -> Self {
-        Self {
-            value,
-            unit: unit.composed_unit(),
-        }
+        unit.new(value)
+    }
+
+    pub fn homogeneous(&self) -> bool {
+        self.homogeneous
     }
 }
 
@@ -73,6 +76,7 @@ where
         Dimensioned {
             value: self.value * rhs.value,
             unit: self.unit * rhs.unit,
+            homogeneous: self.homogeneous && rhs.homogeneous,
         }
     }
 }
@@ -105,6 +109,7 @@ where
         Dimensioned {
             value: self.value * rhs,
             unit: self.unit,
+            homogeneous: self.homogeneous,
         }
     }
 }
@@ -119,6 +124,7 @@ where
         Dimensioned {
             value: self.value / rhs.value,
             unit: self.unit / rhs.unit,
+            homogeneous: self.homogeneous && rhs.homogeneous,
         }
     }
 }
@@ -134,6 +140,7 @@ where
         Dimensioned {
             value: self.value / rhs,
             unit: self.unit,
+            homogeneous: self.homogeneous,
         }
     }
 }
@@ -248,6 +255,7 @@ where
         Dimensioned {
             value: self.value + rhs.value,
             unit: self.unit,
+            homogeneous: self.unit == rhs.unit && self.homogeneous && rhs.homogeneous,
         }
     }
 }
@@ -323,5 +331,13 @@ mod tests {
         let half_second = SiBaseUnit::Second.new(0.5);
         let one_and_a_half_second = SiBaseUnit::Second.new(1.0 + 0.5);
         assert_eq!(one_second + half_second, one_and_a_half_second);
+        assert!((one_second + half_second).homogeneous());
+    }
+
+    #[test]
+    fn add_non_homogen_values() {
+        let one_second = SiBaseUnit::Second.new(1.0);
+        let one_metre = SiBaseUnit::Metre.new(1.0);
+        assert!(!(one_second + one_metre).homogeneous());
     }
 }
