@@ -13,6 +13,7 @@ pub enum SiBaseUnit {
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct SiComposedUnit([isize; 7]);
+pub const DIMENSIONLESS: SiComposedUnit = SiComposedUnit([0; 7]);
 
 pub trait Unit: Sized {
     fn composed_unit(self) -> SiComposedUnit;
@@ -183,7 +184,7 @@ impl fmt::Display for SiComposedUnit {
 
 #[cfg(test)]
 mod tests {
-    use super::{SiBaseUnit, Unit};
+    use super::{SiBaseUnit, Unit, DIMENSIONLESS};
     #[test]
     fn coulomb() {
         let one_second = SiBaseUnit::Second.new(1);
@@ -218,5 +219,10 @@ mod tests {
     #[test]
     fn display_per_second() {
         assert_eq!("1/m", format!("{}", SiBaseUnit::Metre.reverse()));
+    }
+
+    #[test]
+    fn display_dimensionless() {
+        assert_eq!("", format!("{}", DIMENSIONLESS));
     }
 }
