@@ -23,6 +23,14 @@ pub trait Unit: Sized {
             unit: self.composed_unit(),
         }
     }
+
+    fn reverse(self) -> SiComposedUnit {
+        let mut unit = self.composed_unit();
+        for i in 0..7 {
+            unit.0[i] = -unit.0[i];
+        }
+        unit
+    }
 }
 
 impl Unit for SiBaseUnit {
@@ -205,5 +213,10 @@ mod tests {
     #[test]
     fn display_square_metre() {
         assert_eq!("m^2", format!("{}", SiBaseUnit::Metre * SiBaseUnit::Metre));
+    }
+
+    #[test]
+    fn display_per_second() {
+        assert_eq!("1/m", format!("{}", SiBaseUnit::Metre.reverse()));
     }
 }
