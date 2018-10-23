@@ -182,6 +182,15 @@ impl fmt::Display for SiComposedUnit {
     }
 }
 
+impl<V> fmt::Display for Dimensioned<V>
+where
+    V: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.value, self.unit)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SiBaseUnit, Unit, DIMENSIONLESS};
@@ -224,5 +233,12 @@ mod tests {
     #[test]
     fn display_dimensionless() {
         assert_eq!("", format!("{}", DIMENSIONLESS));
+    }
+
+    #[test]
+    fn display_one_meter_per_second() {
+        let one_metre = SiBaseUnit::Metre.new(1);
+        let one_second = SiBaseUnit::Second.new(1);
+        assert_eq!("1 m/s", format!("{}", one_metre / one_second));
     }
 }
