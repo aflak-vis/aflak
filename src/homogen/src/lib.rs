@@ -61,6 +61,14 @@ impl<V> Dimensioned<V> {
         unit.new(value)
     }
 
+    pub fn scalar(&self) -> &V {
+        &self.value
+    }
+
+    pub fn unit(&self) -> SiComposedUnit {
+        self.unit
+    }
+
     pub fn homogeneous(&self) -> bool {
         self.homogeneous
     }
