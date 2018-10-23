@@ -25,6 +25,7 @@ members = [
     "aflak_cake",
     "aflak_plot",
     "aflak_primitives",
+    "homogen",
     "imgui_file_explorer",
     "imgui_glium_support",
     "node_editor",
