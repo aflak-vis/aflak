@@ -68,6 +68,20 @@ where
     }
 }
 
+impl<V, W> ops::Div<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Div<W>,
+{
+    type Output = Dimensioned<<V as ops::Div<W>>::Output>;
+
+    fn div(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value / rhs.value,
+            unit: self.unit / rhs.unit,
+        }
+    }
+}
+
 impl ops::Mul for SiBaseUnit {
     type Output = SiComposedUnit;
 
@@ -87,6 +101,25 @@ impl ops::Mul for SiComposedUnit {
     }
 }
 
+impl ops::Div for SiBaseUnit {
+    type Output = SiComposedUnit;
+
+    fn div(self, rhs: SiBaseUnit) -> Self::Output {
+        self.composed_unit() / rhs.composed_unit()
+    }
+}
+
+impl ops::Div for SiComposedUnit {
+    type Output = SiComposedUnit;
+
+    fn div(mut self, rhs: SiComposedUnit) -> Self::Output {
+        for i in 0..7 {
+            self.0[i] -= rhs.0[i];
+        }
+        SiComposedUnit(self.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SiBaseUnit, Unit};
@@ -96,5 +129,13 @@ mod tests {
         let one_ampere = SiBaseUnit::Ampere.new(1);
         let one_coulomb = (SiBaseUnit::Second * SiBaseUnit::Ampere).new(1);
         assert_eq!(one_second * one_ampere, one_coulomb)
+    }
+
+    #[test]
+    fn speed() {
+        let one_metre = SiBaseUnit::Metre.new(1);
+        let one_second = SiBaseUnit::Second.new(1);
+        let one_metre_per_second = (SiBaseUnit::Metre / SiBaseUnit::Second).new(1);
+        assert_eq!(one_metre / one_second, one_metre_per_second)
     }
 }
