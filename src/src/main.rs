@@ -233,7 +233,8 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            if let Err(e) = ui.image1d(image, state) {
+            // TODO: Show unit for image
+            if let Err(e) = ui.image1d(image.scalar(), state) {
                 ui.text(format!("{:?}", e))
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
@@ -250,7 +251,8 @@ fn output_window_computed_content<F>(
                 node_editor,
             );
             let texture_id = ImTexture::from(hash_imstring(window_name));
-            if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, image, state) {
+            // TODO: Show unit for image
+            if let Err(e) = ui.image2d(gl_ctx, textures, texture_id, image.scalar(), state) {
                 ui.text(format!("{:?}", e));
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);

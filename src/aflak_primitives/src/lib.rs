@@ -14,8 +14,10 @@ extern crate serde_derive;
 
 mod export;
 mod roi;
+mod unit;
 
 pub use export::ExportError;
+pub use unit::{Dimensioned, Unit};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -34,9 +36,9 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
-    Image1d(Array1<f32>),
-    Image2d(Array2<f32>),
-    Image3d(Array3<f32>),
+    Image1d(Dimensioned<Array1<f32>>),
+    Image2d(Dimensioned<Array2<f32>>),
+    Image3d(Dimensioned<Array3<f32>>),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
@@ -179,7 +181,7 @@ fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
 
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
-    let image = {
+    let (image, unit) = {
         let primary_hdu = fits
             .get_by_name("FLUX")
             .or_else(|| fits.get(0))
@@ -190,22 +192,33 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
                 )
             })?;
         let data = primary_hdu.read_data();
-        match data {
+        let image = match data {
             &fitrs::FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
                 (image.shape[2], image.shape[1], image.shape[0]),
                 image.data.clone(),
             ).map_err(IOErr::ShapeError)?,
             _ => unimplemented!(),
-        }
+        };
+        let unit =
+            if let Some(fitrs::HeaderValue::CharacterString(unit)) = primary_hdu.value("BUNIT") {
+                Unit::Custom(unit.to_owned())
+            } else {
+                Unit::None
+            };
+        (image, unit)
     };
-    Ok(IOValue::Image3d(image))
+    Ok(IOValue::Image3d(unit.new(image)))
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(input_img: &Array3<f32>, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
+fn run_slice_3d_to_2d(
+    input_img: &Dimensioned<Array3<f32>>,
+    map: &Array2<[f32; 3]>,
+) -> Result<IOValue, IOErr> {
     let mut out = Vec::with_capacity(map.len());
     for &[x, y, z] in map {
         // Interpolate to nearest
+        let input_img = input_img.scalar();
         let out_val = *input_img
             .get([x as usize, y as usize, z as usize])
             .ok_or_else(|| {
@@ -217,7 +230,7 @@ fn run_slice_3d_to_2d(input_img: &Array3<f32>, map: &Array2<[f32; 3]>) -> Result
         out.push(out_val);
     }
     Array2::from_shape_vec(map.dim(), out)
-        .map(IOValue::Image2d)
+        .map(|array| IOValue::Image2d(input_img.with_new_value(array)))
         .map_err(IOErr::ShapeError)
 }
 
@@ -250,21 +263,24 @@ fn run_make_plane3d(
         .map_err(IOErr::ShapeError)
 }
 
-fn run_extract_wave(image: &Array3<f32>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
-    let mut wave = Vec::with_capacity(image.len());
-    for i in 0..image.dim().0 {
+fn run_extract_wave(image: &Dimensioned<Array3<f32>>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+    let image_val = image.scalar();
+    let mut wave = Vec::with_capacity(image_val.len());
+    for i in 0..image_val.dim().0 {
         let mut res = 0.0;
-        for (_, val) in roi.filter(image.slice(s![i, .., ..])) {
+        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
     }
-    Ok(IOValue::Image1d(Array1::from_vec(wave)))
+    Ok(IOValue::Image1d(
+        image.with_new_value(Array1::from_vec(wave)),
+    ))
 }
 
 fn run_linear_composition_1d(
-    i1: &Array1<f32>,
-    i2: &Array1<f32>,
+    i1: &Dimensioned<Array1<f32>>,
+    i2: &Dimensioned<Array1<f32>>,
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
@@ -273,8 +289,8 @@ fn run_linear_composition_1d(
 }
 
 fn run_linear_composition_2d(
-    i1: &Array2<f32>,
-    i2: &Array2<f32>,
+    i1: &Dimensioned<Array2<f32>>,
+    i2: &Dimensioned<Array2<f32>>,
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
