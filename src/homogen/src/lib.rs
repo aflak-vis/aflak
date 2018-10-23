@@ -241,7 +241,11 @@ where
     V: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.value, self.unit)
+        if self.homogeneous {
+            write!(f, "{} {}", self.value, self.unit)
+        } else {
+            write!(f, "{} !", self.value)
+        }
     }
 }
 
@@ -339,5 +343,12 @@ mod tests {
         let one_second = SiBaseUnit::Second.new(1.0);
         let one_metre = SiBaseUnit::Metre.new(1.0);
         assert!(!(one_second + one_metre).homogeneous());
+    }
+
+    #[test]
+    fn format_non_homogen_values() {
+        let one_second = SiBaseUnit::Second.new(1);
+        let one_metre = SiBaseUnit::Metre.new(1);
+        assert_eq!("2 !", format!("{}", one_second + one_metre));
     }
 }
