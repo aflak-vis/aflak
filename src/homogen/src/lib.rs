@@ -250,7 +250,11 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.homogeneous {
-            write!(f, "{} {}", self.value, self.unit)
+            if self.unit == DIMENSIONLESS {
+                write!(f, "{}", self.value)
+            } else {
+                write!(f, "{} {}", self.value, self.unit)
+            }
         } else {
             write!(f, "{} !", self.value)
         }
@@ -321,6 +325,12 @@ mod tests {
         let one_metre = SiBaseUnit::Metre.new(1);
         let one_second = SiBaseUnit::Second.new(1);
         assert_eq!("1 m/s", format!("{}", one_metre / one_second));
+    }
+
+    #[test]
+    fn display_one_dimensionless() {
+        let one = DIMENSIONLESS.new(1);
+        assert_eq!("1", format!("{}", one));
     }
 
     #[test]
