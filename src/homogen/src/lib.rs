@@ -136,6 +136,43 @@ impl fmt::Display for SiBaseUnit {
     }
 }
 
+impl fmt::Display for SiComposedUnit {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use SiBaseUnit::*;
+        const UNITS: &[SiBaseUnit] = &[Metre, Kilogram, Second, Ampere, Kelvin, Mole, Candela];
+
+        let mut first = true;
+        for u in UNITS {
+            let exp = self.0[*u as usize];
+            if exp > 0 {
+                if !first {
+                    write!(f, ".")?;
+                }
+                first = false;
+                write!(f, "{}", u)?;
+                if exp > 1 {
+                    write!(f, "^{}", exp)?;
+                }
+            }
+        }
+        for u in UNITS {
+            let exp = self.0[*u as usize];
+            if exp < 0 {
+                if first {
+                    write!(f, "1")?;
+                }
+                write!(f, "/")?;
+                first = false;
+                write!(f, "{}", u)?;
+                if exp > 1 {
+                    write!(f, "^{}", -exp)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SiBaseUnit, Unit};
@@ -158,5 +195,15 @@ mod tests {
     #[test]
     fn display_metre() {
         assert_eq!("m", format!("{}", SiBaseUnit::Metre));
+    }
+
+    #[test]
+    fn display_metre_per_second() {
+        assert_eq!("m/s", format!("{}", SiBaseUnit::Metre / SiBaseUnit::Second));
+    }
+
+    #[test]
+    fn display_square_metre() {
+        assert_eq!("m^2", format!("{}", SiBaseUnit::Metre * SiBaseUnit::Metre));
     }
 }
