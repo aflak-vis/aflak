@@ -1,4 +1,4 @@
-use std::ops;
+use std::{fmt, ops};
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SiBaseUnit {
@@ -120,6 +120,22 @@ impl ops::Div for SiComposedUnit {
     }
 }
 
+impl fmt::Display for SiBaseUnit {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use SiBaseUnit::*;
+        let repr = match *self {
+            Metre => "m",
+            Kilogram => "kg",
+            Second => "s",
+            Ampere => "A",
+            Kelvin => "K",
+            Mole => "mol",
+            Candela => "cd",
+        };
+        write!(f, "{}", repr)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SiBaseUnit, Unit};
@@ -137,5 +153,10 @@ mod tests {
         let one_second = SiBaseUnit::Second.new(1);
         let one_metre_per_second = (SiBaseUnit::Metre / SiBaseUnit::Second).new(1);
         assert_eq!(one_metre / one_second, one_metre_per_second)
+    }
+
+    #[test]
+    fn display_metre() {
+        assert_eq!("m", format!("{}", SiBaseUnit::Metre));
     }
 }
