@@ -123,6 +123,21 @@ where
     }
 }
 
+impl<V, W> ops::Div<W> for Dimensioned<V>
+where
+    V: ops::Div<W>,
+    W: ScalarOperand,
+{
+    type Output = Dimensioned<<V as ops::Div<W>>::Output>;
+
+    fn div(self, rhs: W) -> Self::Output {
+        Dimensioned {
+            value: self.value / rhs,
+            unit: self.unit,
+        }
+    }
+}
+
 impl ops::Mul for SiBaseUnit {
     type Output = SiComposedUnit;
 
@@ -279,5 +294,12 @@ mod tests {
         let one_second = SiBaseUnit::Second.new(1);
         let two_seconds = SiBaseUnit::Second.new(2);
         assert_eq!(two_seconds, one_second * 2);
+    }
+
+    #[test]
+    fn divide_by_scalar() {
+        let one_second = SiBaseUnit::Second.new(1.0);
+        let half_second = SiBaseUnit::Second.new(0.5);
+        assert_eq!(half_second, one_second / 2.0);
     }
 }
