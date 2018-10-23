@@ -238,6 +238,20 @@ where
     }
 }
 
+impl<V, W> ops::Add<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Add<W>,
+{
+    type Output = Dimensioned<<V as ops::Add<W>>::Output>;
+
+    fn add(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value + rhs.value,
+            unit: self.unit,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SiBaseUnit, Unit, DIMENSIONLESS};
@@ -301,5 +315,13 @@ mod tests {
         let one_second = SiBaseUnit::Second.new(1.0);
         let half_second = SiBaseUnit::Second.new(0.5);
         assert_eq!(half_second, one_second / 2.0);
+    }
+
+    #[test]
+    fn add_homogen_values() {
+        let one_second = SiBaseUnit::Second.new(1.0);
+        let half_second = SiBaseUnit::Second.new(0.5);
+        let one_and_a_half_second = SiBaseUnit::Second.new(1.0 + 0.5);
+        assert_eq!(one_second + half_second, one_and_a_half_second);
     }
 }
