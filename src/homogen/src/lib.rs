@@ -1,3 +1,9 @@
+#[cfg(feature = "serde-1")]
+extern crate serde;
+#[cfg(feature = "serde-1")]
+#[macro_use]
+extern crate serde_derive;
+
 use std::{fmt, ops};
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -59,6 +65,14 @@ pub struct Dimensioned<V> {
 impl<V> Dimensioned<V> {
     pub fn new<U: Unit>(value: V, unit: U) -> Self {
         unit.new(value)
+    }
+
+    pub(crate) fn new_deser(value: V, unit: [isize; 7], homogeneous: bool) -> Self {
+        Self {
+            value,
+            unit: SiComposedUnit(unit),
+            homogeneous,
+        }
     }
 
     pub fn scalar(&self) -> &V {
@@ -272,6 +286,56 @@ where
             value: self.value + rhs.value,
             unit: self.unit,
             homogeneous: self.unit == rhs.unit && self.homogeneous && rhs.homogeneous,
+        }
+    }
+}
+
+#[cfg(feature = "serde-1")]
+mod homogen_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    use super::Dimensioned;
+
+    #[derive(Serialize)]
+    struct SerVal<'a, V: 'a> {
+        v: &'a V,
+        u: [isize; 7],
+        h: bool,
+    }
+    #[derive(Deserialize)]
+    struct DeVal<V> {
+        v: V,
+        u: [isize; 7],
+        h: bool,
+    }
+
+    /// **Requires crate feature `"serde-1"`**
+    impl<V> Serialize for Dimensioned<V>
+    where
+        V: Serialize,
+    {
+        fn serialize<Se>(&self, serializer: Se) -> Result<Se::Ok, Se::Error>
+        where
+            Se: Serializer,
+        {
+            SerVal {
+                v: &self.value,
+                u: self.unit.0,
+                h: self.homogeneous,
+            }.serialize(serializer)
+        }
+    }
+
+    impl<'de, V> Deserialize<'de> for Dimensioned<V>
+    where
+        V: Deserialize<'de>,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Dimensioned<V>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            DeVal::deserialize(deserializer)
+                .map(|deval| Dimensioned::new_deser(deval.v, deval.u, deval.h))
         }
     }
 }

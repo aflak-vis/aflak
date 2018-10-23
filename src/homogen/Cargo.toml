@@ -4,3 +4,10 @@ version = "0.1.0"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 
 [dependencies]
+# Use via the `serde-1` crate feature!
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
+
+[features]
+# Serde 1.0
+serde-1 = ["serde", "serde_derive"]
