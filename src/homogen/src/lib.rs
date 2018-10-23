@@ -77,6 +77,38 @@ where
     }
 }
 
+pub trait ScalarOperand {}
+impl ScalarOperand for bool {}
+impl ScalarOperand for i8 {}
+impl ScalarOperand for u8 {}
+impl ScalarOperand for i16 {}
+impl ScalarOperand for u16 {}
+impl ScalarOperand for i32 {}
+impl ScalarOperand for u32 {}
+impl ScalarOperand for i64 {}
+impl ScalarOperand for u64 {}
+impl ScalarOperand for i128 {}
+impl ScalarOperand for u128 {}
+impl ScalarOperand for isize {}
+impl ScalarOperand for usize {}
+impl ScalarOperand for f32 {}
+impl ScalarOperand for f64 {}
+
+impl<V, W> ops::Mul<W> for Dimensioned<V>
+where
+    V: ops::Mul<W>,
+    W: ScalarOperand,
+{
+    type Output = Dimensioned<<V as ops::Mul<W>>::Output>;
+
+    fn mul(self, rhs: W) -> Self::Output {
+        Dimensioned {
+            value: self.value * rhs,
+            unit: self.unit,
+        }
+    }
+}
+
 impl<V, W> ops::Div<Dimensioned<W>> for Dimensioned<V>
 where
     V: ops::Div<W>,
@@ -240,5 +272,12 @@ mod tests {
         let one_metre = SiBaseUnit::Metre.new(1);
         let one_second = SiBaseUnit::Second.new(1);
         assert_eq!("1 m/s", format!("{}", one_metre / one_second));
+    }
+
+    #[test]
+    fn multiply_by_scalar() {
+        let one_second = SiBaseUnit::Second.new(1);
+        let two_seconds = SiBaseUnit::Second.new(2);
+        assert_eq!(two_seconds, one_second * 2);
     }
 }
