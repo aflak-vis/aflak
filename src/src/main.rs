@@ -233,7 +233,8 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            if let Err(e) = ui.image1d(image.scalar(), &format!("{}", image.unit()), state) {
+            if let Err(e) = ui.image1d(image.scalar(), &format!("{}", image.array().unit()), state)
+            {
                 ui.text(format!("{:?}", e))
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
@@ -255,7 +256,7 @@ fn output_window_computed_content<F>(
                 textures,
                 texture_id,
                 image.scalar(),
-                &format!("{}", image.unit()),
+                &format!("{}", image.array().unit()),
                 state,
             ) {
                 ui.text(format!("{:?}", e));

@@ -17,12 +17,12 @@ mod roi;
 mod unit;
 
 pub use export::ExportError;
-pub use unit::{Dimensioned, Unit};
+pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, Array3};
+use ndarray::{Array1, Array2};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -36,9 +36,9 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
-    Image1d(Dimensioned<Array1<f32>>),
-    Image2d(Dimensioned<Array2<f32>>),
-    Image3d(Dimensioned<Array3<f32>>),
+    Image1d(WcsArray1),
+    Image2d(WcsArray2),
+    Image3d(WcsArray3),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
@@ -181,43 +181,179 @@ fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
 
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
-    fn read_unit(hdu: &fitrs::Hdu, key: &str) -> Unit {
-        if let Some(fitrs::HeaderValue::CharacterString(unit)) = hdu.value(key) {
-            Unit::Custom(unit.to_owned())
-        } else {
-            Unit::None
-        }
-    }
-
-    let (image, unit) = {
-        let primary_hdu = fits
-            .get_by_name("FLUX")
-            .or_else(|| fits.get(0))
-            .ok_or_else(|| {
-                IOErr::UnexpectedInput(
-                    "Could not find HDU FLUX nor Primary HDU in FITS file. Is the file valid?"
-                        .to_owned(),
-                )
-            })?;
-        let data = primary_hdu.read_data();
-        let image = match data {
-            &fitrs::FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
-                (image.shape[2], image.shape[1], image.shape[0]),
-                image.data.clone(),
-            ).map_err(IOErr::ShapeError)?,
-            _ => unimplemented!(),
-        };
-        let unit = read_unit(primary_hdu, "BUNIT");
-        (image, unit)
-    };
-    Ok(IOValue::Image3d(unit.new(image)))
+    let primary_hdu = fits
+        .get_by_name("FLUX")
+        .or_else(|| fits.get(0))
+        .ok_or_else(|| {
+            IOErr::UnexpectedInput(
+                "Could not find HDU FLUX nor Primary HDU in FITS file. Is the file valid?"
+                    .to_owned(),
+            )
+        })?;
+    WcsArray3::from_hdu(&primary_hdu).map(IOValue::Image3d)
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(
-    input_img: &Dimensioned<Array3<f32>>,
-    map: &Array2<[f32; 3]>,
-) -> Result<IOValue, IOErr> {
+fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
+    use std::f32::EPSILON;
+
+    #[derive(Debug)]
+    struct MapReverseParams<'a> {
+        origin: Option<&'a [f32; 3]>,
+        dir1: [Option<f32>; 3],
+        dir2: [Option<f32>; 3],
+    }
+    enum DirValue {
+        Unset,
+        None,
+        Some(f32),
+    }
+    impl DirValue {
+        fn to_option(self) -> Option<f32> {
+            match self {
+                DirValue::Unset | DirValue::None => None,
+                DirValue::Some(f) => Some(f),
+            }
+        }
+
+        fn update(&mut self, test_d: f32) {
+            match *self {
+                DirValue::Unset => *self = DirValue::Some(test_d),
+                DirValue::Some(dx_) => {
+                    if (dx_ - test_d).abs() > EPSILON {
+                        *self = DirValue::None;
+                    }
+                }
+                DirValue::None => (),
+            }
+        }
+    }
+    impl<'a> MapReverseParams<'a> {
+        fn new(map: &'a Array2<[f32; 3]>) -> Self {
+            let (n, m) = map.dim();
+
+            let dir1 = {
+                let mut dx = DirValue::Unset;
+                let mut dy = DirValue::Unset;
+                let mut dz = DirValue::Unset;
+                for i in 0..n {
+                    for j in 0..(m - 1) {
+                        let [x0, y0, z0] = map[(i, j)];
+                        let [x1, y1, z1] = map[(i, j + 1)];
+                        {
+                            let test_dx = x1 - x0;
+                            dx.update(test_dx);
+                        }
+                        {
+                            let test_dy = y1 - y0;
+                            dy.update(test_dy);
+                        }
+                        {
+                            let test_dz = z1 - z0;
+                            dz.update(test_dz);
+                        }
+                    }
+                }
+                [dx.to_option(), dy.to_option(), dz.to_option()]
+            };
+            let dir2 = {
+                let mut dx = DirValue::Unset;
+                let mut dy = DirValue::Unset;
+                let mut dz = DirValue::Unset;
+                for i in 0..(n - 1) {
+                    for j in 0..m {
+                        let [x0, y0, z0] = map[(i, j)];
+                        let [x1, y1, z1] = map[(i + 1, j)];
+                        {
+                            let test_dx = x1 - x0;
+                            dx.update(test_dx);
+                        }
+                        {
+                            let test_dy = y1 - y0;
+                            dy.update(test_dy);
+                        }
+                        {
+                            let test_dz = z1 - z0;
+                            dz.update(test_dz);
+                        }
+                    }
+                }
+                [dx.to_option(), dy.to_option(), dz.to_option()]
+            };
+
+            let origin = map.get((0, 0));
+            Self { origin, dir1, dir2 }
+        }
+
+        fn sliced_axes(&self) -> Option<[(usize, f32, f32); 2]> {
+            enum HowToSlice {
+                KeepDirection,
+                RemoveDirection,
+            }
+            impl HowToSlice {
+                fn how(dx1: Option<f32>, dx2: Option<f32>) -> Option<Self> {
+                    if let (Some(dx1), Some(dx2)) = (dx1, dx2) {
+                        if dx1 < EPSILON && dx2 > EPSILON || dx1 > EPSILON && dx2 < EPSILON {
+                            Some(HowToSlice::KeepDirection)
+                        } else if dx1 < EPSILON && dx2 < EPSILON {
+                            Some(HowToSlice::RemoveDirection)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            let remove_x = match HowToSlice::how(self.dir1[0], self.dir2[0]) {
+                Some(HowToSlice::KeepDirection) => false,
+                Some(HowToSlice::RemoveDirection) => true,
+                None => false,
+            };
+            let remove_y = match HowToSlice::how(self.dir1[1], self.dir2[1]) {
+                Some(HowToSlice::KeepDirection) => false,
+                Some(HowToSlice::RemoveDirection) => true,
+                None => false,
+            };
+            let remove_z = match HowToSlice::how(self.dir1[2], self.dir2[2]) {
+                Some(HowToSlice::KeepDirection) => false,
+                Some(HowToSlice::RemoveDirection) => true,
+                None => false,
+            };
+
+            if let Some(origin) = self.origin {
+                match (remove_x, remove_y, remove_z) {
+                    (true, false, false) => self.non_zero_factor(2).and_then(|factor2| {
+                        self.non_zero_factor(1)
+                            .map(|factor1| [(0, origin[2], factor2), (1, origin[1], factor1)])
+                    }),
+                    (false, true, false) => self.non_zero_factor(2).and_then(|factor2| {
+                        self.non_zero_factor(0)
+                            .map(|factor0| [(0, origin[2], factor2), (2, origin[0], factor0)])
+                    }),
+                    (false, false, true) => self.non_zero_factor(1).and_then(|factor1| {
+                        self.non_zero_factor(0)
+                            .map(|factor0| [(1, origin[1], factor1), (2, origin[0], factor0)])
+                    }),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
+        fn non_zero_factor(&self, index: usize) -> Option<f32> {
+            match (self.dir1[index], self.dir2[index]) {
+                (Some(x), Some(y)) => if x.abs() < EPSILON {
+                    Some(y)
+                } else {
+                    Some(x)
+                },
+                _ => None,
+            }
+        }
+    }
+
     let mut out = Vec::with_capacity(map.len());
     for &[x, y, z] in map {
         // Interpolate to nearest
@@ -233,8 +369,17 @@ fn run_slice_3d_to_2d(
         out.push(out_val);
     }
     Array2::from_shape_vec(map.dim(), out)
-        .map(|array| IOValue::Image2d(input_img.with_new_value(array)))
-        .map_err(IOErr::ShapeError)
+        .map(|array| {
+            let array = input_img.array().with_new_value(array);
+            let params = MapReverseParams::new(map);
+            // TODO: Update WCS value for well-behaved slices!
+            let array = if let Some(axes) = params.sliced_axes() {
+                input_img.make_slice2(&axes, array)
+            } else {
+                WcsArray2::from_array(array)
+            };
+            IOValue::Image2d(array)
+        }).map_err(IOErr::ShapeError)
 }
 
 /// Make a 2D plane slicing the 3D space
@@ -266,7 +411,7 @@ fn run_make_plane3d(
         .map_err(IOErr::ShapeError)
 }
 
-fn run_extract_wave(image: &Dimensioned<Array3<f32>>, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+fn run_extract_wave(image: &WcsArray3, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let image_val = image.scalar();
     let mut wave = Vec::with_capacity(image_val.len());
     for i in 0..image_val.dim().0 {
@@ -276,14 +421,15 @@ fn run_extract_wave(image: &Dimensioned<Array3<f32>>, roi: &roi::ROI) -> Result<
         }
         wave.push(res);
     }
-    Ok(IOValue::Image1d(
-        image.with_new_value(Array1::from_vec(wave)),
-    ))
+    Ok(IOValue::Image1d(image.make_slice1(
+        2,
+        image.array().with_new_value(Array1::from_vec(wave)),
+    )))
 }
 
 fn run_linear_composition_1d(
-    i1: &Dimensioned<Array1<f32>>,
-    i2: &Dimensioned<Array1<f32>>,
+    i1: &WcsArray1,
+    i2: &WcsArray1,
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
@@ -292,8 +438,8 @@ fn run_linear_composition_1d(
 }
 
 fn run_linear_composition_2d(
-    i1: &Dimensioned<Array2<f32>>,
-    i2: &Dimensioned<Array2<f32>>,
+    i1: &WcsArray2,
+    i2: &WcsArray2,
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
