@@ -102,7 +102,12 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                     ui.tree_node(&im_dirname)
                         .opened(open, ImGuiCond::Once)
                         .build(|| {
-                            ret = view_dirs(ui, &i, extensions, default_dir);
+                            let out = view_dirs(ui, &i, extensions, default_dir);
+                            match ret {
+                                // Do not overwrite return value when it is already set
+                                Ok(Some(_)) => (),
+                                _ => ret = out,
+                            }
                         });
                 } else {
                     eprintln!("Could not get str out of directory: {:?}", i);
