@@ -34,6 +34,15 @@ fn has_extension<P: AsRef<Path>, S: AsRef<str>>(path: P, extensions: &[S]) -> bo
     }
 }
 
+fn is_hidden<P: AsRef<Path>>(path: P) -> bool {
+    let path = path.as_ref();
+    if let Some(name) = path.file_name() {
+        name.to_string_lossy().starts_with('.')
+    } else {
+        false
+    }
+}
+
 cfg_if! {
     if #[cfg(unix)] {
         pub const TOP_FOLDER: &str = "/";
@@ -67,7 +76,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
         match direntry {
             Ok(direntry) => {
                 let path = direntry.path();
-                if path.is_dir() || has_extension(&path, extensions) {
+                if !is_hidden(&path) && (path.is_dir() || has_extension(&path, extensions)) {
                     files.push(path);
                 }
             }
