@@ -3,6 +3,7 @@ extern crate imgui;
 extern crate cfg_if;
 
 use std::cmp::Ordering;
+use std::env;
 use std::path::*;
 use std::{fs, io};
 
@@ -48,7 +49,8 @@ impl<'ui> UiFileExplorer for Ui<'ui> {
         T: AsRef<Path>,
         S: AsRef<str>,
     {
-        view_dirs(&self, target, extensions)
+        let current_dir = env::current_dir().unwrap_or_else(|_| target.as_ref().to_owned());
+        view_dirs(&self, target, extensions, &current_dir)
     }
 }
 
@@ -56,6 +58,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
     ui: &Ui<'a>,
     target: T,
     extensions: &[S],
+    default_dir: &Path,
 ) -> io::Result<Option<PathBuf>> {
     let target = target.as_ref();
     let mut files = Vec::new();
@@ -86,9 +89,12 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             if let Some(dirname) = i.file_name() {
                 if let Some(dirname) = dirname.to_str() {
                     let im_dirname = ImString::new(dirname);
-                    ui.tree_node(&im_dirname).build(|| {
-                        ret = view_dirs(ui, &i, extensions);
-                    });
+                    let open = default_dir.starts_with(&i);
+                    ui.tree_node(&im_dirname)
+                        .opened(open, ImGuiCond::Once)
+                        .build(|| {
+                            ret = view_dirs(ui, &i, extensions, default_dir);
+                        });
                 } else {
                     eprintln!("Could not get str out of directory: {:?}", i);
                 }
