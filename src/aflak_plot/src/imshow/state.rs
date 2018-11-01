@@ -387,13 +387,14 @@ impl State {
             self.interactions.remove(&line_id);
         }
 
-        ticks::add_ticks::<_, _, fn(f32) -> f32>(
+        ticks::add_ticks::<_, _, fn(f32) -> f32, fn(f32) -> f32>(
             ui,
             &draw_list,
             p,
             size,
             (0.0, tex_size.0 as f32),
             (0.0, tex_size.1 as f32),
+            None,
             None,
         );
 
