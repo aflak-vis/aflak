@@ -24,7 +24,7 @@ use node_editor::{ComputationState, ConstantEditor, NodeEditor};
 use aflak_plot::{
     imshow::{self, UiImage2d},
     plot::{self, UiImage1d},
-    InteractionId, ValueIter,
+    AxisTransform, InteractionId, ValueIter,
 };
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
 use imgui_file_explorer::UiFileExplorer;
@@ -233,8 +233,17 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            if let Err(e) = ui.image1d(image.scalar(), &format!("{}", image.array().unit()), state)
-            {
+            let unit = format!("{}", image.array().unit());
+            let transform = match (image.cunit(), image.wcs()) {
+                (Some(unit), Some(wcs)) => {
+                    let unit = format!("{}", unit);
+                    Some(AxisTransform::new(unit, move |t| {
+                        wcs.pix2world([t, 0.0, 0.0])[0]
+                    }))
+                }
+                _ => None,
+            };
+            if let Err(e) = ui.image1d(image.scalar(), &unit, transform, state) {
                 ui.text(format!("{:?}", e))
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);

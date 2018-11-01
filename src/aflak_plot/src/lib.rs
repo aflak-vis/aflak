@@ -11,7 +11,9 @@ mod err;
 mod interactions;
 mod lims;
 mod ticks;
+mod units;
 mod util;
 
 pub use err::Error;
 pub use interactions::{InteractionId, InteractionIterMut, Value, ValueIter};
+pub use units::AxisTransform;

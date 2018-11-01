@@ -5,6 +5,7 @@ use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIt
 use super::lims;
 use super::ticks::XYTicks;
 use super::util;
+use super::AxisTransform;
 use super::Error;
 
 #[derive(Debug)]
@@ -39,15 +40,17 @@ impl State {
         self.interactions.iter_mut()
     }
 
-    pub(crate) fn plot<P, S>(
+    pub(crate) fn plot<F, P, S>(
         &mut self,
         ui: &Ui,
         image: &Array1<f32>,
         vunit: &str,
+        axis: Option<AxisTransform<F>>,
         pos: P,
         size: S,
     ) -> Result<(), Error>
     where
+        F: Fn(f32) -> f32,
         P: Into<ImVec2>,
         S: Into<ImVec2>,
     {
@@ -121,7 +124,12 @@ impl State {
             let mouse_x = ui.imgui().mouse_pos().0;
             self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
             if let Some(y) = image.get(self.mouse_pos.x as usize) {
-                let text = self.make_tooltip(vunit, *y);
+                let x = axis.as_ref().map(|axis| Measurement {
+                    v: axis.pix2world(self.mouse_pos.x),
+                    unit: axis.unit(),
+                });
+                let val = Measurement { v: *y, unit: vunit };
+                let text = self.make_tooltip(x, val);
                 ui.tooltip_text(text);
             }
 
@@ -236,11 +244,38 @@ impl State {
         Ok(())
     }
 
-    fn make_tooltip(&self, vunit: &str, y: f32) -> String {
-        if vunit.is_empty() {
-            format!("X: {:.0},  VAL: {:.2}", self.mouse_pos.x, y)
+    fn make_tooltip(&self, x: Option<Measurement>, y: Measurement) -> String {
+        let x_str = if let Some(x) = x {
+            if x.unit.is_empty() {
+                format!("X: {:.2}", x.v)
+            } else {
+                format!("X: {:.2} {}", x.v, x.unit)
+            }
         } else {
-            format!("X: {:.0},  VAL: {:.2} {}", self.mouse_pos.x, y, vunit)
+            self.pixel_tooltip()
+        };
+
+        let val = if y.unit.is_empty() {
+            format!("VAL: {:.2}", y.v)
+        } else {
+            format!("VAL: {:.2} {}", y.v, y.unit)
+        };
+
+        let out = format!("{}  {}", x_str, val);
+        if x.is_some() {
+            format!("{}\n{} (pix)", out, self.pixel_tooltip())
+        } else {
+            out
         }
     }
+
+    fn pixel_tooltip(&self) -> String {
+        format!("X: {:.2}", self.mouse_pos.x)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Measurement<'a> {
+    pub v: f32,
+    pub unit: &'a str,
 }
