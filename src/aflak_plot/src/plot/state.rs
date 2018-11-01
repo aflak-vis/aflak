@@ -123,13 +123,14 @@ impl State {
         if ui.is_item_hovered() {
             let mouse_x = ui.imgui().mouse_pos().0;
             self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
-            if let Some(y) = image.get(self.mouse_pos.x as usize) {
+            let point = self.mouse_pos.x as usize;
+            if let Some(y) = image.get(point) {
                 let x = axis.as_ref().map(|axis| Measurement {
                     v: axis.pix2world(self.mouse_pos.x),
                     unit: axis.unit(),
                 });
                 let val = Measurement { v: *y, unit: vunit };
-                let text = self.make_tooltip(x, val);
+                let text = self.make_tooltip(point, x, val);
                 ui.tooltip_text(text);
             }
 
@@ -244,15 +245,15 @@ impl State {
         Ok(())
     }
 
-    fn make_tooltip(&self, x: Option<Measurement>, y: Measurement) -> String {
+    fn make_tooltip(&self, point: usize, x: Option<Measurement>, y: Measurement) -> String {
         let x_str = if let Some(x) = x {
             if x.unit.is_empty() {
-                format!("X: {:.2}", x.v)
+                format!("X:   {:.2}", x.v)
             } else {
-                format!("X: {:.2} {}", x.v, x.unit)
+                format!("X:   {:.2} {}", x.v, x.unit)
             }
         } else {
-            self.pixel_tooltip()
+            format!("X:    {}", point)
         };
 
         let val = if y.unit.is_empty() {
@@ -261,16 +262,11 @@ impl State {
             format!("VAL: {:.2} {}", y.v, y.unit)
         };
 
-        let out = format!("{}  {}", x_str, val);
         if x.is_some() {
-            format!("{}\n{} (pix)", out, self.pixel_tooltip())
+            format!("{} (at point {})\n{}", x_str, point, val)
         } else {
-            out
+            format!("{}\n{}", x_str, val)
         }
-    }
-
-    fn pixel_tooltip(&self) -> String {
-        format!("X: {:.2}", self.mouse_pos.x)
     }
 }
 
