@@ -73,7 +73,7 @@ impl State {
 
         // Pre-compute tick size to accurately position and resize the figure
         // to fit everything in the "size" given as input to this function.
-        let ticks = XYTicks::prepare(ui, xlims, ylims);
+        let ticks = XYTicks::prepare(ui, xlims, ylims, axis.as_ref());
         let x_labels_width = ticks.x_labels_width();
         let y_labels_height = ticks.y_labels_height();
 

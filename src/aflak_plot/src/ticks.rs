@@ -1,5 +1,7 @@
 use imgui::{ImString, ImVec2, Ui, WindowDrawList};
 
+use super::AxisTransform;
+
 const TICK_COUNT: usize = 10;
 
 const COLOR: u32 = 0xFFFFFFFF;
@@ -22,9 +24,17 @@ pub struct YTicks {
 }
 
 impl XYTicks {
-    pub fn prepare(ui: &Ui, xlims: (f32, f32), ylims: (f32, f32)) -> Self {
+    pub fn prepare<F1>(
+        ui: &Ui,
+        xlims: (f32, f32),
+        ylims: (f32, f32),
+        xaxis: Option<&AxisTransform<F1>>,
+    ) -> Self
+    where
+        F1: Fn(f32) -> f32,
+    {
         Self {
-            x: XTicks::prepare(ui, xlims),
+            x: XTicks::prepare(ui, xlims, xaxis),
             y: YTicks::prepare(ui, ylims),
         }
     }
@@ -51,14 +61,20 @@ impl XYTicks {
 }
 
 impl XTicks {
-    pub fn prepare(ui: &Ui, xlims: (f32, f32)) -> Self {
+    pub fn prepare<F>(ui: &Ui, xlims: (f32, f32), axis: Option<&AxisTransform<F>>) -> Self
+    where
+        F: Fn(f32) -> f32,
+    {
         let mut width = 0.0;
         let labels = (0..=TICK_COUNT)
             .map(|i| {
-                let label = ImString::new(format!(
-                    "{:.0}",
-                    xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32
-                ));
+                let point = xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32;
+                let label = if let Some(axis) = axis {
+                    let transformed = axis.pix2world(point);
+                    ImString::new(format!("{:.2}", transformed))
+                } else {
+                    ImString::new(format!("{:.0}", point))
+                };
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 width = text_size.x.max(width);
                 (label, text_size)
@@ -139,16 +155,18 @@ impl YTicks {
     }
 }
 
-pub fn add_ticks<P, S>(
+pub fn add_ticks<P, S, F1>(
     ui: &Ui,
     draw_list: &WindowDrawList,
     p: P,
     size: S,
     xlims: (f32, f32),
     ylims: (f32, f32),
+    xaxis: Option<&AxisTransform<F1>>,
 ) where
     P: Into<ImVec2>,
     S: Into<ImVec2>,
+    F1: Fn(f32) -> f32,
 {
-    XYTicks::prepare(ui, xlims, ylims).draw(draw_list, p, size)
+    XYTicks::prepare(ui, xlims, ylims, xaxis).draw(draw_list, p, size)
 }
