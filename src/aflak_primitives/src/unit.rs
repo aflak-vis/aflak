@@ -196,6 +196,13 @@ impl Unit {
             homogeneous: true,
         }
     }
+
+    pub fn repr(&self) -> &str {
+        match *self {
+            Unit::None => "",
+            Unit::Custom(ref unit) => unit,
+        }
+    }
 }
 
 impl<V> Dimensioned<V> {

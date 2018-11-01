@@ -233,14 +233,11 @@ fn output_window_computed_content<F>(
                 editable_values,
                 node_editor,
             );
-            let unit = format!("{}", image.array().unit());
+            let unit = image.array().unit().repr();
             let transform = match (image.cunit(), image.wcs()) {
-                (Some(unit), Some(wcs)) => {
-                    let unit = format!("{}", unit);
-                    Some(AxisTransform::new(unit, move |t| {
-                        wcs.pix2world([t, 0.0, 0.0])[0]
-                    }))
-                }
+                (Some(unit), Some(wcs)) => Some(AxisTransform::new(unit.repr(), move |t| {
+                    wcs.pix2world([t, 0.0, 0.0])[0]
+                })),
                 _ => None,
             };
             if let Err(e) = ui.image1d(image.scalar(), &unit, transform, state) {
@@ -265,7 +262,7 @@ fn output_window_computed_content<F>(
                 textures,
                 texture_id,
                 image.scalar(),
-                &format!("{}", image.array().unit()),
+                image.array().unit().repr(),
                 state,
             ) {
                 ui.text(format!("{:?}", e));

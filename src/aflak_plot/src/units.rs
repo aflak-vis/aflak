@@ -1,10 +1,10 @@
-pub struct AxisTransform<F> {
-    unit: String,
+pub struct AxisTransform<'a, F> {
+    unit: &'a str,
     transform: F,
 }
 
-impl<F> AxisTransform<F> {
-    pub fn new(unit: String, transform: F) -> Self {
+impl<'a, F> AxisTransform<'a, F> {
+    pub fn new(unit: &'a str, transform: F) -> Self {
         Self { unit, transform }
     }
 
@@ -13,19 +13,19 @@ impl<F> AxisTransform<F> {
     }
 }
 
-impl<T> AxisTransform<fn(T) -> T> {
-    pub fn id(unit: &str) -> Self {
+impl<'a, T> AxisTransform<'a, fn(T) -> T> {
+    pub fn id(unit: &'a str) -> Self {
         fn id<T>(x: T) -> T {
             x
         }
         Self {
-            unit: unit.to_owned(),
+            unit: unit,
             transform: id,
         }
     }
 }
 
-impl<F: Fn(f32) -> f32> AxisTransform<F> {
+impl<'a, F: Fn(f32) -> f32> AxisTransform<'a, F> {
     pub fn pix2world(&self, p: f32) -> f32 {
         (self.transform)(p)
     }
