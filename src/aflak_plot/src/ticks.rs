@@ -16,6 +16,7 @@ pub struct XYTicks {
 pub struct XTicks {
     labels: Vec<(ImString, ImVec2)>,
     width: f32,
+    axis_label: (ImString, ImVec2),
 }
 
 pub struct YTicks {
@@ -81,7 +82,17 @@ impl XTicks {
                 width = text_size.x.max(width);
                 (label, text_size)
             }).collect();
-        XTicks { labels, width }
+        let axis_label = {
+            let unit = axis.map(|axis| axis.unit()).unwrap_or("");
+            let label = ImString::new(unit);
+            let text_size = ui.calc_text_size(&label, false, -1.0);
+            (label, text_size)
+        };
+        XTicks {
+            labels,
+            width,
+            axis_label,
+        }
     }
 
     pub fn width(&self) -> f32 {
@@ -99,13 +110,23 @@ impl XTicks {
         let x_step = size.x / (self.labels.len() - 1) as f32;
         let mut x_pos = p.x;
         let y_pos = p.y + size.y;
+        let mut label_height = 0.0f32;
         for (label, text_size) in self.labels {
             draw_list
                 .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
                 .build();
             draw_list.add_text([x_pos - text_size.x / 2.0, y_pos], COLOR, label.to_str());
             x_pos += x_step;
+            label_height = label_height.max(text_size.y);
         }
+
+        let (label, text_size) = self.axis_label;
+        let middle_x = p.x + size.x / 2.0;
+        draw_list.add_text(
+            [middle_x - text_size.x / 2.0, y_pos + label_height],
+            COLOR,
+            label,
+        );
     }
 }
 
