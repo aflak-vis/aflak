@@ -88,9 +88,12 @@ impl XTicks {
     }
 
     pub fn height(&self) -> f32 {
-        self.labels
+        let label_height = self.axis_label.1.y;
+        let tick_height: f32 = self
+            .labels
             .iter()
-            .fold(0.0, |acc, (_, size)| acc.max(size.y))
+            .fold(0.0, |acc, (_, size)| acc.max(size.y));
+        tick_height + label_height
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
