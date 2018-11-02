@@ -1,4 +1,4 @@
-use imgui::{ImString, ImVec2, Ui, WindowDrawList};
+use imgui::{ImColor, ImString, ImVec2, Ui, WindowDrawList};
 
 use super::AxisTransform;
 
@@ -193,11 +193,16 @@ impl YTicks {
 
         let (label, text_size) = self.axis_label;
         let middle_y = p.y + size.y / 2.0;
-        add_text_vertical(
-            [p.x - label_width, middle_y - text_size.x / 2.0],
-            COLOR,
-            label,
-        );
+        unsafe {
+            add_text_vertical(
+                [
+                    p.x - label_width - text_size.y,
+                    middle_y + text_size.x / 2.0,
+                ],
+                COLOR,
+                label,
+            );
+        }
     }
 }
 
@@ -219,13 +224,45 @@ pub fn add_ticks<P, S, F1, F2>(
     XYTicks::prepare(ui, xlims, ylims, xaxis, yaxis).draw(draw_list, p, size)
 }
 
-use imgui::ImColor;
-
-fn add_text_vertical<P, C, T>(pos: P, col: C, text: T)
+/// Draw vertical text using direct draw calls.
+///
+/// Inspired from: https://github.com/ocornut/imgui/issues/705#issuecomment-247959437
+unsafe fn add_text_vertical<P, C, T>(pos: P, col: C, text: T)
 where
     P: Into<ImVec2>,
     C: Into<ImColor>,
     T: AsRef<str>,
 {
-    // TODO
+    use imgui::sys;
+
+    let pos = pos.into();
+    let col = col.into();
+    let text = text.as_ref();
+
+    let mut y = pos.y;
+
+    let font = sys::igGetFont();
+    for c in text.chars() {
+        let glyph = sys::ImFont_FindGlyph(font, c as sys::ImWchar);
+        if glyph.is_null() {
+            continue;
+        }
+        let glyph = &*glyph;
+        let draw_list = sys::igGetWindowDrawList();
+        sys::ImDrawList_PrimReserve(draw_list, 6, 4);
+        sys::ImDrawList_PrimQuadUV(
+            draw_list,
+            ImVec2::new(pos.x + glyph.y0, y - glyph.x0),
+            ImVec2::new(pos.x + glyph.y0, y - glyph.x1),
+            ImVec2::new(pos.x + glyph.y1, y - glyph.x1),
+            ImVec2::new(pos.x + glyph.y1, y - glyph.x0),
+            ImVec2::new(glyph.u0, glyph.v0),
+            ImVec2::new(glyph.u1, glyph.v0),
+            ImVec2::new(glyph.u1, glyph.v1),
+            ImVec2::new(glyph.u0, glyph.v1),
+            col.into(),
+        );
+
+        y -= glyph.advance_x;
+    }
 }
