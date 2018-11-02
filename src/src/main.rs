@@ -257,12 +257,25 @@ fn output_window_computed_content<F>(
                 node_editor,
             );
             let texture_id = ImTexture::from(hash_imstring(window_name));
+            let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
+                (Some(units), Some(wcs)) => (
+                    Some(AxisTransform::new(units[0].repr(), move |t| {
+                        wcs.pix2world([t, 0.0, 0.0])[0]
+                    })),
+                    Some(AxisTransform::new(units[1].repr(), move |t| {
+                        wcs.pix2world([0.0, t, 0.0])[1]
+                    })),
+                ),
+                _ => (None, None),
+            };
             if let Err(e) = ui.image2d(
                 gl_ctx,
                 textures,
                 texture_id,
                 image.scalar(),
                 image.array().unit().repr(),
+                x_transform,
+                y_transform,
                 state,
             ) {
                 ui.text(format!("{:?}", e));

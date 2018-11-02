@@ -23,6 +23,10 @@ impl<'a, T> AxisTransform<'a, fn(T) -> T> {
             transform: id,
         }
     }
+
+    pub fn none() -> Option<Self> {
+        None
+    }
 }
 
 impl<'a, F: Fn(f32) -> f32> AxisTransform<'a, F> {

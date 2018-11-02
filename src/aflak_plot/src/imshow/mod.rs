@@ -15,6 +15,8 @@ use lims;
 use ticks;
 use util;
 
+use super::AxisTransform;
+
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input. `name` is used as an ID to register the
     /// provided image as an OpenGL texture in [`Ui`].
@@ -29,7 +31,10 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///
     /// use imgui::{ImTexture, Ui};
     /// use ndarray::Array2;
-    /// use aflak_plot::imshow::{self, UiImage2d};
+    /// use aflak_plot::{
+    ///     imshow::{self, UiImage2d},
+    ///     AxisTransform,
+    /// };
     ///
     /// fn main() {
     ///     let data = Array2::eye(10);
@@ -42,6 +47,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///             texture_id,
     ///             &data,
     ///             "<unit>",
+    ///             AxisTransform::none(),
+    ///             AxisTransform::none(),
     ///             &mut state,
     ///         ) {
     ///             eprintln!("{:?}", e);
@@ -52,17 +59,21 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     }).unwrap()
     /// }
     /// ```
-    fn image2d<F>(
+    fn image2d<F, FX, FY>(
         &self,
         ctx: &F,
         textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
         image: &Array2<f32>,
         vunit: &str,
+        xaxis: Option<AxisTransform<FX>>,
+        yaxis: Option<AxisTransform<FY>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
         F: Facade,
+        FX: Fn(f32) -> f32,
+        FY: Fn(f32) -> f32,
     {
         state.vmin = lims::get_vmin(image)?;
         state.vmax = lims::get_vmax(image)?;
@@ -86,6 +97,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
             texture_id,
             image,
             vunit,
+            xaxis,
+            yaxis,
             image_max_size,
         )?;
 
@@ -107,15 +120,19 @@ impl<'ui> UiImage2d for Ui<'ui> {
 
 /// Implementation of a UI to visualize a 2D image with ImGui and OpenGL
 pub trait UiImage2d {
-    fn image2d<F>(
+    fn image2d<F, FX, FY>(
         &self,
         ctx: &F,
         textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
         image: &Array2<f32>,
         vunit: &str,
+        xaxis: Option<AxisTransform<FX>>,
+        yaxis: Option<AxisTransform<FY>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
-        F: Facade;
+        F: Facade,
+        FX: Fn(f32) -> f32,
+        FY: Fn(f32) -> f32;
 }

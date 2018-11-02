@@ -216,7 +216,7 @@ pub fn add_ticks<P, S, F1, F2>(
     xlims: (f32, f32),
     ylims: (f32, f32),
     xaxis: Option<&AxisTransform<F1>>,
-    yaxis: Option<&AxisTransform<F1>>,
+    yaxis: Option<&AxisTransform<F2>>,
 ) where
     P: Into<ImVec2>,
     S: Into<ImVec2>,

@@ -5,7 +5,10 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
-use aflak_plot::imshow::{self, UiImage2d};
+use aflak_plot::{
+    imshow::{self, UiImage2d},
+    AxisTransform,
+};
 
 fn main() {
     let config = support::AppConfig {
@@ -33,6 +36,8 @@ fn main() {
                 imgui::ImTexture::from(1),
                 &image_data,
                 "gradient value",
+                Some(AxisTransform::new("X Axis", |x| x)),
+                Some(AxisTransform::new("Y Axis", |y| y)),
                 &mut state,
             ).expect("Image2d failed");
         });

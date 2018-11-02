@@ -10,6 +10,7 @@ use super::interactions::{
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks;
 use super::util;
+use super::AxisTransform;
 use super::Error;
 
 /// Current state of the visualization of a 2D image
@@ -219,7 +220,7 @@ impl State {
         }
     }
 
-    pub(crate) fn show_image<F>(
+    pub(crate) fn show_image<F, FX, FY>(
         &mut self,
         ui: &Ui,
         ctx: &F,
@@ -227,10 +228,14 @@ impl State {
         texture_id: ImTexture,
         image: &Array2<f32>,
         vunit: &str,
+        xaxis: Option<AxisTransform<FX>>,
+        yaxis: Option<AxisTransform<FY>>,
         max_size: (f32, f32),
     ) -> Result<[(f32, f32); 2], Error>
     where
         F: Facade,
+        FX: Fn(f32) -> f32,
+        FY: Fn(f32) -> f32,
     {
         const IMAGE_LEFT_PADDING: f32 = 20.0;
         const IMAGE_TOP_PADDING: f32 = 0.0;
@@ -387,15 +392,15 @@ impl State {
             self.interactions.remove(&line_id);
         }
 
-        ticks::add_ticks::<_, _, fn(f32) -> f32, fn(f32) -> f32>(
+        ticks::add_ticks(
             ui,
             &draw_list,
             p,
             size,
             (0.0, tex_size.0 as f32),
             (0.0, tex_size.1 as f32),
-            None,
-            None,
+            xaxis.as_ref(),
+            yaxis.as_ref(),
         );
 
         Ok([p, size])
