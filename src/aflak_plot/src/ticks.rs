@@ -20,6 +20,7 @@ pub struct XTicks {
 
 pub struct YTicks {
     labels: Vec<(ImString, ImVec2)>,
+    axis_label: (ImString, ImVec2),
 }
 
 impl XYTicks {
@@ -144,13 +145,22 @@ impl YTicks {
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 (label, text_size)
             }).collect();
-        YTicks { labels }
+        let axis_label = {
+            let unit = axis.map(|axis| axis.unit()).unwrap_or("");
+            let label = ImString::new(unit);
+            let text_size = ui.calc_text_size(&label, false, -1.0);
+            (label, text_size)
+        };
+        YTicks { labels, axis_label }
     }
 
     pub fn width(&self) -> f32 {
-        self.labels
+        let label_width = self.axis_label.1.y;
+        let tick_width: f32 = self
+            .labels
             .iter()
-            .fold(0.0, |acc, (_, size)| acc.max(size.x))
+            .fold(0.0, |acc, (_, size)| acc.max(size.x));
+        label_width + tick_width
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
@@ -164,6 +174,7 @@ impl YTicks {
         let y_step = size.y / (self.labels.len() - 1) as f32;
         let mut y_pos = p.y + size.y;
         let x_pos = p.x;
+        let mut label_width = 0.0f32;
         for (label, text_size) in self.labels {
             draw_list
                 .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
@@ -177,7 +188,16 @@ impl YTicks {
                 label.to_str(),
             );
             y_pos -= y_step;
+            label_width = label_width.max(text_size.x)
         }
+
+        let (label, text_size) = self.axis_label;
+        let middle_y = p.y + size.y / 2.0;
+        add_text_vertical(
+            [p.x - label_width, middle_y - text_size.x / 2.0],
+            COLOR,
+            label,
+        );
     }
 }
 
@@ -197,4 +217,15 @@ pub fn add_ticks<P, S, F1, F2>(
     F2: Fn(f32) -> f32,
 {
     XYTicks::prepare(ui, xlims, ylims, xaxis, yaxis).draw(draw_list, p, size)
+}
+
+use imgui::ImColor;
+
+fn add_text_vertical<P, C, T>(pos: P, col: C, text: T)
+where
+    P: Into<ImVec2>,
+    C: Into<ImColor>,
+    T: AsRef<str>,
+{
+    // TODO
 }
