@@ -129,6 +129,8 @@ impl XTicks {
 }
 
 impl YTicks {
+    const AXIS_NAME_RIGHT_PADDING: f32 = 2.0;
+
     pub fn prepare<F>(ui: &Ui, ylims: (f32, f32), axis: Option<&AxisTransform<F>>) -> Self
     where
         F: Fn(f32) -> f32,
@@ -160,7 +162,7 @@ impl YTicks {
             .labels
             .iter()
             .fold(0.0, |acc, (_, size)| acc.max(size.x));
-        label_width + tick_width
+        label_width + tick_width + YTicks::AXIS_NAME_RIGHT_PADDING
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
@@ -196,7 +198,7 @@ impl YTicks {
         unsafe {
             add_text_vertical(
                 [
-                    p.x - label_width - text_size.y,
+                    p.x - label_width - text_size.y - YTicks::AXIS_NAME_RIGHT_PADDING,
                     middle_y + text_size.x / 2.0,
                 ],
                 COLOR,
