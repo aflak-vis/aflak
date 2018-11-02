@@ -75,18 +75,18 @@ impl State {
         // to fit everything in the "size" given as input to this function.
         let yaxis = AxisTransform::id(vunit);
         let ticks = XYTicks::prepare(ui, xlims, ylims, axis.as_ref(), Some(&yaxis));
-        let x_labels_width = ticks.x_labels_width();
-        let y_labels_height = ticks.y_labels_height();
+        let x_labels_height = ticks.x_labels_height();
+        let y_labels_width = ticks.y_labels_width();
 
         const BOTTOM_PADDING: f32 = 40.0;
         const RIGHT_PADDING: f32 = 20.0;
         let size = ImVec2 {
-            x: size.x - x_labels_width - RIGHT_PADDING,
-            y: size.y - y_labels_height - BOTTOM_PADDING,
+            x: size.x - y_labels_width - RIGHT_PADDING,
+            y: size.y - x_labels_height - BOTTOM_PADDING,
         };
 
         // Start drawing the figure
-        ui.set_cursor_screen_pos([pos.x + x_labels_width, pos.y]);
+        ui.set_cursor_screen_pos([pos.x + y_labels_width, pos.y]);
         let p = ui.get_cursor_screen_pos();
 
         ui.invisible_button(im_str!("plot"), size);

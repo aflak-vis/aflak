@@ -15,13 +15,11 @@ pub struct XYTicks {
 
 pub struct XTicks {
     labels: Vec<(ImString, ImVec2)>,
-    width: f32,
     axis_label: (ImString, ImVec2),
 }
 
 pub struct YTicks {
     labels: Vec<(ImString, ImVec2)>,
-    height: f32,
 }
 
 impl XYTicks {
@@ -42,12 +40,12 @@ impl XYTicks {
         }
     }
 
-    pub fn x_labels_width(&self) -> f32 {
-        self.x.width()
+    pub fn x_labels_height(&self) -> f32 {
+        self.x.height()
     }
 
-    pub fn y_labels_height(&self) -> f32 {
-        self.y.height()
+    pub fn y_labels_width(&self) -> f32 {
+        self.y.width()
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
@@ -68,7 +66,6 @@ impl XTicks {
     where
         F: Fn(f32) -> f32,
     {
-        let mut width = 0.0;
         let labels = (0..=TICK_COUNT)
             .map(|i| {
                 let point = xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32;
@@ -79,7 +76,6 @@ impl XTicks {
                     ImString::new(format!("{:.0}", point))
                 };
                 let text_size = ui.calc_text_size(&label, false, -1.0);
-                width = text_size.x.max(width);
                 (label, text_size)
             }).collect();
         let axis_label = {
@@ -88,15 +84,13 @@ impl XTicks {
             let text_size = ui.calc_text_size(&label, false, -1.0);
             (label, text_size)
         };
-        XTicks {
-            labels,
-            width,
-            axis_label,
-        }
+        XTicks { labels, axis_label }
     }
 
-    pub fn width(&self) -> f32 {
-        self.width
+    pub fn height(&self) -> f32 {
+        self.labels
+            .iter()
+            .fold(0.0, |acc, (_, size)| acc.max(size.y))
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
@@ -135,7 +129,6 @@ impl YTicks {
     where
         F: Fn(f32) -> f32,
     {
-        let mut height = 0.0;
         let labels = (0..=TICK_COUNT)
             .map(|i| {
                 let point = ylims.0 + i as f32 * (ylims.1 - ylims.0) / TICK_COUNT as f32;
@@ -146,14 +139,15 @@ impl YTicks {
                     ImString::new(format!("{:.0}", point))
                 };
                 let text_size = ui.calc_text_size(&label, false, -1.0);
-                height = (text_size.y + LABEL_HORIZONTAL_PADDING).max(height);
                 (label, text_size)
             }).collect();
-        YTicks { labels, height }
+        YTicks { labels }
     }
 
-    pub fn height(&self) -> f32 {
-        self.height
+    pub fn width(&self) -> f32 {
+        self.labels
+            .iter()
+            .fold(0.0, |acc, (_, size)| acc.max(size.x))
     }
 
     pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
