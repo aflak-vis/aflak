@@ -285,11 +285,24 @@ impl State {
             if y < image.dim().1 {
                 let index = [image.dim().1 - 1 - y, x];
                 if let Some(val) = image.get(index) {
-                    ui.tooltip_text(if vunit.is_empty() {
-                        format!("X: {}, Y: {},  VAL: {:.2}", x, y, val)
-                    } else {
-                        format!("X: {}, Y: {},  VAL: {:.2} {}", x, y, val, vunit)
+                    let x_measurement = xaxis.as_ref().map(|axis| Measurement {
+                        v: axis.pix2world(x as f32),
+                        unit: axis.unit(),
                     });
+                    let y_measurement = yaxis.as_ref().map(|axis| Measurement {
+                        v: axis.pix2world(y as f32),
+                        unit: axis.unit(),
+                    });
+                    let text = self.make_tooltip(
+                        (x, y),
+                        x_measurement,
+                        y_measurement,
+                        Measurement {
+                            v: *val,
+                            unit: vunit,
+                        },
+                    );
+                    ui.tooltip_text(text);
                 }
             }
 
@@ -443,4 +456,52 @@ impl State {
                 .build();
         } // TODO show error
     }
+
+    fn make_tooltip(
+        &self,
+        (x_p, y_p): (usize, usize),
+        x: Option<Measurement>,
+        y: Option<Measurement>,
+        val: Measurement,
+    ) -> String {
+        let xy_str = format!(
+            "(X, Y): ({}, {})",
+            if let Some(x) = x {
+                if x.unit.is_empty() {
+                    format!("{:.2}", x.v)
+                } else {
+                    format!("{:.2} {}", x.v, x.unit)
+                }
+            } else {
+                format!("{}", x_p)
+            },
+            if let Some(y) = y {
+                if y.unit.is_empty() {
+                    format!("{:.2}", y.v)
+                } else {
+                    format!("{:.2} {}", y.v, y.unit)
+                }
+            } else {
+                format!("{}", y_p)
+            },
+        );
+
+        let val_str = if val.unit.is_empty() {
+            format!("VAL:    {:.2}", val.v)
+        } else {
+            format!("VAL:    {:.2} {}", val.v, val.unit)
+        };
+
+        if x.is_some() || y.is_some() {
+            format!("{} [at point ({}, {})]\n{}", xy_str, x_p, y_p, val_str)
+        } else {
+            format!("{}\n{}", xy_str, val_str)
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Measurement<'a> {
+    pub v: f32,
+    pub unit: &'a str,
 }
