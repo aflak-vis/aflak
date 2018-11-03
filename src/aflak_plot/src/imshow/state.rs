@@ -282,8 +282,8 @@ impl State {
         if ui.is_item_hovered() {
             let x = self.mouse_pos.0 as usize;
             let y = self.mouse_pos.1 as usize;
-            if y < image.dim().1 {
-                let index = [image.dim().1 - 1 - y, x];
+            if y < image.dim().0 {
+                let index = [image.dim().0 - 1 - y, x];
                 if let Some(val) = image.get(index) {
                     let x_measurement = xaxis.as_ref().map(|axis| Measurement {
                         v: axis.pix2world(x as f32),
