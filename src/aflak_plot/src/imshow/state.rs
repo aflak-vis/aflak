@@ -8,7 +8,7 @@ use super::interactions::{
     HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
-use super::ticks;
+use super::ticks::XYTicks;
 use super::util;
 use super::AxisTransform;
 use super::Error;
@@ -237,7 +237,6 @@ impl State {
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
-        const IMAGE_LEFT_PADDING: f32 = 20.0;
         const IMAGE_TOP_PADDING: f32 = 0.0;
 
         // Returns a handle to the mutable texture (we could write on it)
@@ -245,13 +244,23 @@ impl State {
         let gl_texture = Texture2d::new(ctx, raw)?;
         let tex_size = gl_texture.dimensions();
         textures.replace(texture_id, gl_texture);
+
+        let ticks = XYTicks::prepare(
+            ui,
+            (0.0, tex_size.0 as f32),
+            (0.0, tex_size.1 as f32),
+            xaxis.as_ref(),
+            yaxis.as_ref(),
+        );
+        let x_labels_height = ticks.x_labels_height();
+        let y_labels_width = ticks.y_labels_width();
+
         let size = {
-            const BOTTOM_PADDING: f32 = 60.0;
             const MIN_WIDTH: f32 = 100.0;
             const MIN_HEIGHT: f32 = 100.0;
             let available_size = (
-                MIN_WIDTH.max(max_size.0 - IMAGE_LEFT_PADDING),
-                MIN_HEIGHT.max(max_size.1 - BOTTOM_PADDING - IMAGE_TOP_PADDING),
+                MIN_WIDTH.max(max_size.0 - y_labels_width),
+                MIN_HEIGHT.max(max_size.1 - x_labels_height - IMAGE_TOP_PADDING),
             );
             let original_size = (tex_size.0 as f32, tex_size.1 as f32);
             let zoom = (available_size.0 / original_size.0).min(available_size.1 / original_size.1);
@@ -259,7 +268,7 @@ impl State {
         };
 
         let p = ui.get_cursor_screen_pos();
-        ui.set_cursor_screen_pos([p.0 + IMAGE_LEFT_PADDING, p.1 + IMAGE_TOP_PADDING]);
+        ui.set_cursor_screen_pos([p.0 + y_labels_width, p.1 + IMAGE_TOP_PADDING]);
         let p = ui.get_cursor_screen_pos();
 
         ui.image(texture_id, size).build();
@@ -392,16 +401,7 @@ impl State {
             self.interactions.remove(&line_id);
         }
 
-        ticks::add_ticks(
-            ui,
-            &draw_list,
-            p,
-            size,
-            (0.0, tex_size.0 as f32),
-            (0.0, tex_size.1 as f32),
-            xaxis.as_ref(),
-            yaxis.as_ref(),
-        );
+        ticks.draw(&draw_list, p, size);
 
         Ok([p, size])
     }
