@@ -12,17 +12,17 @@ use aflak_plot::{
 
 fn main() {
     let config = support::AppConfig {
-        title: "Example rectangle.rs".to_owned(),
-        ini_filename: Some(imgui::ImString::new("rectangle.ini")),
+        title: "Example tall_rectangle.rs".to_owned(),
+        ini_filename: Some(imgui::ImString::new("tall_rectangle.ini")),
         ..Default::default()
     };
     let mut state = imshow::State::default();
     let image_data = {
-        const WIDTH: usize = 20;
-        const HEIGHT: usize = 10;
+        const WIDTH: usize = 10;
+        const HEIGHT: usize = 20;
         let mut image_data = Vec::with_capacity(WIDTH * HEIGHT);
-        for i in 0..HEIGHT {
-            for _ in 0..WIDTH {
+        for _ in 0..HEIGHT {
+            for i in 0..WIDTH {
                 image_data.push(i as f32);
             }
         }
@@ -30,7 +30,7 @@ fn main() {
     };
 
     support::run(config, |ui, gl_ctx, textures| {
-        ui.window(im_str!("Rectangle")).build(|| {
+        ui.window(im_str!("Tall Rectangle")).build(|| {
             ui.image2d(
                 gl_ctx,
                 textures,
