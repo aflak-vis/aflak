@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed
+- Update imgui to 0.0.22-pre
+
+### Added
+- Show current working directory by default on file selector
+- Extract units and WCS from FITS files and keep them during the whole
+  pipeline. Show units and real world coordinates on input windows.
+
+### Fixed
+- Fix error in file selector
+- Fix error on computing texture dimension in Image2d viewer.
+
 ## [v0.0.3] - 2018-10-18
 
 - Double-feedback-loop for variables
