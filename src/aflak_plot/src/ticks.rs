@@ -208,24 +208,6 @@ impl YTicks {
     }
 }
 
-pub fn add_ticks<P, S, F1, F2>(
-    ui: &Ui,
-    draw_list: &WindowDrawList,
-    p: P,
-    size: S,
-    xlims: (f32, f32),
-    ylims: (f32, f32),
-    xaxis: Option<&AxisTransform<F1>>,
-    yaxis: Option<&AxisTransform<F2>>,
-) where
-    P: Into<ImVec2>,
-    S: Into<ImVec2>,
-    F1: Fn(f32) -> f32,
-    F2: Fn(f32) -> f32,
-{
-    XYTicks::prepare(ui, xlims, ylims, xaxis, yaxis).draw(draw_list, p, size)
-}
-
 /// Draw vertical text using direct draw calls.
 ///
 /// Inspired from: https://github.com/ocornut/imgui/issues/705#issuecomment-247959437
