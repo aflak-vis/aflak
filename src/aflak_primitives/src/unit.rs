@@ -79,7 +79,10 @@ impl WcsArray3 {
                 (image.shape[2], image.shape[1], image.shape[0]),
                 image.data.clone(),
             ).map_err(IOErr::ShapeError)?,
-            _ => unimplemented!(),
+            _ => {
+                let msg = "Expected FITS HDU to contain FloatingPoint32 data";
+                return Err(IOErr::UnexpectedInput(msg.to_owned()));
+            }
         };
         let vunit = read_unit(hdu, "BUNIT");
         let cunit1 = read_unit(hdu, "CUNIT1");
