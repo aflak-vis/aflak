@@ -262,8 +262,9 @@ fn output_window_computed_content<F>(
                     Some(AxisTransform::new(units[0].repr(), move |t| {
                         wcs.pix2world([t, 0.0, 0.0])[0]
                     })),
-                    Some(AxisTransform::new(units[1].repr(), move |t| {
-                        wcs.pix2world([0.0, t, 0.0])[1]
+                    Some(AxisTransform::new(units[1].repr(), {
+                        let max_height = (image.scalar().dim().0 - 1) as f32;
+                        move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
                     })),
                 ),
                 _ => (None, None),
