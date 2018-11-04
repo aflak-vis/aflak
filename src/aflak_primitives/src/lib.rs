@@ -392,6 +392,19 @@ fn run_make_plane3d(
     count2: i64,
 ) -> Result<IOValue, IOErr> {
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
+    if count1 <= 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "count1 must be strictly positive. Got {}",
+            count1
+        )));
+    }
+    if count2 <= 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "count2 must be strictly positive. Got {}",
+            count2
+        )));
+    }
+
     let count1 = count1 as usize;
     let count2 = count2 as usize;
     let map = Array2::from_shape_fn((count2, count1), |(j, i)| {
