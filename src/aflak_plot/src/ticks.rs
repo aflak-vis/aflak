@@ -5,6 +5,7 @@ use super::AxisTransform;
 const TICK_COUNT: usize = 10;
 
 const COLOR: u32 = 0xFFFFFFFF;
+const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
 const TICK_SIZE: f32 = 3.0;
 const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
 
@@ -111,6 +112,9 @@ impl XTicks {
         let mut label_height = 0.0f32;
         for (label, text_size) in self.labels {
             draw_list
+                .add_line([x_pos, y_pos], [x_pos, y_pos - size.y], GRID_COLOR)
+                .build();
+            draw_list
                 .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
                 .build();
             draw_list.add_text([x_pos - text_size.x / 2.0, y_pos], COLOR, label.to_str());
@@ -178,6 +182,9 @@ impl YTicks {
         let x_pos = p.x;
         let mut label_width = 0.0f32;
         for (label, text_size) in self.labels {
+            draw_list
+                .add_line([x_pos, y_pos], [x_pos + size.x, y_pos], GRID_COLOR)
+                .build();
             draw_list
                 .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
                 .build();
