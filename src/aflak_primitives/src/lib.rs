@@ -151,6 +151,18 @@ Compute value = (i1 - i2) *fl / i1. if value < min, value changes to NAN.",
                     vec![run_create_equivalent_width(i1, i2, *fl, *min)]
                 }
             ),
+            cake_transform!(
+                "Convert to log-scale. Parameter i(image-silce). Compute log(i).",
+                convert_to_logscale<IOValue, IOErr>(i1: Image2d) -> Image2d {
+                    vec![run_convert_to_logscale(i1)]
+                }
+            ),
+            cake_transform!(
+                "Negation. Parameter i(image-slice). Compute -i.",
+                negation<IOValue, IOErr>(i1: Image2d) -> Image2d {
+                    vec![run_negation(i1)]
+                }
+            ),
         ]
     };
 }
@@ -497,6 +509,21 @@ fn run_create_equivalent_width(i1: &Array2<f32>, i2: &Array2<f32>, fl: f32, min:
 
     let result = out.map(|v| if v < &min { std::f32::NAN } else { *v });
     Ok(IOValue::Image2d(result))
+}
+
+fn run_convert_to_logscale(i1: &Array2<f32>) -> Result<IOValue, IOErr> {
+    let mut out_iter = i1.iter();
+    let mut min: f32 = 1000.0;
+    while let Some(i) = out_iter.next() {
+        min = min.min(*i);
+    }
+    let out = i1.map(|v| (v + min.abs() + 1.0).log10());
+    Ok(IOValue::Image2d(out))
+}
+
+fn run_negation(i1: &Array2<f32>) -> Result<IOValue, IOErr> {
+    let out = i1.map(|v| -v);
+    Ok(IOValue::Image2d(out))
 }
 
 #[cfg(test)]
