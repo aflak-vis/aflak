@@ -25,7 +25,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, Axis};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -156,6 +156,33 @@ Compute a*u + b*v.",
                 "Make a Float3 from 3 float values.",
                 make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
                     vec![run_make_float3(*f1, *f2, *f3)]
+                }
+            ),
+            cake_transform!(
+                "Integral for 3D Image. Parameters: a, b (a <= b).
+Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
+                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
+                    vec![run_integral(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Create Equivalent-Width map from off-band and on-band.
+Parameters i1, i2, onband-width, min.
+Compute value = (i1 - i2) *fl / i1. if abs(value) < min, value changes to 0.",
+                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float, min: Float) -> Image2d {
+                    vec![run_create_equivalent_width(i1, i2, *fl, *min)]
+                }
+            ),
+            cake_transform!(
+                "Convert to log-scale. Parameter: 2D image i. Compute log(i).",
+                convert_to_logscale<IOValue, IOErr>(i1: Image2d) -> Image2d {
+                    vec![run_convert_to_logscale(i1)]
+                }
+            ),
+            cake_transform!(
+                "Negation. Parameter: 2D image i. Compute -i.",
+                negation<IOValue, IOErr>(i1: Image2d) -> Image2d {
+                    vec![run_negation(i1)]
                 }
             ),
         ]
@@ -479,6 +506,83 @@ fn run_linear_composition_2d(
 
 fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
+}
+
+fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    if start < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be positive, but got {}",
+            start
+        )));
+    }
+    if end < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be positive, but got {}",
+            end
+        )));
+    }
+    let start = start as usize;
+    let end = end as usize;
+
+    let image_val = im.scalar();
+    let (frame_cnt, _, _) = image_val.dim();
+
+    if end >= frame_cnt {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than input image's frame count ({} >= {})",
+            end, frame_cnt
+        )));
+    }
+
+    let slices = image_val.slice(s![start..end, .., ..]);
+    let raw = slices.sum_axis(Axis(0));
+
+    let wrap_with_unit = im.make_slice2(
+        &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
+        im.array().with_new_value(raw),
+    );
+
+    Ok(IOValue::Image2d(wrap_with_unit))
+}
+
+fn run_create_equivalent_width(
+    i1: &WcsArray2,
+    i2: &WcsArray2,
+    fl: f32,
+    min: f32,
+) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let i2_arr = i2.scalar();
+    let out = (i1_arr - i2_arr) * fl / i1_arr;
+    let result = out.map(|v| if v.abs() < min { 0.0 } else { *v });
+
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
+}
+
+fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let mut out_iter = i1_arr.iter();
+    let mut min: f32 = std::f32::MAX;
+    while let Some(i) = out_iter.next() {
+        min = min.min(*i);
+    }
+    let out = i1_arr.map(|v| (v + min.abs() + 1.0).log10());
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
+}
+
+fn run_negation(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let out = i1_arr.map(|v| -v);
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
 }
 
 #[cfg(test)]
