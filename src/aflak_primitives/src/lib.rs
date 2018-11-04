@@ -136,6 +136,21 @@ Compute a*u + b*v.",
                     vec![run_make_float3(*f1, *f2, *f3)]
                 }
             ),
+            cake_transform!(
+                "Integral for 3D Image. Parameters: a, b (a <= b).
+Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
+                integral<IOValue, IOErr>(image: Image3d, coef1: Float, coef2: Float) -> Image2d {
+                    vec![run_integral(image, *coef1, *coef2)]
+                }
+            ),
+            cake_transform!(
+                "Create Equivalent-Width map from off-band and on-band. 
+Parameters i1, i2, onband-width, min.
+Compute value = (i1 - i2) *fl / i1. if value < min, value changes to NAN.",
+                create_equivalent_width<IOValue, IOErr>(i1:Image2d, i2:Image2d, fl: Float, min: Float) -> Image2d {
+                    vec![run_create_equivalent_width(i1, i2, *fl, *min)]
+                }
+            ),
         ]
     };
 }
@@ -449,6 +464,39 @@ fn run_linear_composition_2d(
 
 fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
+}
+
+fn run_integral(im: &Array3<f32>, coef1: f32, coef2: f32) -> Result<IOValue, IOErr> {
+    //hard-coded!(image-size) improvement required.
+    let mut out = Vec::with_capacity(74*74);
+    for z in 0..74 {
+        for y in 0..74 {
+            let mut val = 0.0;
+            for x in (coef1 as usize)..(coef2 as usize) {
+                let tmp_val = *im
+                    .get([x as usize, y as usize, z as usize])
+                    .ok_or_else(|| {
+                        IOErr::UnexpectedInput(format!(
+                            "Input maps to out of bound pixel!: [{}, {}, {}]",
+                            x, y, z
+                        ))
+                    })?;
+                val += tmp_val / (coef2 - coef1).abs();
+            }
+            out.push(val);
+        }
+    }
+
+    Array2::from_shape_vec((74, 74), out)
+        .map(IOValue::Image2d)
+        .map_err(IOErr::ShapeError)
+}
+
+fn run_create_equivalent_width(i1: &Array2<f32>, i2: &Array2<f32>, fl: f32, min: f32) -> Result<IOValue, IOErr> {
+    let out: Array2<f32> = (i1 - i2) *fl / i1;
+
+    let result = out.map(|v| if v < &min { std::f32::NAN } else { *v });
+    Ok(IOValue::Image2d(result))
 }
 
 #[cfg(test)]
