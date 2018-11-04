@@ -394,21 +394,16 @@ fn run_make_plane3d(
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
     let count1 = count1 as usize;
     let count2 = count2 as usize;
-    let mut map = Vec::with_capacity(count1 * count2);
-    for j in 0..count2 {
+    let map = Array2::from_shape_fn((count2, count1), |(j, i)| {
+        let i = i as f32;
         let j = j as f32;
-        for i in 0..count1 {
-            let i = i as f32;
-            map.push([
-                x0 + i * dx1 + j * dx2,
-                y0 + i * dy1 + j * dy2,
-                z0 + i * dz1 + j * dz2,
-            ]);
-        }
-    }
-    Array2::from_shape_vec((count1, count2), map)
-        .map(IOValue::Map2dTo3dCoords)
-        .map_err(IOErr::ShapeError)
+        [
+            x0 + i * dx1 + j * dx2,
+            y0 + i * dy1 + j * dy2,
+            z0 + i * dz1 + j * dz2,
+        ]
+    });
+    Ok(IOValue::Map2dTo3dCoords(map))
 }
 
 fn run_extract_wave(image: &WcsArray3, roi: &roi::ROI) -> Result<IOValue, IOErr> {
