@@ -23,6 +23,8 @@ pub enum BuiltinLUT {
     Thermal,
     Flame,
     Yellowy,
+    HeatMap,
+    HeatMapInv,
 }
 
 impl From<BuiltinLUT> for Vec<(f32, [u8; 3])> {
@@ -34,7 +36,8 @@ impl From<BuiltinLUT> for Vec<(f32, [u8; 3])> {
 impl BuiltinLUT {
     pub fn values() -> slice::Iter<'static, Self> {
         use self::BuiltinLUT::*;
-        const VALUES: [BuiltinLUT; 5] = [Grey, GreyClip, Thermal, Flame, Yellowy];
+        const VALUES: [BuiltinLUT; 7] =
+            [Grey, GreyClip, Thermal, Flame, Yellowy, HeatMap, HeatMapInv];
         VALUES.into_iter()
     }
 
@@ -45,6 +48,8 @@ impl BuiltinLUT {
             BuiltinLUT::Yellowy => im_str!("Yellowy"),
             BuiltinLUT::Thermal => im_str!("Thermal"),
             BuiltinLUT::Flame => im_str!("Flame"),
+            BuiltinLUT::HeatMap => im_str!("HeatMap"),
+            BuiltinLUT::HeatMapInv => im_str!("HeatMap_Inv"),
         }
     }
 
@@ -74,6 +79,26 @@ impl BuiltinLUT {
                 (0.2, [7, 0, 220]),
                 (0.5, [236, 0, 134]),
                 (0.8, [246, 246, 0]),
+                (1.0, [255, 255, 255]),
+            ]),
+            BuiltinLUT::HeatMap => ColorLUT::linear(vec![
+                (0.0, [1, 1, 85]),
+                (0.1, [0, 0, 255]),
+                (0.25, [0, 255, 255]),
+                (0.5, [0, 255, 0]),
+                (0.75, [255, 255, 0]),
+                (0.9, [255, 0, 0]),
+                (0.99, [108, 6, 10]),
+                (1.0, [255, 255, 255]),
+            ]),
+            BuiltinLUT::HeatMapInv => ColorLUT::linear(vec![
+                (0.0, [108, 6, 10]),
+                (0.1, [255, 0, 0]),
+                (0.25, [255, 255, 0]),
+                (0.5, [0, 255, 0]),
+                (0.75, [0, 255, 255]),
+                (0.89, [0, 0, 255]),
+                (0.99, [1, 1, 85]),
                 (1.0, [255, 255, 255]),
             ]),
         }
