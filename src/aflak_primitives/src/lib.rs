@@ -106,7 +106,7 @@ With the above parameters, a 2D mesh with the points as below:
   y + i * d1_y + j * d2_y,
   z + i * d1_z + j * d2_z )
 for 0 <= i < n and 0 <= j < m",
-                make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 1.0, 0.0], dir2: Float3 = [0.0, 0.0, 1.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
+                make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 0.0, 1.0], dir2: Float3 = [0.0, 1.0, 0.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
                     vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
                 }
             ),
