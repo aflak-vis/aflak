@@ -185,7 +185,11 @@ impl<E: fmt::Display> fmt::Display for DSTError<E> {
     }
 }
 
-impl<E: fmt::Display + fmt::Debug> Error for DSTError<E> {}
+impl<E: fmt::Display + fmt::Debug> Error for DSTError<E> {
+    fn description(&self) -> &str {
+        "aflak_cake::DSTError"
+    }
+}
 
 impl From<OutputIdx> for usize {
     fn from(output: OutputIdx) -> usize {

@@ -87,7 +87,11 @@ impl fmt::Display for IOErr {
     }
 }
 
-impl Error for IOErr {}
+impl Error for IOErr {
+    fn description(&self) -> &str {
+        "aflak_primitives::IOErr"
+    }
+}
 
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
