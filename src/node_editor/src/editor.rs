@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
-use std::fmt;
+use std::error::Error;
 
 use imgui::{
-    ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
-    StyleVar, Ui, WindowDrawList,
+    sys, ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
+    ImVec2, StyleVar, Ui, WindowDrawList,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +32,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
     constant_editor: ED,
+    error_stack: Vec<Box<Error>>,
 }
 
 impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
@@ -52,6 +53,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
             scrolling: Default::default(),
             show_grid: true,
             constant_editor: ED::default(),
+            error_stack: vec![],
         }
     }
 }
@@ -166,7 +168,7 @@ where
         + Serialize
         + for<'de> Deserialize<'de>,
     ED: ConstantEditor<T>,
-    E: 'static + fmt::Debug,
+    E: 'static + Error,
 {
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
@@ -177,6 +179,25 @@ where
             self.render_left_pane(ui);
         }
         self.render_graph_node(ui);
+
+        // Render error popup
+        if !self.error_stack.is_empty() {
+            ui.open_popup(im_str!("Error!"));
+        }
+        ui.popup_modal(im_str!("Error!")).build(|| {
+            unsafe {
+                sys::igPushTextWrapPos(400.0);
+            }
+            {
+                let e = &self.error_stack[self.error_stack.len() - 1];
+                ui.text_wrapped(&ImString::new(format!("{}", e)));
+            }
+            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                self.error_stack.pop();
+                ui.close_current_popup();
+            }
+        });
+
         if ui.is_window_focused() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
             if ui.imgui().is_key_down(delete_index) {
@@ -722,8 +743,8 @@ where
             match input_slot {
                 InputSlot::Transform(input) => {
                     if let Err(e) = self.dst.connect(output, input) {
-                        // TODO: Make a modal to show error
                         eprintln!("{:?}", e);
+                        self.error_stack.push(Box::new(e));
                     }
                 }
                 InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
