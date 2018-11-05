@@ -19,6 +19,8 @@ mod unit;
 pub use export::ExportError;
 pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
 
+use std::error::Error;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -70,6 +72,21 @@ pub enum IOErr {
     UnexpectedInput(String),
     ShapeError(ndarray::ShapeError),
 }
+
+impl fmt::Display for IOErr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use IOErr::*;
+
+        match self {
+            NotFound(s) => write!(f, "Not found! {}", s),
+            FITSErr(s) => write!(f, "FITS-related error! {}", s),
+            UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
+            ShapeError(e) => e.fmt(f),
+        }
+    }
+}
+
+impl Error for IOErr {}
 
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
