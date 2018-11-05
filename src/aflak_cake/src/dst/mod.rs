@@ -1,6 +1,7 @@
 use boow::Bow;
 
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt;
 use std::sync::RwLock;
 
@@ -165,6 +166,26 @@ pub enum DSTError<E> {
     InnerComputeError(E),
     NothingDoneYet,
 }
+
+impl<E: fmt::Display> fmt::Display for DSTError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use DSTError::*;
+
+        match self {
+            InvalidInput(s) => write!(f, "Invalid input! {}", s),
+            InvalidOutput(s) => write!(f, "Invalid output! {}", s),
+            DuplicateEdge(s) => write!(f, "Duplicated edge! {}", s),
+            Cycle(s) => write!(f, "Cannot create cyclic dependency! {}", s),
+            IncompatibleTypes(s) => write!(f, "Incompatible types! {}", s),
+            MissingOutputID(s) => write!(f, "Missing output ID! {}", s),
+            ComputeError(s) => write!(f, "Compute error! {}", s),
+            InnerComputeError(e) => e.fmt(f),
+            NothingDoneYet => write!(f, "Nothing done yet!"),
+        }
+    }
+}
+
+impl<E: fmt::Display + fmt::Debug> Error for DSTError<E> {}
 
 impl From<OutputIdx> for usize {
     fn from(output: OutputIdx) -> usize {
