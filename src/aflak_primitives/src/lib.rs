@@ -21,6 +21,7 @@ pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
 
 use std::error::Error;
 use std::fmt;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -65,9 +66,9 @@ impl PartialEq for IOValue {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum IOErr {
-    NotFound(String),
+    IoError(io::Error, String),
     FITSErr(String),
     UnexpectedInput(String),
     ShapeError(ndarray::ShapeError),
@@ -78,7 +79,7 @@ impl fmt::Display for IOErr {
         use IOErr::*;
 
         match self {
-            NotFound(s) => write!(f, "Not found! {}", s),
+            IoError(e, s) => write!(f, "I/O error! {}. This was caused by '{}'.", s, e),
             FITSErr(s) => write!(f, "FITS-related error! {}", s),
             UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
             ShapeError(e) => e.fmt(f),
@@ -191,9 +192,10 @@ impl cake::EditableVariants for IOValue {
 
 /// Open FITS file
 fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
+    let path = path.as_ref();
     fitrs::Fits::open(path)
         .map(|fits| IOValue::Fits(Arc::new(fits)))
-        .map_err(|err| IOErr::NotFound(err.to_string()))
+        .map_err(|err| IOErr::IoError(err, format!("Could not open file {:?}", path)))
 }
 
 /// Turn a FITS file into a 3D image
