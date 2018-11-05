@@ -192,6 +192,9 @@ where
                 let e = &self.error_stack[self.error_stack.len() - 1];
                 ui.text_wrapped(&ImString::new(format!("{}", e)));
             }
+            unsafe {
+                sys::igPopTextWrapPos();
+            }
             if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                 self.error_stack.pop();
                 ui.close_current_popup();
