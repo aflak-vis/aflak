@@ -146,7 +146,7 @@ fn main() {
                     _ => {
                         if let Some(result) = compute_state.result() {
                             match result {
-                                Err(e) => ui.text(format!("{:?}", e)),
+                                Err(e) => ui.text(format!("{}", e)),
                                 Ok(result) => output_window_computed_content(
                                     ui,
                                     result,
