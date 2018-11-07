@@ -151,7 +151,7 @@ impl State {
                     [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
                     util::invert_color(max_color),
                 ).build();
-            if lims.1 != 1.0 {
+            if lims.1 < 1.0 {
                 let max_threshold = util::lerp(self.vmin, self.vmax, lims.1);
                 draw_list.add_text(
                     [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
