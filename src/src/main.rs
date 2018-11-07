@@ -241,7 +241,7 @@ fn output_window_computed_content<F>(
                 _ => None,
             };
             if let Err(e) = ui.image1d(image.scalar(), &unit, transform, state) {
-                ui.text(format!("{:?}", e))
+                ui.text(format!("Error on drawing plot! {}", e))
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
         }
@@ -279,7 +279,7 @@ fn output_window_computed_content<F>(
                 y_transform,
                 state,
             ) {
-                ui.text(format!("{:?}", e));
+                ui.text(format!("Error on drawing image! {}", e));
             }
             update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
         }
