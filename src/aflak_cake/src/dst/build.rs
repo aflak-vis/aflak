@@ -217,7 +217,7 @@ where
             )))
         } else if !self.is_edge_compatible(&input, &output) {
             Err(DSTError::IncompatibleTypes(format!(
-                "Cannot connect {:?} to {:?}. Output does not provided the required input type.",
+                "Cannot connect {:?} to {:?}. Output does not provide the required input type.",
                 output, input
             )))
         } else {
