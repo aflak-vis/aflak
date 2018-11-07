@@ -197,27 +197,27 @@ where
     pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>> {
         if !self.output_exists(&output) {
             Err(DSTError::InvalidOutput(format!(
-                "{:?} does not exist in this graph!",
+                "{} does not exist in this graph!",
                 output
             )))
         } else if !self.input_exists(&input) {
             Err(DSTError::InvalidInput(format!(
-                "{:?} does not exist in this graph!",
+                "{} does not exist in this graph!",
                 input
             )))
         } else if self.edge_exists(&input, &output) {
             Err(DSTError::DuplicateEdge(format!(
-                "There already is an edge connecting {:?} to {:?}!",
+                "There already is an edge connecting {} to {}!",
                 output, input
             )))
         } else if self.will_be_cycle(&input, &output) {
             Err(DSTError::Cycle(format!(
-                "Connecting {:?} to {:?} would create a cycle!",
+                "Connecting {} to {} would create a cycle!",
                 output, input
             )))
         } else if !self.is_edge_compatible(&input, &output) {
             Err(DSTError::IncompatibleTypes(format!(
-                "Cannot connect {:?} to {:?}. Output does not provide the required input type.",
+                "Cannot connect {} to {}. Output does not provide the required input type.",
                 output, input
             )))
         } else {
@@ -255,7 +255,7 @@ where
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
-                "{:?} does not exist in this graph!",
+                "{} does not exist in this graph!",
                 output
             )))
         }

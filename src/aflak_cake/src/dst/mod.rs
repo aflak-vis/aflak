@@ -122,6 +122,19 @@ impl Input {
     }
 }
 
+impl fmt::Display for Output {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let output_no = self.output_i.0 + 1;
+        write!(f, "output #{} of node #{}", output_no, self.t_idx.0)
+    }
+}
+
+impl fmt::Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "input #{} of node #{}", self.input_i.0 + 1, self.t_idx.0)
+    }
+}
+
 #[derive(Debug)]
 struct InputList {
     /// List of all inputs to which the data is fed
