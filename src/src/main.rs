@@ -48,11 +48,22 @@ fn main() -> support::Result<()> {
                 .long("fits")
                 .value_name("FITS")
                 .help("Set a FITS file to load"),
+        ).arg(
+            Arg::with_name("template")
+                .short("t")
+                .long("template")
+                .value_name("TEMPLATE NAME")
+                .possible_values(templates::TEMPLATES)
+                .help("The name of the template to use"),
         ).get_matches();
 
     let fits = matches.value_of("fits");
     let fits_path = path_clean_up(fits, "file.fits");
-    let import_data = templates::show_frame_and_wave(fits_path);
+
+    let import_data = match matches.value_of("template") {
+        Some("waveform") | None => templates::show_frame_and_wave(fits_path),
+        Some(template) => unreachable!("Got '{}', an unexpected result.", template),
+    };
 
     let node_editor = NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
         .expect("Import failed");
