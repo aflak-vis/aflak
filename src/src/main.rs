@@ -50,16 +50,9 @@ fn main() -> support::Result<()> {
                 .help("Set a FITS file to load"),
         ).get_matches();
 
-    let fits = matches.value_of("fits").unwrap_or("file.fits");
-    let fits = PathBuf::from(fits);
-    let fits = if fits.is_absolute() {
-        fits
-    } else {
-        let pwd = env::current_dir().unwrap_or_default();
-        pwd.join(fits)
-    };
-    let fits = fits.canonicalize().unwrap_or(fits);
-    let import_data = templates::show_frame_and_wave(fits);
+    let fits = matches.value_of("fits");
+    let fits_path = path_clean_up(fits, "file.fits");
+    let import_data = templates::show_frame_and_wave(fits_path);
 
     let node_editor = NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
         .expect("Import failed");
@@ -77,4 +70,18 @@ fn main() -> support::Result<()> {
         aflak.output_windows(ui, gl_ctx, textures);
         true
     })
+}
+
+/// Clean up path from user input.
+/// Make local path absolute and attempt to canonize it.
+fn path_clean_up(path: Option<&str>, default: &str) -> PathBuf {
+    let path = path.unwrap_or(default);
+    let path = PathBuf::from(path);
+    let path = if path.is_absolute() {
+        path
+    } else {
+        let pwd = env::current_dir().unwrap_or_default();
+        pwd.join(path)
+    };
+    path.canonicalize().unwrap_or(path)
 }
