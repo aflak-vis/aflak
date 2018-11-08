@@ -1,5 +1,6 @@
 //! # aflak - Advanced Framework for Learning Astrophysical Knowledge
 //!
+extern crate clap;
 extern crate glium;
 #[macro_use]
 extern crate imgui;
@@ -19,7 +20,9 @@ mod save_output;
 mod templates;
 
 use std::env;
+use std::path::PathBuf;
 
+use clap::{App, Arg};
 use imgui::ImString;
 
 use node_editor::NodeEditor;
@@ -34,9 +37,30 @@ fn main() -> support::Result<()> {
 
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
-    let import_data = templates::show_frame_and_wave(
-        "/path/to/my/fits/file/data/manga-7443-12703-LINCUBE.fits",
-    );
+
+    let matches = App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .arg(
+            Arg::with_name("fits")
+                .short("f")
+                .long("fits")
+                .value_name("FITS")
+                .help("Set a FITS file to load"),
+        ).get_matches();
+
+    let fits = matches.value_of("fits").unwrap_or("file.fits");
+    let fits = PathBuf::from(fits);
+    let fits = if fits.is_absolute() {
+        fits
+    } else {
+        let pwd = env::current_dir().unwrap_or_default();
+        pwd.join(fits)
+    };
+    let fits = fits.canonicalize().unwrap_or(fits);
+    let import_data = templates::show_frame_and_wave(fits);
+
     let node_editor = NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
         .expect("Import failed");
 
