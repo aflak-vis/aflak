@@ -128,7 +128,7 @@ impl OutputWindow {
         F: glium::backend::Facade,
     {
         if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-            if let Err(e) = save_output::save(&self.output, result) {
+            if let Err(e) = save_output::save(self.output, result) {
                 eprintln!("Error on saving output: '{}'", e);
             } else {
                 ui.open_popup(im_str!("FITS export completed!"));
@@ -137,7 +137,7 @@ impl OutputWindow {
         ui.popup_modal(im_str!("FITS export completed!")).build(|| {
             ui.text(format!(
                 "File saved with success to '{}'.",
-                save_output::file_name(&self.output)
+                save_output::file_name(self.output)
             ));
             if ui.button(im_str!("Close"), (0.0, 0.0)) {
                 ui.close_current_popup();
