@@ -168,3 +168,22 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     );
     Cursor::new(ron)
 }
+
+#[cfg(test)]
+mod test {
+    use node_editor::NodeEditor;
+    use primitives;
+
+    use super::show_frame_and_wave;
+    use constant_editor::MyConstantEditor;
+
+    #[test]
+    fn import_frame_and_wave() {
+        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
+        let transformations = transformations_ref.as_slice();
+
+        let buf = show_frame_and_wave("file.fits");
+        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        assert!(editor.is_ok());
+    }
+}
