@@ -556,6 +556,7 @@ fn run_create_equivalent_width(
     let out = (i1_arr - i2_arr) * fl / i1_arr;
     let result = out.map(|v| if v.abs() > max { 0.0 } else { *v });
 
+    // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         result,
         Unit::None,
@@ -570,6 +571,7 @@ fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
         min = min.min(*i);
     }
     let out = i1_arr.map(|v| (v + min.abs() + 1.0).log10());
+    // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         out,
         Unit::None,
@@ -579,6 +581,7 @@ fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
 fn run_negation(i1: &WcsArray2) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
     let out = i1_arr.map(|v| -v);
+    // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         out,
         Unit::None,
