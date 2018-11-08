@@ -169,7 +169,7 @@ Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i1, i2, onband-width, min.
 Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
-                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float, max: Float) -> Image2d {
+                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float = 1.0, max: Float = ::std::f32::INFINITY) -> Image2d {
                     vec![run_create_equivalent_width(i1, i2, *fl, *max)]
                 }
             ),

@@ -186,13 +186,6 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Integer(3194)),
                 ],
             )),
-            ((16), (
-                t: Constant([
-                    Float(700),
-                ]),
-                input_defaults: [
-                ],
-            )),
             ((5), (
                 t: Function("integral"),
                 input_defaults: [
@@ -247,15 +240,8 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 input_defaults: [
                     None,
                     None,
-                    None,
-                    None,
-                ],
-            )),
-            ((15), (
-                t: Constant([
-                    Float(20),
-                ]),
-                input_defaults: [
+                    Some(Float(20.0)),
+                    Some(Float(700.0)),
                 ],
             )),
             ((1), (
@@ -287,13 +273,6 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (14),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (16),
-                output_i: (0),
-            ), (
-                t_idx: (14),
-                input_i: (3),
             )),
             ((
                 t_idx: (6),
@@ -343,13 +322,6 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (3),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (15),
-                output_i: (0),
-            ), (
-                t_idx: (14),
-                input_i: (2),
             )),
             ((
                 t_idx: (5),
@@ -410,16 +382,6 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             selected: false,
             pos: (668, -184),
             size: (170, 97),
-        )),
-        (Transform((15)), (
-            selected: false,
-            pos: (396, -272),
-            size: (210, 48),
-        )),
-        (Transform((16)), (
-            selected: true,
-            pos: (500, 32),
-            size: (210, 48),
         )),
         (Transform((17)), (
             selected: false,
