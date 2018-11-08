@@ -61,7 +61,7 @@ where
                     let mut cache = output_cache_lock.write().unwrap();
                     *cache = Some(result.clone())
                 }
-                result.map_err(|err| DSTError::InnerComputeError(err))
+                result.map_err(DSTError::InnerComputeError)
             }
         }
     }
