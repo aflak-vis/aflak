@@ -49,8 +49,8 @@ fn test_make_dst_and_iterate_dependencies() {
     let s = ser::to_string(&dst).unwrap();
     let dst: DST<AlgoIO, E> = de::from_str(&s).unwrap();
 
-    assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
-    assert_eq!(dst.compute(&out2).unwrap(), AlgoIO::Integer(0));
+    assert_eq!(dst.compute(out1).unwrap(), AlgoIO::Integer(3));
+    assert_eq!(dst.compute(out2).unwrap(), AlgoIO::Integer(0));
 }
 
 #[test]
@@ -92,10 +92,10 @@ fn test_cache_reset() {
     dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
     dst.connect(Output::new(c, 0), Input::new(d, 0)).unwrap();
 
-    assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(3));
+    assert_eq!(dst.compute(out1).unwrap(), AlgoIO::Integer(3));
     // Connect b's output to c's input
     dst.connect(Output::new(b, 0), Input::new(c, 0)).unwrap();
-    assert_eq!(dst.compute(&out1).unwrap(), AlgoIO::Integer(2));
+    assert_eq!(dst.compute(out1).unwrap(), AlgoIO::Integer(2));
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn test_remove_node() {
     // a, get1                         d, plus1 -> OUT1
     // \-> b, minus1 -> OUT2           e, plus1
 
-    dst.remove_transform(&c);
+    dst.remove_transform(c);
     let mut links: Vec<_> = dst.links_iter().collect();
     links.sort();
     assert_eq!(links, {

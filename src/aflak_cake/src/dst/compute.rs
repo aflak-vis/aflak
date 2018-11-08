@@ -24,7 +24,7 @@ where
             }
         }
         let deps = self
-            .outputs_attached_to_transform(&output.t_idx)
+            .outputs_attached_to_transform(output.t_idx)
             .ok_or_else(|| {
                 DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
             })?;
@@ -69,9 +69,9 @@ where
     /// Return the result of the computation to the output given as argument.
     ///
     /// If possible, computation is distributed on several threads.
-    pub fn compute(&self, output_id: &OutputId) -> Result<T, DSTError<E>> {
+    pub fn compute(&self, output_id: OutputId) -> Result<T, DSTError<E>> {
         self.outputs
-            .get(output_id)
+            .get(&output_id)
             .ok_or_else(|| {
                 DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
             }).and_then(|output| {
@@ -96,7 +96,7 @@ where
             .map(Iterator::collect);
         if let Some(inputs) = inputs {
             for input in inputs {
-                let outputs = self.outputs_of_transformation(&input.t_idx);
+                let outputs = self.outputs_of_transformation(input.t_idx);
                 if let Some(outputs) = outputs {
                     for output in outputs {
                         self.purge_cache(output);
@@ -119,7 +119,7 @@ where
                 };
                 self.purge_cache(output);
             }
-            &NodeId::Transform(ref t_idx) => {
+            &NodeId::Transform(t_idx) => {
                 if let Some(outputs) = self.outputs_of_transformation(t_idx) {
                     for output in outputs {
                         self.purge_cache(output);

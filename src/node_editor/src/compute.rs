@@ -81,7 +81,7 @@ where
             let dst: &'static DST<T, E> = mem::transmute(&self.dst);
             let id = *id;
             rayon::spawn(move || {
-                let result = dst.compute(&id);
+                let result = dst.compute(id);
                 result_lock_clone.lock().unwrap().complete(result);
             });
         }

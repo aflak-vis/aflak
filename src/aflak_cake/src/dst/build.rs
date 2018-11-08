@@ -48,34 +48,36 @@ where
     }
 
     /// Get a transform from its [`TransformIdx`].
-    pub fn get_transform(&self, idx: &TransformIdx) -> Option<&Transformation<T, E>> {
-        self.transforms.get(idx).map(|t| t.transform())
+    pub fn get_transform(&self, idx: TransformIdx) -> Option<&Transformation<T, E>> {
+        self.transforms.get(&idx).map(|t| t.transform())
     }
 
     /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
-    pub fn get_transform_mut(&mut self, idx: &TransformIdx) -> Option<&mut Transformation<T, E>> {
-        self.transforms.get_mut(idx).and_then(|t| t.transform_mut())
+    pub fn get_transform_mut(&mut self, idx: TransformIdx) -> Option<&mut Transformation<T, E>> {
+        self.transforms
+            .get_mut(&idx)
+            .and_then(|t| t.transform_mut())
     }
 
     /// Get a reference to a transform's default inputs from its
     /// [`TransformIdx`].
     /// Return [`None`] if the target transform does not exist.
-    pub fn get_default_inputs(&mut self, idx: &TransformIdx) -> Option<&[Option<T>]> {
-        self.transforms.get(idx).map(|t| t.defaults())
+    pub fn get_default_inputs(&mut self, idx: TransformIdx) -> Option<&[Option<T>]> {
+        self.transforms.get(&idx).map(|t| t.defaults())
     }
 
     /// Get a mutable reference to a transform's default inputs from its
     /// [`TransformIdx`].
     /// Return [`None`] if the target transform does not exist.
-    pub fn get_default_inputs_mut(&mut self, idx: &TransformIdx) -> Option<&mut [Option<T>]> {
-        self.transforms.get_mut(idx).map(|t| t.defaults_mut())
+    pub fn get_default_inputs_mut(&mut self, idx: TransformIdx) -> Option<&mut [Option<T>]> {
+        self.transforms.get_mut(&idx).map(|t| t.defaults_mut())
     }
 
     /// Get a node from its [`NodeId`].
     pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
         match idx {
-            &NodeId::Transform(ref t_idx) => self.get_transform(t_idx).map(Node::Transform),
+            &NodeId::Transform(t_idx) => self.get_transform(t_idx).map(Node::Transform),
             &NodeId::Output(ref output_id) => self
                 .outputs
                 .get(output_id)
@@ -91,12 +93,12 @@ where
     /// Return [`None`] if [`TransformIdx`] does not exist.
     pub(crate) fn outputs_attached_to_transform(
         &self,
-        idx: &TransformIdx,
+        idx: TransformIdx,
     ) -> Option<Vec<Option<Output>>> {
         self.get_transform(idx).map(|t| {
             let len = t.input.len();
             (0..len)
-                .map(|i| self.output_attached_to(&Input::new(*idx, i)))
+                .map(|i| self.output_attached_to(&Input::new(idx, i)))
                 .collect()
         })
     }
@@ -119,11 +121,11 @@ where
     /// Get [`Output`]s of given transformation that are currently in use.
     ///
     /// Return [`None`] if transformation does not exist.
-    pub(crate) fn outputs_of_transformation(&self, t_idx: &TransformIdx) -> Option<Vec<Output>> {
-        self.get_transform(&t_idx).map(|t| {
+    pub(crate) fn outputs_of_transformation(&self, t_idx: TransformIdx) -> Option<Vec<Output>> {
+        self.get_transform(t_idx).map(|t| {
             let mut outputs = Vec::with_capacity(t.output.len());
             for i in 0..(t.output.len()) {
-                let output = Output::new(*t_idx, i);
+                let output = Output::new(t_idx, i);
                 if self.edges.contains_key(&output) || self
                     .outputs
                     .values()
@@ -155,7 +157,7 @@ where
     /// Remove [`Transformation`] from [`DST`] graph.
     pub fn remove_transform(
         &mut self,
-        t_idx: &TransformIdx,
+        t_idx: TransformIdx,
     ) -> Option<(Bow<Transformation<T, E>>, Vec<Option<T>>)> {
         // Remove all connections attached to this transform's outputs
         if let Some(outputs) = self.outputs_of_transformation(t_idx) {
@@ -180,14 +182,14 @@ where
         if let Some(some_outputs) = self.outputs_attached_to_transform(t_idx) {
             for (i, some_output) in some_outputs.into_iter().enumerate() {
                 if let Some(output) = some_output {
-                    let input = Input::new(*t_idx, i);
+                    let input = Input::new(t_idx, i);
                     self.disconnect(&output, &input);
                 }
             }
         }
 
         // Remove transform
-        self.transforms.remove(t_idx).map(|meta| (meta.tokenize()))
+        self.transforms.remove(&t_idx).map(|meta| (meta.tokenize()))
     }
 
     /// Connect an output to an input.
@@ -311,7 +313,7 @@ where
                 self.remove_output(output_id);
             }
             NodeId::Transform(t_idx) => {
-                self.remove_transform(t_idx);
+                self.remove_transform(*t_idx);
             }
         }
     }
@@ -358,8 +360,8 @@ where
     /// Especially check if the input type is the same as the output type.
     fn is_edge_compatible(&self, input: &Input, output: &Output) -> bool {
         match (
-            self.get_transform(&input.t_idx),
-            self.get_transform(&output.t_idx),
+            self.get_transform(input.t_idx),
+            self.get_transform(output.t_idx),
         ) {
             (Some(input_t), Some(output_t)) => {
                 input_t.nth_input_type(input.input_i.into())

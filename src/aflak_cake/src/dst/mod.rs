@@ -219,7 +219,7 @@ impl TransformIdx {
     fn incr(self) -> Self {
         TransformIdx(self.0 + 1)
     }
-    pub fn id(&self) -> usize {
+    pub fn id(self) -> usize {
         self.0
     }
 }
@@ -228,7 +228,7 @@ impl OutputId {
     fn incr(self) -> Self {
         OutputId(self.0 + 1)
     }
-    pub fn id(&self) -> usize {
+    pub fn id(self) -> usize {
         self.0
     }
 }
@@ -269,7 +269,7 @@ where
         if let Some(meta) = self.transforms.get(&output.t_idx) {
             let t = meta.transform();
             writeln!(f, "{}{}", pad(depth), t.name)?;
-            let deps = self.outputs_attached_to_transform(&output.t_idx).unwrap();
+            let deps = self.outputs_attached_to_transform(output.t_idx).unwrap();
             for (i, dep) in deps.into_iter().enumerate() {
                 write!(f, "{}{}", pad(depth + 1), i)?;
                 if let Some(dep) = dep {

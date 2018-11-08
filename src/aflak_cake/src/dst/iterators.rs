@@ -81,9 +81,8 @@ where
     /// If value has no parents, pop the stack and return it.
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_output) = self.stack.pop() {
-            if let Some(mut parent_outputs) = self
-                .dst
-                .outputs_attached_to_transform(&current_output.t_idx)
+            if let Some(mut parent_outputs) =
+                self.dst.outputs_attached_to_transform(current_output.t_idx)
             {
                 let dep = Dependency {
                     t_idx: current_output.t_idx,

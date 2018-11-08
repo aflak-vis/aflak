@@ -120,7 +120,7 @@ impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone + PartialEq,
 {
-    pub fn update_constant_node(&mut self, id: &cake::TransformIdx, val: Vec<T>) {
+    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: Vec<T>) {
         let mut purge = false;
         if let Some(t) = self.dst.get_transform_mut(id) {
             if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
@@ -133,7 +133,7 @@ where
             }
         }
         if purge {
-            self.dst.purge_cache_node(&cake::NodeId::Transform(*id));
+            self.dst.purge_cache_node(&cake::NodeId::Transform(id));
         }
     }
 }
@@ -142,7 +142,7 @@ impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone,
 {
-    pub fn constant_node_value(&self, id: &cake::TransformIdx) -> Option<&[T]> {
+    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
         self.dst.get_transform(id).and_then(|t| {
             if let cake::Algorithm::Constant(ref constants) = t.algorithm {
                 Some(constants.as_slice())
@@ -625,7 +625,7 @@ where
                         let (p1, cp1, cp2, p2) = match self.creating_link.as_ref().unwrap() {
                             &LinkExtremity::Output(output) => {
                                 let output_node_count =
-                                    self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                                    self.dst.get_transform(output.t_idx).unwrap().output.len();
                                 let output_node_state = self
                                     .node_states
                                     .get(&cake::NodeId::Transform(output.t_idx))
@@ -646,7 +646,7 @@ where
                                     InputSlot::Transform(input) => {
                                         let input_node_count = self
                                             .dst
-                                            .get_transform(&input.t_idx)
+                                            .get_transform(input.t_idx)
                                             .unwrap()
                                             .input
                                             .len();
@@ -695,7 +695,7 @@ where
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
                             let input_node_count =
-                                self.dst.get_transform(&input.t_idx).unwrap().input.len();
+                                self.dst.get_transform(input.t_idx).unwrap().input.len();
                             let input_node_state = self
                                 .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))
@@ -720,7 +720,7 @@ where
                     };
                     let p1 = offset + connector_in_pos;
                     let output_node_count =
-                        self.dst.get_transform(&output.t_idx).unwrap().output.len();
+                        self.dst.get_transform(output.t_idx).unwrap().output.len();
                     let output_node_state = self
                         .node_states
                         .get(&cake::NodeId::Transform(output.t_idx))
@@ -812,7 +812,7 @@ where
             });
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
             let mut purge_list = Vec::new();
-            if let &cake::NodeId::Transform(ref t_idx) = id {
+            if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform_mut(t_idx) {
                     if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
                         for c in constants.iter_mut() {
