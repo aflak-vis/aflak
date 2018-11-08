@@ -23,9 +23,9 @@ pub enum Algorithm<T: Clone, E> {
 
 impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &Algorithm::Function(ref fun) => write!(f, "Function({:p})", fun),
-            &Algorithm::Constant(ref vec) => write!(f, "Constant({:?})", vec),
+        match *self {
+            Algorithm::Function(ref fun) => write!(f, "Function({:p})", fun),
+            Algorithm::Constant(ref vec) => write!(f, "Constant({:?})", vec),
         }
     }
 }
@@ -151,9 +151,9 @@ where
             panic!("Missing input arguments!");
         } else {
             TransformationResult {
-                output: match self.algorithm {
-                    &Algorithm::Function(f) => f(self.input).into_iter(),
-                    &Algorithm::Constant(ref c) => c
+                output: match *self.algorithm {
+                    Algorithm::Function(f) => f(self.input).into_iter(),
+                    Algorithm::Constant(ref c) => c
                         .clone()
                         .into_iter()
                         .map(Ok)

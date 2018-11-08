@@ -76,9 +76,9 @@ where
 
     /// Get a node from its [`NodeId`].
     pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
-        match idx {
-            &NodeId::Transform(t_idx) => self.get_transform(t_idx).map(Node::Transform),
-            &NodeId::Output(ref output_id) => self
+        match *idx {
+            NodeId::Transform(t_idx) => self.get_transform(t_idx).map(Node::Transform),
+            NodeId::Output(ref output_id) => self
                 .outputs
                 .get(output_id)
                 .map(|some_output| Node::Output(some_output.as_ref())),
