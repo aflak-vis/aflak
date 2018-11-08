@@ -81,15 +81,11 @@ impl<'t> Aflak<'t> {
                         if let Some(result) = compute_state.result() {
                             match result {
                                 Err(e) => ui.text_wrapped(&ImString::new(format!("{}", e))),
-                                Ok(result) => output_window_computed_content(
+                                Ok(result) => self.output_window_computed_content(
                                     ui,
                                     result,
                                     &output,
                                     &window_name,
-                                    &mut self.image1d_states,
-                                    &mut self.image2d_states,
-                                    &mut self.editable_values,
-                                    &mut self.node_editor,
                                     gl_ctx,
                                     textures,
                                 ),
@@ -104,120 +100,129 @@ impl<'t> Aflak<'t> {
             });
         }
     }
-}
 
-fn output_window_computed_content<F>(
-    ui: &Ui,
-    result: &IOValue,
-    output: &OutputId,
-    window_name: &ImStr,
-    image1d_states: &mut HashMap<ImString, plot::State>,
-    image2d_states: &mut HashMap<ImString, imshow::State>,
-    editable_values: &mut HashMap<(OutputId, InteractionId), TransformIdx>,
-    node_editor: &mut AflakNodeEditor,
-    gl_ctx: &F,
-    textures: &mut Textures<glium::Texture2d>,
-) where
-    F: glium::backend::Facade,
-{
-    if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-        if let Err(e) = save_output::save(output, result) {
-            eprintln!("Error on saving output: '{}'", e);
-        } else {
-            ui.open_popup(im_str!("FITS export completed!"));
-        }
-    }
-    ui.popup_modal(im_str!("FITS export completed!")).build(|| {
-        ui.text(format!(
-            "File saved with success to '{}'.",
-            save_output::file_name(output)
-        ));
-        if ui.button(im_str!("Close"), (0.0, 0.0)) {
-            ui.close_current_popup();
-        }
-    });
-
-    ui.new_line();
-
-    match result {
-        &IOValue::Str(ref string) => {
-            ui.text(format!("{:?}", string));
-        }
-        &IOValue::Integer(integer) => {
-            ui.text(format!("{:?}", integer));
-        }
-        &IOValue::Float(float) => {
-            ui.text(format!("{:?}", float));
-        }
-        &IOValue::Float2(floats) => {
-            ui.text(format!("{:?}", floats));
-        }
-        &IOValue::Float3(floats) => {
-            ui.text(format!("{:?}", floats));
-        }
-        &IOValue::Image1d(ref image) => {
-            let state = image1d_states
-                .entry(window_name.to_owned())
-                .or_insert_with(|| plot::State::default());
-
-            update_state_from_editor(
-                &output,
-                state.stored_values_mut(),
-                editable_values,
-                node_editor,
-            );
-            let unit = image.array().unit().repr();
-            let transform = match (image.cunit(), image.wcs()) {
-                (Some(unit), Some(wcs)) => Some(AxisTransform::new(unit.repr(), move |t| {
-                    wcs.pix2world([t, 0.0, 0.0])[0]
-                })),
-                _ => None,
-            };
-            if let Err(e) = ui.image1d(image.scalar(), &unit, transform, state) {
-                ui.text(format!("Error on drawing plot! {}", e))
+    fn output_window_computed_content<F>(
+        &mut self,
+        ui: &Ui,
+        result: &IOValue,
+        output: &OutputId,
+        window_name: &ImStr,
+        gl_ctx: &F,
+        textures: &mut Textures<glium::Texture2d>,
+    ) where
+        F: glium::backend::Facade,
+    {
+        if ui.button(im_str!("Save data"), (0.0, 0.0)) {
+            if let Err(e) = save_output::save(output, result) {
+                eprintln!("Error on saving output: '{}'", e);
+            } else {
+                ui.open_popup(im_str!("FITS export completed!"));
             }
-            update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
         }
-        &IOValue::Image2d(ref image) => {
-            let state = image2d_states
-                .entry(window_name.to_owned())
-                .or_insert_with(|| imshow::State::default());
+        ui.popup_modal(im_str!("FITS export completed!")).build(|| {
+            ui.text(format!(
+                "File saved with success to '{}'.",
+                save_output::file_name(output)
+            ));
+            if ui.button(im_str!("Close"), (0.0, 0.0)) {
+                ui.close_current_popup();
+            }
+        });
 
-            update_state_from_editor(
-                &output,
-                state.stored_values_mut(),
-                editable_values,
-                node_editor,
-            );
-            let texture_id = ImTexture::from(hash_imstring(window_name));
-            let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
-                (Some(units), Some(wcs)) => (
-                    Some(AxisTransform::new(units[0].repr(), move |t| {
+        ui.new_line();
+
+        match result {
+            &IOValue::Str(ref string) => {
+                ui.text(format!("{:?}", string));
+            }
+            &IOValue::Integer(integer) => {
+                ui.text(format!("{:?}", integer));
+            }
+            &IOValue::Float(float) => {
+                ui.text(format!("{:?}", float));
+            }
+            &IOValue::Float2(floats) => {
+                ui.text(format!("{:?}", floats));
+            }
+            &IOValue::Float3(floats) => {
+                ui.text(format!("{:?}", floats));
+            }
+            &IOValue::Image1d(ref image) => {
+                let state = self
+                    .image1d_states
+                    .entry(window_name.to_owned())
+                    .or_insert_with(|| plot::State::default());
+
+                update_state_from_editor(
+                    &output,
+                    state.stored_values_mut(),
+                    &mut self.editable_values,
+                    &self.node_editor,
+                );
+                let unit = image.array().unit().repr();
+                let transform = match (image.cunit(), image.wcs()) {
+                    (Some(unit), Some(wcs)) => Some(AxisTransform::new(unit.repr(), move |t| {
                         wcs.pix2world([t, 0.0, 0.0])[0]
                     })),
-                    Some(AxisTransform::new(units[1].repr(), {
-                        let max_height = (image.scalar().dim().0 - 1) as f32;
-                        move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
-                    })),
-                ),
-                _ => (None, None),
-            };
-            if let Err(e) = ui.image2d(
-                gl_ctx,
-                textures,
-                texture_id,
-                image.scalar(),
-                image.array().unit().repr(),
-                x_transform,
-                y_transform,
-                state,
-            ) {
-                ui.text(format!("Error on drawing image! {}", e));
+                    _ => None,
+                };
+                if let Err(e) = ui.image1d(image.scalar(), &unit, transform, state) {
+                    ui.text(format!("Error on drawing plot! {}", e))
+                }
+                update_editor_from_state(
+                    &output,
+                    state.stored_values(),
+                    &mut self.editable_values,
+                    &mut self.node_editor,
+                );
             }
-            update_editor_from_state(&output, state.stored_values(), editable_values, node_editor);
-        }
-        _ => {
-            ui.text("Unimplemented");
+            &IOValue::Image2d(ref image) => {
+                let state = self
+                    .image2d_states
+                    .entry(window_name.to_owned())
+                    .or_insert_with(|| imshow::State::default());
+
+                update_state_from_editor(
+                    &output,
+                    state.stored_values_mut(),
+                    &mut self.editable_values,
+                    &self.node_editor,
+                );
+                let texture_id = ImTexture::from(hash_imstring(window_name));
+                let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
+                    (Some(units), Some(wcs)) => (
+                        Some(AxisTransform::new(units[0].repr(), move |t| {
+                            wcs.pix2world([t, 0.0, 0.0])[0]
+                        })),
+                        Some(AxisTransform::new(units[1].repr(), {
+                            let max_height = (image.scalar().dim().0 - 1) as f32;
+                            move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
+                        })),
+                    ),
+                    _ => (None, None),
+                };
+                if let Err(e) = ui.image2d(
+                    gl_ctx,
+                    textures,
+                    texture_id,
+                    image.scalar(),
+                    image.array().unit().repr(),
+                    x_transform,
+                    y_transform,
+                    state,
+                ) {
+                    ui.text(format!("Error on drawing image! {}", e));
+                }
+                update_editor_from_state(
+                    &output,
+                    state.stored_values(),
+                    &mut self.editable_values,
+                    &mut self.node_editor,
+                );
+            }
+            _ => {
+                ui.text("Unimplemented");
+            }
         }
     }
 }
