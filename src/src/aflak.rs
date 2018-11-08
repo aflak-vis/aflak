@@ -166,7 +166,7 @@ impl OutputWindow {
                 let state = aflak
                     .image1d_states
                     .entry(self.window_name.to_owned())
-                    .or_insert_with(|| plot::State::default());
+                    .or_insert_with(plot::State::default);
 
                 self.update_state_from_editor(
                     state.stored_values_mut(),
@@ -193,7 +193,7 @@ impl OutputWindow {
                 let state = aflak
                     .image2d_states
                     .entry(self.window_name.to_owned())
-                    .or_insert_with(|| imshow::State::default());
+                    .or_insert_with(imshow::State::default);
 
                 self.update_state_from_editor(
                     state.stored_values_mut(),
