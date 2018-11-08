@@ -168,9 +168,9 @@ Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
             cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i1, i2, onband-width, min.
-Compute value = (i1 - i2) *fl / i1. if abs(value) < min, value changes to 0.",
-                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float, min: Float) -> Image2d {
-                    vec![run_create_equivalent_width(i1, i2, *fl, *min)]
+Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
+                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float, max: Float) -> Image2d {
+                    vec![run_create_equivalent_width(i1, i2, *fl, *max)]
                 }
             ),
             cake_transform!(
@@ -549,12 +549,12 @@ fn run_create_equivalent_width(
     i1: &WcsArray2,
     i2: &WcsArray2,
     fl: f32,
-    min: f32,
+    max: f32,
 ) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
     let i2_arr = i2.scalar();
     let out = (i1_arr - i2_arr) * fl / i1_arr;
-    let result = out.map(|v| if v.abs() < min { 0.0 } else { *v });
+    let result = out.map(|v| if v.abs() > max { 0.0 } else { *v });
 
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         result,
