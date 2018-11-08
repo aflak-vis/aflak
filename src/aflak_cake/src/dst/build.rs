@@ -126,11 +126,8 @@ where
             let mut outputs = Vec::with_capacity(t.output.len());
             for i in 0..(t.output.len()) {
                 let output = Output::new(t_idx, i);
-                if self.edges.contains_key(&output) || self
-                    .outputs
-                    .values()
-                    .find(|&val| &Some(output) == val)
-                    .is_some()
+                if self.edges.contains_key(&output)
+                    || self.outputs.values().any(|&val| Some(output) == val)
                 {
                     outputs.push(output)
                 }
