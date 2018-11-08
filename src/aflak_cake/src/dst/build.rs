@@ -224,10 +224,11 @@ where
             for input_list in self.edges.values_mut() {
                 input_list.inputs.retain(|input_| input_ != &input)
             }
-            if !self.edges.contains_key(&output) {
-                self.edges.insert(output, InputList::new(vec![input]));
-            } else {
-                let inputs = self.edges.get_mut(&output).unwrap();
+            {
+                let inputs = self
+                    .edges
+                    .entry(output)
+                    .or_insert_with(|| InputList::new(vec![]));
                 inputs.push(input);
             }
             self.purge_cache(output);
