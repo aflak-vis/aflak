@@ -6,7 +6,7 @@ mod state;
 pub use self::state::State;
 
 use glium::{backend::Facade, Texture2d};
-use imgui::{ImTexture, Textures, Ui};
+use imgui::{self, ImTexture, Ui};
 use ndarray::Array2;
 
 use err::Error;
@@ -16,6 +16,8 @@ use ticks;
 use util;
 
 use super::AxisTransform;
+
+pub type Textures = imgui::Textures<Texture2d>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input. `name` is used as an ID to register the
@@ -62,7 +64,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     fn image2d<F, FX, FY>(
         &self,
         ctx: &F,
-        textures: &mut Textures<Texture2d>,
+        textures: &mut Textures,
         texture_id: ImTexture,
         image: &Array2<f32>,
         vunit: &str,
@@ -123,7 +125,7 @@ pub trait UiImage2d {
     fn image2d<F, FX, FY>(
         &self,
         ctx: &F,
-        textures: &mut Textures<Texture2d>,
+        textures: &mut Textures,
         texture_id: ImTexture,
         image: &Array2<f32>,
         vunit: &str,

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use glium;
-use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Textures, Ui};
+use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Ui};
 
 use aflak_plot::{
-    imshow::{self, UiImage2d},
+    imshow::{self, Textures, UiImage2d},
     plot::{self, UiImage1d},
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
@@ -49,12 +49,8 @@ impl<'t> Aflak<'t> {
             });
     }
 
-    pub fn output_windows<F>(
-        &mut self,
-        ui: &Ui,
-        gl_ctx: &F,
-        textures: &mut Textures<glium::Texture2d>,
-    ) where
+    pub fn output_windows<F>(&mut self, ui: &Ui, gl_ctx: &F, textures: &mut Textures)
+    where
         F: glium::backend::Facade,
     {
         let outputs = self.node_editor.outputs();
@@ -108,7 +104,7 @@ impl<'t> Aflak<'t> {
         output: &OutputId,
         window_name: &ImStr,
         gl_ctx: &F,
-        textures: &mut Textures<glium::Texture2d>,
+        textures: &mut Textures,
     ) where
         F: glium::backend::Facade,
     {
