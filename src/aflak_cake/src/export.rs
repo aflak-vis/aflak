@@ -79,8 +79,7 @@ where
             }
             DeserTransform::Constant(constants) => {
                 let first_variant = constants
-                    .iter()
-                    .nth(0)
+                    .get(0)
                     .map(|t| t.variant_name())
                     .ok_or(ImportError::EmptyConstant)?;
                 Ok(Bow::Owned(Transformation {
