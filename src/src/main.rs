@@ -29,7 +29,7 @@ use constant_editor::MyConstantEditor;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
-fn main() {
+fn main() -> support::Result<()> {
     env::set_var("WINIT_HIDPI_FACTOR", "1");
 
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
@@ -50,5 +50,5 @@ fn main() {
         aflak.node_editor(ui);
         aflak.output_windows(ui, gl_ctx, textures);
         true
-    }).unwrap();
+    })
 }
