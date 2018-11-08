@@ -22,7 +22,7 @@ pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, Axis};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -139,15 +139,15 @@ Compute a*u + b*v.",
             cake_transform!(
                 "Integral for 3D Image. Parameters: a, b (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
-                integral<IOValue, IOErr>(image: Image3d, coef1: Float, coef2: Float) -> Image2d {
-                    vec![run_integral(image, *coef1, *coef2)]
+                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
+                    vec![run_integral(image, *start, *end)]
                 }
             ),
             cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band. 
 Parameters i1, i2, onband-width, min.
-Compute value = (i1 - i2) *fl / i1. if value < min, value changes to NAN.",
-                create_equivalent_width<IOValue, IOErr>(i1:Image2d, i2:Image2d, fl: Float, min: Float) -> Image2d {
+Compute value = (i1 - i2) *fl / i1. if abs(value) < min, value changes to 0.",
+                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float, min: Float) -> Image2d {
                     vec![run_create_equivalent_width(i1, i2, *fl, *min)]
                 }
             ),
@@ -208,8 +208,7 @@ fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
 
 /// Turn a FITS file into a 3D image
 fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
-    let primary_hdu = fits
-        .get_by_name("FLUX")
+    let primary_hdu = fits.get_by_name("FLUX")
         .or_else(|| fits.get(0))
         .ok_or_else(|| {
             IOErr::UnexpectedInput(
@@ -406,7 +405,8 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
                 WcsArray2::from_array(array)
             };
             IOValue::Image2d(array)
-        }).map_err(IOErr::ShapeError)
+        })
+        .map_err(IOErr::ShapeError)
 }
 
 /// Make a 2D plane slicing the 3D space
@@ -478,52 +478,81 @@ fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
 }
 
-fn run_integral(im: &Array3<f32>, coef1: f32, coef2: f32) -> Result<IOValue, IOErr> {
-    //hard-coded!(image-size) improvement required.
-    let mut out = Vec::with_capacity(74*74);
-    for z in 0..74 {
-        for y in 0..74 {
-            let mut val = 0.0;
-            for x in (coef1 as usize)..(coef2 as usize) {
-                let tmp_val = *im
-                    .get([x as usize, y as usize, z as usize])
-                    .ok_or_else(|| {
-                        IOErr::UnexpectedInput(format!(
-                            "Input maps to out of bound pixel!: [{}, {}, {}]",
-                            x, y, z
-                        ))
-                    })?;
-                val += tmp_val / (coef2 - coef1).abs();
-            }
-            out.push(val);
-        }
+fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    if start < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be positive, but got {}",
+            start
+        )));
+    }
+    if end < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be positive, but got {}",
+            end
+        )));
+    }
+    let start = start as usize;
+    let end = end as usize;
+
+    let image_val = im.scalar();
+    let (frame_cnt, _, _) = image_val.dim();
+
+    if end >= frame_cnt {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than input image's frame count ({} >= {})",
+            end, frame_cnt
+        )));
     }
 
-    Array2::from_shape_vec((74, 74), out)
-        .map(IOValue::Image2d)
-        .map_err(IOErr::ShapeError)
+    let slices = image_val.slice(s![start..end, .., ..]);
+    let raw = slices.sum_axis(Axis(0));
+
+    let wrap_with_unit = im.make_slice2(
+        &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
+        im.array().with_new_value(raw),
+    );
+
+    Ok(IOValue::Image2d(wrap_with_unit))
 }
 
-fn run_create_equivalent_width(i1: &Array2<f32>, i2: &Array2<f32>, fl: f32, min: f32) -> Result<IOValue, IOErr> {
-    let out: Array2<f32> = (i1 - i2) *fl / i1;
+fn run_create_equivalent_width(
+    i1: &WcsArray2,
+    i2: &WcsArray2,
+    fl: f32,
+    min: f32,
+) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let i2_arr = i2.scalar();
+    let out = (i1_arr - i2_arr) * fl / i1_arr;
+    let result = out.map(|v| if v.abs() < min { 0.0 } else { *v });
 
-    let result = out.map(|v| if v < &min { std::f32::NAN } else { *v });
-    Ok(IOValue::Image2d(result))
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
 }
 
-fn run_convert_to_logscale(i1: &Array2<f32>) -> Result<IOValue, IOErr> {
-    let mut out_iter = i1.iter();
-    let mut min: f32 = 1000.0;
+fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let mut out_iter = i1_arr.iter();
+    let mut min: f32 = std::f32::MAX;
     while let Some(i) = out_iter.next() {
         min = min.min(*i);
     }
-    let out = i1.map(|v| (v + min.abs() + 1.0).log10());
-    Ok(IOValue::Image2d(out))
+    let out = i1_arr.map(|v| (v + min.abs() + 1.0).log10());
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
 }
 
-fn run_negation(i1: &Array2<f32>) -> Result<IOValue, IOErr> {
-    let out = i1.map(|v| -v);
-    Ok(IOValue::Image2d(out))
+fn run_negation(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+    let i1_arr = i1.scalar();
+    let out = i1_arr.map(|v| -v);
+    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
 }
 
 #[cfg(test)]
