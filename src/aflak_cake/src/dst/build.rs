@@ -8,8 +8,8 @@ use boow::Bow;
 use variant_name::VariantName;
 
 use dst::node::{Node, NodeId};
-use dst::MetaTransform;
 use dst::{DSTError, Input, InputList, Output, OutputId, TransformIdx, DST};
+use dst::{MetaTransform, TransformAndDefaults};
 use transform::Transformation;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
@@ -155,7 +155,7 @@ where
     pub fn remove_transform(
         &mut self,
         t_idx: TransformIdx,
-    ) -> Option<(Bow<Transformation<T, E>>, Vec<Option<T>>)> {
+    ) -> Option<TransformAndDefaults<'t, T, E>> {
         // Remove all connections attached to this transform's outputs
         if let Some(outputs) = self.outputs_of_transformation(t_idx) {
             for output in outputs {

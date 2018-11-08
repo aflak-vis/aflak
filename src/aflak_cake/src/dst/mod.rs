@@ -73,10 +73,13 @@ where
         &mut self.input_defaults
     }
 
-    pub fn tokenize(self) -> (Bow<'t, Transformation<T, E>>, Vec<Option<T>>) {
+    pub fn tokenize(self) -> TransformAndDefaults<'t, T, E> {
         (self.t, self.input_defaults)
     }
 }
+
+/// Tuple of a transformation and the default input values set up for it
+pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transformation<T, E>>, Vec<Option<T>>);
 
 /// Uniquely identify an ouput of a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

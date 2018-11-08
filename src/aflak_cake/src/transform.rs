@@ -15,11 +15,13 @@ pub type TypeId = &'static str;
 pub enum Algorithm<T: Clone, E> {
     /// A rust function with a vector of input variables as argument.
     /// Returns a vector of [`Result`], one result for each output.
-    Function(fn(Vec<Cow<T>>) -> Vec<Result<T, E>>),
+    Function(PlainFunction<T, E>),
     /// Use this variant for algorithms with no input. Such algorithm will
     /// always return this constant.
     Constant(Vec<T>),
 }
+
+type PlainFunction<T, E> = fn(Vec<Cow<T>>) -> Vec<Result<T, E>>;
 
 impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
