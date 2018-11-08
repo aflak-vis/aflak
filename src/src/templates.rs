@@ -417,7 +417,7 @@ mod test {
     use node_editor::NodeEditor;
     use primitives;
 
-    use super::show_frame_and_wave;
+    use super::{show_equivalent_width, show_frame_and_wave};
     use constant_editor::MyConstantEditor;
 
     #[test]
@@ -426,6 +426,16 @@ mod test {
         let transformations = transformations_ref.as_slice();
 
         let buf = show_frame_and_wave("file.fits");
+        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        assert!(editor.is_ok());
+    }
+
+    #[test]
+    fn import_equivalent_width() {
+        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
+        let transformations = transformations_ref.as_slice();
+
+        let buf = show_equivalent_width("file.fits");
         let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
         assert!(editor.is_ok());
     }
