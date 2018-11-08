@@ -161,7 +161,7 @@ where
             for output in outputs {
                 if let Some(inputs) = self
                     .inputs_attached_to(&output)
-                    .map(|inputs| inputs.map(|i| *i).collect::<Vec<_>>())
+                    .map(|inputs| inputs.cloned().collect::<Vec<_>>())
                 {
                     for input in inputs {
                         self.disconnect(&output, &input);

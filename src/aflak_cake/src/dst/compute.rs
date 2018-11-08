@@ -92,7 +92,7 @@ where
         self.cache.insert(output, RwLock::new(None));
         let inputs: Option<Vec<_>> = self
             .inputs_attached_to(&output)
-            .map(|inputs| inputs.map(|input| *input))
+            .map(|inputs| inputs.cloned())
             .map(Iterator::collect);
         if let Some(inputs) = inputs {
             for input in inputs {
