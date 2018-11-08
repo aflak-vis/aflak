@@ -395,7 +395,6 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
         .map(|array| {
             let array = input_img.array().with_new_value(array);
             let params = MapReverseParams::new(map);
-            // TODO: Update WCS value for well-behaved slices!
             let array = if let Some(axes) = params.sliced_axes() {
                 input_img.make_slice2(&axes, array)
             } else {
