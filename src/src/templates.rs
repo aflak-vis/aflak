@@ -1,3 +1,10 @@
+use std::io::Cursor;
+use std::path::Path;
+
+pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
+    let path = path.as_ref().to_string_lossy();
+    let ron = format!(
+        r#"
 (
     dst: (
         transforms: [
@@ -46,7 +53,7 @@
             )),
             ((1), (
                 t: Constant([
-                    Path("/path/to/my/fits/file/data/manga-7443-12703-LINCUBE.fits"),
+                    Path("{}"),
                 ]),
                 input_defaults: [
                 ],
@@ -156,3 +163,8 @@
     ],
     scrolling: (-818, -667),
 )
+    "#,
+        path
+    );
+    Cursor::new(ron)
+}

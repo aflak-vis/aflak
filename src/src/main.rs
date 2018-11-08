@@ -16,9 +16,9 @@ mod aflak;
 mod constant_editor;
 mod layout;
 mod save_output;
+mod templates;
 
 use std::env;
-use std::io::Cursor;
 
 use imgui::ImString;
 
@@ -34,7 +34,9 @@ fn main() -> support::Result<()> {
 
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
-    let import_data = Cursor::new(include_str!("output_image_2d.ron"));
+    let import_data = templates::show_frame_and_wave(
+        "/path/to/my/fits/file/data/manga-7443-12703-LINCUBE.fits",
+    );
     let node_editor = NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
         .expect("Import failed");
 
