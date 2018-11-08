@@ -159,7 +159,7 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Integral for 3D Image. Parameters: a, b (a <= b).
+                "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
                 integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
                     vec![run_integral(image, *start, *end)]
