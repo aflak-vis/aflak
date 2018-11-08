@@ -35,7 +35,7 @@ cargo build --release
 
 ```sh
 cd aflak/src
-cargo run --release
+cargo run --release -- -f <FITS_FILE>
 ```
 
 **NB**: The first time you run aflak, the window layout may not be what you
