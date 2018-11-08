@@ -62,6 +62,7 @@ fn main() -> support::Result<()> {
 
     let import_data = match matches.value_of("template") {
         Some("waveform") | None => templates::show_frame_and_wave(fits_path),
+        Some("equivalent_width") => templates::show_equivalent_width(fits_path),
         Some(template) => unreachable!("Got '{}', an unexpected result.", template),
     };
 
