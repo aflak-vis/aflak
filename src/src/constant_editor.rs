@@ -21,10 +21,22 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 changed
             }
             IOValue::Integer(ref mut int) => {
-                let mut out = *int as i32;
-                let changed = ui.input_int(im_str!("Int value"), &mut out).build();
-                *int = out as i64;
-                changed
+                use std::i32;
+                const MIN: i64 = i32::MIN as i64;
+                const MAX: i64 = i32::MAX as i64;
+
+                if MIN <= *int && *int <= MAX {
+                    let mut out = *int as i32;
+                    let changed = ui.input_int(im_str!("Int value"), &mut out).build();
+                    *int = i64::from(out);
+                    changed
+                } else {
+                    ui.text(format!(
+                        "Cannot edit integer smaller than {}\nor bigger than {}!\nGot {}.",
+                        MIN, MAX, int
+                    ));
+                    false
+                }
             }
             IOValue::Float(ref mut float) => ui.input_float(im_str!("Float value"), float).build(),
             IOValue::Float2(ref mut floats) => {
