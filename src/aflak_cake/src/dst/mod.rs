@@ -287,8 +287,8 @@ where
 }
 
 fn pad(depth: usize) -> String {
-    const SEPARATOR: &'static str = "\\_ ";
-    const PADDER: &'static str = "    ";
+    const SEPARATOR: &str = "\\_ ";
+    const PADDER: &str = "    ";
     let mut out = String::with_capacity(depth * PADDER.len() + SEPARATOR.len());
     for _ in 0..depth {
         out.push_str(PADDER);
