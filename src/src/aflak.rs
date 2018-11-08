@@ -92,11 +92,11 @@ impl OutputWindow {
         window.build(|| {
             let compute_state = unsafe { aflak.node_editor.compute_output(&self.output) };
             let compute_state = &*compute_state.lock().unwrap();
-            match compute_state {
-                &ComputationState::NothingDone => {
+            match *compute_state {
+                ComputationState::NothingDone => {
                     ui.text("Initializing...");
                 }
-                &ComputationState::RunningFirstTime => {
+                ComputationState::RunningFirstTime => {
                     ui.text("Computing...");
                 }
                 _ => {
@@ -146,23 +146,23 @@ impl OutputWindow {
 
         ui.new_line();
 
-        match result {
-            &IOValue::Str(ref string) => {
+        match *result {
+            IOValue::Str(ref string) => {
                 ui.text(format!("{:?}", string));
             }
-            &IOValue::Integer(integer) => {
+            IOValue::Integer(integer) => {
                 ui.text(format!("{:?}", integer));
             }
-            &IOValue::Float(float) => {
+            IOValue::Float(float) => {
                 ui.text(format!("{:?}", float));
             }
-            &IOValue::Float2(floats) => {
+            IOValue::Float2(floats) => {
                 ui.text(format!("{:?}", floats));
             }
-            &IOValue::Float3(floats) => {
+            IOValue::Float3(floats) => {
                 ui.text(format!("{:?}", floats));
             }
-            &IOValue::Image1d(ref image) => {
+            IOValue::Image1d(ref image) => {
                 let state = aflak
                     .image1d_states
                     .entry(self.window_name.to_owned())
@@ -189,7 +189,7 @@ impl OutputWindow {
                     &mut aflak.node_editor,
                 );
             }
-            &IOValue::Image2d(ref image) => {
+            IOValue::Image2d(ref image) => {
                 let state = aflak
                     .image2d_states
                     .entry(self.window_name.to_owned())

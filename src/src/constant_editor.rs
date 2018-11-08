@@ -12,30 +12,28 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
         use primitives::IOValue;
 
         ui.push_id(constant as *const primitives::IOValue as i32);
-        let changed = match constant {
-            &mut IOValue::Str(ref mut string) => {
+        let changed = match *constant {
+            IOValue::Str(ref mut string) => {
                 let mut out = ImString::with_capacity(1024);
                 out.push_str(string);
                 let changed = ui.input_text(im_str!("String value"), &mut out).build();
                 *string = out.to_str().to_owned();
                 changed
             }
-            &mut IOValue::Integer(ref mut int) => {
+            IOValue::Integer(ref mut int) => {
                 let mut out = *int as i32;
                 let changed = ui.input_int(im_str!("Int value"), &mut out).build();
                 *int = out as i64;
                 changed
             }
-            &mut IOValue::Float(ref mut float) => {
-                ui.input_float(im_str!("Float value"), float).build()
-            }
-            &mut IOValue::Float2(ref mut floats) => {
+            IOValue::Float(ref mut float) => ui.input_float(im_str!("Float value"), float).build(),
+            IOValue::Float2(ref mut floats) => {
                 ui.input_float2(im_str!("2 floats value"), floats).build()
             }
-            &mut IOValue::Float3(ref mut floats) => {
+            IOValue::Float3(ref mut floats) => {
                 ui.input_float3(im_str!("3 floats value"), floats).build()
             }
-            &mut IOValue::Path(ref mut file) => {
+            IOValue::Path(ref mut file) => {
                 ui.text(file.to_str().unwrap_or("Unrepresentable path"));
                 let size = ui.get_item_rect_size();
 
