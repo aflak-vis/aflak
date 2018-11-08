@@ -570,6 +570,7 @@ fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
     while let Some(i) = out_iter.next() {
         min = min.min(*i);
     }
+    // TODO: What if min is negative? All will be shifted up!
     let out = i1_arr.map(|v| (v + min.abs() + 1.0).log10());
     // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
