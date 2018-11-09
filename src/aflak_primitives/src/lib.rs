@@ -534,6 +534,12 @@ fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> 
             end, frame_cnt
         )));
     }
+    if start >= end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start higher than end ({} >= {})",
+            start, end
+        )));
+    }
 
     let slices = image_val.slice(s![start..end, .., ..]);
     let raw = slices.sum_axis(Axis(0));
