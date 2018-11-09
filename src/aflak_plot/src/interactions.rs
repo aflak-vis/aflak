@@ -49,6 +49,7 @@ pub struct VerticalLine {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct FinedGrainedROI {
+    pub(crate) id: usize,
     pub pixels: Vec<(usize, usize)>,
 }
 
@@ -71,8 +72,8 @@ impl VerticalLine {
 }
 
 impl FinedGrainedROI {
-    pub fn new() -> Self {
-        Self { pixels: vec![] }
+    pub fn new(id: usize) -> Self {
+        Self { id, pixels: vec![] }
     }
 }
 
@@ -120,7 +121,7 @@ impl Interaction {
         match self {
             Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
             Interaction::VerticalLine(VerticalLine { x_pos, .. }) => Value::Float(*x_pos),
-            Interaction::FinedGrainedROI(FinedGrainedROI { pixels }) => {
+            Interaction::FinedGrainedROI(FinedGrainedROI { pixels, .. }) => {
                 Value::FinedGrainedROI(pixels.clone())
             }
         }
@@ -175,5 +176,26 @@ impl<'a> Iterator for InteractionIterMut<'a> {
     type Item = (&'a InteractionId, &'a mut Interaction);
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct FilterRoi<'a>(InteractionIterMut<'a>);
+
+impl<'a> InteractionIterMut<'a> {
+    pub fn filter_roi(self) -> FilterRoi<'a> {
+        FilterRoi(self)
+    }
+}
+
+impl<'a> Iterator for FilterRoi<'a> {
+    type Item = (&'a InteractionId, &'a mut Interaction);
+    fn next(&mut self) -> Option<Self::Item> {
+        for x in &mut self.0 {
+            if let (_, Interaction::FinedGrainedROI(_)) = x {
+                return Some(x);
+            }
+        }
+        None
     }
 }

@@ -1,11 +1,12 @@
 use glium::{backend::Facade, Texture2d};
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImTexture, ImVec2, Textures, Ui};
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Textures, Ui};
 use ndarray::Array2;
 
 use super::hist;
 use super::image;
 use super::interactions::{
-    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine,
+    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter,
+    VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -25,6 +26,28 @@ pub struct State {
     lut_min_moving: bool,
     lut_max_moving: bool,
     interactions: Interactions,
+    roi_input: RoiInputState,
+}
+
+#[derive(Default)]
+struct RoiInputState {
+    roi_id_cnt: usize,
+    roi_names: Vec<ImString>,
+    selected: i32,
+}
+
+impl RoiInputState {
+    fn gen_id(&mut self) -> usize {
+        self.roi_id_cnt += 1;
+        self.roi_names
+            .push(ImString::new(format!("Roi {}", self.roi_id_cnt)));
+        self.selected = self.roi_id_cnt as i32;
+        self.roi_id_cnt
+    }
+
+    fn is_selected(&self, id: usize) -> bool {
+        id as i32 == self.selected
+    }
 }
 
 impl Default for State {
@@ -39,6 +62,7 @@ impl Default for State {
             lut_min_moving: false,
             lut_max_moving: false,
             interactions: Interactions::new(),
+            roi_input: Default::default(),
         }
     }
 }
@@ -231,7 +255,7 @@ impl State {
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,
         max_size: (f32, f32),
-    ) -> Result<[(f32, f32); 2], Error>
+    ) -> Result<([(f32, f32); 2], f32), Error>
     where
         F: Facade,
         FX: Fn(f32) -> f32,
@@ -327,7 +351,8 @@ impl State {
                 self.interactions.insert(new);
             }
             if ui.menu_item(im_str!("Region of interest")).build() {
-                let new = Interaction::FinedGrainedROI(FinedGrainedROI::new());
+                let new =
+                    Interaction::FinedGrainedROI(FinedGrainedROI::new(self.roi_input.gen_id()));
                 self.interactions.insert(new);
             }
         });
@@ -410,10 +435,19 @@ impl State {
                         }
                     });
                 }
-                Interaction::FinedGrainedROI(FinedGrainedROI { pixels }) => {
+                Interaction::FinedGrainedROI(FinedGrainedROI { id, pixels }) => {
+                    let selected = self.roi_input.is_selected(*id);
+
                     let pixel_size_x = size.0 / tex_size.0 as f32;
                     let pixel_size_y = size.1 / tex_size.1 as f32;
-                    const ROI_COLOR: u32 = 0xA0000000;
+                    const ROI_COLOR_SELECTED: u32 = 0xA0000000;
+                    const ROI_COLOR_UNSELECTED: u32 = 0x50000000;
+
+                    let roi_color = if selected {
+                        ROI_COLOR_SELECTED
+                    } else {
+                        ROI_COLOR_UNSELECTED
+                    };
 
                     for &(i, j) in pixels.iter() {
                         let i = i as f32;
@@ -423,16 +457,14 @@ impl State {
                         draw_list.add_rect_filled_multicolor(
                             [x, y],
                             [x + pixel_size_x, y - pixel_size_y],
-                            ROI_COLOR,
-                            ROI_COLOR,
-                            ROI_COLOR,
-                            ROI_COLOR,
+                            roi_color,
+                            roi_color,
+                            roi_color,
+                            roi_color,
                         )
                     }
 
-                    // TODO: This is a very basic interface to create/delete ROI
-                    // It should be improved.
-                    if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                    if selected && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                         let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
                         let some_position = pixels.iter().position(|&pixel_| pixel_ == pixel);
                         if let Some(position) = some_position {
@@ -452,7 +484,7 @@ impl State {
 
         ticks.draw(&draw_list, p, size);
 
-        Ok([p, size])
+        Ok(([p, size], x_labels_height))
     }
 
     pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Array2<f32>)
@@ -491,6 +523,22 @@ impl State {
                 .add_rect(pos, [pos.x + size.x, pos.y + size.y], BORDER_COLOR)
                 .build();
         } // TODO show error
+    }
+
+    pub(crate) fn show_roi_selector(&mut self, ui: &Ui) {
+        let any_roi = self.interactions.iter_mut().filter_roi().any(|_| true);
+        if any_roi {
+            let mut names = vec![im_str!("None")];
+            for name in self.roi_input.roi_names.iter() {
+                names.push(&name);
+            }
+            ui.combo(
+                im_str!("Active ROI"),
+                &mut self.roi_input.selected,
+                &names,
+                -1,
+            );
+        }
     }
 
     fn make_tooltip(

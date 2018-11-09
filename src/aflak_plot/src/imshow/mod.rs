@@ -92,7 +92,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size.1 - (cursor_pos.1 - window_pos.1),
         );
-        let [p, size] = state.show_image(
+        let ([p, size], x_label_height) = state.show_image(
             self,
             ctx,
             textures,
@@ -115,6 +115,9 @@ impl<'ui> UiImage2d for Ui<'ui> {
             [p.0 + size.0 as f32 + HIST_WIDTH, p.1],
             [BAR_WIDTH, size.1 as f32],
         );
+
+        self.set_cursor_screen_pos([p.0, p.1 + size.1 + x_label_height]);
+        state.show_roi_selector(self);
 
         Ok(())
     }
