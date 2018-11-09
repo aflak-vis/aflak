@@ -231,6 +231,40 @@ impl OutputWindow {
                     &mut aflak.node_editor,
                 );
             }
+            IOValue::Fits(ref fits) => for (i, hdu) in fits.iter().enumerate() {
+                use primitives::fitrs::HeaderValue::*;
+                use std::borrow::Cow;
+
+                let tree_name = match hdu.value("EXTNAME") {
+                    Some(CharacterString(extname)) => ImString::new(extname.as_str()),
+                    _ => if i == 0 {
+                        im_str!("Primary HDU").to_owned()
+                    } else {
+                        ImString::new(format!("Hdu #{}", i))
+                    },
+                };
+                ui.tree_node(&tree_name).build(|| {
+                    for (key, value) in hdu {
+                        ui.text(key);
+                        if let Some(value) = value {
+                            ui.same_line(150.0);
+                            let value = match value {
+                                CharacterString(s) => Cow::Borrowed(s.as_str()),
+                                Logical(true) => Cow::Borrowed("True"),
+                                Logical(false) => Cow::Borrowed("False"),
+                                IntegerNumber(i) => Cow::Owned(format!("{}", i)),
+                                RealFloatingNumber(f) => Cow::Owned(format!("{:E}", f)),
+                                ComplexIntegerNumber(a, b) => Cow::Owned(format!("{} + {}i", a, b)),
+                                ComplexFloatingNumber(a, b) => {
+                                    Cow::Owned(format!("{:E} + {:E}i", a, b))
+                                }
+                            };
+                            ui.text(value);
+                        }
+                        ui.separator();
+                    }
+                });
+            },
             _ => {
                 ui.text("Unimplemented");
             }
