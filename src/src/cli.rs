@@ -1,6 +1,6 @@
 use clap::{App, Arg};
 
-use templates;
+pub const TEMPLATES: &[&str] = &["waveform", "equivalent_width"];
 
 pub fn build_cli() -> App<'static, 'static> {
     App::new(env!("CARGO_PKG_NAME"))
@@ -18,7 +18,7 @@ pub fn build_cli() -> App<'static, 'static> {
                 .short("t")
                 .long("template")
                 .value_name("TEMPLATE NAME")
-                .possible_values(templates::TEMPLATES)
+                .possible_values(TEMPLATES)
                 .help("The name of the template to use"),
         )
 }

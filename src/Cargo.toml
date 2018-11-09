@@ -7,6 +7,7 @@ license = "GPL-3.0-only"
 homepage = "https://github.com/aflak-vis/aflak"
 repository = "https://github.com/aflak-vis/aflak"
 readme = "../README.md"
+build = "src/build.rs"
 
 [dependencies]
 aflak_cake = { path = "./aflak_cake", version = "0.0.3" }
@@ -20,6 +21,9 @@ clap = "2.32.0"
 glium = { version = "0.22", default-features = true }
 imgui = { path = "../imgui-rs", version = "0.0.22-pre" }
 imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }
+
+[build-dependencies]
+clap = "2.32.0"
 
 [workspace]
 members = [

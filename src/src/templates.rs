@@ -1,8 +1,6 @@
 use std::io::Cursor;
 use std::path::Path;
 
-pub const TEMPLATES: &[&str] = &["waveform", "equivalent_width"];
-
 pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let path = path.as_ref().to_string_lossy();
     let ron = format!(
