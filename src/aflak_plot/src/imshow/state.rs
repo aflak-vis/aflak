@@ -464,7 +464,10 @@ impl State {
                         )
                     }
 
-                    if selected && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                    if selected
+                        && ui.is_item_hovered()
+                        && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
+                    {
                         let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
                         let some_position = pixels.iter().position(|&pixel_| pixel_ == pixel);
                         if let Some(position) = some_position {
