@@ -14,6 +14,7 @@ extern crate imgui_file_explorer;
 extern crate node_editor;
 
 mod aflak;
+mod cli;
 mod constant_editor;
 mod layout;
 mod save_output;
@@ -22,7 +23,6 @@ mod templates;
 use std::env;
 use std::path::PathBuf;
 
-use clap::{App, Arg};
 use imgui::ImString;
 
 use node_editor::NodeEditor;
@@ -38,24 +38,7 @@ fn main() -> support::Result<()> {
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
 
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .author(env!("CARGO_PKG_AUTHORS"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .arg(
-            Arg::with_name("fits")
-                .short("f")
-                .long("fits")
-                .value_name("FITS")
-                .help("Set a FITS file to load"),
-        ).arg(
-            Arg::with_name("template")
-                .short("t")
-                .long("template")
-                .value_name("TEMPLATE NAME")
-                .possible_values(templates::TEMPLATES)
-                .help("The name of the template to use"),
-        ).get_matches();
+    let matches = cli::build_cli().get_matches();
 
     let fits = matches.value_of("fits");
     let fits_path = path_clean_up(fits, "file.fits");
