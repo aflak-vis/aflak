@@ -66,8 +66,18 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                     false
                 }
             }
-            IOValue::Roi(_) => {
-                ui.text("Non-writable");
+            IOValue::Roi(ref roi) => {
+                match roi {
+                    primitives::ROI::All => ui.text("Whole image"),
+                    primitives::ROI::PixelList(_) => {
+                        ui.text("Non-writable");
+                        if ui.is_item_hovered() {
+                            ui.tooltip(|| {
+                                ui.text(" Please edit from output window ");
+                            });
+                        }
+                    }
+                };
                 false
             }
             _ => false,

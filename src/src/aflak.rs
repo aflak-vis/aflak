@@ -258,6 +258,7 @@ impl OutputWindow {
                         IOValue::Float(f) => interaction.set_value(*f),
                         IOValue::Float2(f) => interaction.set_value(*f),
                         IOValue::Float3(f) => interaction.set_value(*f),
+                        IOValue::Roi(_) => Ok(()),
                         value => Err(format!("Cannot convert value '{:?}'", value)),
                     } {
                         eprintln!("Could not update state from editor: {}", e);
