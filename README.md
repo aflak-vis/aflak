@@ -15,11 +15,24 @@ by providing a visual programming language interface.
 Minimum Rust version: 1.26.2.
 
 Install the rust toolchain with [rustup](https://rustup.rs/).
-Then clone the git repository.
 
-You need to initialize the git submodules.
+## Quick install (nightly)
 
 ```sh
+cargo install --git https://github.com/aflak-vis/aflak aflak
+# Open a FITS file with aflak
+aflak -f <FITS_FILE>
+# See CLI help
+aflak --help
+```
+
+## Slower install
+
+Clone the git repository.
+You will need to initialize the git submodules.
+
+```sh
+git clone https://github.com/aflak-vis/aflak
 cd aflak
 git submodule update --init --recursive
 ```
