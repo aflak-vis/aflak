@@ -38,7 +38,7 @@ fn main() -> support::Result<()> {
     let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
     let transformations = transformations_ref.as_slice();
 
-    let matches = cli::build_cli().get_matches();
+    let matches = cli::build_cli().version(version()).get_matches();
 
     let fits = matches.value_of("fits");
     let fits_path = path_clean_up(fits, "file.fits");
@@ -79,4 +79,11 @@ fn path_clean_up(path: Option<&str>, default: &str) -> PathBuf {
         pwd.join(path)
     };
     path.canonicalize().unwrap_or(path)
+}
+
+fn version() -> &'static str {
+    concat!(
+        env!("CARGO_PKG_VERSION"),
+        include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt"))
+    )
 }
