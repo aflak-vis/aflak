@@ -1,6 +1,6 @@
 [package]
 name = "aflak"
-version = "0.0.3"
+version = "0.0.4-pre"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Advanced Framework for Learning Astrophysical Knowledge"
 license = "GPL-3.0-only"
