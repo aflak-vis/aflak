@@ -167,6 +167,13 @@ Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.",
                 }
             ),
             cake_transform!(
+                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
+Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.",
+                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
+                    vec![run_average(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i1, i2, onband-width, min.
 Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
@@ -543,6 +550,56 @@ fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> 
 
     let slices = image_val.slice(s![start..end, .., ..]);
     let raw = slices.sum_axis(Axis(0));
+
+    let wrap_with_unit = im.make_slice2(
+        &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
+        im.array().with_new_value(raw),
+    );
+
+    Ok(IOValue::Image2d(wrap_with_unit))
+}
+
+fn run_average(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    if start < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be positive, but got {}",
+            start
+        )));
+    }
+    if end < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be positive, but got {}",
+            end
+        )));
+    }
+
+    if start == end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "division by zero will occur because {} = {}",
+            start, end
+        )));
+    }
+    let start = start as usize;
+    let end = end as usize;
+
+    let image_val = im.scalar();
+    let (frame_cnt, _, _) = image_val.dim();
+
+    if end >= frame_cnt {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than input image's frame count ({} >= {})",
+            end, frame_cnt
+        )));
+    }
+    if start >= end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start higher than end ({} >= {})",
+            start, end
+        )));
+    }
+
+    let slices = image_val.slice(s![start..end, .., ..]);
+    let raw = slices.mean_axis(Axis(0));
 
     let wrap_with_unit = im.make_slice2(
         &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
