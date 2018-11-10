@@ -24,7 +24,7 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         }
     }
 
-    pub fn call(&self, args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
+    pub fn call(&self, _args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
         unimplemented!()
     }
 
