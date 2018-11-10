@@ -17,7 +17,7 @@ pub enum NodeId {
 /// Represents a [`Node`], which is either a [`Transformation`] or some
 /// [`Output`].
 pub enum Node<'a, T: 'a + Clone, E: 'a> {
-    Transform(&'a Transformation<T, E>),
+    Transform(&'a Transformation<'a, T, E>),
     /// [`Output`] is `None` when there is an [`OutputId`] not connected to any
     /// [`Output`].
     Output(Option<&'a Output>),

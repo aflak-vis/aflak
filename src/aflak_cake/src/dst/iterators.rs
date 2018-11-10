@@ -156,7 +156,7 @@ impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
 }
 
 impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
-    type Item = (&'a TransformIdx, &'a Transformation<T, E>);
+    type Item = (&'a TransformIdx, &'a Transformation<'a, T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(idx, t)| (idx, t.transform()))
     }

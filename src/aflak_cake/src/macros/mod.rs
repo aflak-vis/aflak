@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use super::{Input, InputSlot, OutputId, DST};
 
 #[derive(Debug)]
@@ -20,6 +22,10 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
                 .collect(),
             dst,
         }
+    }
+
+    pub fn call(&self, args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
+        unimplemented!()
     }
 
     fn find_inputs(dst: &DST<'t, T, E>) -> Vec<InputSlotRef> {

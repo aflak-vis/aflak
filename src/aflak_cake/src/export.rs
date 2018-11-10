@@ -17,7 +17,7 @@ where
     Self: Clone,
 {
     /// Get a transform by name.
-    fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
+    fn get_transform(s: &str) -> Option<&'static Transformation<'static, Self, E>>;
 }
 
 #[derive(Debug)]
@@ -73,6 +73,7 @@ where
     pub fn new<E>(t: &'t Transformation<T, E>) -> Self {
         match t.algorithm {
             Algorithm::Function(_) => SerialTransform::Function(t.name),
+            Algorithm::Macro(_) => unimplemented!(), // TODO
             Algorithm::Constant(ref c) => SerialTransform::Constant(c),
         }
     }
@@ -82,7 +83,7 @@ impl<T, E> DeserTransform<T, E>
 where
     T: Clone + NamedAlgorithms<E> + VariantName,
 {
-    pub fn into(self) -> Result<Bow<'static, Transformation<T, E>>, ImportError<E>> {
+    pub fn into(self) -> Result<Bow<'static, Transformation<'static, T, E>>, ImportError<E>> {
         match self {
             DeserTransform::Function(name) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
