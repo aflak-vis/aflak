@@ -37,7 +37,7 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: Clone + 't, E: 't> {
-    t: Bow<'t, Transformation<T, E>>,
+    t: Bow<'t, Transformation<'t, T, E>>,
     input_defaults: Vec<Option<T>>,
 }
 
@@ -65,7 +65,7 @@ where
         &self.input_defaults
     }
 
-    pub fn transform_mut(&mut self) -> Option<&mut Transformation<T, E>> {
+    pub fn transform_mut(&mut self) -> Option<&mut Transformation<'t, T, E>> {
         self.t.borrow_mut()
     }
 
@@ -79,7 +79,7 @@ where
 }
 
 /// Tuple of a transformation and the default input values set up for it
-pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transformation<T, E>>, Vec<Option<T>>);
+pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transformation<'t, T, E>>, Vec<Option<T>>);
 
 /// Uniquely identify an ouput of a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

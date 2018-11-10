@@ -5,6 +5,8 @@ use std::vec;
 
 use variant_name::VariantName;
 
+use macros::Macro;
+
 /// Static string that identifies a transformation.
 pub type TransformId = &'static str;
 /// Static string that identifies a type of a input/output variable.
@@ -12,10 +14,11 @@ pub type TypeId = &'static str;
 
 /// Algorithm that defines the transformation
 #[derive(Clone)]
-pub enum Algorithm<T: Clone, E> {
+pub enum Algorithm<'t, T: Clone + 't, E: 't> {
     /// A rust function with a vector of input variables as argument.
     /// Returns a vector of [`Result`], one result for each output.
     Function(PlainFunction<T, E>),
+    Macro(&'t Macro<'t, T, E>),
     /// Use this variant for algorithms with no input. Such algorithm will
     /// always return this constant.
     Constant(Vec<T>),
@@ -23,10 +26,11 @@ pub enum Algorithm<T: Clone, E> {
 
 type PlainFunction<T, E> = fn(Vec<Cow<T>>) -> Vec<Result<T, E>>;
 
-impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
+impl<'t, T: Clone + fmt::Debug, E: fmt::Debug> fmt::Debug for Algorithm<'t, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Algorithm::Function(ref fun) => write!(f, "Function({:p})", fun),
+            Algorithm::Macro(m) => write!(f, "Macro({:?})", m),
             Algorithm::Constant(ref vec) => write!(f, "Constant({:?})", vec),
         }
     }
@@ -35,7 +39,7 @@ impl<T: Clone + fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
 /// A transformation defined by an [`Algorithm`], with a determined number of
 /// inputs and outputs.
 #[derive(Clone, Debug)]
-pub struct Transformation<T: Clone, E> {
+pub struct Transformation<'t, T: Clone + 't, E: 't> {
     /// Transformation name
     pub name: TransformId,
     pub description: Cow<'static, str>,
@@ -44,7 +48,7 @@ pub struct Transformation<T: Clone, E> {
     /// Outputs of the transformation
     pub output: Vec<TypeId>,
     /// Algorithm defining the transformation
-    pub algorithm: Algorithm<T, E>,
+    pub algorithm: Algorithm<'t, T, E>,
 }
 
 /// Result of [`Transformation::start`].
@@ -52,11 +56,11 @@ pub struct Transformation<T: Clone, E> {
 /// Stores the state of the transformation just before it is called.
 pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
     expected_input_types: slice::Iter<'a, (TypeId, Option<T>)>,
-    algorithm: &'a Algorithm<T, E>,
+    algorithm: &'a Algorithm<'a, T, E>,
     input: Vec<Cow<'b, T>>,
 }
 
-impl<T, E> Transformation<T, E>
+impl<'t, T, E> Transformation<'t, T, E>
 where
     T: Clone + VariantName,
 {
@@ -80,7 +84,7 @@ where
     }
 }
 
-impl<T, E> Transformation<T, E>
+impl<'t, T, E> Transformation<'t, T, E>
 where
     T: Clone,
 {
@@ -155,6 +159,7 @@ where
             TransformationResult {
                 output: match *self.algorithm {
                     Algorithm::Function(f) => f(self.input).into_iter(),
+                    Algorithm::Macro(m) => m.call(self.input).into_iter(),
                     Algorithm::Constant(ref c) => c
                         .clone()
                         .into_iter()

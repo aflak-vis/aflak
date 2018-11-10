@@ -16,8 +16,8 @@ mod transform;
 
 pub use dst::*;
 pub use export::*;
-pub use transform::*;
 pub use macros::Macro;
+pub use transform::*;
 
 pub use self::variant_name::VariantName;
 

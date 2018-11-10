@@ -22,7 +22,7 @@ where
     }
 
     /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transformation<T, E>) -> TransformIdx {
+    pub fn add_owned_transform(&mut self, t: Transformation<'t, T, E>) -> TransformIdx {
         self.add_transform_impl(Bow::Owned(t))
     }
 
@@ -54,7 +54,10 @@ where
 
     /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
-    pub fn get_transform_mut(&mut self, idx: TransformIdx) -> Option<&mut Transformation<T, E>> {
+    pub fn get_transform_mut(
+        &mut self,
+        idx: TransformIdx,
+    ) -> Option<&mut Transformation<'t, T, E>> {
         self.transforms
             .get_mut(&idx)
             .and_then(|t| t.transform_mut())
