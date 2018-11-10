@@ -67,8 +67,8 @@ where
     ///
     /// `self` should live longer as long as computing is not finished.
     /// If not, you'll get undefined behavior!
-    pub unsafe fn compute_output(&self, id: &cake::OutputId) -> ComputeResult<T, E> {
-        let result_lock = &self.output_results[id];
+    pub unsafe fn compute_output(&self, id: cake::OutputId) -> ComputeResult<T, E> {
+        let result_lock = &self.output_results[&id];
         let mut result = result_lock.lock().unwrap();
         if result.is_running() {
             // Currently computing... Nothing to do
@@ -79,7 +79,6 @@ where
             let result_lock_clone = result_lock.clone();
             // Extend dst's lifetime
             let dst: &'static DST<T, E> = mem::transmute(&self.dst);
-            let id = *id;
             rayon::spawn(move || {
                 let result = dst.compute(id);
                 result_lock_clone.lock().unwrap().complete(result);

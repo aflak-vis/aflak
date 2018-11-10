@@ -90,7 +90,7 @@ impl OutputWindow {
             .position(position, ImGuiCond::FirstUseEver)
             .size(size, ImGuiCond::FirstUseEver);
         window.build(|| {
-            let compute_state = unsafe { aflak.node_editor.compute_output(&self.output) };
+            let compute_state = unsafe { aflak.node_editor.compute_output(self.output) };
             let compute_state = &*compute_state.lock().unwrap();
             match *compute_state {
                 ComputationState::NothingDone => {
