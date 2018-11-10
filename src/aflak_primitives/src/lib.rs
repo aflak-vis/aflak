@@ -267,7 +267,7 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
         Some(f32),
     }
     impl DirValue {
-        fn to_option(self) -> Option<f32> {
+        fn into_option(self) -> Option<f32> {
             match self {
                 DirValue::Unset | DirValue::None => None,
                 DirValue::Some(f) => Some(f),
@@ -312,7 +312,7 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
                         }
                     }
                 }
-                [dx.to_option(), dy.to_option(), dz.to_option()]
+                [dx.into_option(), dy.into_option(), dz.into_option()]
             };
             let dir2 = {
                 let mut dx = DirValue::Unset;
@@ -336,7 +336,7 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
                         }
                     }
                 }
-                [dx.to_option(), dy.to_option(), dz.to_option()]
+                [dx.into_option(), dy.into_option(), dz.into_option()]
             };
 
             let origin = map.get((0, 0));
