@@ -238,7 +238,7 @@ where
                     self.show_node_list(ui);
                 }
                 ui.separator();
-                self.active_node.map(|node_id| {
+                if let Some(node_id) = self.active_node {
                     ui.spacing();
                     ui.separator();
                     if ui
@@ -263,7 +263,7 @@ where
                         }
                     }
                     ui.separator();
-                });
+                }
             });
 
         // Horizontal splitter
