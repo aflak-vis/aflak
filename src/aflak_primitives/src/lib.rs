@@ -629,9 +629,8 @@ fn run_create_equivalent_width(
 
 fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
-    let mut out_iter = i1_arr.iter();
     let mut min: f32 = std::f32::MAX;
-    while let Some(i) = out_iter.next() {
+    for i in i1_arr {
         min = min.min(*i);
     }
     // TODO: What if min is negative? All will be shifted up!
