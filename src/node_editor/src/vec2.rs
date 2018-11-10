@@ -21,7 +21,7 @@ impl Vec2 {
         t.into()
     }
 
-    pub fn squared_norm(&self) -> f32 {
+    pub fn squared_norm(self) -> f32 {
         self.0 * self.0 + self.1 * self.1
     }
 }
