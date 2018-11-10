@@ -27,6 +27,11 @@ where
         LinkIter::new(self.edges_iter(), self.outputs_iter())
     }
 
+    /// Iterator over links.
+    pub(crate) fn input_slots_iter(&self) -> InputSlotIter {
+        InputSlotIter::new(self.edges_iter(), self.outputs_iter())
+    }
+
     /// Iterator over outputs.
     pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
         self.outputs.iter()
@@ -208,6 +213,31 @@ impl<'a> Iterator for LinkIter<'a> {
             } else {
                 self.next()
             }
+        } else {
+            None
+        }
+    }
+}
+
+pub struct InputSlotIter<'a> {
+    edges: EdgeIterator<'a>,
+    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
+}
+
+impl<'a> InputSlotIter<'a> {
+    fn new(edges: EdgeIterator<'a>, outputs: hash_map::Iter<'a, OutputId, Option<Output>>) -> Self {
+        Self { edges, outputs }
+    }
+}
+
+/// Iterate over links.
+impl<'a> Iterator for InputSlotIter<'a> {
+    type Item = (Option<&'a Output>, InputSlot<'a>);
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((output, input)) = self.edges.next() {
+            Some((Some(output), InputSlot::Transform(input)))
+        } else if let Some((output_id, output)) = self.outputs.next() {
+            Some((output.as_ref(), InputSlot::Output(output_id)))
         } else {
             None
         }
