@@ -96,7 +96,7 @@ impl NodeStates {
     where
         F: FnOnce(&NodeState) -> T,
     {
-        let state = self.0.get(id).unwrap();
+        let state = &self.0[id];
         f(state)
     }
 
