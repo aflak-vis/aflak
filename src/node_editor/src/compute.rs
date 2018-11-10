@@ -68,7 +68,7 @@ where
     /// `self` should live longer as long as computing is not finished.
     /// If not, you'll get undefined behavior!
     pub unsafe fn compute_output(&self, id: &cake::OutputId) -> ComputeResult<T, E> {
-        let result_lock = self.output_results.get(id).unwrap();
+        let result_lock = &self.output_results[id];
         let mut result = result_lock.lock().unwrap();
         if result.is_running() {
             // Currently computing... Nothing to do
