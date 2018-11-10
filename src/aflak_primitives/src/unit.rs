@@ -74,8 +74,8 @@ impl WcsArray3 {
         }
 
         let data = hdu.read_data();
-        let image = match data {
-            &FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
+        let image = match *data {
+            FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
                 (image.shape[2], image.shape[1], image.shape[0]),
                 image.data.clone(),
             ).map_err(IOErr::ShapeError)?,
