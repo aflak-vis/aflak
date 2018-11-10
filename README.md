@@ -26,6 +26,9 @@ aflak -f <FITS_FILE>
 aflak --help
 ```
 
+You may find a demo video [here](https://vimeo.com/290328343).
+
+
 ## Slower install
 
 Clone the git repository.
