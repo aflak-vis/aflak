@@ -115,20 +115,18 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             } else {
                 eprintln!("Could not get dirname for path: {:?}", i);
             }
-        } else {
-            if let Some(file_name) = i.file_name() {
-                if let Some(file_name) = file_name.to_str() {
-                    ui.bullet_text(im_str!(""));
-                    ui.same_line(0.0);
-                    if ui.small_button(&ImString::new(file_name)) {
-                        ret = Ok(Some(i.clone()));
-                    }
-                } else {
-                    eprintln!("Could not get str out of file: {:?}", i);
+        } else if let Some(file_name) = i.file_name() {
+            if let Some(file_name) = file_name.to_str() {
+                ui.bullet_text(im_str!(""));
+                ui.same_line(0.0);
+                if ui.small_button(&ImString::new(file_name)) {
+                    ret = Ok(Some(i.clone()));
                 }
             } else {
-                eprintln!("Could not get file_name for path: {:?}", i);
+                eprintln!("Could not get str out of file: {:?}", i);
             }
+        } else {
+            eprintln!("Could not get file_name for path: {:?}", i);
         }
     }
     ret
