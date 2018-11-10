@@ -30,7 +30,7 @@ impl<T> ComputationState<T> {
         }
     }
 
-    pub(crate) fn to_running(&mut self) {
+    pub(crate) fn set_running(&mut self) {
         debug_assert!(!self.is_running(), "State is not running!");
         let interim = ComputationState::NothingDone;
         let prev = mem::replace(self, interim);
@@ -74,7 +74,7 @@ where
             // Currently computing... Nothing to do
             drop(result);
         } else {
-            result.to_running();
+            result.set_running();
             drop(result);
             let result_lock_clone = result_lock.clone();
             // Extend dst's lifetime
