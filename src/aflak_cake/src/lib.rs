@@ -11,11 +11,13 @@ extern crate variant_name;
 
 mod dst;
 mod export;
+mod macros;
 mod transform;
 
 pub use dst::*;
 pub use export::*;
 pub use transform::*;
+pub use macros::Macro;
 
 pub use self::variant_name::VariantName;
 
