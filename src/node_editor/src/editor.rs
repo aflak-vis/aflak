@@ -620,10 +620,10 @@ where
                 }
                 // Preview new link
                 const NEW_LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
-                if self.creating_link.is_some() {
+                if let Some(ref creating_link) = self.creating_link {
                     if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
-                        let (p1, cp1, cp2, p2) = match self.creating_link.as_ref().unwrap() {
-                            &LinkExtremity::Output(output) => {
+                        let (p1, cp1, cp2, p2) = match *creating_link {
+                            LinkExtremity::Output(output) => {
                                 let output_node_count =
                                     self.dst.get_transform(output.t_idx).unwrap().output.len();
                                 let output_node_state = self
@@ -641,7 +641,7 @@ where
                                 let cp2 = p2 - link_cp;
                                 (p1, cp1, cp2, p2)
                             }
-                            &LinkExtremity::Input(input_slot) => {
+                            LinkExtremity::Input(input_slot) => {
                                 let connector_pos = match input_slot {
                                     InputSlot::Transform(input) => {
                                         let input_node_count = self
@@ -684,9 +684,9 @@ where
                             .thickness(link_line_width)
                             .build();
                     }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
-                        self.creating_link = None;
-                    }
+                }
+                if self.creating_link.is_some() && !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                    self.creating_link = None;
                 }
 
                 // Display links
