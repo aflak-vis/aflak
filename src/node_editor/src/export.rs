@@ -76,7 +76,8 @@ where
         let serializable = self.export();
         let serialized = ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
-        Ok(w.flush()?)
+        w.flush()?;
+        Ok(())
     }
 
     pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
@@ -188,7 +189,8 @@ where
 
     pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
         let deserialized = de::from_reader(r)?;
-        Ok(self.import(deserialized)?)
+        self.import(deserialized)?;
+        Ok(())
     }
 
     pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError<E>> {
