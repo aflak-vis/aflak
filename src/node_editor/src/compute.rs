@@ -22,11 +22,11 @@ pub fn new_compute_result<T, E>() -> ComputeResult<T, E> {
 
 impl<T> ComputationState<T> {
     pub fn is_running(&self) -> bool {
-        match self {
-            &ComputationState::NothingDone => false,
-            &ComputationState::Completed { .. } => false,
-            &ComputationState::Running { .. } => true,
-            &ComputationState::RunningFirstTime => true,
+        match *self {
+            ComputationState::NothingDone => false,
+            ComputationState::Completed { .. } => false,
+            ComputationState::Running { .. } => true,
+            ComputationState::RunningFirstTime => true,
         }
     }
 
