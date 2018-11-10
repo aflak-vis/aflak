@@ -862,15 +862,13 @@ where
             ).thickness(line_thickness)
             .build();
 
-        if ui.is_item_hovered() {
-            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                self.active_node = Some(*id);
-                self.drag_node = Some(*id);
-                if !ui.imgui().key_ctrl() {
-                    node_states.deselect_all();
-                }
-                node_states.toggle_select(id);
+        if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+            self.active_node = Some(*id);
+            self.drag_node = Some(*id);
+            if !ui.imgui().key_ctrl() {
+                node_states.deselect_all();
             }
+            node_states.toggle_select(id);
         }
         if self.drag_node == Some(*id) {
             if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
