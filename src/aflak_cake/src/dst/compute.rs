@@ -9,7 +9,7 @@ use dst::{DSTError, Output, OutputId, DST};
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone + VariantName + Send + Sync,
-    E: Send,
+    E: Send + From<DSTError<E>>,
 {
     fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
         let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {

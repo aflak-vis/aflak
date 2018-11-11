@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use super::{Input, InputSlot, OutputId, DST};
+use super::{DSTError, Input, InputSlot, OutputId, VariantName, DST};
 
 #[derive(Debug)]
 pub struct Macro<'t, T: Clone + 't, E: 't> {
@@ -22,10 +22,6 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
                 .collect(),
             dst,
         }
-    }
-
-    pub fn call(&self, _args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
-        unimplemented!()
     }
 
     fn find_inputs(dst: &DST<'t, T, E>) -> Vec<InputSlotRef> {
@@ -50,6 +46,20 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
             }
         }
         inputs
+    }
+}
+
+impl<'t, T, E> Macro<'t, T, E>
+where
+    T: Clone + VariantName + Send + Sync + 't,
+    E: 't + Send + From<DSTError<E>>,
+{
+    pub fn call(&self, _args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
+        self.dst
+            .outputs_iter()
+            .map(|(id, _)| *id)
+            .map(|output_id| self.dst.compute(output_id).map_err(From::from))
+            .collect()
     }
 }
 
