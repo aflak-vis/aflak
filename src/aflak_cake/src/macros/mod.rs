@@ -2,6 +2,9 @@ use std::borrow::Cow;
 
 use super::{DSTError, Input, InputSlot, OutputId, VariantName, DST};
 
+mod error;
+pub use self::error::MacroEvaluationError;
+
 #[derive(Debug)]
 pub struct Macro<'t, T: Clone + 't, E: 't> {
     inputs: Vec<(InputSlotRef, Option<T>)>,
@@ -52,14 +55,17 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
 impl<'t, T, E> Macro<'t, T, E>
 where
     T: Clone + VariantName + Send + Sync + 't,
-    E: 't + Send + From<DSTError<E>>,
+    E: 't + Send + From<MacroEvaluationError<E>>,
 {
     pub fn call(&self, _args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
         self.dst
             .outputs_iter()
             .map(|(id, _)| *id)
-            .map(|output_id| self.dst.compute(output_id).map_err(From::from))
-            .collect()
+            .map(|output_id| {
+                self.dst
+                    .compute(output_id)
+                    .map_err(|e| From::from(MacroEvaluationError::DSTError(e)))
+            }).collect()
     }
 }
 
