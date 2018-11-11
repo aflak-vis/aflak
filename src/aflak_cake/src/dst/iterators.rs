@@ -28,8 +28,12 @@ where
     }
 
     /// Iterator over links.
-    pub(crate) fn input_slots_iter(&self) -> InputSlotIter {
-        InputSlotIter::new(self.edges_iter(), self.outputs_iter())
+    pub(crate) fn input_slots_iter(&'t self) -> InputSlotIter<'t, T, E> {
+        InputSlotIter {
+            dst: self,
+            node_iter: self.nodes_iter(),
+            inputs_iter: None,
+        }
     }
 
     /// Iterator over outputs.
@@ -219,25 +223,51 @@ impl<'a> Iterator for LinkIter<'a> {
     }
 }
 
-pub struct InputSlotIter<'a> {
-    edges: EdgeIterator<'a>,
-    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
-}
+use macros::InputSlotRef;
+use std::iter;
+use std::vec;
 
-impl<'a> InputSlotIter<'a> {
-    fn new(edges: EdgeIterator<'a>, outputs: hash_map::Iter<'a, OutputId, Option<Output>>) -> Self {
-        Self { edges, outputs }
-    }
+pub struct InputSlotIter<'t, T: 't + Clone, E: 't> {
+    dst: &'t DST<'t, T, E>,
+    node_iter: NodeIter<'t, T, E>,
+    inputs_iter: Option<(NodeId, iter::Enumerate<vec::IntoIter<Option<Output>>>)>,
 }
 
 /// Iterate over links.
-impl<'a> Iterator for InputSlotIter<'a> {
-    type Item = (Option<&'a Output>, InputSlot<'a>);
+impl<'t, T: 't + Clone, E: 't> Iterator for InputSlotIter<'t, T, E> {
+    type Item = (Option<Output>, InputSlotRef);
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((output, input)) = self.edges.next() {
-            Some((Some(output), InputSlot::Transform(input)))
-        } else if let Some((output_id, output)) = self.outputs.next() {
-            Some((output.as_ref(), InputSlot::Output(output_id)))
+        if let Some((ref node_id, ref mut inputs_iter)) = self.inputs_iter {
+            if let NodeId::Transform(t_idx) = node_id {
+                if let Some((i, some_output)) = inputs_iter.next() {
+                    let input = InputSlotRef::Transform(Input::new(*t_idx, i));
+                    return Some((some_output, input));
+                }
+            } else {
+                unreachable!()
+            }
+        }
+        if let Some((node_id, node)) = self.node_iter.next() {
+            match node_id {
+                NodeId::Transform(t_idx) => {
+                    self.inputs_iter = Some((
+                        node_id,
+                        self.dst
+                            .outputs_attached_to_transform(t_idx)
+                            .unwrap()
+                            .into_iter()
+                            .enumerate(),
+                    ));
+                    self.next()
+                }
+                NodeId::Output(output_id) => {
+                    if let Node::Output(output) = node {
+                        Some((output.cloned(), InputSlotRef::Output(output_id)))
+                    } else {
+                        unreachable!()
+                    }
+                }
+            }
         } else {
             None
         }

@@ -31,7 +31,7 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         let mut inputs = vec![];
         for (output, input_slot) in dst.input_slots_iter() {
             let no_output = output.is_none();
-            let default_value = if let InputSlot::Transform(input) = input_slot {
+            let default_value = if let InputSlotRef::Transform(input) = input_slot {
                 let t_idx = input.t_idx;
                 let t = dst.get_transform(t_idx).unwrap();
                 let index = input.index();
