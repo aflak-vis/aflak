@@ -5,6 +5,7 @@ use std::vec;
 
 use variant_name::VariantName;
 
+use super::DSTError;
 use macros::Macro;
 
 /// Static string that identifies a transformation.
@@ -149,7 +150,8 @@ where
 
 impl<'a, 'b, T, E> TransformationCaller<'a, 'b, T, E>
 where
-    T: Clone,
+    T: Clone + VariantName + Send + Sync + 'a,
+    E: 'a + Send + From<DSTError<E>>,
 {
     /// Compute the transformation with the provided arguments
     pub fn call(mut self) -> TransformationResult<Result<T, E>> {
