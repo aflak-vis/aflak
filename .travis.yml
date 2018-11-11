@@ -11,6 +11,10 @@ os:
   - windows
 cache: cargo
 
+matrix:
+  allow_failures:
+    - rust: beta
+
 before_install:
   - cd src
 
