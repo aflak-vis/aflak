@@ -75,6 +75,20 @@ where
         }
     }
 
+    pub fn new_macro(macr: &'t Macro<'t, T, E>) -> Self {
+        Self {
+            name: "Macro",
+            description: Cow::Borrowed("Macro"),
+            input: macr
+                .inputs()
+                .iter()
+                .map(|(_, type_id, default)| (*type_id, default.clone()))
+                .collect(),
+            output: macr.outputs(),
+            algorithm: Algorithm::Macro(macr),
+        }
+    }
+
     /// Set this transformation to the given constant value.
     pub fn set_constant(&mut self, t: T) {
         self.name = t.variant_name();

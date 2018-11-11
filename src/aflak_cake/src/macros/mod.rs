@@ -4,10 +4,11 @@ use super::{DSTError, Input, InputSlot, OutputId, VariantName, DST};
 
 mod error;
 pub use self::error::MacroEvaluationError;
+use transform::TypeId;
 
 #[derive(Debug)]
 pub struct Macro<'t, T: Clone + 't, E: 't> {
-    inputs: Vec<(InputSlotRef, Option<T>)>,
+    inputs: Vec<(InputSlotRef, TypeId, Option<T>)>,
     dst: DST<'t, T, E>,
 }
 
@@ -21,31 +22,48 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         Self {
             inputs: Self::find_inputs(&dst)
                 .into_iter()
-                .map(|input| (input, None))
+                .map(|(input, type_id)| (input, type_id, None))
                 .collect(),
             dst,
         }
     }
 
-    fn find_inputs(dst: &DST<'t, T, E>) -> Vec<InputSlotRef> {
+    pub fn inputs(&self) -> &[(InputSlotRef, TypeId, Option<T>)] {
+        &self.inputs
+    }
+
+    pub fn outputs(&self) -> Vec<TypeId> {
+        self.dst
+            .outputs_iter()
+            .collect::<::std::collections::BTreeMap<_, _>>()
+            .into_iter()
+            .map(|(_, some_output)| {
+                if let Some(output) = some_output {
+                    let t = self.dst.get_transform(output.t_idx).unwrap();
+                    t.output[output.index()]
+                } else {
+                    // Not type can be defined as nothing is attached to this output
+                    ""
+                }
+            }).collect()
+    }
+
+    fn find_inputs(dst: &DST<'t, T, E>) -> Vec<(InputSlotRef, TypeId)> {
         let mut inputs = vec![];
         for (output, input_slot) in dst.input_slots_iter() {
             let no_output = output.is_none();
-            let default_value = if let InputSlotRef::Transform(input) = input_slot {
+            let (default_value, type_id) = if let InputSlotRef::Transform(input) = input_slot {
                 let t_idx = input.t_idx;
                 let t = dst.get_transform(t_idx).unwrap();
                 let index = input.index();
-                if t.input[index].1.is_some() {
-                    true
-                } else {
-                    false
-                }
+                let input = &t.input[index];
+                (input.1.is_some(), input.0)
             } else {
-                false
+                (false, "")
             };
             if no_output && !default_value {
                 let input_slot = InputSlotRef::from(input_slot);
-                inputs.push(input_slot);
+                inputs.push((input_slot, type_id));
             }
         }
         inputs
@@ -61,7 +79,7 @@ where
         let inputs = self
             .inputs
             .iter()
-            .map(|(input_slot, _)| input_slot)
+            .map(|(input_slot, _, _)| input_slot)
             .zip(args.into_iter())
             .collect::<Vec<_>>();
         self.dst
