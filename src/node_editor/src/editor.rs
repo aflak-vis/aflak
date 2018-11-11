@@ -18,7 +18,7 @@ use vec2::Vec2;
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
-    addable_nodes: &'t [&'t Transformation<T, E>],
+    addable_nodes: &'t [&'t Transformation<'t, T, E>],
     pub(crate) node_states: NodeStates,
     active_node: Option<cake::NodeId>,
     drag_node: Option<cake::NodeId>,
@@ -68,7 +68,7 @@ where
     T: Clone,
     ED: Default,
 {
-    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
+    pub fn new(addable_nodes: &'t [&'t Transformation<'t, T, E>], ed: ED) -> Self {
         Self {
             addable_nodes,
             constant_editor: ed,
@@ -78,7 +78,7 @@ where
 
     pub fn from_dst(
         dst: DST<'t, T, E>,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: &'t [&'t Transformation<'t, T, E>],
         ed: ED,
     ) -> Self {
         let mut output_results = BTreeMap::new();
