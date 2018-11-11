@@ -1,11 +1,12 @@
+use std::borrow::Cow;
 use std::sync::RwLock;
 
 use rayon;
 use variant_name::VariantName;
 
 use dst::node::NodeId;
-use dst::{DSTError, Output, OutputId, DST};
-use macros::MacroEvaluationError;
+use dst::{DSTError, Input, Output, OutputId, DST};
+use macros::{InputSlotRef, MacroEvaluationError};
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -84,19 +85,40 @@ where
 
     /// Exactly like DST::compute, but does not use cache.
     /// TODO: This is copy-pasta! Code from compute should be re-used.
-    pub(crate) fn compute_cacheless(&self, output_id: OutputId) -> Result<T, DSTError<E>> {
-        self.outputs
-            .get(&output_id)
-            .ok_or_else(|| {
-                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
-            }).and_then(|output| {
-                output.ok_or_else(|| {
-                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
-                })
-            }).and_then(|output| self._compute_cacheless(output))
+    pub(crate) fn compute_macro(
+        &self,
+        output_id: OutputId,
+        inputs: &[(&InputSlotRef, Cow<T>)],
+    ) -> Result<T, DSTError<E>> {
+        if let Some(some_output) = self.outputs.get(&output_id) {
+            if let Some(output) = some_output {
+                self._compute_macro(*output, inputs)
+            } else {
+                for (input_slot, arg) in inputs {
+                    if let InputSlotRef::Output(final_output_id) = input_slot {
+                        if *final_output_id == output_id {
+                            return Ok(arg.clone().into_owned());
+                        }
+                    }
+                }
+                Err(DSTError::MissingOutputID(format!(
+                    "Output ID {:?} is not attached!",
+                    output_id
+                )))
+            }
+        } else {
+            Err(DSTError::MissingOutputID(format!(
+                "Output ID {:?} not found!",
+                output_id
+            )))
+        }
     }
 
-    fn _compute_cacheless(&self, output: Output) -> Result<T, DSTError<E>> {
+    fn _compute_macro(
+        &self,
+        output: Output,
+        inputs: &[(&InputSlotRef, Cow<T>)],
+    ) -> Result<T, DSTError<E>> {
         let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
         })?;
@@ -106,6 +128,32 @@ where
             .ok_or_else(|| {
                 DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
             })?;
+
+        enum Dep<T> {
+            MacroInput(T),
+            Output(Output),
+            Missing,
+        }
+        let deps = deps
+            .into_iter()
+            .enumerate()
+            .map(|(index, some_output)| {
+                if let Some(output) = some_output {
+                    Dep::Output(output)
+                } else {
+                    let target_input = Input::new(output.t_idx, index);
+                    for (input, arg) in inputs {
+                        if let InputSlotRef::Transform(input) = input {
+                            return if *input == target_input {
+                                Dep::MacroInput(arg.clone().into_owned())
+                            } else {
+                                Dep::Missing
+                            };
+                        }
+                    }
+                    Dep::Missing
+                }
+            }).collect::<Vec<_>>();
         let mut op = t.start();
         let mut results = Vec::with_capacity(deps.len());
         for _ in 0..(deps.len()) {
@@ -113,17 +161,19 @@ where
         }
         let defaults = meta.defaults().to_vec();
         rayon::scope(|s| {
-            for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults) {
+            for ((result, dep), default) in results.iter_mut().zip(deps).zip(defaults) {
                 s.spawn(move |_| {
-                    *result = if let Some(output) = parent_output {
-                        self._compute(output)
-                    } else if let Some(default) = default {
-                        Ok(default)
-                    } else {
-                        Err(DSTError::ComputeError(
-                            "Missing dependency! Cannot compute.".to_owned(),
-                        ))
-                    }
+                    *result = match dep {
+                        Dep::Output(output) => self._compute(output),
+                        Dep::MacroInput(arg) => Ok(arg),
+                        Dep::Missing => if let Some(default) = default {
+                            Ok(default)
+                        } else {
+                            Err(DSTError::ComputeError(
+                                "Missing dependency! Cannot compute.".to_owned(),
+                            ))
+                        },
+                    };
                 })
             }
         });
