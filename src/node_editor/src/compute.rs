@@ -1,7 +1,7 @@
 use std::mem;
 use std::sync::{Arc, Mutex};
 
-use cake::{self, DST};
+use cake::{self, MacroEvaluationError, DST};
 use rayon;
 
 use editor::NodeEditor;
@@ -61,7 +61,7 @@ impl<T> ComputationState<T> {
 impl<'t, T: 'static, E: 'static, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone + cake::VariantName + Send + Sync,
-    E: Send,
+    E: Send + From<MacroEvaluationError<E>>,
 {
     /// Compute output's result asynchonously.
     ///

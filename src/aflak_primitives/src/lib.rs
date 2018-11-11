@@ -73,6 +73,7 @@ pub enum IOErr {
     FITSErr(String),
     UnexpectedInput(String),
     ShapeError(ndarray::ShapeError),
+    MacroError(Box<cake::MacroEvaluationError<IOErr>>),
 }
 
 impl fmt::Display for IOErr {
@@ -84,6 +85,7 @@ impl fmt::Display for IOErr {
             FITSErr(s) => write!(f, "FITS-related error! {}", s),
             UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
             ShapeError(e) => e.fmt(f),
+            MacroError(e) => e.fmt(f),
         }
     }
 }
@@ -91,6 +93,12 @@ impl fmt::Display for IOErr {
 impl Error for IOErr {
     fn description(&self) -> &str {
         "aflak_primitives::IOErr"
+    }
+}
+
+impl From<cake::MacroEvaluationError<IOErr>> for IOErr {
+    fn from(e: cake::MacroEvaluationError<IOErr>) -> IOErr {
+        IOErr::MacroError(Box::new(e))
     }
 }
 

@@ -9,12 +9,28 @@ pub enum AlgoIO {
 }
 
 /// `never` type representing an impossible error (similar to ! in rust nightly)
-#[derive(Clone, PartialEq, Debug)]
-pub enum E {}
+#[derive(Debug)]
+pub enum E {
+    MacroError(Box<MacroEvaluationError<E>>),
+}
+
+impl PartialEq for E {
+    fn eq(&self, _other: &E) -> bool {
+        false
+    }
+}
+
+impl From<MacroEvaluationError<E>> for E {
+    fn from(e: MacroEvaluationError<E>) -> E {
+        E::MacroError(Box::new(e))
+    }
+}
 
 impl fmt::Display for E {
-    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
-        match *self {}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            E::MacroError(ref e) => e.fmt(f),
+        }
     }
 }
 
