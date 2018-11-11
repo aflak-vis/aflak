@@ -81,6 +81,62 @@ where
                 })
             }).and_then(|output| self._compute(output))
     }
+
+    /// Exactly like DST::compute, but does not use cache.
+    /// TODO: This is copy-pasta! Code from compute should be re-used.
+    pub(crate) fn compute_cacheless(&self, output_id: OutputId) -> Result<T, DSTError<E>> {
+        self.outputs
+            .get(&output_id)
+            .ok_or_else(|| {
+                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
+            }).and_then(|output| {
+                output.ok_or_else(|| {
+                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
+                })
+            }).and_then(|output| self._compute_cacheless(output))
+    }
+
+    fn _compute_cacheless(&self, output: Output) -> Result<T, DSTError<E>> {
+        let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {
+            DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
+        })?;
+        let t = meta.transform();
+        let deps = self
+            .outputs_attached_to_transform(output.t_idx)
+            .ok_or_else(|| {
+                DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
+            })?;
+        let mut op = t.start();
+        let mut results = Vec::with_capacity(deps.len());
+        for _ in 0..(deps.len()) {
+            results.push(Err(DSTError::NothingDoneYet));
+        }
+        let defaults = meta.defaults().to_vec();
+        rayon::scope(|s| {
+            for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults) {
+                s.spawn(move |_| {
+                    *result = if let Some(output) = parent_output {
+                        self._compute(output)
+                    } else if let Some(default) = default {
+                        Ok(default)
+                    } else {
+                        Err(DSTError::ComputeError(
+                            "Missing dependency! Cannot compute.".to_owned(),
+                        ))
+                    }
+                })
+            }
+        });
+        for result in results {
+            op.feed(result?);
+        }
+        match op.call().nth(output.output_i.into()) {
+            None => Err(DSTError::ComputeError(
+                "No nth output received. This is a bug!".to_owned(),
+            )),
+            Some(result) => result.map_err(DSTError::InnerComputeError),
+        }
+    }
 }
 
 impl<'t, T, E> DST<'t, T, E>
