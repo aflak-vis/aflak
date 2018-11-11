@@ -57,7 +57,13 @@ where
     T: Clone + VariantName + Send + Sync + 't,
     E: 't + Send + From<MacroEvaluationError<E>>,
 {
-    pub fn call(&self, _args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
+    pub fn call(&self, args: Vec<Cow<T>>) -> Vec<Result<T, E>> {
+        let inputs = self
+            .inputs
+            .iter()
+            .map(|(input_slot, _)| input_slot)
+            .zip(args.into_iter())
+            .collect::<Vec<_>>();
         self.dst
             .outputs_iter()
             .map(|(id, _)| *id)
@@ -65,14 +71,14 @@ where
             .into_iter()
             .map(|output_id| {
                 self.dst
-                    .compute_cacheless(output_id)
+                    .compute_macro(output_id, &inputs)
                     .map_err(|e| From::from(MacroEvaluationError::DSTError(e)))
             }).collect()
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
-enum InputSlotRef {
+pub enum InputSlotRef {
     Transform(Input),
     Output(OutputId),
 }
