@@ -5,11 +5,12 @@ use variant_name::VariantName;
 
 use dst::node::NodeId;
 use dst::{DSTError, Output, OutputId, DST};
+use macros::MacroEvaluationError;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
     T: Clone + VariantName + Send + Sync,
-    E: Send + From<DSTError<E>>,
+    E: Send + From<MacroEvaluationError<E>>,
 {
     fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
         let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {

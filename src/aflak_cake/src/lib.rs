@@ -16,7 +16,7 @@ mod transform;
 
 pub use dst::*;
 pub use export::*;
-pub use macros::Macro;
+pub use macros::{Macro, MacroEvaluationError};
 pub use transform::*;
 
 pub use self::variant_name::VariantName;
