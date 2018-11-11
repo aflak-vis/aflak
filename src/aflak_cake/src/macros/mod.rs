@@ -63,7 +63,7 @@ where
             .map(|(id, _)| *id)
             .map(|output_id| {
                 self.dst
-                    .compute(output_id)
+                    .compute_cacheless(output_id)
                     .map_err(|e| From::from(MacroEvaluationError::DSTError(e)))
             }).collect()
     }
