@@ -61,6 +61,8 @@ where
         self.dst
             .outputs_iter()
             .map(|(id, _)| *id)
+            .collect::<::std::collections::BTreeSet<_>>()
+            .into_iter()
             .map(|output_id| {
                 self.dst
                     .compute_cacheless(output_id)
