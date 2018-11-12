@@ -14,7 +14,7 @@ use support::*;
 
 use std::borrow::Cow;
 
-fn make_dst() -> DST<'static, AlgoIO, E> {
+fn make_macro() -> aflak_cake::Macro<'static, AlgoIO, E> {
     if let &[ref plus1, ref minus1, _, _] = TRANSFORMATIONS.as_slice() {
         // An arrow points from a box's input to a box's output  `OUT -> INT`
         // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
@@ -31,7 +31,7 @@ fn make_dst() -> DST<'static, AlgoIO, E> {
         dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
         dst.connect(Output::new(c, 0), Input::new(d, 0)).unwrap();
 
-        dst
+        aflak_cake::Macro::new(dst)
     } else {
         unreachable!()
     }
@@ -39,11 +39,25 @@ fn make_dst() -> DST<'static, AlgoIO, E> {
 
 #[test]
 fn test_run_macros() {
-    let dst = make_dst();
-    let macr = aflak_cake::Macro::new(dst);
+    let macr = make_macro();
 
     assert_eq!(
         macr.call(vec![Cow::Owned(AlgoIO::Integer(1))]),
         vec![Ok(AlgoIO::Integer(2)), Ok(AlgoIO::Integer(0))]
     );
+}
+
+#[test]
+fn test_add_macro_to_dst() {
+    let get1 = get_get1_transform();
+    let macr = make_macro();
+    let macro_t = aflak_cake::Transformation::new_macro(&macr);
+    let mut dst = DST::new();
+    let macro_t_idx = dst.add_transform(&macro_t);
+    let out_1 = dst.attach_output(Output::new(macro_t_idx, 0)).unwrap();
+    let a = dst.add_transform(&get1);
+    dst.connect(Output::new(a, 0), Input::new(macro_t_idx, 0))
+        .unwrap();
+
+    assert_eq!(dst.compute(out_1).unwrap(), AlgoIO::Integer(2));
 }
