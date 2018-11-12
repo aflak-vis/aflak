@@ -28,6 +28,10 @@ aflak --help
 
 You may find a demo video [here](https://vimeo.com/290328343).
 
+**Disclaimer**: Most testing until now has been done with FITS files sampled
+from the [SDSS MaNGA](https://www.sdss.org/surveys/manga/) dataset.
+Other FITS files may or may not work. Feedback and bug report is welcome.
+
 
 ## Slower install
 
