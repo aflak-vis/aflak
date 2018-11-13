@@ -27,8 +27,9 @@ pub struct DSTHandle<'a, T: 'a> {
     object: &'a mut T,
 }
 
-pub struct NodeEditor<N, ED> {
+pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
     inner: N,
+    addable_nodes: &'t [&'t Transformation<'t, T, E>],
     pub(crate) node_states: NodeStates,
     active_node: Option<NodeId>,
     drag_node: Option<NodeId>,
@@ -64,9 +65,8 @@ pub struct MacroEditor<'t, T: 't + Clone, E: 't> {
 }
 
 pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
-    main: NodeEditor<DstEditor<'t, T, E>, ED>,
-    macros: BTreeMap<String, NodeEditor<MacroEditor<'t, T, E>, ED>>,
-    addable_nodes: &'t [&'t Transformation<'t, T, E>],
+    main: NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>,
+    macros: BTreeMap<String, NodeEditor<'t, MacroEditor<'t, T, E>, T, E, ED>>,
     error_stack: Vec<Box<error::Error>>,
 }
 
