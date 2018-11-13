@@ -4,7 +4,7 @@ use std::io;
 
 use std::ops::{Deref, DerefMut};
 
-use cake::{Input, Macro, NodeId, Output, OutputId, DST};
+use cake::{Input, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
@@ -41,7 +41,6 @@ pub struct NodeEditor<N, ED> {
     pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
     constant_editor: ED,
-    error_stack: Vec<Box<error::Error>>,
 }
 
 enum LinkExtremity {
@@ -67,12 +66,42 @@ pub struct MacroEditor<'t, T: 't + Clone, E: 't> {
 pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
     main: NodeEditor<DstEditor<'t, T, E>, ED>,
     macros: BTreeMap<String, NodeEditor<MacroEditor<'t, T, E>, ED>>,
+    addable_nodes: &'t [&'t Transformation<'t, T, E>],
+    error_stack: Vec<Box<error::Error>>,
 }
 
-pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
-    type DSTHandle: DerefMut + Deref<Target = DST<'t, T, E>>;
+pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
+    type DSTHandle: 'a + DerefMut + Deref<Target = DST<'t, T, E>>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>>;
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError>;
-    fn with_dst(&mut self) -> Self::DSTHandle;
+    fn with_dst(&'a mut self) -> Self::DSTHandle;
+}
+
+impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
+    type DSTHandle = &'a mut DST<'t, T, E>;
+
+    fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
+        unimplemented!()
+    }
+    fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
+        unimplemented!()
+    }
+    fn with_dst(&'a mut self) -> Self::DSTHandle {
+        &mut self.dst
+    }
+}
+
+impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
+    type DSTHandle = MacroHandle<'a, 't, T, E>;
+
+    fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
+        unimplemented!()
+    }
+    fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
+        unimplemented!()
+    }
+    fn with_dst(&'a mut self) -> Self::DSTHandle {
+        self.macr.dst_handle()
+    }
 }
