@@ -223,7 +223,6 @@ impl<'a> Iterator for LinkIter<'a> {
     }
 }
 
-use macros::InputSlotRef;
 use std::iter;
 use std::vec;
 
@@ -235,12 +234,12 @@ pub struct InputSlotIter<'t, T: 't + Clone, E: 't> {
 
 /// Iterate over links.
 impl<'t, T: 't + Clone, E: 't> Iterator for InputSlotIter<'t, T, E> {
-    type Item = (Option<Output>, InputSlotRef);
+    type Item = (Option<Output>, InputSlot);
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((ref node_id, ref mut inputs_iter)) = self.inputs_iter {
             if let NodeId::Transform(t_idx) = node_id {
                 if let Some((i, some_output)) = inputs_iter.next() {
-                    let input = InputSlotRef::Transform(Input::new(*t_idx, i));
+                    let input = InputSlot::Transform(Input::new(*t_idx, i));
                     return Some((some_output, input));
                 }
             } else {
@@ -262,7 +261,7 @@ impl<'t, T: 't + Clone, E: 't> Iterator for InputSlotIter<'t, T, E> {
                 }
                 NodeId::Output(output_id) => {
                     if let Node::Output(output) = node {
-                        Some((output.cloned(), InputSlotRef::Output(output_id)))
+                        Some((output.cloned(), InputSlot::Output(output_id)))
                     } else {
                         unreachable!()
                     }
