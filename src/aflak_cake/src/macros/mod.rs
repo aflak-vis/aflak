@@ -12,11 +12,6 @@ pub struct Macro<'t, T: Clone + 't, E: 't> {
     dst: DST<'t, T, E>,
 }
 
-/// TODO: Move that to UI!
-// pub struct Macros<'t, T: Clone + 't, E: 't> {
-//     macros: HashMap<String, Macro<'t, T, E>>,
-// }
-
 impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
     pub fn new(dst: DST<'t, T, E>) -> Self {
         Self {
