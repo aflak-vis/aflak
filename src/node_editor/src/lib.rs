@@ -13,6 +13,7 @@ mod constant_editor;
 mod editor;
 mod export;
 mod id_stack;
+mod node_editable;
 mod node_state;
 mod scrolling;
 mod vec2;
