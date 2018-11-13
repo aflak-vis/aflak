@@ -198,13 +198,13 @@ impl<'a> LinkIter<'a> {
 
 /// Iterate over links.
 impl<'a> Iterator for LinkIter<'a> {
-    type Item = (&'a Output, InputSlot<'a>);
+    type Item = (&'a Output, InputSlot);
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((output, input)) = self.edges.next() {
-            Some((output, InputSlot::Transform(input)))
+            Some((output, InputSlot::Transform(*input)))
         } else if let Some((output_id, output)) = self.outputs.next() {
             if let Some(output) = output {
-                Some((output, InputSlot::Output(output_id)))
+                Some((output, InputSlot::Output(*output_id)))
             } else {
                 self.next()
             }

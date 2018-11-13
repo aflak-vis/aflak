@@ -709,7 +709,7 @@ where
                         cake::InputSlot::Output(output_id) => {
                             let input_node_state = self
                                 .node_states
-                                .get(&cake::NodeId::Output(*output_id))
+                                .get(&cake::NodeId::Output(output_id))
                                 .unwrap();
                             input_node_state.get_input_slot_pos(
                                 0usize,
