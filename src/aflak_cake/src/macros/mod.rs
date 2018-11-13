@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ops::{Deref, DerefMut};
 
-use super::{DSTError, Input, InputSlot, OutputId, VariantName, DST};
+use super::{DSTError, InputSlot, VariantName, DST};
 
 mod error;
 pub use self::error::MacroEvaluationError;
@@ -9,7 +9,7 @@ use transform::TypeId;
 
 #[derive(Debug)]
 pub struct Macro<'t, T: Clone + 't, E: 't> {
-    inputs: Vec<(InputSlotRef, TypeId, Option<T>)>,
+    inputs: Vec<(InputSlot, TypeId, Option<T>)>,
     dst: DST<'t, T, E>,
 }
 
@@ -24,7 +24,7 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         }
     }
 
-    pub fn inputs(&self) -> &[(InputSlotRef, TypeId, Option<T>)] {
+    pub fn inputs(&self) -> &[(InputSlot, TypeId, Option<T>)] {
         &self.inputs
     }
 
@@ -44,11 +44,11 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
             }).collect()
     }
 
-    fn find_inputs(dst: &DST<'t, T, E>) -> Vec<(InputSlotRef, TypeId)> {
+    fn find_inputs(dst: &DST<'t, T, E>) -> Vec<(InputSlot, TypeId)> {
         let mut inputs = vec![];
         for (output, input_slot) in dst.input_slots_iter() {
             let no_output = output.is_none();
-            let (default_value, type_id) = if let InputSlotRef::Transform(input) = input_slot {
+            let (default_value, type_id) = if let InputSlot::Transform(input) = input_slot {
                 let t_idx = input.t_idx;
                 let t = dst.get_transform(t_idx).unwrap();
                 let index = input.index();
@@ -58,7 +58,7 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
                 (false, "")
             };
             if no_output && !default_value {
-                let input_slot = InputSlotRef::from(input_slot);
+                let input_slot = InputSlot::from(input_slot);
                 inputs.push((input_slot, type_id));
             }
         }
@@ -117,20 +117,5 @@ where
                     .compute_macro(output_id, &inputs)
                     .map_err(|e| From::from(MacroEvaluationError::DSTError(e)))
             }).collect()
-    }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
-pub enum InputSlotRef {
-    Transform(Input),
-    Output(OutputId),
-}
-
-impl<'a> From<InputSlot<'a>> for InputSlotRef {
-    fn from(slot: InputSlot<'a>) -> Self {
-        match slot {
-            InputSlot::Transform(input) => InputSlotRef::Transform(*input),
-            InputSlot::Output(output_id) => InputSlotRef::Output(*output_id),
-        }
     }
 }

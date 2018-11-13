@@ -5,8 +5,8 @@ use rayon;
 use variant_name::VariantName;
 
 use dst::node::NodeId;
-use dst::{DSTError, Input, Output, OutputId, DST};
-use macros::{InputSlotRef, MacroEvaluationError};
+use dst::{DSTError, Input, Output, OutputId, InputSlot, DST};
+use macros::{MacroEvaluationError};
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -88,14 +88,14 @@ where
     pub(crate) fn compute_macro(
         &self,
         output_id: OutputId,
-        inputs: &[(&InputSlotRef, Cow<T>)],
+        inputs: &[(&InputSlot, Cow<T>)],
     ) -> Result<T, DSTError<E>> {
         if let Some(some_output) = self.outputs.get(&output_id) {
             if let Some(output) = some_output {
                 self._compute_macro(*output, inputs)
             } else {
                 for (input_slot, arg) in inputs {
-                    if let InputSlotRef::Output(final_output_id) = input_slot {
+                    if let InputSlot::Output(final_output_id) = input_slot {
                         if *final_output_id == output_id {
                             return Ok(arg.clone().into_owned());
                         }
@@ -117,7 +117,7 @@ where
     fn _compute_macro(
         &self,
         output: Output,
-        inputs: &[(&InputSlotRef, Cow<T>)],
+        inputs: &[(&InputSlot, Cow<T>)],
     ) -> Result<T, DSTError<E>> {
         let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {
             DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
@@ -143,7 +143,7 @@ where
                 } else {
                     let target_input = Input::new(output.t_idx, index);
                     for (input, arg) in inputs {
-                        if let InputSlotRef::Transform(input) = input {
+                        if let InputSlot::Transform(input) = input {
                             return if *input == target_input {
                                 Dep::MacroInput(arg.clone().into_owned())
                             } else {
