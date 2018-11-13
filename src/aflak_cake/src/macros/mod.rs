@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::ops::{Deref, DerefMut};
 
 use super::{DSTError, Input, InputSlot, OutputId, VariantName, DST};
 
@@ -62,6 +63,35 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
             }
         }
         inputs
+    }
+
+    pub fn dst_handle<'m>(&'m mut self) -> MacroHandle<'m, 't, T, E> {
+        MacroHandle { macr: self }
+    }
+}
+
+pub struct MacroHandle<'m, 't: 'm, T: Clone + 't, E: 't> {
+    macr: &'m mut Macro<'t, T, E>,
+}
+
+impl<'m, 't: 'm, T: Clone + 't, E: 't> Deref for MacroHandle<'m, 't, T, E> {
+    type Target = DST<'t, T, E>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.macr.dst
+    }
+}
+
+impl<'m, 't: 'm, T: Clone + 't, E: 't> DerefMut for MacroHandle<'m, 't, T, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.macr.dst
+    }
+}
+
+impl<'m, 't: 'm, T: Clone + 't, E: 't> Drop for MacroHandle<'m, 't, T, E> {
+    fn drop(&mut self) {
+        println!("Drop MacroHandle. Need to recompute inputs")
+        // TODO
     }
 }
 
