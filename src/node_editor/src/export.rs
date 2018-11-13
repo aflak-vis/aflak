@@ -1,4 +1,6 @@
 use std::collections::BTreeMap;
+use std::error;
+use std::fmt;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -54,6 +56,21 @@ where
 pub enum ExportError {
     SerializationError(ser::Error),
     IOError(io::Error),
+}
+
+impl fmt::Display for ExportError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ExportError::SerializationError(ref e) => write!(f, "Serialization error! {}", e),
+            ExportError::IOError(ref e) => write!(f, "I/O error! {}", e),
+        }
+    }
+}
+
+impl error::Error for ExportError {
+    fn description(&self) -> &'static str {
+        "ExportError"
+    }
 }
 
 impl From<io::Error> for ExportError {
@@ -136,6 +153,22 @@ pub enum ImportError<E> {
     DSTError(cake::ImportError<E>),
     DeserializationError(de::Error),
     IOError(io::Error),
+}
+
+impl<E: fmt::Debug> fmt::Display for ImportError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ImportError::DSTError(ref e) => write!(f, "Error while building DST! {}", e),
+            ImportError::DeserializationError(ref e) => write!(f, "Deserialization error! {}", e),
+            ImportError::IOError(ref e) => write!(f, "I/O error! {}", e),
+        }
+    }
+}
+
+impl<E: fmt::Debug> error::Error for ImportError<E> {
+    fn description(&self) -> &'static str {
+        "ImportError"
+    }
 }
 
 impl<E> From<io::Error> for ImportError<E> {
