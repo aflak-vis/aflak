@@ -8,6 +8,8 @@ homepage = "https://github.com/aflak-vis/aflak"
 repository = "https://github.com/aflak-vis/aflak"
 readme = "../README.md"
 build = "src/build.rs"
+keywords = ["programming", "visualization", "astronomy", "astrophysics", "aflak"]
+categories = ["visualization", "science"]
 
 [dependencies]
 aflak_cake = { path = "./aflak_cake", version = "0.0.3" }
