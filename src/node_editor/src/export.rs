@@ -155,7 +155,7 @@ pub enum ImportError<E> {
     IOError(io::Error),
 }
 
-impl<E: fmt::Debug> fmt::Display for ImportError<E> {
+impl<E: fmt::Display> fmt::Display for ImportError<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ImportError::DSTError(ref e) => write!(f, "Error while building DST! {}", e),
@@ -165,7 +165,7 @@ impl<E: fmt::Debug> fmt::Display for ImportError<E> {
     }
 }
 
-impl<E: fmt::Debug> error::Error for ImportError<E> {
+impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
     fn description(&self) -> &'static str {
         "ImportError"
     }

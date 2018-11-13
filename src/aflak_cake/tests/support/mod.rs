@@ -1,4 +1,5 @@
 pub use aflak_cake::*;
+use std::fmt;
 use variant_name::VariantName;
 
 #[derive(Clone, PartialEq, Debug, VariantName, Serialize, Deserialize)]
@@ -10,6 +11,12 @@ pub enum AlgoIO {
 /// `never` type representing an impossible error (similar to ! in rust nightly)
 #[derive(Clone, PartialEq, Debug)]
 pub enum E {}
+
+impl fmt::Display for E {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
+        match *self {}
+    }
+}
 
 pub fn get_plus1_transform() -> Transformation<AlgoIO, E> {
     cake_transform!("Add 1", plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
