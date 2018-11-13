@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -28,11 +29,27 @@ pub enum ImportError<E> {
 
 impl<E> fmt::Display for ImportError<E>
 where
-    E: fmt::Debug,
+    E: fmt::Display,
 {
-    // TODO: Should make a better implementation of Display!
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match *self {
+            ImportError::TransformationNotFound(ref s) => {
+                write!(f, "Transformation not found! {}", s)
+            }
+            ImportError::ConstructionError(s, ref e) => {
+                write!(f, "Construction error! {} Caused by {}", s, e)
+            }
+            ImportError::EmptyConstant => write!(
+                f,
+                "A constant node is empty in the input! An constant node cannot be empty."
+            ),
+        }
+    }
+}
+
+impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
+    fn description(&self) -> &'static str {
+        "ImportError"
     }
 }
 
@@ -193,7 +210,7 @@ where
 impl<'de, 't, T, E> Deserialize<'de> for DST<'static, T, E>
 where
     T: 't + Clone + Deserialize<'de> + NamedAlgorithms<E> + VariantName,
-    E: fmt::Debug,
+    E: fmt::Display,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
