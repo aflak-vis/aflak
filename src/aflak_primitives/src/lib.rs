@@ -169,6 +169,15 @@ Second output contains (a + b) / 2",
                 }
             ),
             cake_transform!(
+                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
+Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
+Second output contains (a + b) / 2",
+                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0;
+                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle))]
+                }
+            ),
+            cake_transform!(
                 "Ratio from bands' center wavelength. 
 Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
@@ -183,22 +192,6 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                         let off_ratio_2 = 1.0 - off_ratio_1;
                         vec![Ok(IOValue::Float(off_ratio_2)), Ok(IOValue::Float(off_ratio_1))]
                     }
-                }
-            ),
-            cake_transform!(
-                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
-Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
-Second output contains (a + b) / 2",
-                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0;
-                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle))]
-                }
-            ),
-            cake_transform!(
-                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
-Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.",
-                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
-                    vec![run_average(image, *start, *end)]
                 }
             ),
             cake_transform!(
