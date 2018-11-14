@@ -195,6 +195,13 @@ Second output contains (a + b) / 2",
                 }
             ),
             cake_transform!(
+                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
+Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.",
+                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d {
+                    vec![run_average(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i1, i2, onband-width, min.
 Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
