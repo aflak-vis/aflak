@@ -172,6 +172,11 @@ where
         w.flush()?;
         Ok(())
     }
+
+    pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
+        let mut f = fs::File::create(file_path)?;
+        self.export_to_buf(&mut f)
+    }
 }
 
 #[derive(Serialize)]
