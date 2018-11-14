@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 use std::error;
+use std::fs;
 use std::io;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::path::Path;
 
 use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
@@ -166,6 +168,11 @@ where
         self.inner.import(deserialized.inner)?;
 
         Ok(())
+    }
+
+    fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError<E>> {
+        let f = fs::File::open(file_path)?;
+        self.import_from_buf(f)
     }
 }
 
