@@ -1111,3 +1111,50 @@ where
         }
     }
 }
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone + cake::VariantName,
+{
+    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
+        self.inner
+            .add_owned_transform(Transformation::new_constant(t))
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone + PartialEq,
+{
+    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: Vec<T>) {
+        let mut purge = false;
+        if let Some(t) = self.inner.get_transform_mut(id) {
+            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
+                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
+                    if *c != val {
+                        *c = val;
+                        purge = true;
+                    }
+                }
+            }
+        }
+        if purge {
+            self.inner.purge_cache_node(&cake::NodeId::Transform(id));
+        }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone,
+{
+    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
+        self.inner.get_transform(id).and_then(|t| {
+            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
+                Some(constants.as_slice())
+            } else {
+                None
+            }
+        })
+    }
+}
