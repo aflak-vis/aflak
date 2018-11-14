@@ -27,7 +27,7 @@ type Cache<T> = RwLock<Option<T>>;
 ///
 /// Each output node is identified by an [`OutputId`], while each transformation
 /// node is identified by a [`TransformIdx`].
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: HashMap<Output, InputList>,

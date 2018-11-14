@@ -35,6 +35,7 @@ pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
     pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
     constant_editor: ED,
+    error_stack: Vec<Box<error::Error>>,
 }
 
 enum LinkExtremity {
@@ -42,6 +43,68 @@ enum LinkExtremity {
     Input(InputSlot),
 }
 
+impl<'t, N: Default, T: Clone, E, ED: Default> Default for NodeEditor<'t, N, T, E, ED> {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+            addable_nodes: &[],
+            node_states: NodeStates::new(),
+            active_node: None,
+            drag_node: None,
+            creating_link: None,
+            new_link: None,
+            show_left_pane: true,
+            left_pane_size: None,
+            show_top_pane: true,
+            show_connection_names: true,
+            scrolling: Default::default(),
+            show_grid: true,
+            constant_editor: ED::default(),
+            error_stack: vec![],
+        }
+    }
+}
+
+impl<'t, N: Default, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    T: Clone,
+    ED: Default,
+{
+    pub fn new(addable_nodes: &'t [&'t Transformation<'t, T, E>], ed: ED) -> Self {
+        Self {
+            addable_nodes,
+            constant_editor: ed,
+            ..Default::default()
+        }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+where
+    T: Clone,
+{
+    pub fn from_dst(
+        dst: DST<'t, T, E>,
+        addable_nodes: &'t [&'t Transformation<'t, T, E>],
+        ed: ED,
+    ) -> Self {
+        let mut output_results = BTreeMap::new();
+        for (output_id, _) in dst.outputs_iter() {
+            output_results.insert(*output_id, compute::new_compute_result());
+        }
+        Self {
+            inner: DstEditor {
+                dst,
+                output_results,
+            },
+            addable_nodes,
+            constant_editor: ed,
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Default)]
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
     output_results: BTreeMap<OutputId, ComputeResult<T, E>>,
