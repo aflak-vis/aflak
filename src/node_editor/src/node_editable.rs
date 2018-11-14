@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::error;
-use std::io;
-
 use std::ops::DerefMut;
+
+use serde::{ser::Serializer, Serialize};
 
 use cake::{self, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
 
@@ -86,6 +86,43 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEdito
     }
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
         self.macr.dst_handle()
+    }
+}
+
+#[derive(Serialize)]
+pub struct SerialEditor<'e, N: 'e> {
+    inner: &'e N,
+    node_states: Vec<(&'e NodeId, &'e NodeState)>,
+    scrolling: Vec2,
+}
+
+impl<'t, N, T, E, ED> Serialize for NodeEditor<'t, N, T, E, ED>
+where
+    N: Serialize,
+    T: 't + Clone,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let ser = SerialEditor {
+            inner: &self.inner,
+            node_states: self.node_states.iter().collect(),
+            scrolling: self.scrolling.get_current(),
+        };
+        ser.serialize(serializer)
+    }
+}
+
+impl<'t, T, E> Serialize for DstEditor<'t, T, E>
+where
+    T: 't + Clone + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.dst.serialize(serializer)
     }
 }
 
