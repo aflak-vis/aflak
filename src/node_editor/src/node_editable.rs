@@ -3,7 +3,7 @@ use std::error;
 use std::io;
 use std::ops::DerefMut;
 
-use ron::de;
+use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
 use cake::{self, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
@@ -88,6 +88,19 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEdito
     }
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
         self.macr.dst_handle()
+    }
+}
+
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    T: Clone,
+    N: Serialize,
+{
+    pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
+        let serialized = ser::to_string_pretty(self, Default::default())?;
+        w.write_all(serialized.as_bytes())?;
+        w.flush()?;
+        Ok(())
     }
 }
 
