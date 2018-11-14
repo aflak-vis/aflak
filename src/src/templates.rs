@@ -6,7 +6,7 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    dst: (
+    inner: (
         transforms: [
             ((6), (
                 t: Function("slice_3d_to_2d"),
@@ -174,7 +174,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    dst: (
+    inner: (
         transforms: [
             ((19), (
                 t: Function("average"),

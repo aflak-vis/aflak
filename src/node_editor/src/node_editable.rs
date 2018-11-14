@@ -124,9 +124,9 @@ where
     T: 'static + Clone + for<'de> Deserialize<'de> + cake::NamedAlgorithms<E> + cake::VariantName,
     E: 'static,
 {
-    type Deser = DeserEditor<DeserDST<T, E>>;
+    type Deser = DeserDST<T, E>;
 
-    fn import(&mut self, import: DeserEditor<DeserDST<T, E>>) -> Result<(), ImportError<E>> {
+    fn import(&mut self, import: DeserDST<T, E>) -> Result<(), ImportError<E>> {
         // Replace DST. Wait for no computing to take place.
         use std::{thread, time};
         const SLEEP_INTERVAL_MS: u64 = 1;
@@ -142,7 +142,7 @@ where
             }
         }
 
-        self.dst = import.inner.into()?;
+        self.dst = import.into()?;
 
         // Reset cache
         self.output_results = {
