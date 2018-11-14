@@ -1,13 +1,15 @@
 use std::collections::BTreeMap;
 use std::error;
 use std::io;
+use std::mem;
 use std::ops::DerefMut;
 
 use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
 use cake::{
-    self, DeserDST, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST,
+    self, DeserDST, InputSlot, Macro, MacroEvaluationError, MacroHandle, NodeId, Output, OutputId,
+    Transformation, DST,
 };
 
 use compute::{self, ComputeResult};
@@ -215,5 +217,35 @@ where
         self.output_results
             .values()
             .any(|result| result.lock().unwrap().is_running())
+    }
+}
+
+impl<'t, T: 'static, E: 'static> DstEditor<'t, T, E>
+where
+    T: Clone + cake::VariantName + Send + Sync,
+    E: Send + From<MacroEvaluationError<E>>,
+{
+    /// Compute output's result asynchonously.
+    ///
+    /// `self` should live longer as long as computing is not finished.
+    /// If not, you'll get undefined behavior!
+    pub unsafe fn compute_output(&self, id: cake::OutputId) -> ComputeResult<T, E> {
+        let result_lock = &self.output_results[&id];
+        let mut result = result_lock.lock().unwrap();
+        if result.is_running() {
+            // Currently computing... Nothing to do
+            drop(result);
+        } else {
+            result.set_running();
+            drop(result);
+            let result_lock_clone = result_lock.clone();
+            // Extend dst's lifetime
+            let dst: &'static DST<T, E> = mem::transmute(&self.dst);
+            rayon::spawn(move || {
+                let result = dst.compute(id);
+                result_lock_clone.lock().unwrap().complete(result);
+            });
+        }
+        result_lock.clone()
     }
 }
