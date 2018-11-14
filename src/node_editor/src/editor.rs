@@ -970,7 +970,7 @@ where
 
 impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
-    N: for<'a> NodeEditable<'a, 't, T, E>,
+    N: NodeEditable<'t, T, E>,
     T: Clone,
 {
     fn delete_selected_nodes(&mut self) {
