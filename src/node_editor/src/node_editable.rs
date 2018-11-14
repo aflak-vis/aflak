@@ -152,10 +152,10 @@ pub struct DeserEditor<DN> {
 impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
     T: Clone,
-    N: Importable,
+    N: Importable<ImportError<E>>,
 {
-    fn import_from_buf<R: io::Read>(&mut self, r: R) {
-        let deserialized: DeserEditor<N::Deser> = de::from_reader(r).unwrap();
+    fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
+        let deserialized: DeserEditor<N::Deser> = de::from_reader(r)?;
 
         // Set Ui node states
         self.node_states = {
@@ -167,14 +167,16 @@ where
         };
         // Set scrolling offset
         self.scrolling = Scrolling::new(deserialized.scrolling);
-        self.inner = Importable::from_deser(deserialized.inner);
+        self.inner = Importable::from_deser(deserialized.inner)?;
+
+        Ok(())
     }
 }
 
-pub trait Importable {
+pub trait Importable<Err>: Sized {
     type Deser: for<'de> serde::Deserialize<'de>;
 
-    fn from_deser(Self::Deser) -> Self;
+    fn from_deser(Self::Deser) -> Result<Self, Err>;
 }
 
 /// ***************************************************************************/
