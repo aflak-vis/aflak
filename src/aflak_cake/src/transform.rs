@@ -54,10 +54,10 @@ pub struct Transformation<'t, T: Clone + 't, E: 't> {
 /// Result of [`Transformation::start`].
 ///
 /// Stores the state of the transformation just before it is called.
-pub struct TransformationCaller<'a, 'b, T: 'a + 'b + Clone, E: 'a> {
+pub struct TransformationCaller<'a, 't: 'a, T: 't + Clone, E: 't> {
     expected_input_types: slice::Iter<'a, (TypeId, Option<T>)>,
-    algorithm: &'a Algorithm<'a, T, E>,
-    input: Vec<Cow<'b, T>>,
+    algorithm: &'a Algorithm<'t, T, E>,
+    input: Vec<Cow<'a, T>>,
 }
 
 impl<'t, T, E> Transformation<'t, T, E>
@@ -103,7 +103,7 @@ where
     T: Clone,
 {
     /// Ready the transformation to be called.
-    pub fn start(&self) -> TransformationCaller<T, E> {
+    pub fn start(&self) -> TransformationCaller<'t, '_, T, E> {
         TransformationCaller {
             expected_input_types: self.input.iter(),
             algorithm: &self.algorithm,

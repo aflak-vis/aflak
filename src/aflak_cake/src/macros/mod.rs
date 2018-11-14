@@ -7,15 +7,31 @@ mod error;
 pub use self::error::MacroEvaluationError;
 use transform::TypeId;
 
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+
 #[derive(Debug)]
 pub struct Macro<'t, T: Clone + 't, E: 't> {
+    lock: RwLock<()>,
     inputs: Vec<(InputSlot, TypeId, Option<T>)>,
     dst: DST<'t, T, E>,
+}
+
+pub struct GuardRef<'a, T: 'a> {
+    inner: &'a T,
+    lock: RwLockReadGuard<'a, ()>,
+}
+
+impl<'a, T> Deref for GuardRef<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
     pub fn new(dst: DST<'t, T, E>) -> Self {
         Self {
+            lock: RwLock::new(()),
             inputs: Self::find_inputs(&dst)
                 .into_iter()
                 .map(|(input, type_id)| (input, type_id, None))
@@ -24,15 +40,22 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         }
     }
 
-    pub fn dst(&self) -> &DST<'t, T, E> {
-        &self.dst
+    pub fn dst(&self) -> GuardRef<DST<'t, T, E>> {
+        GuardRef {
+            inner: &self.dst,
+            lock: self.lock.read().unwrap(),
+        }
     }
 
-    pub fn inputs(&self) -> &[(InputSlot, TypeId, Option<T>)] {
-        &self.inputs
+    pub fn inputs(&self) -> GuardRef<Vec<(InputSlot, TypeId, Option<T>)>> {
+        GuardRef {
+            inner: &self.inputs,
+            lock: self.lock.read().unwrap(),
+        }
     }
 
     pub fn outputs(&self) -> Vec<TypeId> {
+        let _lock = self.lock.read().unwrap();
         self.dst
             .outputs_iter()
             .collect::<::std::collections::BTreeMap<_, _>>()
@@ -69,26 +92,32 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         inputs
     }
 
-    pub fn dst_handle<'m>(&'m mut self) -> MacroHandle<'m, 't, T, E> {
-        MacroHandle { macr: self }
+    pub fn dst_mut<'a>(&'a mut self) -> MacroHandle<'a, 't, T, E> {
+        MacroHandle {
+            inputs: self.inputs.as_mut_slice(),
+            dst: &mut self.dst,
+            lock: self.lock.write().unwrap(),
+        }
     }
 }
 
-pub struct MacroHandle<'m, 't: 'm, T: Clone + 't, E: 't> {
-    macr: &'m mut Macro<'t, T, E>,
+pub struct MacroHandle<'a, 't: 'a, T: Clone + 't, E: 't> {
+    inputs: &'a mut [(InputSlot, TypeId, Option<T>)],
+    dst: &'a mut DST<'t, T, E>,
+    lock: RwLockWriteGuard<'a, ()>,
 }
 
-impl<'m, 't: 'm, T: Clone + 't, E: 't> Deref for MacroHandle<'m, 't, T, E> {
+impl<'a, 't: 'a, T: Clone + 't, E: 't> Deref for MacroHandle<'a, 't, T, E> {
     type Target = DST<'t, T, E>;
 
     fn deref(&self) -> &Self::Target {
-        &self.macr.dst
+        &self.dst
     }
 }
 
-impl<'m, 't: 'm, T: Clone + 't, E: 't> DerefMut for MacroHandle<'m, 't, T, E> {
+impl<'a, 't: 'a, T: Clone + 't, E: 't> DerefMut for MacroHandle<'a, 't, T, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.macr.dst
+        &mut self.dst
     }
 }
 
