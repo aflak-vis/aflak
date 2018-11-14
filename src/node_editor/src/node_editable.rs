@@ -2,14 +2,14 @@ use std::collections::BTreeMap;
 use std::error;
 use std::io;
 use std::mem;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 
 use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
 use cake::{
-    self, DeserDST, InputSlot, Macro, MacroEvaluationError, MacroHandle, NodeId, Output, OutputId,
-    Transformation, DST,
+    self, DeserDST, GuardRef, InputSlot, Macro, MacroEvaluationError, MacroHandle, NodeId, Output,
+    OutputId, Transformation, DST,
 };
 
 use compute::{self, ComputeResult};
@@ -56,31 +56,34 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
 }
 
 pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
+    type DSTHandle: Deref<Target = DST<'t, T, E>>;
     type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
 
-    fn dst(&self) -> &DST<'t, T, E>;
+    fn dst(&'a self) -> Self::DSTHandle;
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
+    type DSTHandle = &'a DST<'t, T, E>;
     type DSTHandleMut = &'a mut DST<'t, T, E>;
 
     fn dst(&self) -> &DST<'t, T, E> {
         &self.dst
     }
-    fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
+    fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
         &mut self.dst
     }
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
+    type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
     type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
-    fn dst(&self) -> &DST<'t, T, E> {
-        &self.macr.dst()
+    fn dst(&self) -> GuardRef<DST<'t, T, E>> {
+        self.macr.dst()
     }
-    fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
-        self.macr.dst_handle()
+    fn dst_mut(&'a mut self) -> MacroHandle<'a, 't, T, E> {
+        self.macr.dst_mut()
     }
 }
 
