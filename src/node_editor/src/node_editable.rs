@@ -63,8 +63,6 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
 pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
     type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
 
-    fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>>;
-    fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError>;
     fn dst(&self) -> &DST<'t, T, E>;
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
 }
@@ -72,12 +70,6 @@ pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
     type DSTHandleMut = &'a mut DST<'t, T, E>;
 
-    fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
-        unimplemented!()
-    }
-    fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
-        unimplemented!()
-    }
     fn dst(&self) -> &DST<'t, T, E> {
         &self.dst
     }
@@ -89,12 +81,6 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
     type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
-    fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
-        unimplemented!()
-    }
-    fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
-        unimplemented!()
-    }
     fn dst(&self) -> &DST<'t, T, E> {
         &self.macr.dst()
     }
