@@ -4,7 +4,7 @@ use std::io;
 
 use std::ops::{Deref, DerefMut};
 
-use cake::{Input, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
+use cake::{Input, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
@@ -21,10 +21,6 @@ pub struct ImportSuccess<T> {
 pub struct ExportInput<'e> {
     node_states: Vec<(&'e NodeId, &'e NodeState)>,
     scrolling: Vec2,
-}
-
-pub struct DSTHandle<'a, T: 'a> {
-    object: &'a mut T,
 }
 
 pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
@@ -47,12 +43,6 @@ pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
 enum LinkExtremity {
     Output(Output),
     Input(InputSlot),
-}
-
-#[derive(Copy, Clone)]
-enum InputSlot {
-    Transform(Input),
-    Output(OutputId),
 }
 
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
