@@ -82,6 +82,7 @@ where
 impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
 where
     T: Clone,
+    ED: Default,
 {
     pub fn from_dst(
         dst: DST<'t, T, E>,
@@ -104,10 +105,18 @@ where
     }
 }
 
-#[derive(Default)]
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
     dst: DST<'t, T, E>,
     output_results: BTreeMap<OutputId, ComputeResult<T, E>>,
+}
+
+impl<'t, T: 't + Clone, E: 't> Default for DstEditor<'t, T, E> {
+    fn default() -> Self {
+        Self {
+            dst: DST::default(),
+            output_results: BTreeMap::default(),
+        }
+    }
 }
 
 pub struct MacroEditor<'t, T: 't + Clone, E: 't> {

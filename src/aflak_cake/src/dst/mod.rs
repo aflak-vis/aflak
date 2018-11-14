@@ -27,12 +27,18 @@ type Cache<T> = RwLock<Option<T>>;
 ///
 /// Each output node is identified by an [`OutputId`], while each transformation
 /// node is identified by a [`TransformIdx`].
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DST<'t, T: Clone + 't, E: 't> {
     transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
     cache: HashMap<Output, Cache<T>>,
+}
+
+impl<'t, T: Clone + 't, E: 't> Default for DST<'t, T, E> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Debug)]
