@@ -22,7 +22,7 @@ use scrolling::Scrolling;
 use vec2::Vec2;
 
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
-    dst: DST<'t, T, E>,
+    pub(crate) dst: DST<'t, T, E>,
     output_results: BTreeMap<OutputId, ComputeResult<T, E>>,
 }
 
