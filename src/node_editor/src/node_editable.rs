@@ -16,17 +16,6 @@ use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub struct ImportSuccess<T> {
-    pub object: T,
-    pub node_states: NodeStates,
-    pub scrolling: Scrolling,
-}
-
-pub struct ExportInput<'e> {
-    node_states: Vec<(&'e NodeId, &'e NodeState)>,
-    scrolling: Vec2,
-}
-
 pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
     inner: N,
     addable_nodes: &'t [&'t Transformation<'t, T, E>],
@@ -226,47 +215,5 @@ where
         self.output_results
             .values()
             .any(|result| result.lock().unwrap().is_running())
-    }
-}
-
-/// ***************************************************************************/
-/// Functions below are test to check that it compiles!!!                      /
-impl<'a, 't, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
-where
-    N: NodeEditable<'a, 't, T, E>,
-    T: Clone,
-{
-    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
-        self.inner.dst().get_transform(id).and_then(|t| {
-            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
-                Some(constants.as_slice())
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl<'a, 't, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
-where
-    N: NodeEditable<'a, 't, T, E>,
-    T: Clone + PartialEq,
-{
-    pub fn update_constant_node(&'a mut self, id: cake::TransformIdx, val: Vec<T>) {
-        let mut dst = self.inner.dst_mut();
-        let mut purge = false;
-        if let Some(t) = dst.get_transform_mut(id) {
-            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
-                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
-                    if *c != val {
-                        *c = val;
-                        purge = true;
-                    }
-                }
-            }
-        }
-        if purge {
-            dst.purge_cache_node(&cake::NodeId::Transform(id));
-        }
     }
 }
