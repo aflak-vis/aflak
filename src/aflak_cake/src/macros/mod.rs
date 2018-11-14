@@ -24,6 +24,10 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         }
     }
 
+    pub fn dst(&self) -> &DST<'t, T, E> {
+        &self.dst
+    }
+
     pub fn inputs(&self) -> &[(InputSlot, TypeId, Option<T>)] {
         &self.inputs
     }

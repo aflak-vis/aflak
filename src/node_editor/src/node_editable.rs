@@ -61,15 +61,18 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
 }
 
 pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
-    type DSTHandle: 'a + DerefMut + Deref<Target = DST<'t, T, E>>;
+    type DSTHandle: 'a + Deref<Target = DST<'t, T, E>>;
+    type DSTHandleMut: 'a + DerefMut + Deref<Target = DST<'t, T, E>>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>>;
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError>;
-    fn with_dst(&'a mut self) -> Self::DSTHandle;
+    fn dst(&'a self) -> Self::DSTHandle;
+    fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
-    type DSTHandle = &'a mut DST<'t, T, E>;
+    type DSTHandle = &'a DST<'t, T, E>;
+    type DSTHandleMut = &'a mut DST<'t, T, E>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
         unimplemented!()
@@ -77,13 +80,17 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
         unimplemented!()
     }
-    fn with_dst(&'a mut self) -> Self::DSTHandle {
+    fn dst(&'a self) -> Self::DSTHandle {
+        &self.dst
+    }
+    fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
         &mut self.dst
     }
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
-    type DSTHandle = MacroHandle<'a, 't, T, E>;
+    type DSTHandle = &'a DST<'t, T, E>;
+    type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
         unimplemented!()
@@ -91,7 +98,10 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEdito
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
         unimplemented!()
     }
-    fn with_dst(&'a mut self) -> Self::DSTHandle {
+    fn dst(&'a self) -> Self::DSTHandle {
+        &self.macr.dst()
+    }
+    fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
         self.macr.dst_handle()
     }
 }
