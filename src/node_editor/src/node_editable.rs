@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 use std::error;
 use std::io;
 
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 
-use cake::{Input, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
+use cake::{self, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
@@ -61,17 +61,15 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
 }
 
 pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
-    type DSTHandle: 'a + Deref<Target = DST<'t, T, E>>;
-    type DSTHandleMut: 'a + DerefMut + Deref<Target = DST<'t, T, E>>;
+    type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>>;
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError>;
-    fn dst(&'a self) -> Self::DSTHandle;
+    fn dst(&self) -> &DST<'t, T, E>;
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
-    type DSTHandle = &'a DST<'t, T, E>;
     type DSTHandleMut = &'a mut DST<'t, T, E>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
@@ -80,7 +78,7 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
         unimplemented!()
     }
-    fn dst(&'a self) -> Self::DSTHandle {
+    fn dst(&self) -> &DST<'t, T, E> {
         &self.dst
     }
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
@@ -89,7 +87,6 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
-    type DSTHandle = &'a DST<'t, T, E>;
     type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
     fn import<R: io::Read>(&self, r: R) -> Result<ImportSuccess<Self>, ImportError<E>> {
@@ -98,10 +95,52 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEdito
     fn export<W: io::Write>(&self, input: &ExportInput, w: &mut W) -> Result<(), ExportError> {
         unimplemented!()
     }
-    fn dst(&'a self) -> Self::DSTHandle {
+    fn dst(&self) -> &DST<'t, T, E> {
         &self.macr.dst()
     }
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut {
         self.macr.dst_handle()
+    }
+}
+
+/// ***************************************************************************/
+/// Functions below are test to check that it compiles!!!                      /
+impl<'a, 't, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    N: NodeEditable<'a, 't, T, E>,
+    T: Clone,
+{
+    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
+        self.inner.dst().get_transform(id).and_then(|t| {
+            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
+                Some(constants.as_slice())
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl<'a, 't, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    N: NodeEditable<'a, 't, T, E>,
+    T: Clone + PartialEq,
+{
+    pub fn update_constant_node(&'a mut self, id: cake::TransformIdx, val: Vec<T>) {
+        let mut dst = self.inner.dst_mut();
+        let mut purge = false;
+        if let Some(t) = dst.get_transform_mut(id) {
+            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
+                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
+                    if *c != val {
+                        *c = val;
+                        purge = true;
+                    }
+                }
+            }
+        }
+        if purge {
+            dst.purge_cache_node(&cake::NodeId::Transform(id));
+        }
     }
 }
