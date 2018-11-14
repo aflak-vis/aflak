@@ -135,6 +135,8 @@ pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
 
     fn dst(&'a self) -> Self::DSTHandle;
     fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
+
+    fn create_output(&mut self) -> OutputId;
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
@@ -147,6 +149,12 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
     fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
         &mut self.dst
     }
+    fn create_output(&mut self) -> OutputId {
+        let id = self.dst.create_output();
+        self.output_results
+            .insert(id, compute::new_compute_result());
+        id
+    }
 }
 
 impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
@@ -158,6 +166,9 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEdito
     }
     fn dst_mut(&'a mut self) -> MacroHandle<'a, 't, T, E> {
         self.macr.dst_mut()
+    }
+    fn create_output(&mut self) -> OutputId {
+        self.macr.dst_mut().create_output()
     }
 }
 
@@ -968,10 +979,7 @@ where
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
-                let id = self.inner.dst_mut().create_output();
-                // TODO: Update ouputs!
-                // self.output_results
-                //     .insert(id, compute::new_compute_result());
+                self.inner.create_output();
             }
             ui.separator();
             for constant_type in T::editable_variants() {
