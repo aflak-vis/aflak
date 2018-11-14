@@ -872,7 +872,7 @@ where
         active_node: &mut Option<NodeId>,
         drag_node: &mut Option<NodeId>,
     ) {
-        let mut dst = dst.deref_mut();
+        let dst = dst.deref_mut();
         let node_name = {
             let node = dst.get_node(id).unwrap();
             ImString::new(node.name(id))
