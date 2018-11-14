@@ -6,9 +6,11 @@ use std::ops::DerefMut;
 use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
-use cake::{self, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
+use cake::{
+    self, DeserDST, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST,
+};
 
-use compute::ComputeResult;
+use compute::{self, ComputeResult};
 use export::{ExportError, ImportError};
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
@@ -177,6 +179,54 @@ pub trait Importable<Err>: Sized {
     type Deser: for<'de> serde::Deserialize<'de>;
 
     fn import(&mut self, Self::Deser) -> Result<(), Err>;
+}
+
+impl<'t, T, E> Importable<ImportError<E>> for DstEditor<'t, T, E>
+where
+    T: 'static + Clone + for<'de> Deserialize<'de> + cake::NamedAlgorithms<E> + cake::VariantName,
+    E: 'static,
+{
+    type Deser = DeserEditor<DeserDST<T, E>>;
+
+    fn import(&mut self, import: DeserEditor<DeserDST<T, E>>) -> Result<(), ImportError<E>> {
+        // Replace DST. Wait for no computing to take place.
+        use std::{thread, time};
+        const SLEEP_INTERVAL_MS: u64 = 1;
+        let sleep_interval = time::Duration::from_millis(SLEEP_INTERVAL_MS);
+        println!("Import requested! Wait for pending compute tasks to complete...");
+        let now = time::Instant::now();
+        loop {
+            if !self.is_compute_running() {
+                println!("Starting import after {:?}", now.elapsed());
+                break;
+            } else {
+                thread::sleep(sleep_interval);
+            }
+        }
+
+        self.dst = import.inner.into()?;
+
+        // Reset cache
+        self.output_results = {
+            let mut output_results = BTreeMap::new();
+            for (output_id, _) in self.dst.outputs_iter() {
+                output_results.insert(*output_id, compute::new_compute_result());
+            }
+            output_results
+        };
+        Ok(())
+    }
+}
+
+impl<'t, T, E> DstEditor<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn is_compute_running(&self) -> bool {
+        self.output_results
+            .values()
+            .any(|result| result.lock().unwrap().is_running())
+    }
 }
 
 /// ***************************************************************************/
