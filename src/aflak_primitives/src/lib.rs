@@ -169,6 +169,25 @@ Second output contains (a + b) / 2",
                 }
             ),
             cake_transform!(
+                "Ratio from bands' center wavelength.
+Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
+Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
+                ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
+                    if !(off_1 < on && on < off_2) {
+                        use IOErr::UnexpectedInput;
+                        let msg = format!(
+                            "wrong magnitude correlation ({} < {} < {})",
+                            off_1, on, off_2
+                        );
+                        vec![msg; 2].into_iter().map(|msg| Err(UnexpectedInput(msg))).collect()
+                    } else {
+                        let off_ratio_1 = (on - off_1) / (off_2 - off_1);
+                        let off_ratio_2 = 1.0 - off_ratio_1;
+                        vec![Ok(IOValue::Float(off_ratio_2)), Ok(IOValue::Float(off_ratio_1))]
+                    }
+                }
+            ),
+            cake_transform!(
                 "Average for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2",
