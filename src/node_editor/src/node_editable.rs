@@ -167,7 +167,7 @@ where
         };
         // Set scrolling offset
         self.scrolling = Scrolling::new(deserialized.scrolling);
-        self.inner = Importable::from_deser(deserialized.inner)?;
+        self.inner.import(deserialized.inner)?;
 
         Ok(())
     }
@@ -176,7 +176,7 @@ where
 pub trait Importable<Err>: Sized {
     type Deser: for<'de> serde::Deserialize<'de>;
 
-    fn from_deser(Self::Deser) -> Result<Self, Err>;
+    fn import(&mut self, Self::Deser) -> Result<(), Err>;
 }
 
 /// ***************************************************************************/
