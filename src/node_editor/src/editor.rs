@@ -7,7 +7,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, Transformation, DST};
+use cake::{self, InputSlot, Transformation, DST};
 
 use compute::{self, ComputeResult};
 use constant_editor::ConstantEditor;
@@ -61,12 +61,6 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
 enum LinkExtremity {
     Output(cake::Output),
     Input(InputSlot),
-}
-
-#[derive(Copy, Clone)]
-enum InputSlot {
-    Transform(cake::Input),
-    Output(cake::OutputId),
 }
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
