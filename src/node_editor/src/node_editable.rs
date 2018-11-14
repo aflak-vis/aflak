@@ -10,8 +10,8 @@ use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
 use cake::{
-    self, DeserDST, GuardRef, InputSlot, Macro, MacroEvaluationError, MacroHandle, NodeId, Output,
-    OutputId, Transformation, DST,
+    self, DSTGuard, DSTGuardMut, DeserDST, InputSlot, Macro, MacroEvaluationError, MacroHandle,
+    NodeId, Output, OutputId, Transformation, DST,
 };
 
 use compute::{self, ComputeResult};
@@ -58,25 +58,25 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
     error_stack: Vec<Box<error::Error>>,
 }
 
-pub trait NodeEditable<'a, 't, T: Clone + 't, E: 't>: Sized {
-    type DSTHandle: Deref<Target = DST<'t, T, E>>;
-    type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
+pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
+    // type DSTHandle: Deref<Target = DST<'t, T, E>>;
+    // type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
 
-    fn dst(&'a self) -> Self::DSTHandle;
-    fn dst_mut(&'a mut self) -> Self::DSTHandleMut;
+    fn dst(&self) -> DSTGuard<'_, 't, T, E>;
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E>;
 
     fn create_output(&mut self) -> OutputId;
 }
 
-impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<'t, T, E> {
-    type DSTHandle = &'a DST<'t, T, E>;
-    type DSTHandleMut = &'a mut DST<'t, T, E>;
+impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
+    // type DSTHandle = &'a DST<'t, T, E>;
+    // type DSTHandleMut = &'a mut DST<'t, T, E>;
 
-    fn dst(&self) -> &DST<'t, T, E> {
-        &self.dst
+    fn dst(&self) -> DSTGuard<'_, 't, T, E> {
+        DSTGuard::StandAlone(&self.dst)
     }
-    fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
-        &mut self.dst
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E> {
+        DSTGuardMut::StandAlone(&mut self.dst)
     }
     fn create_output(&mut self) -> OutputId {
         let id = self.dst.create_output();
@@ -86,20 +86,20 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for DstEditor<
     }
 }
 
-impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
-    type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
-    type DSTHandleMut = MacroHandle<'a, 't, T, E>;
+// impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
+//     // type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
+//     // type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
-    fn dst(&self) -> GuardRef<DST<'t, T, E>> {
-        self.macr.dst()
-    }
-    fn dst_mut(&'a mut self) -> MacroHandle<'a, 't, T, E> {
-        self.macr.dst_mut()
-    }
-    fn create_output(&mut self) -> OutputId {
-        self.macr.dst_mut().create_output()
-    }
-}
+//     fn dst(&self) -> GuardRef<DST<'t, T, E>> {
+//         self.macr.dst()
+//     }
+//     fn dst_mut(&'a mut self) -> MacroHandle<'a, 't, T, E> {
+//         self.macr.dst_mut()
+//     }
+//     fn create_output(&mut self) -> OutputId {
+//         self.macr.dst_mut().create_output()
+//     }
+// }
 
 impl<'t, T, E> Serialize for DstEditor<'t, T, E>
 where

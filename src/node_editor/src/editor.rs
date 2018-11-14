@@ -226,7 +226,7 @@ const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
 impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
-    N: for<'a> NodeEditable<'a, 't, T, E> + Importable<ImportError<E>> + Serialize,
+    N: NodeEditable<'t, T, E> + Importable<ImportError<E>> + Serialize,
     T: 'static
         + Clone
         + cake::EditableVariants

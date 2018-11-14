@@ -16,7 +16,7 @@ mod transform;
 
 pub use dst::*;
 pub use export::*;
-pub use macros::{GuardRef, Macro, MacroEvaluationError, MacroHandle};
+pub use macros::{DSTGuard, DSTGuardMut, GuardRef, Macro, MacroEvaluationError, MacroHandle};
 pub use transform::*;
 
 pub use self::variant_name::VariantName;

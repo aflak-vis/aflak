@@ -17,8 +17,17 @@ pub struct Macro<'t, T: Clone + 't, E: 't> {
 }
 
 pub struct GuardRef<'a, T: 'a> {
-    inner: &'a T,
-    lock: RwLockReadGuard<'a, ()>,
+    pub inner: &'a T,
+    pub lock: RwLockReadGuard<'a, ()>,
+}
+
+pub enum DSTGuard<'a, 't: 'a, T: 't + Clone, E: 't> {
+    StandAlone(&'a DST<'t, T, E>),
+    Macro(GuardRef<'a, DST<'t, T, E>>),
+}
+pub enum DSTGuardMut<'a, 't: 'a, T: 't + Clone, E: 't> {
+    StandAlone(&'a mut DST<'t, T, E>),
+    Macro(MacroHandle<'a, 't, T, E>),
 }
 
 impl<'a, T> Deref for GuardRef<'a, T> {
@@ -40,11 +49,11 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         }
     }
 
-    pub fn dst(&self) -> GuardRef<DST<'t, T, E>> {
-        GuardRef {
+    pub fn dst(&self) -> DSTGuard<'_, 't, T, E> {
+        DSTGuard::Macro(GuardRef {
             inner: &self.dst,
             lock: self.lock.read().unwrap(),
-        }
+        })
     }
 
     pub fn inputs(&self) -> GuardRef<Vec<(InputSlot, TypeId, Option<T>)>> {
@@ -92,12 +101,12 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
         inputs
     }
 
-    pub fn dst_mut<'a>(&'a mut self) -> MacroHandle<'a, 't, T, E> {
-        MacroHandle {
+    pub fn dst_mut<'a>(&'a mut self) -> DSTGuardMut<'a, 't, T, E> {
+        DSTGuardMut::Macro(MacroHandle {
             inputs: self.inputs.as_mut_slice(),
             dst: &mut self.dst,
             lock: self.lock.write().unwrap(),
-        }
+        })
     }
 }
 
@@ -150,5 +159,16 @@ where
                     .compute_macro(output_id, &inputs)
                     .map_err(|e| From::from(MacroEvaluationError::DSTError(e)))
             }).collect()
+    }
+}
+
+impl<'a, 't: 'a, T: Clone + 't, E: 't> Deref for DSTGuard<'a, 't, T, E> {
+    type Target = DST<'t, T, E>;
+
+    fn deref(&self) -> &Self::Target {
+        match *self {
+            DSTGuard::StandAlone(ref dst) => dst,
+            DSTGuard::Macro(ref guard) => guard.deref(),
+        }
     }
 }
