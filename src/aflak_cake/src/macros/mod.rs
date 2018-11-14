@@ -172,3 +172,23 @@ impl<'a, 't: 'a, T: Clone + 't, E: 't> Deref for DSTGuard<'a, 't, T, E> {
         }
     }
 }
+
+impl<'a, 't: 'a, T: Clone + 't, E: 't> Deref for DSTGuardMut<'a, 't, T, E> {
+    type Target = DST<'t, T, E>;
+
+    fn deref(&self) -> &Self::Target {
+        match *self {
+            DSTGuardMut::StandAlone(ref dst) => dst,
+            DSTGuardMut::Macro(ref guard) => guard.deref(),
+        }
+    }
+}
+
+impl<'a, 't: 'a, T: Clone + 't, E: 't> DerefMut for DSTGuardMut<'a, 't, T, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match *self {
+            DSTGuardMut::StandAlone(ref mut dst) => dst,
+            DSTGuardMut::Macro(ref mut guard) => guard.deref_mut(),
+        }
+    }
+}

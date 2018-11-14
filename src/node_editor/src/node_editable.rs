@@ -86,20 +86,20 @@ impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
     }
 }
 
-// impl<'a, 't: 'a, T: Clone + 't, E: 't> NodeEditable<'a, 't, T, E> for MacroEditor<'t, T, E> {
-//     // type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
-//     // type DSTHandleMut = MacroHandle<'a, 't, T, E>;
+impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for MacroEditor<'t, T, E> {
+    // type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
+    // type DSTHandleMut = MacroHandle<'a, 't, T, E>;
 
-//     fn dst(&self) -> GuardRef<DST<'t, T, E>> {
-//         self.macr.dst()
-//     }
-//     fn dst_mut(&'a mut self) -> MacroHandle<'a, 't, T, E> {
-//         self.macr.dst_mut()
-//     }
-//     fn create_output(&mut self) -> OutputId {
-//         self.macr.dst_mut().create_output()
-//     }
-// }
+    fn dst(&self) -> DSTGuard<'_, 't, T, E> {
+        self.macr.dst()
+    }
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E> {
+        self.macr.dst_mut()
+    }
+    fn create_output(&mut self) -> OutputId {
+        self.macr.dst_mut().create_output()
+    }
+}
 
 impl<'t, T, E> Serialize for DstEditor<'t, T, E>
 where
