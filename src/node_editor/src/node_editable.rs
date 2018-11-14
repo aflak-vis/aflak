@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 use std::error;
+use std::io;
 use std::ops::DerefMut;
 
-use serde::{ser::Serializer, Serialize};
+use ron::de;
+use serde::{ser::Serializer, Deserialize, Serialize};
 
 use cake::{self, InputSlot, Macro, MacroHandle, NodeId, Output, OutputId, Transformation, DST};
 
@@ -124,6 +126,42 @@ where
     {
         self.dst.serialize(serializer)
     }
+}
+
+#[derive(Deserialize)]
+#[serde(bound(deserialize = "DN: Deserialize<'de>"))]
+pub struct DeserEditor<DN> {
+    inner: DN,
+    node_states: Vec<(NodeId, NodeState)>,
+    scrolling: Vec2,
+}
+
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    T: Clone,
+    N: Importable,
+{
+    fn import_from_buf<R: io::Read>(&mut self, r: R) {
+        let deserialized: DeserEditor<N::Deser> = de::from_reader(r).unwrap();
+
+        // Set Ui node states
+        self.node_states = {
+            let mut node_states = NodeStates::new();
+            for (node_id, state) in deserialized.node_states {
+                node_states.insert(node_id, state);
+            }
+            node_states
+        };
+        // Set scrolling offset
+        self.scrolling = Scrolling::new(deserialized.scrolling);
+        self.inner = Importable::from_deser(deserialized.inner);
+    }
+}
+
+pub trait Importable {
+    type Deser: for<'de> serde::Deserialize<'de>;
+
+    fn from_deser(Self::Deser) -> Self;
 }
 
 /// ***************************************************************************/
