@@ -20,4 +20,4 @@ mod vec2;
 
 pub use compute::{ComputationState, ComputeResult};
 pub use constant_editor::ConstantEditor;
-pub use editor::NodeEditor;
+pub use editor::{MainEditor, NodeEditor};

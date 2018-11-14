@@ -1,30 +1,36 @@
 use std::collections::BTreeMap;
-use std::error::Error;
+use std::error;
+use std::fs;
+use std::io;
+use std::mem;
+use std::ops::{Deref, DerefMut};
+use std::path::Path;
 
-use imgui::{
-    sys, ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
-    ImVec2, StyleVar, Ui, WindowDrawList,
+use ron::{de, ser};
+use serde::{ser::Serializer, Deserialize, Serialize};
+
+use cake::{
+    self, DeserDST, GuardRef, InputSlot, Macro, MacroEvaluationError, MacroHandle, NodeId, Output,
+    OutputId, Transformation, DST,
 };
-use serde::{Deserialize, Serialize};
-
-use cake::{self, InputSlot, Transformation, DST};
 
 use compute::{self, ComputeResult};
-use constant_editor::ConstantEditor;
-use id_stack::GetId;
-use node_state::NodeStates;
+use export::{ExportError, ImportError};
+use node_editable::{DstEditor, Importable, NodeEditable};
+use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
-    pub(crate) dst: DST<'t, T, E>,
+pub type MainEditor<'t, T, E, ED> = NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>;
+
+pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
+    inner: N,
     addable_nodes: &'t [&'t Transformation<'t, T, E>],
     pub(crate) node_states: NodeStates,
-    active_node: Option<cake::NodeId>,
-    drag_node: Option<cake::NodeId>,
+    active_node: Option<NodeId>,
+    drag_node: Option<NodeId>,
     creating_link: Option<LinkExtremity>,
-    new_link: Option<(cake::Output, InputSlot)>,
-    pub(crate) output_results: BTreeMap<cake::OutputId, ComputeResult<T, E>>,
+    new_link: Option<(Output, InputSlot)>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -32,20 +38,24 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
     constant_editor: ED,
-    error_stack: Vec<Box<Error>>,
+    error_stack: Vec<Box<error::Error>>,
 }
 
-impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
+enum LinkExtremity {
+    Output(Output),
+    Input(InputSlot),
+}
+
+impl<'t, N: Default, T: Clone, E, ED: Default> Default for NodeEditor<'t, N, T, E, ED> {
     fn default() -> Self {
         Self {
-            dst: DST::new(),
+            inner: Default::default(),
             addable_nodes: &[],
             node_states: NodeStates::new(),
             active_node: None,
             drag_node: None,
             creating_link: None,
             new_link: None,
-            output_results: BTreeMap::new(),
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -58,12 +68,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
     }
 }
 
-enum LinkExtremity {
-    Output(cake::Output),
-    Input(InputSlot),
-}
-
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, N: Default, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
     T: Clone,
     ED: Default,
@@ -75,84 +80,153 @@ where
             ..Default::default()
         }
     }
+}
 
+impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+where
+    T: Clone,
+    ED: Default,
+{
     pub fn from_dst(
         dst: DST<'t, T, E>,
         addable_nodes: &'t [&'t Transformation<'t, T, E>],
         ed: ED,
     ) -> Self {
-        let mut output_results = BTreeMap::new();
-        for (output_id, _) in dst.outputs_iter() {
-            output_results.insert(*output_id, compute::new_compute_result());
-        }
         Self {
-            dst,
+            inner: DstEditor::from_dst(dst),
             addable_nodes,
-            output_results,
             constant_editor: ed,
             ..Default::default()
         }
     }
-
-    pub fn with_left_pane(mut self, show_left_pane: bool) -> Self {
-        self.show_left_pane = show_left_pane;
-        self
-    }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+#[derive(Serialize)]
+pub struct SerialEditor<'e, N: 'e> {
+    inner: &'e N,
+    node_states: Vec<(&'e NodeId, &'e NodeState)>,
+    scrolling: Vec2,
+}
+
+impl<'t, N, T, E, ED> Serialize for NodeEditor<'t, N, T, E, ED>
 where
-    T: Clone + cake::VariantName,
+    N: Serialize,
+    T: 't + Clone,
 {
-    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
-        self.dst
-            .add_owned_transform(Transformation::new_constant(t))
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let ser = SerialEditor {
+            inner: &self.inner,
+            node_states: self.node_states.iter().collect(),
+            scrolling: self.scrolling.get_current(),
+        };
+        ser.serialize(serializer)
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
-where
-    T: Clone + PartialEq,
-{
-    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: Vec<T>) {
-        let mut purge = false;
-        if let Some(t) = self.dst.get_transform_mut(id) {
-            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
-                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
-                    if *c != val {
-                        *c = val;
-                        purge = true;
-                    }
-                }
-            }
-        }
-        if purge {
-            self.dst.purge_cache_node(&cake::NodeId::Transform(id));
-        }
-    }
+#[derive(Deserialize)]
+#[serde(bound(deserialize = "DN: Deserialize<'de>"))]
+pub struct DeserEditor<DN> {
+    pub inner: DN,
+    pub node_states: Vec<(NodeId, NodeState)>,
+    pub scrolling: Vec2,
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
     T: Clone,
+    N: Importable<ImportError<E>>,
 {
-    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
-        self.dst.get_transform(id).and_then(|t| {
-            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
-                Some(constants.as_slice())
-            } else {
-                None
+    fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
+        let deserialized: DeserEditor<N::Deser> = de::from_reader(r)?;
+
+        // Set Ui node states
+        self.node_states = {
+            let mut node_states = NodeStates::new();
+            for (node_id, state) in deserialized.node_states {
+                node_states.insert(node_id, state);
             }
-        })
+            node_states
+        };
+        // Set scrolling offset
+        self.scrolling = Scrolling::new(deserialized.scrolling);
+        self.inner.import(deserialized.inner)?;
+
+        Ok(())
+    }
+
+    fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError<E>> {
+        let f = fs::File::open(file_path)?;
+        self.import_from_buf(f)
     }
 }
+
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    T: Clone,
+    N: Default + Importable<ImportError<E>>,
+    ED: Default,
+{
+    pub fn from_export_buf<R>(
+        r: R,
+        addable_nodes: &'t [&'t Transformation<T, E>],
+        ed: ED,
+    ) -> Result<Self, ImportError<E>>
+    where
+        R: io::Read,
+    {
+        let mut editor = Self::new(addable_nodes, ed);
+        editor.import_from_buf(r)?;
+        Ok(editor)
+    }
+
+    pub fn from_ron_file<P>(
+        file_path: P,
+        addable_nodes: &'t [&'t Transformation<T, E>],
+        ed: ED,
+    ) -> Result<Self, ImportError<E>>
+    where
+        P: AsRef<Path>,
+    {
+        let f = fs::File::open(file_path)?;
+        Self::from_export_buf(f, addable_nodes, ed)
+    }
+}
+
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+where
+    T: Clone,
+    N: Serialize,
+{
+    pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
+        let serialized = ser::to_string_pretty(self, Default::default())?;
+        w.write_all(serialized.as_bytes())?;
+        w.flush()?;
+        Ok(())
+    }
+
+    pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
+        let mut f = fs::File::create(file_path)?;
+        self.export_to_buf(&mut f)
+    }
+}
+
+use constant_editor::ConstantEditor;
+use id_stack::GetId;
+use imgui::{
+    sys, ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
+    ImVec2, StyleVar, Ui, WindowDrawList,
+};
 
 const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
+    N: for<'a> NodeEditable<'a, 't, T, E> + Importable<ImportError<E>> + Serialize,
     T: 'static
         + Clone
         + cake::EditableVariants
@@ -162,10 +236,10 @@ where
         + Serialize
         + for<'de> Deserialize<'de>,
     ED: ConstantEditor<T>,
-    E: 'static + Error,
+    E: 'static + error::Error,
 {
     pub fn render(&mut self, ui: &Ui) {
-        for idx in self.dst.node_ids() {
+        for idx in self.inner.dst().node_ids() {
             // Initialization of node states
             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
@@ -174,6 +248,7 @@ where
             let clue = mouse_pos * 0.7 - offset;
             self.node_states.init_node(&idx, clue);
         }
+
         if self.show_left_pane {
             self.render_left_pane(ui);
         }
@@ -210,7 +285,8 @@ where
     }
 
     pub fn outputs(&self) -> Vec<cake::OutputId> {
-        self.dst
+        self.inner
+            .dst()
             .outputs_iter()
             .filter(|(_, some_output)| some_output.is_some())
             .map(|(id, _)| *id)
@@ -246,7 +322,8 @@ where
                         .build()
                     {
                         ui.separator();
-                        let node = self.dst.get_node(&node_id).unwrap();
+                        let dst = self.inner.dst();
+                        let node = dst.get_node(&node_id).unwrap();
                         match node {
                             cake::Node::Transform(t) => {
                                 ui.text_wrapped(&ImString::new(format!(
@@ -300,7 +377,7 @@ where
     fn show_node_list(&mut self, ui: &Ui) {
         const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
 
-        for (idx, node) in self.dst.nodes_iter() {
+        for (idx, node) in self.inner.dst().nodes_iter() {
             ui.push_id(idx.id());
             let selected = self.node_states.get_state(&idx, |state| state.selected);
             let name = ImString::new(node.name(&idx));
@@ -448,7 +525,8 @@ where
                 let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
                 // NODE LINK CULLING?
 
-                for idx in self.dst.node_ids() {
+                let mut dst = self.inner.dst_mut();
+                for idx in dst.node_ids() {
                     let node_pos = self
                         .node_states
                         .get_state(&idx, |state| state.get_pos(CURRENT_FONT_WINDOW_SCALE));
@@ -462,9 +540,18 @@ where
                         .node_states
                         .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
-                    self.draw_node_inside(ui, &draw_list, &idx); // ...
+                    Self::draw_node_inside(
+                        &mut dst,
+                        ui,
+                        &draw_list,
+                        &idx,
+                        &mut self.node_states,
+                        &self.constant_editor,
+                        &mut self.active_node,
+                        &mut self.drag_node,
+                    );
 
-                    let node = self.dst.get_node(&idx).unwrap();
+                    let node = dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
                     let item_rect_size = Vec2::new(ui.get_item_rect_size());
                     node_states.set_state(&idx, |state| {
@@ -624,7 +711,7 @@ where
                         let (p1, cp1, cp2, p2) = match *creating_link {
                             LinkExtremity::Output(output) => {
                                 let output_node_count =
-                                    self.dst.get_transform(output.t_idx).unwrap().output.len();
+                                    dst.get_transform(output.t_idx).unwrap().output.len();
                                 let output_node_state = self
                                     .node_states
                                     .get(&cake::NodeId::Transform(output.t_idx))
@@ -643,12 +730,8 @@ where
                             LinkExtremity::Input(input_slot) => {
                                 let connector_pos = match input_slot {
                                     InputSlot::Transform(input) => {
-                                        let input_node_count = self
-                                            .dst
-                                            .get_transform(input.t_idx)
-                                            .unwrap()
-                                            .input
-                                            .len();
+                                        let input_node_count =
+                                            dst.get_transform(input.t_idx).unwrap().input.len();
                                         let input_node_state = self
                                             .node_states
                                             .get(&cake::NodeId::Transform(input.t_idx))
@@ -690,11 +773,11 @@ where
 
                 // Display links
                 channels.set_current(0);
-                for (output, input_slot) in self.dst.links_iter() {
+                for (output, input_slot) in dst.links_iter() {
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
                             let input_node_count =
-                                self.dst.get_transform(input.t_idx).unwrap().input.len();
+                                dst.get_transform(input.t_idx).unwrap().input.len();
                             let input_node_state = self
                                 .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))
@@ -718,8 +801,7 @@ where
                         }
                     };
                     let p1 = offset + connector_in_pos;
-                    let output_node_count =
-                        self.dst.get_transform(output.t_idx).unwrap().output.len();
+                    let output_node_count = dst.get_transform(output.t_idx).unwrap().output.len();
                     let output_node_state = self
                         .node_states
                         .get(&cake::NodeId::Transform(output.t_idx))
@@ -744,12 +826,14 @@ where
         if let Some((output, input_slot)) = self.new_link {
             match input_slot {
                 InputSlot::Transform(input) => {
-                    if let Err(e) = self.dst.connect(output, input) {
+                    if let Err(e) = self.inner.dst_mut().connect(output, input) {
                         eprintln!("{:?}", e);
                         self.error_stack.push(Box::new(e));
                     }
                 }
-                InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
+                InputSlot::Output(output_id) => {
+                    self.inner.dst_mut().update_output(output_id, output)
+                }
             }
             self.new_link = None;
         }
@@ -759,35 +843,40 @@ where
             for (i, node) in self.addable_nodes.iter().enumerate() {
                 ui.push_id(i as i32);
                 if ui.menu_item(&ImString::new(node.name)).build() {
-                    self.dst.add_transform(node);
+                    self.inner.dst_mut().add_transform(node);
                 }
                 ui.pop_id();
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
-                let id = self.dst.create_output();
-                self.output_results
-                    .insert(id, compute::new_compute_result());
+                self.inner.create_output();
             }
             ui.separator();
             for constant_type in T::editable_variants() {
                 let item_name = ImString::new(format!("Input node: {}", constant_type));
                 if ui.menu_item(&item_name).build() {
                     let constant = Transformation::new_constant(T::default_for(constant_type));
-                    self.dst.add_owned_transform(constant);
+                    self.inner.dst_mut().add_owned_transform(constant);
                 }
             }
         });
     }
 
-    fn draw_node_inside(&mut self, ui: &Ui, draw_list: &WindowDrawList, id: &cake::NodeId) {
+    fn draw_node_inside<D: DerefMut<Target = DST<'t, T, E>>>(
+        dst: &mut D,
+        ui: &Ui,
+        draw_list: &WindowDrawList,
+        id: &cake::NodeId,
+        node_states: &mut NodeStates,
+        constant_editor: &ED,
+        active_node: &mut Option<NodeId>,
+        drag_node: &mut Option<NodeId>,
+    ) {
+        let mut dst = dst.deref_mut();
         let node_name = {
-            let node = self.dst.get_node(id).unwrap();
+            let node = dst.get_node(id).unwrap();
             ImString::new(node.name(id))
         };
-        let node_states = &mut self.node_states;
-        let dst = &mut self.dst;
-        let constant_editor = &self.constant_editor;
         let mut title_bar_height = 0.0;
         let p = ui.get_cursor_screen_pos();
 
@@ -842,11 +931,8 @@ where
 
         // Line below node name
         let node_size = ui.get_item_rect_size();
-        let line_thickness = if self.active_node == Some(*id) {
-            3.0
-        } else {
-            1.0
-        } * CURRENT_FONT_WINDOW_SCALE;
+        let line_thickness =
+            if *active_node == Some(*id) { 3.0 } else { 1.0 } * CURRENT_FONT_WINDOW_SCALE;
         draw_list
             .add_line(
                 [
@@ -862,28 +948,29 @@ where
             .build();
 
         if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-            self.active_node = Some(*id);
-            self.drag_node = Some(*id);
+            *active_node = Some(*id);
+            *drag_node = Some(*id);
             if !ui.imgui().key_ctrl() {
                 node_states.deselect_all();
             }
             node_states.toggle_select(id);
         }
-        if self.drag_node == Some(*id) {
+        if *drag_node == Some(*id) {
             if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
                 let delta = ui.imgui().mouse_delta();
                 node_states.set_state(id, |state| {
                     state.pos = state.pos + delta.into();
                 });
             } else if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
-                self.drag_node = None;
+                *drag_node = None;
             }
         }
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
 where
+    N: for<'a> NodeEditable<'a, 't, T, E>,
     T: Clone,
 {
     fn delete_selected_nodes(&mut self) {
@@ -894,11 +981,72 @@ where
             .map(|(id, _)| *id)
             .collect();
         for node_id in selected_node_ids {
-            self.dst.remove_node(&node_id);
+            self.inner.dst_mut().remove_node(&node_id);
             self.node_states.remove_node(&node_id);
             if self.active_node == Some(node_id) {
                 self.active_node.take();
             }
         }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone + cake::VariantName,
+{
+    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
+        self.inner
+            .add_owned_transform(Transformation::new_constant(t))
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone + PartialEq,
+{
+    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: Vec<T>) {
+        let mut purge = false;
+        if let Some(t) = self.inner.get_transform_mut(id) {
+            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
+                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
+                    if *c != val {
+                        *c = val;
+                        purge = true;
+                    }
+                }
+            }
+        }
+        if purge {
+            self.inner.purge_cache_node(&cake::NodeId::Transform(id));
+        }
+    }
+}
+
+impl<'t, T, E, ED> NodeEditor<'t, DST<'t, T, E>, T, E, ED>
+where
+    T: Clone,
+{
+    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
+        self.inner.get_transform(id).and_then(|t| {
+            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
+                Some(constants.as_slice())
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl<'t, T: 'static, E: 'static, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+where
+    T: Clone + cake::VariantName + Send + Sync,
+    E: Send + From<MacroEvaluationError<E>>,
+{
+    /// Compute output's result asynchonously.
+    ///
+    /// `self` should live longer as long as computing is not finished.
+    /// If not, you'll get undefined behavior!
+    pub unsafe fn compute_output(&self, id: cake::OutputId) -> ComputeResult<T, E> {
+        self.inner.compute_output(id)
     }
 }

@@ -9,14 +9,14 @@ use aflak_plot::{
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
 use cake::{OutputId, TransformIdx};
-use node_editor::{ComputationState, NodeEditor};
+use node_editor::{ComputationState, MainEditor};
 use primitives::{IOErr, IOValue, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
 use save_output;
 
-pub type AflakNodeEditor<'t> = NodeEditor<'t, IOValue, IOErr, MyConstantEditor>;
+pub type AflakNodeEditor<'t> = MainEditor<'t, IOValue, IOErr, MyConstantEditor>;
 
 pub struct Aflak<'t> {
     node_editor: AflakNodeEditor<'t>,
