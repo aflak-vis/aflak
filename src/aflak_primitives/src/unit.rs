@@ -75,10 +75,15 @@ impl WcsArray3 {
 
         let data = hdu.read_data();
         let image = match *data {
-            FitsData::FloatingPoint32(ref image) => Array3::from_shape_vec(
-                (image.shape[2], image.shape[1], image.shape[0]),
-                image.data.clone(),
-            ).map_err(IOErr::ShapeError)?,
+            FitsData::FloatingPoint32(ref image) => {
+                let sh = &image.shape;
+                if sh.len() != 3 {
+                    let msg = format!("Expects a 3-dimensional FITS file as input. But the input file has {} dimensions.", sh.len());
+                    return Err(IOErr::UnexpectedInput(msg));
+                }
+                Array3::from_shape_vec((sh[2], sh[1], sh[0]), image.data.clone())
+                    .map_err(IOErr::ShapeError)?
+            }
             _ => {
                 let msg = "Expected FITS HDU to contain FloatingPoint32 data";
                 return Err(IOErr::UnexpectedInput(msg.to_owned()));
