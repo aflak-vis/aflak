@@ -167,7 +167,12 @@ where
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states
-            self.node_states.init_node(&idx);
+            let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
+            let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
+            let scroll = self.scrolling.get_current();
+            let offset = win_pos - scroll;
+            let clue = mouse_pos * 0.7 - offset;
+            self.node_states.init_node(&idx, clue);
         }
         if self.show_left_pane {
             self.render_left_pane(ui);

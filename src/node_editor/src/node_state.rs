@@ -74,9 +74,9 @@ impl NodeStates {
         NodeStates(BTreeMap::new())
     }
 
-    pub fn init_node(&mut self, id: &cake::NodeId) {
+    pub fn init_node(&mut self, id: &cake::NodeId, clue: Vec2) {
         if !self.0.contains_key(id) {
-            let new_node = init_node(self);
+            let new_node = init_node(self, clue);
             self.0.insert(*id, new_node);
         }
     }
@@ -113,15 +113,23 @@ impl NodeStates {
     }
 }
 
-fn init_node(node_states: &NodeStates) -> NodeState {
-    let mut max = -300.0;
+fn init_node(node_states: &NodeStates, clue: Vec2) -> NodeState {
+    let mut pos = clue;
+    // Run very simple heuristic to prevent new nodes from appearing on top of a
+    // previous node
     for state in node_states.0.values() {
-        if state.pos.1 > max {
-            max = state.pos.1;
+        if pos.0 >= state.pos.0
+            && pos.0 <= state.pos.0 + state.size.0
+            && pos.1 >= state.pos.1
+            && pos.1 <= state.pos.1 + state.size.1
+        {
+            // pos is over another node, so move it aside (on the right)
+            const MIN_MARGIN_BETWEEN_NODES: f32 = 10.0;
+            pos.0 = state.pos.0 + state.size.0 + MIN_MARGIN_BETWEEN_NODES;
         }
     }
     NodeState {
-        pos: Vec2::new((0.0, max + 150.0)),
+        pos,
         ..Default::default()
     }
 }
