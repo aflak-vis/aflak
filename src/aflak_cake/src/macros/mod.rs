@@ -74,7 +74,7 @@ impl<'t, T: Clone + 't, E: 't> Macro<'t, T, E> {
                     let t = self.dst.get_transform(output.t_idx).unwrap();
                     t.output[output.index()]
                 } else {
-                    // Not type can be defined as nothing is attached to this output
+                    // No type can be defined as nothing is attached to this output
                     ""
                 }
             }).collect()
