@@ -26,7 +26,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, Array3, Axis};
+use ndarray::{Array1, Array2, ArrayView3, Axis};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -543,7 +543,7 @@ fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
 
 fn reduce_array3_slice<F>(im: &WcsArray3, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
 where
-    F: Fn(Array3<f32>) -> Array2<f32>,
+    F: Fn(&ArrayView3<f32>) -> Array2<f32>,
 {
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
@@ -578,7 +578,7 @@ where
     }
 
     let slices = image_val.slice(s![start..end, .., ..]);
-    let raw = f(slices.to_owned());
+    let raw = f(&slices);
 
     let wrap_with_unit = im.make_slice2(
         &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
