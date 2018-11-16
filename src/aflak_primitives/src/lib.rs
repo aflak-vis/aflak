@@ -26,7 +26,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, Axis};
+use ndarray::{Array1, Array2, Array3, Axis};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -537,50 +537,10 @@ fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
 }
 
-fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    if start < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start must be positive, but got {}",
-            start
-        )));
-    }
-    if end < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end must be positive, but got {}",
-            end
-        )));
-    }
-    let start = start as usize;
-    let end = end as usize;
-
-    let image_val = im.scalar();
-    let (frame_cnt, _, _) = image_val.dim();
-
-    if end >= frame_cnt {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end higher than input image's frame count ({} >= {})",
-            end, frame_cnt
-        )));
-    }
-    if start >= end {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start higher than end ({} >= {})",
-            start, end
-        )));
-    }
-
-    let slices = image_val.slice(s![start..end, .., ..]);
-    let raw = slices.sum_axis(Axis(0));
-
-    let wrap_with_unit = im.make_slice2(
-        &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
-        im.array().with_new_value(raw),
-    );
-
-    Ok(IOValue::Image2d(wrap_with_unit))
-}
-
-fn run_average(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+fn reduce_array3_slice<F>(im: &WcsArray3, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
+where
+    F: Fn(Array3<f32>) -> Array2<f32>
+{
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
             "start must be positive, but got {}",
@@ -620,14 +580,22 @@ fn run_average(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
     }
 
     let slices = image_val.slice(s![start..end, .., ..]);
-    let raw = slices.mean_axis(Axis(0));
-
+    let raw = f(slices.to_owned());
+    
     let wrap_with_unit = im.make_slice2(
         &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
         im.array().with_new_value(raw),
     );
 
     Ok(IOValue::Image2d(wrap_with_unit))
+}
+
+fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array3_slice(im, start, end, |slices| slices.sum_axis(Axis(0)))
+}
+
+fn run_average(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array3_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
 }
 
 fn run_create_equivalent_width(
