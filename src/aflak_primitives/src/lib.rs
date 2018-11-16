@@ -183,14 +183,12 @@ Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) 
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
                 ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
                     if !(off_1 < on && on < off_2) {
-                        vec![Err(IOErr::UnexpectedInput(format!(
-                                "wrong magnitude correlation  ({} < {} < {})",
-                                off_1, on, off_2
-                            ))),
-                        Err(IOErr::UnexpectedInput(format!(
-                            "wrong magnitude correlation  ({} < {} < {})",
+                        use IOErr::UnexpectedInput;
+                        let msg = format!(
+                            "wrong magnitude correlation ({} < {} < {})",
                             off_1, on, off_2
-                        )))]
+                        );
+                        vec![msg; 2].into_iter().map(|msg| Err(UnexpectedInput(msg))).collect()
                     } else {
                         let off_ratio_1 = (on - off_1) / (off_2 - off_1);
                         let off_ratio_2 = 1.0 - off_ratio_1;
@@ -427,11 +425,13 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
         }
         fn non_zero_factor(&self, index: usize) -> Option<f32> {
             match (self.dir1[index], self.dir2[index]) {
-                (Some(x), Some(y)) => if x.abs() < EPSILON {
-                    Some(y)
-                } else {
-                    Some(x)
-                },
+                (Some(x), Some(y)) => {
+                    if x.abs() < EPSILON {
+                        Some(y)
+                    } else {
+                        Some(x)
+                    }
+                }
                 _ => None,
             }
         }
@@ -558,12 +558,6 @@ where
         )));
     }
 
-    if start == end {
-        return Err(IOErr::UnexpectedInput(format!(
-            "division by zero will occur because {} = {}",
-            start, end
-        )));
-    }
     let start = start as usize;
     let end = end as usize;
 
@@ -585,7 +579,7 @@ where
 
     let slices = image_val.slice(s![start..end, .., ..]);
     let raw = f(slices.to_owned());
-    
+
     let wrap_with_unit = im.make_slice2(
         &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
         im.array().with_new_value(raw),
