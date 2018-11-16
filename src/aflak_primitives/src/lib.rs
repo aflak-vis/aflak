@@ -184,6 +184,10 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
                     if !(off_1 < on && on < off_2) {
                         vec![Err(IOErr::UnexpectedInput(format!(
+                                "wrong magnitude correlation  ({} < {} < {})",
+                                off_1, on, off_2
+                            ))),
+                        Err(IOErr::UnexpectedInput(format!(
                             "wrong magnitude correlation  ({} < {} < {})",
                             off_1, on, off_2
                         )))]
@@ -539,7 +543,7 @@ fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
 
 fn reduce_array3_slice<F>(im: &WcsArray3, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
 where
-    F: Fn(Array3<f32>) -> Array2<f32>
+    F: Fn(Array3<f32>) -> Array2<f32>,
 {
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
