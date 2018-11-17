@@ -5,8 +5,8 @@ use rayon;
 use variant_name::VariantName;
 
 use dst::node::NodeId;
-use dst::{DSTError, Input, Output, OutputId, InputSlot, DST};
-use macros::{MacroEvaluationError};
+use dst::{DSTError, Input, InputSlot, Output, OutputId, DST};
+use macros::MacroEvaluationError;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where

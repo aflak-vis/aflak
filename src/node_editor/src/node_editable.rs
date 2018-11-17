@@ -1,25 +1,14 @@
 use std::collections::BTreeMap;
 use std::error;
-use std::fs;
-use std::io;
 use std::mem;
-use std::ops::{Deref, DerefMut};
-use std::path::Path;
 
-use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
-use cake::{
-    self, DSTGuard, DSTGuardMut, DeserDST, InputSlot, Macro, MacroEvaluationError, MacroHandle,
-    NodeId, Output, OutputId, Transformation, DST,
-};
+use cake::{self, DSTGuard, DSTGuardMut, DeserDST, Macro, MacroEvaluationError, OutputId, DST};
 
 use compute::{self, ComputeResult};
-use editor::{DeserEditor, NodeEditor};
-use export::{ExportError, ImportError};
-use node_state::{NodeState, NodeStates};
-use scrolling::Scrolling;
-use vec2::Vec2;
+use editor::NodeEditor;
+use export::ImportError;
 
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
     pub(crate) dst: DST<'t, T, E>,
@@ -59,9 +48,6 @@ pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
 }
 
 pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
-    // type DSTHandle: Deref<Target = DST<'t, T, E>>;
-    // type DSTHandleMut: DerefMut<Target = DST<'t, T, E>>;
-
     fn dst(&self) -> DSTGuard<'_, 't, T, E>;
     fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E>;
 
@@ -69,9 +55,6 @@ pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
 }
 
 impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
-    // type DSTHandle = &'a DST<'t, T, E>;
-    // type DSTHandleMut = &'a mut DST<'t, T, E>;
-
     fn dst(&self) -> DSTGuard<'_, 't, T, E> {
         DSTGuard::StandAlone(&self.dst)
     }
@@ -87,9 +70,6 @@ impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
 }
 
 impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for MacroEditor<'t, T, E> {
-    // type DSTHandle = GuardRef<'a, DST<'t, T, E>>;
-    // type DSTHandleMut = MacroHandle<'a, 't, T, E>;
-
     fn dst(&self) -> DSTGuard<'_, 't, T, E> {
         self.macr.dst()
     }

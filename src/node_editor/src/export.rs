@@ -1,56 +1,9 @@
-use std::collections::BTreeMap;
 use std::error;
 use std::fmt;
-use std::fs;
 use std::io;
-use std::path::Path;
 
-use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transformation, VariantName};
+use cake;
 use ron::{de, ser};
-use serde::{Deserialize, Serialize};
-
-use compute;
-use editor::NodeEditor;
-use node_state::{NodeState, NodeStates};
-use scrolling::Scrolling;
-use vec2::Vec2;
-
-// #[derive(Serialize)]
-// pub struct SerialEditor<'e, T: 'e> {
-//     dst: SerialDST<'e, T>,
-//     node_states: Vec<(&'e NodeId, &'e NodeState)>,
-//     scrolling: Vec2,
-// }
-
-// impl<'e, T> SerialEditor<'e, T>
-// where
-//     T: Clone,
-// {
-//     fn new<E, ED>(editor: &'e NodeEditor<T, E, ED>) -> Self {
-//         Self {
-//             dst: SerialDST::new(&editor.dst),
-//             node_states: editor.node_states.iter().collect(),
-//             scrolling: editor.scrolling.get_current(),
-//         }
-//     }
-// }
-
-// #[derive(Clone, Debug, Deserialize)]
-// #[serde(bound(deserialize = "T: Deserialize<'de>"))]
-// pub struct DeserEditor<T, E> {
-//     dst: DeserDST<T, E>,
-//     node_states: Vec<(NodeId, NodeState)>,
-//     scrolling: Vec2,
-// }
-
-// impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
-// where
-//     T: Clone,
-// {
-//     pub fn export(&self) -> SerialEditor<T> {
-//         SerialEditor::new(self)
-//     }
-// }
 
 #[derive(Debug)]
 pub enum ExportError {

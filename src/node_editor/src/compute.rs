@@ -1,10 +1,7 @@
 use std::mem;
 use std::sync::{Arc, Mutex};
 
-use cake::{self, MacroEvaluationError, DST};
-use rayon;
-
-use editor::NodeEditor;
+use cake;
 
 #[derive(Debug)]
 pub enum ComputationState<T> {
