@@ -45,11 +45,15 @@ enum LinkExtremity {
 
 pub struct Event<T: 'static + Clone, E: 'static> {
     pub new_macro: Option<&'static mut Macro<'static, T, E>>,
+    pub open_macro: Option<&'static Macro<'static, T, E>>,
 }
 
 impl<T: Clone, E> Default for Event<T, E> {
     fn default() -> Self {
-        Self { new_macro: None }
+        Self {
+            new_macro: None,
+            open_macro: None,
+        }
     }
 }
 
@@ -558,6 +562,18 @@ where
                     );
 
                     let node = dst.get_node(&idx).unwrap();
+                    if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                        println!("RIGHT CLICK");
+                        if let cake::Node::Transform(Transformation {
+                            algorithm: cake::Algorithm::Macro(m_ptr),
+                            ..
+                        }) = node
+                        {
+                            let m_ptr: &'static Macro<'static, T, E> =
+                                unsafe { ::std::mem::transmute(*m_ptr) };
+                            self.event.open_macro = Some(m_ptr);
+                        }
+                    }
                     let node_states = &mut self.node_states;
                     let item_rect_size = Vec2::new(ui.get_item_rect_size());
                     node_states.set_state(&idx, |state| {

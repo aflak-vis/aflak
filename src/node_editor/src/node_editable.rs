@@ -36,7 +36,7 @@ impl<T: 'static + Clone, E: 'static> DstEditor<T, E> {
 }
 
 pub struct MacroEditor<T: 'static + Clone, E: 'static> {
-    macr: &'static mut Macro<'static, T, E>,
+    pub(crate) macr: &'static mut Macro<'static, T, E>,
     pub editing: bool,
 }
 

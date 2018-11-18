@@ -76,6 +76,14 @@ where
             let name = String::from("Default name");
             self.macros.insert(name, macro_editor);
         }
+        if let Some(open_macro) = event.open_macro {
+            for (_, macr) in self.macros.iter_mut() {
+                if ::std::ptr::eq(open_macro, macr.inner.macr) {
+                    macr.inner.editing = true;
+                    break;
+                }
+            }
+        }
 
         for (macro_name, macr) in self.macros.iter_mut() {
             // TODO: Add boolean flag (if editing show)
