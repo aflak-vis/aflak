@@ -8,6 +8,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+mod app;
 mod compute;
 mod constant_editor;
 mod editor;
@@ -18,6 +19,7 @@ mod node_state;
 mod scrolling;
 mod vec2;
 
+pub use app::NodeEditorApp;
 pub use compute::{ComputationState, ComputeResult};
 pub use constant_editor::ConstantEditor;
 pub use editor::{MainEditor, NodeEditor};

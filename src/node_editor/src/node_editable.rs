@@ -41,12 +41,6 @@ pub struct MacroEditor<'t, T: 't + Clone, E: 't> {
     macr: Macro<'t, T, E>,
 }
 
-pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
-    main: NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>,
-    macros: BTreeMap<String, NodeEditor<'t, MacroEditor<'t, T, E>, T, E, ED>>,
-    error_stack: Vec<Box<error::Error>>,
-}
-
 pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
     fn dst(&self) -> DSTGuard<'_, 't, T, E>;
     fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E>;

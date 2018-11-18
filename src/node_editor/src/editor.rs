@@ -11,12 +11,13 @@ use cake::{self, InputSlot, MacroEvaluationError, NodeId, Output, Transformation
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
-use node_editable::{DstEditor, Importable, NodeEditable};
+use node_editable::{DstEditor, MacroEditor, Importable, NodeEditable};
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
 
 pub type MainEditor<'t, T, E, ED> = NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>;
+pub type SubEditor<'t, T, E, ED> = NodeEditor<'t, MacroEditor<'t, T, E>, T, E, ED>;
 
 pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
     inner: N,
