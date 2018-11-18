@@ -20,7 +20,7 @@ pub type MainEditor<T, E, ED> = NodeEditor<DstEditor<T, E>, T, E, ED>;
 pub type AllTransforms<T, E> = &'static [&'static Transformation<'static, T, E>];
 
 pub struct NodeEditor<N, T: 'static + Clone, E: 'static, ED> {
-    inner: N,
+    pub(crate) inner: N,
     addable_nodes: AllTransforms<T, E>,
     pub(crate) node_states: NodeStates,
     active_node: Option<NodeId>,
@@ -35,11 +35,22 @@ pub struct NodeEditor<N, T: 'static + Clone, E: 'static, ED> {
     pub show_grid: bool,
     constant_editor: ED,
     error_stack: Vec<Box<error::Error>>,
+    event: Event<T, E>,
 }
 
 enum LinkExtremity {
     Output(Output),
     Input(InputSlot),
+}
+
+pub struct Event<T: 'static + Clone, E: 'static> {
+    pub new_macro: Option<&'static mut Macro<'static, T, E>>,
+}
+
+impl<T: Clone, E> Default for Event<T, E> {
+    fn default() -> Self {
+        Self { new_macro: None }
+    }
 }
 
 impl<N: Default, T: Clone, E, ED: Default> Default for NodeEditor<N, T, E, ED> {
@@ -60,6 +71,7 @@ impl<N: Default, T: Clone, E, ED: Default> Default for NodeEditor<N, T, E, ED> {
             show_grid: true,
             constant_editor: ED::default(),
             error_stack: vec![],
+            event: Default::default(),
         }
     }
 }
@@ -230,7 +242,7 @@ where
     ED: ConstantEditor<T>,
     E: 'static + error::Error,
 {
-    pub fn render(&mut self, ui: &Ui) {
+    pub fn render(&mut self, ui: &Ui) -> Event<T, E> {
         for idx in self.inner.dst().node_ids() {
             // Initialization of node states
             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
@@ -274,6 +286,8 @@ where
             }
         }
         self.scrolling.tick();
+
+        ::std::mem::replace(&mut self.event, Default::default())
     }
 
     pub fn outputs(&self) -> Vec<cake::OutputId> {
@@ -851,6 +865,14 @@ where
                     self.inner.dst_mut().add_owned_transform(constant);
                 }
             }
+            ui.separator();
+            if ui.menu_item(im_str!("Macro")).build() {
+                let macr = Box::new(Macro::new(DST::default()));
+                let macro_ptr = Box::into_raw(macr);
+                let macro_t = Transformation::new_macro(unsafe { &*macro_ptr });
+                self.inner.dst_mut().add_owned_transform(macro_t);
+                self.event.new_macro = Some(unsafe { &mut *macro_ptr });
+            }
         });
     }
 
@@ -1043,5 +1065,33 @@ where
     /// If not, you'll get undefined behavior!
     pub unsafe fn compute_output(&self, id: cake::OutputId) -> ComputeResult<T, E> {
         self.inner.compute_output(id)
+    }
+}
+
+impl<T, E, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
+where
+    T: 'static + Clone,
+    E: 'static,
+    ED: Default,
+{
+    pub fn spawn_editor<N>(&self, inner: N) -> NodeEditor<N, T, E, ED> {
+        NodeEditor {
+            inner,
+            addable_nodes: self.addable_nodes,
+            node_states: NodeStates::new(),
+            active_node: None,
+            drag_node: None,
+            creating_link: None,
+            new_link: None,
+            show_left_pane: true,
+            left_pane_size: None,
+            show_top_pane: true,
+            show_connection_names: true,
+            scrolling: Default::default(),
+            show_grid: true,
+            constant_editor: ED::default(),
+            error_stack: vec![],
+            event: Default::default(),
+        }
     }
 }

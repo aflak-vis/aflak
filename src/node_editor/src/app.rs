@@ -67,15 +67,32 @@ where
     E: 'static + error::Error,
 {
     pub fn render(&mut self, ui: &Ui) {
-        self.main.render(ui);
+        let event = self.main.render(ui);
+
+        if let Some(new_macro) = event.new_macro {
+            let editor = MacroEditor::new(new_macro);
+            let macro_editor = self.main.spawn_editor(editor);
+            // TODO: Set name and see name in !
+            let name = String::from("Default name");
+            self.macros.insert(name, macro_editor);
+        }
 
         for (macro_name, macr) in self.macros.iter_mut() {
             // TODO: Add boolean flag (if editing show)
             let popup_name = ImString::new(macro_name.clone());
-            ui.open_popup(&popup_name);
-            ui.popup_modal(&popup_name).build(|| {
-                macr.render(ui);
-            });
+            if macr.inner.editing {
+                ui.open_popup(&popup_name);
+                // Another window for macro editing is way better...
+                ui.popup_modal(&popup_name).build(|| {
+                    macr.render(ui);
+                    use imgui::ImGuiKey;
+                    let escape_index = ui.imgui().get_key_index(ImGuiKey::Escape);
+                    if ui.imgui().is_key_down(escape_index) {
+                        macr.inner.editing = false;
+                        ui.close_current_popup();
+                    }
+                });
+            }
         }
     }
 

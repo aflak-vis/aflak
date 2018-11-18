@@ -37,7 +37,20 @@ impl<T: 'static + Clone, E: 'static> DstEditor<T, E> {
 
 pub struct MacroEditor<T: 'static + Clone, E: 'static> {
     macr: &'static mut Macro<'static, T, E>,
-    editing: bool,
+    pub editing: bool,
+}
+
+impl<T, E> MacroEditor<T, E>
+where
+    T: 'static + Clone,
+    E: 'static,
+{
+    pub fn new(macr: &'static mut Macro<'static, T, E>) -> Self {
+        Self {
+            macr,
+            editing: true,
+        }
+    }
 }
 
 pub trait NodeEditable<T: Clone + 'static, E: 'static>: Sized {
