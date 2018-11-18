@@ -11,7 +11,7 @@ use cake::{self, InputSlot, MacroEvaluationError, NodeId, Output, Transformation
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
-use node_editable::{DstEditor, MacroEditor, Importable, NodeEditable};
+use node_editable::{DstEditor, Importable, MacroEditor, NodeEditable};
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
