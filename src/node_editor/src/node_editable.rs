@@ -168,3 +168,29 @@ where
         result_lock.clone()
     }
 }
+
+impl<'t, T, E> Serialize for MacroEditor<'t, T, E>
+where
+    T: Clone,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        unimplemented!()
+    }
+}
+
+#[derive(Deserialize)]
+pub enum DeserMacro {}
+
+impl<'t, T, E> Importable<ImportError<E>> for MacroEditor<'t, T, E>
+where
+    T: Clone,
+{
+    type Deser = DeserMacro;
+
+    fn import(&mut self, import: DeserMacro) -> Result<(), ImportError<E>> {
+        unimplemented!()
+    }
+}
