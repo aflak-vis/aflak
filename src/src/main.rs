@@ -25,7 +25,7 @@ use std::path::PathBuf;
 
 use imgui::ImString;
 
-use node_editor::NodeEditor;
+use node_editor::NodeEditorApp;
 
 use aflak::Aflak;
 use constant_editor::MyConstantEditor;
@@ -50,11 +50,11 @@ fn main() -> support::Result<()> {
     };
 
     let node_editor =
-        match NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor) {
+        match NodeEditorApp::from_export_buf(import_data, transformations, MyConstantEditor) {
             Ok(editor) => editor,
             Err(e) => {
                 eprintln!("Import failed! Initialize empty node editor.\n{}", e);
-                NodeEditor::new(transformations, MyConstantEditor)
+                NodeEditorApp::new(transformations, MyConstantEditor)
             }
         };
 
