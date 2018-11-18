@@ -393,8 +393,8 @@ mod test {
 
     #[test]
     fn import_frame_and_wave() {
-        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
-        let transformations = transformations_ref.as_slice();
+        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
+        let transformations = Box::leak(transformations_ref);
 
         let buf = show_frame_and_wave("file.fits");
         let editor = NodeEditorApp::from_export_buf(buf, transformations, MyConstantEditor);
@@ -403,8 +403,8 @@ mod test {
 
     #[test]
     fn import_equivalent_width() {
-        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
-        let transformations = transformations_ref.as_slice();
+        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
+        let transformations = Box::leak(transformations_ref);
 
         let buf = show_equivalent_width("file.fits");
         let editor = NodeEditorApp::from_export_buf(buf, transformations, MyConstantEditor);

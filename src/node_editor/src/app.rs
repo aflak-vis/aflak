@@ -13,17 +13,17 @@ use editor::NodeEditor;
 use export::ImportError;
 use node_editable::{DstEditor, MacroEditor};
 
-pub struct NodeEditorApp<'t, T: 't + Clone, E: 't, ED> {
-    main: NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>,
-    macros: BTreeMap<String, NodeEditor<'t, MacroEditor<'t, T, E>, T, E, ED>>,
+pub struct NodeEditorApp<T: 'static + Clone, E: 'static, ED> {
+    main: NodeEditor<'static, DstEditor<'static, T, E>, T, E, ED>,
+    macros: BTreeMap<String, NodeEditor<'static, MacroEditor<T, E>, T, E, ED>>,
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: Clone,
     ED: Default,
 {
-    pub fn new(addable_nodes: &'t [&'t Transformation<'t, T, E>], ed: ED) -> Self {
+    pub fn new(addable_nodes: &'static [&'static Transformation<T, E>], ed: ED) -> Self {
         Self {
             main: NodeEditor::new(addable_nodes, ed),
             macros: BTreeMap::new(),
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: 'static + Clone + VariantName + NamedAlgorithms<E> + for<'de> Deserialize<'de>,
     E: 'static,
@@ -39,7 +39,7 @@ where
 {
     pub fn from_export_buf<R>(
         r: R,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: &'static [&'static Transformation<T, E>],
         ed: ED,
     ) -> Result<Self, ImportError<E>>
     where
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: 'static
         + Clone
@@ -84,7 +84,7 @@ where
     }
 }
 
-impl<'t, T: 'static, E: 'static, ED> NodeEditorApp<'t, T, E, ED>
+impl<T: 'static, E: 'static, ED> NodeEditorApp<T, E, ED>
 where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send + From<MacroEvaluationError<E>>,
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: Clone + PartialEq,
 {
@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: Clone + cake::VariantName,
 {
@@ -112,7 +112,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditorApp<'t, T, E, ED>
+impl<T, E, ED> NodeEditorApp<T, E, ED>
 where
     T: Clone,
 {

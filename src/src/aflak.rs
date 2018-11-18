@@ -16,10 +16,10 @@ use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
 use save_output;
 
-pub type AflakNodeEditor<'t> = NodeEditorApp<'t, IOValue, IOErr, MyConstantEditor>;
+pub type AflakNodeEditor = NodeEditorApp<IOValue, IOErr, MyConstantEditor>;
 
-pub struct Aflak<'t> {
-    node_editor: AflakNodeEditor<'t>,
+pub struct Aflak {
+    node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     image1d_states: HashMap<ImString, plot::State>,
     image2d_states: HashMap<ImString, imshow::State>,
@@ -33,8 +33,8 @@ struct OutputWindow {
     window_name: ImString,
 }
 
-impl<'t> Aflak<'t> {
-    pub fn init(editor: AflakNodeEditor<'t>) -> Self {
+impl Aflak {
+    pub fn init(editor: AflakNodeEditor) -> Self {
         Self {
             node_editor: editor,
             layout_engine: LayoutEngine::new(),

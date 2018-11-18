@@ -35,8 +35,9 @@ impl<'t, T: 't + Clone, E: 't> DstEditor<'t, T, E> {
     }
 }
 
-pub struct MacroEditor<'t, T: 't + Clone, E: 't> {
-    macr: Macro<'t, T, E>,
+pub struct MacroEditor<T: 'static + Clone, E: 'static> {
+    macr: &'static mut Macro<'static, T, E>,
+    editing: bool,
 }
 
 pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
@@ -61,11 +62,11 @@ impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
     }
 }
 
-impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for MacroEditor<'t, T, E> {
-    fn dst(&self) -> DSTGuard<'_, 't, T, E> {
+impl<T: Clone, E> NodeEditable<'static, T, E> for MacroEditor<T, E> {
+    fn dst(&self) -> DSTGuard<'_, 'static, T, E> {
         self.macr.dst()
     }
-    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E> {
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 'static, T, E> {
         self.macr.dst_mut()
     }
     fn create_output(&mut self) -> OutputId {
@@ -169,7 +170,7 @@ where
     }
 }
 
-impl<'t, T, E> Serialize for MacroEditor<'t, T, E>
+impl<T, E> Serialize for MacroEditor<T, E>
 where
     T: Clone,
 {
@@ -184,7 +185,7 @@ where
 #[derive(Deserialize)]
 pub enum DeserMacro {}
 
-impl<'t, T, E> Importable<ImportError<E>> for MacroEditor<'t, T, E>
+impl<T, E> Importable<ImportError<E>> for MacroEditor<T, E>
 where
     T: Clone,
 {

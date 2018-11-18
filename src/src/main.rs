@@ -35,8 +35,8 @@ const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 fn main() -> support::Result<()> {
     env::set_var("WINIT_HIDPI_FACTOR", "1");
 
-    let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
-    let transformations = transformations_ref.as_slice();
+    let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
+    let transformations = Box::leak(transformations_ref);
 
     let matches = cli::build_cli().version(version()).get_matches();
 
