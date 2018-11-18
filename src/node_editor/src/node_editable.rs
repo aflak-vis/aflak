@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::error;
 use std::mem;
 
 use serde::{ser::Serializer, Deserialize, Serialize};
@@ -7,7 +6,6 @@ use serde::{ser::Serializer, Deserialize, Serialize};
 use cake::{self, DSTGuard, DSTGuardMut, DeserDST, Macro, MacroEvaluationError, OutputId, DST};
 
 use compute::{self, ComputeResult};
-use editor::NodeEditor;
 use export::ImportError;
 
 pub struct DstEditor<'t, T: 't + Clone, E: 't> {
