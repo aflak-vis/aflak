@@ -385,7 +385,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
 
 #[cfg(test)]
 mod test {
-    use node_editor::NodeEditor;
+    use node_editor::NodeEditorApp;
     use primitives;
 
     use super::{show_equivalent_width, show_frame_and_wave};
@@ -397,7 +397,7 @@ mod test {
         let transformations = transformations_ref.as_slice();
 
         let buf = show_frame_and_wave("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditorApp::from_export_buf(buf, transformations, MyConstantEditor);
         assert!(editor.is_ok());
     }
 
@@ -407,7 +407,7 @@ mod test {
         let transformations = transformations_ref.as_slice();
 
         let buf = show_equivalent_width("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditorApp::from_export_buf(buf, transformations, MyConstantEditor);
         assert!(editor.is_ok());
     }
 }
