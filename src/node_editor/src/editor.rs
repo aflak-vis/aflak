@@ -7,7 +7,7 @@ use std::path::Path;
 use ron::{de, ser};
 use serde::{ser::Serializer, Deserialize, Serialize};
 
-use cake::{self, InputSlot, MacroEvaluationError, NodeId, Output, Transformation, DST};
+use cake::{self, InputSlot, Macro, MacroEvaluationError, NodeId, Output, Transformation, DST};
 
 use compute::ComputeResult;
 use export::{ExportError, ImportError};
@@ -16,11 +16,12 @@ use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub type MainEditor<'t, T, E, ED> = NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>;
+pub type MainEditor<T, E, ED> = NodeEditor<DstEditor<T, E>, T, E, ED>;
+pub type AllTransforms<T, E> = &'static [&'static Transformation<'static, T, E>];
 
-pub struct NodeEditor<'t, N, T: 't + Clone, E: 't, ED> {
+pub struct NodeEditor<N, T: 'static + Clone, E: 'static, ED> {
     inner: N,
-    addable_nodes: &'t [&'t Transformation<'t, T, E>],
+    addable_nodes: AllTransforms<T, E>,
     pub(crate) node_states: NodeStates,
     active_node: Option<NodeId>,
     drag_node: Option<NodeId>,
@@ -41,7 +42,7 @@ enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<'t, N: Default, T: Clone, E, ED: Default> Default for NodeEditor<'t, N, T, E, ED> {
+impl<N: Default, T: Clone, E, ED: Default> Default for NodeEditor<N, T, E, ED> {
     fn default() -> Self {
         Self {
             inner: Default::default(),
@@ -63,12 +64,12 @@ impl<'t, N: Default, T: Clone, E, ED: Default> Default for NodeEditor<'t, N, T, 
     }
 }
 
-impl<'t, N: Default, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N: Default, T, E, ED> NodeEditor<N, T, E, ED>
 where
     T: Clone,
     ED: Default,
 {
-    pub fn new(addable_nodes: &'t [&'t Transformation<'t, T, E>], ed: ED) -> Self {
+    pub fn new(addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
         Self {
             addable_nodes,
             constant_editor: ed,
@@ -77,16 +78,12 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+impl<T, E, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
 where
     T: Clone,
     ED: Default,
 {
-    pub fn from_dst(
-        dst: DST<'t, T, E>,
-        addable_nodes: &'t [&'t Transformation<'t, T, E>],
-        ed: ED,
-    ) -> Self {
+    pub fn from_dst(dst: DST<'static, T, E>, addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
         Self {
             inner: DstEditor::from_dst(dst),
             addable_nodes,
@@ -103,10 +100,10 @@ pub struct SerialEditor<'e, N: 'e> {
     scrolling: Vec2,
 }
 
-impl<'t, N, T, E, ED> Serialize for NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> Serialize for NodeEditor<N, T, E, ED>
 where
     N: Serialize,
-    T: 't + Clone,
+    T: Clone,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -129,7 +126,7 @@ pub struct DeserEditor<DN> {
     pub scrolling: Vec2,
 }
 
-impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> NodeEditor<N, T, E, ED>
 where
     T: Clone,
     N: Importable<ImportError<E>>,
@@ -158,7 +155,7 @@ where
     }
 }
 
-impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> NodeEditor<N, T, E, ED>
 where
     T: Clone,
     N: Default + Importable<ImportError<E>>,
@@ -166,7 +163,7 @@ where
 {
     pub fn from_export_buf<R>(
         r: R,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: AllTransforms<T, E>,
         ed: ED,
     ) -> Result<Self, ImportError<E>>
     where
@@ -179,7 +176,7 @@ where
 
     pub fn from_ron_file<P>(
         file_path: P,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: AllTransforms<T, E>,
         ed: ED,
     ) -> Result<Self, ImportError<E>>
     where
@@ -190,7 +187,7 @@ where
     }
 }
 
-impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> NodeEditor<N, T, E, ED>
 where
     T: Clone,
     N: Serialize,
@@ -219,9 +216,9 @@ const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
-impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> NodeEditor<N, T, E, ED>
 where
-    N: NodeEditable<'t, T, E> + Importable<ImportError<E>> + Serialize,
+    N: NodeEditable<T, E> + Importable<ImportError<E>> + Serialize,
     T: 'static
         + Clone
         + cake::EditableVariants
@@ -857,7 +854,7 @@ where
         });
     }
 
-    fn draw_node_inside<D: DerefMut<Target = DST<'t, T, E>>>(
+    fn draw_node_inside<D: DerefMut<Target = DST<'static, T, E>>>(
         dst: &mut D,
         ui: &Ui,
         draw_list: &WindowDrawList,
@@ -963,9 +960,9 @@ where
     }
 }
 
-impl<'t, N, T, E, ED> NodeEditor<'t, N, T, E, ED>
+impl<N, T, E, ED> NodeEditor<N, T, E, ED>
 where
-    N: NodeEditable<'t, T, E>,
+    N: NodeEditable<T, E>,
     T: Clone,
 {
     fn delete_selected_nodes(&mut self) {
@@ -985,7 +982,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+impl<T, E, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
 where
     T: Clone + cake::VariantName,
 {
@@ -996,7 +993,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+impl<T, E, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
 where
     T: Clone + PartialEq,
 {
@@ -1020,7 +1017,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+impl<T, E, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
 where
     T: Clone,
 {
@@ -1035,7 +1032,7 @@ where
     }
 }
 
-impl<'t, T: 'static, E: 'static, ED> NodeEditor<'t, DstEditor<'t, T, E>, T, E, ED>
+impl<T: 'static, E: 'static, ED> NodeEditor<DstEditor<T, E>, T, E, ED>
 where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send + From<MacroEvaluationError<E>>,

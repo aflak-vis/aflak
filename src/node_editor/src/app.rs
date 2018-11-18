@@ -14,8 +14,8 @@ use export::ImportError;
 use node_editable::{DstEditor, MacroEditor};
 
 pub struct NodeEditorApp<T: 'static + Clone, E: 'static, ED> {
-    main: NodeEditor<'static, DstEditor<'static, T, E>, T, E, ED>,
-    macros: BTreeMap<String, NodeEditor<'static, MacroEditor<T, E>, T, E, ED>>,
+    main: NodeEditor<DstEditor<T, E>, T, E, ED>,
+    macros: BTreeMap<String, NodeEditor<MacroEditor<T, E>, T, E, ED>>,
 }
 
 impl<T, E, ED> NodeEditorApp<T, E, ED>

@@ -8,12 +8,12 @@ use cake::{self, DSTGuard, DSTGuardMut, DeserDST, Macro, MacroEvaluationError, O
 use compute::{self, ComputeResult};
 use export::ImportError;
 
-pub struct DstEditor<'t, T: 't + Clone, E: 't> {
-    pub(crate) dst: DST<'t, T, E>,
+pub struct DstEditor<T: 'static + Clone, E: 'static> {
+    pub(crate) dst: DST<'static, T, E>,
     output_results: BTreeMap<OutputId, ComputeResult<T, E>>,
 }
 
-impl<'t, T: 't + Clone, E: 't> Default for DstEditor<'t, T, E> {
+impl<T: 'static + Clone, E: 'static> Default for DstEditor<T, E> {
     fn default() -> Self {
         Self {
             dst: DST::default(),
@@ -22,8 +22,8 @@ impl<'t, T: 't + Clone, E: 't> Default for DstEditor<'t, T, E> {
     }
 }
 
-impl<'t, T: 't + Clone, E: 't> DstEditor<'t, T, E> {
-    pub fn from_dst(dst: DST<'t, T, E>) -> Self {
+impl<T: 'static + Clone, E: 'static> DstEditor<T, E> {
+    pub fn from_dst(dst: DST<'static, T, E>) -> Self {
         let mut output_results = BTreeMap::new();
         for (output_id, _) in dst.outputs_iter() {
             output_results.insert(*output_id, compute::new_compute_result());
@@ -40,18 +40,18 @@ pub struct MacroEditor<T: 'static + Clone, E: 'static> {
     editing: bool,
 }
 
-pub trait NodeEditable<'t, T: Clone + 't, E: 't>: Sized {
-    fn dst(&self) -> DSTGuard<'_, 't, T, E>;
-    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E>;
+pub trait NodeEditable<T: Clone + 'static, E: 'static>: Sized {
+    fn dst(&self) -> DSTGuard<'_, 'static, T, E>;
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 'static, T, E>;
 
     fn create_output(&mut self) -> OutputId;
 }
 
-impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
-    fn dst(&self) -> DSTGuard<'_, 't, T, E> {
+impl<T: Clone + 'static, E: 'static> NodeEditable<T, E> for DstEditor<T, E> {
+    fn dst(&self) -> DSTGuard<'_, 'static, T, E> {
         DSTGuard::StandAlone(&self.dst)
     }
-    fn dst_mut(&mut self) -> DSTGuardMut<'_, 't, T, E> {
+    fn dst_mut(&mut self) -> DSTGuardMut<'_, 'static, T, E> {
         DSTGuardMut::StandAlone(&mut self.dst)
     }
     fn create_output(&mut self) -> OutputId {
@@ -62,7 +62,7 @@ impl<'t, T: Clone + 't, E: 't> NodeEditable<'t, T, E> for DstEditor<'t, T, E> {
     }
 }
 
-impl<T: Clone, E> NodeEditable<'static, T, E> for MacroEditor<T, E> {
+impl<T: Clone, E> NodeEditable<T, E> for MacroEditor<T, E> {
     fn dst(&self) -> DSTGuard<'_, 'static, T, E> {
         self.macr.dst()
     }
@@ -74,9 +74,9 @@ impl<T: Clone, E> NodeEditable<'static, T, E> for MacroEditor<T, E> {
     }
 }
 
-impl<'t, T, E> Serialize for DstEditor<'t, T, E>
+impl<T, E> Serialize for DstEditor<T, E>
 where
-    T: 't + Clone + Serialize,
+    T: Clone + Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -92,7 +92,7 @@ pub trait Importable<Err>: Sized {
     fn import(&mut self, Self::Deser) -> Result<(), Err>;
 }
 
-impl<'t, T, E> Importable<ImportError<E>> for DstEditor<'t, T, E>
+impl<T, E> Importable<ImportError<E>> for DstEditor<T, E>
 where
     T: 'static + Clone + for<'de> Deserialize<'de> + cake::NamedAlgorithms<E> + cake::VariantName,
     E: 'static,
@@ -129,7 +129,7 @@ where
     }
 }
 
-impl<'t, T, E> DstEditor<'t, T, E>
+impl<T, E> DstEditor<T, E>
 where
     T: Clone,
 {
@@ -140,7 +140,7 @@ where
     }
 }
 
-impl<'t, T: 'static, E: 'static> DstEditor<'t, T, E>
+impl<T: 'static, E: 'static> DstEditor<T, E>
 where
     T: Clone + cake::VariantName + Send + Sync,
     E: Send + From<MacroEvaluationError<E>>,
