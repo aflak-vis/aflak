@@ -49,8 +49,14 @@ fn main() -> support::Result<()> {
         Some(template) => unreachable!("Got '{}', an unexpected result.", template),
     };
 
-    let node_editor = NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor)
-        .expect("Import failed");
+    let node_editor =
+        match NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor) {
+            Ok(editor) => editor,
+            Err(e) => {
+                eprintln!("Import failed! Initialize empty node editor.\n{}", e);
+                NodeEditor::new(transformations, MyConstantEditor)
+            }
+        };
 
     let mut aflak = Aflak::init(node_editor);
 

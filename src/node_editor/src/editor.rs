@@ -7,7 +7,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, Transformation, DST};
+use cake::{self, InputSlot, Transformation, DST};
 
 use compute::{self, ComputeResult};
 use constant_editor::ConstantEditor;
@@ -61,12 +61,6 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
 enum LinkExtremity {
     Output(cake::Output),
     Input(InputSlot),
-}
-
-#[derive(Copy, Clone)]
-enum InputSlot {
-    Transform(cake::Input),
-    Output(cake::OutputId),
 }
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
@@ -173,7 +167,12 @@ where
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states
-            self.node_states.init_node(&idx);
+            let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
+            let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
+            let scroll = self.scrolling.get_current();
+            let offset = win_pos - scroll;
+            let clue = mouse_pos * 0.7 - offset;
+            self.node_states.init_node(&idx, clue);
         }
         if self.show_left_pane {
             self.render_left_pane(ui);
@@ -337,15 +336,15 @@ where
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file("editor_graph_export.ron") {
-                                // TODO, show error
-                                eprintln!("Error on export: {:?}", e);
+                                eprintln!("Error on export! {}", e);
+                                self.error_stack.push(Box::new(e));
                             }
                         }
                         ui.same_line(ui.get_window_size().0 - 180.0);
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
                             if let Err(e) = self.export_to_file("editor_graph_export.ron") {
-                                // TODO, show error
-                                eprintln!("Error on import: {:?}", e);
+                                eprintln!("Error on import! {}", e);
+                                self.error_stack.push(Box::new(e));
                             }
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
@@ -709,7 +708,7 @@ where
                         cake::InputSlot::Output(output_id) => {
                             let input_node_state = self
                                 .node_states
-                                .get(&cake::NodeId::Output(*output_id))
+                                .get(&cake::NodeId::Output(output_id))
                                 .unwrap();
                             input_node_state.get_input_slot_pos(
                                 0usize,

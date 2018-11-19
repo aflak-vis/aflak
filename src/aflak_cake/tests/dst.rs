@@ -137,9 +137,9 @@ fn test_remove_node() {
     links.sort();
     assert_eq!(links, {
         let mut vec = vec![
-            (&a_out0, aflak_cake::InputSlot::Transform(&b_in0)),
-            (&d_out0, aflak_cake::InputSlot::Output(&out1)),
-            (&b_out0, aflak_cake::InputSlot::Output(&out2)),
+            (&a_out0, aflak_cake::InputSlot::Transform(b_in0)),
+            (&d_out0, aflak_cake::InputSlot::Output(out1)),
+            (&b_out0, aflak_cake::InputSlot::Output(out2)),
         ];
         vec.sort();
         vec
