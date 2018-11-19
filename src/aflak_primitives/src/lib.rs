@@ -162,10 +162,12 @@ Compute a*u + b*v.",
             cake_transform!(
                 "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
-Second output contains (a + b) / 2",
-                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
+Second output contains (a + b) / 2
+Third output contains (b - a)",
+                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
-                    vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle))]
+                    let width = *end as f32 - *start as f32;
+                    vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
             ),
             cake_transform!(
@@ -190,10 +192,12 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
             cake_transform!(
                 "Average for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
-Second output contains (a + b) / 2",
+Second output contains (a + b) / 2
+Third output contains (b - a)",
                 average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
-                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle))]
+                    let width = *end as f32 - *start as f32;
+                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
             ),
             cake_transform!(
