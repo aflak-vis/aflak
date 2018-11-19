@@ -1,0 +1,57 @@
+## Transformation
+
+- [ ] Do not store input and output directly within it.  Indeed method to
+  compute input and output depend on the type of the transformation (function,
+  constant or macro in the future).  The input and output fields are thus
+  obsolete and should not be used.
+
+- [ ] Same: Description and name should be a property of Algorithm. Constants
+  do have a stored description, and macro too, however it should be retrieved
+  from the Algorithm property.
+
+- [ ] Add name for each input/output. This should be a property of
+  Algorithm::Function, not Transformation
+
+
+  In the end, replacing Transformation by an Enumeration may be a good idea.
+
+
+## DST
+
+- [ ] Implement compute_output as a future(-like) within aflak_cake, not in
+  node_editor as it is now.
+- [ ] Each Transformation contains an Instant for its time of update
+  update (influencing compute results).
+- [ ] Each MetaTransform contains an Instant for its time of update,
+  this includes new connections and updating of default values.
+- [ ] A MetaTransform's Instant is defined as
+  max(Transformation::updated_on, MetaTransform::updated_on)
+- [ ] A TransformIdx's Instant is defined as max(all its parents's instants).
+- [ ] Make DST clonable -> DST should not contain very big objects.
+  Big objects are found in the cache.
+- [ ] For each task, clone and send DST to a thread, along with a pointer to
+  the cache.
+- [ ] struct Cache {
+          cache: HashMap<TransformIdx, RwLock<(Instant, Vec<Arc<T>>)>>,
+          in_use: AtomicIsize,
+          scheduled_for_destruction: AtomicBool,
+      }
+- [ ] Always get cached value as Arc<T>, use it then drop it when the user
+  program does not need it anymore.
+- [ ] Computing should be done as: do nothing if scheduled_for_destruction is true. If false, increment cache.in_use and send &RwLock<_>
+      to worker, then
+  Get cache lock
+   |
+  If cache is up to date (cache.instant() >= transform.instant())
+   -> Return Weak<T>
+  Else
+   -> Remove cache then re-compute it while keeping the lock, to prevent other
+   |  threads from doing the same computing in parallel and wasting CPU.
+   |
+  cache.instant := max(cache.instant, transform.instant) for all cache and
+   |               transform met in the computation above Check if cache is
+   |               still up to date
+  Return Weak<T> and release lock
+   |
+  Decrement cache.in_use .
+- [ ] On dropping Cache, set scheduled_for_destruction to true then wait for in_use to be 0 before dropping the HashMap.
