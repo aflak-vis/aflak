@@ -162,42 +162,28 @@ Compute a*u + b*v.",
             cake_transform!(
                 "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
-Second output contains (a + b) / 2",
-                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
+Second output contains (a + b) / 2
+Third output contains (b - a)",
+                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
-                    vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle))]
+                    let width = *end as f32 - *start as f32;
+                    vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
+                }
+            ),
+            
+            cake_transform!(
+                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
+Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
+Second output contains (a + b) / 2
+Third output contains (b - a)",
+                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0;
+                    let width = *end as f32 - *start as f32;
+                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
             ),
             cake_transform!(
                 "Ratio from bands' center wavelength.
-Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
-Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
-                ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
-                    if !(off_1 < on && on < off_2) {
-                        use IOErr::UnexpectedInput;
-                        let msg = format!(
-                            "wrong magnitude correlation ({} < {} < {})",
-                            off_1, on, off_2
-                        );
-                        vec![msg; 2].into_iter().map(|msg| Err(UnexpectedInput(msg))).collect()
-                    } else {
-                        let off_ratio_1 = (on - off_1) / (off_2 - off_1);
-                        let off_ratio_2 = 1.0 - off_ratio_1;
-                        vec![Ok(IOValue::Float(off_ratio_2)), Ok(IOValue::Float(off_ratio_1))]
-                    }
-                }
-            ),
-            cake_transform!(
-                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
-Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
-Second output contains (a + b) / 2",
-                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0;
-                    vec![run_average(image, *start, *end), Ok(IOValue::Float(middle))]
-                }
-            ),
-            cake_transform!(
-                "Ratio from bands' center wavelength. 
 Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
                 ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
@@ -221,6 +207,25 @@ Parameters i1, i2, onband-width, min.
 Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
                 create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float = 1.0, max: Float = ::std::f32::INFINITY) -> Image2d {
                     vec![run_create_equivalent_width(i1, i2, *fl, *max)]
+                }
+            ),
+            cake_transform!(
+                "Ratio from bands' center wavelength. 
+Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
+Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
+                ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
+                    if !(off_1 < on && on < off_2) {
+                        use IOErr::UnexpectedInput;
+                        let msg = format!(
+                            "wrong magnitude correlation ({} < {} < {})",
+                            off_1, on, off_2
+                        );
+                        vec![msg; 2].into_iter().map(|msg| Err(UnexpectedInput(msg))).collect()
+                    } else {
+                        let off_ratio_1 = (on - off_1) / (off_2 - off_1);
+                        let off_ratio_2 = 1.0 - off_ratio_1;
+                        vec![Ok(IOValue::Float(off_ratio_2)), Ok(IOValue::Float(off_ratio_1))]
+                    }
                 }
             ),
             cake_transform!(
