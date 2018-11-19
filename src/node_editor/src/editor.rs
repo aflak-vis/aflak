@@ -7,7 +7,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, InputSlot, Transformation, DST};
+use cake::{self, InputSlot, Transform, VariantName, DST};
 
 use compute::{self, ComputeResult};
 use constant_editor::ConstantEditor;
@@ -18,7 +18,7 @@ use vec2::Vec2;
 
 pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
-    addable_nodes: &'t [&'t Transformation<T, E>],
+    addable_nodes: &'t [&'t Transform<T, E>],
     pub(crate) node_states: NodeStates,
     active_node: Option<cake::NodeId>,
     drag_node: Option<cake::NodeId>,
@@ -68,7 +68,7 @@ where
     T: Clone,
     ED: Default,
 {
-    pub fn new(addable_nodes: &'t [&'t Transformation<T, E>], ed: ED) -> Self {
+    pub fn new(addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
         Self {
             addable_nodes,
             constant_editor: ed,
@@ -76,11 +76,7 @@ where
         }
     }
 
-    pub fn from_dst(
-        dst: DST<'t, T, E>,
-        addable_nodes: &'t [&'t Transformation<T, E>],
-        ed: ED,
-    ) -> Self {
+    pub fn from_dst(dst: DST<'t, T, E>, addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
         let mut output_results = BTreeMap::new();
         for (output_id, _) in dst.outputs_iter() {
             output_results.insert(*output_id, compute::new_compute_result());
@@ -105,25 +101,24 @@ where
     T: Clone + cake::VariantName,
 {
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
-        self.dst
-            .add_owned_transform(Transformation::new_constant(t))
+        self.dst.add_owned_transform(Transform::new_constant(t))
     }
 }
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone + PartialEq,
+    T: Clone + PartialEq + VariantName,
 {
-    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: Vec<T>) {
+    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
         let mut purge = false;
         if let Some(t) = self.dst.get_transform_mut(id) {
-            if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
-                for (c, val) in constants.iter_mut().zip(val.into_iter()) {
-                    if *c != val {
-                        *c = val;
-                        purge = true;
-                    }
+            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                if *constant == val {
+                    purge = true;
                 }
+            }
+            if purge {
+                t.set_constant(val);
             }
         }
         if purge {
@@ -136,10 +131,10 @@ impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
     T: Clone,
 {
-    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&[T]> {
+    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
-            if let cake::Algorithm::Constant(ref constants) = t.algorithm {
-                Some(constants.as_slice())
+            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                Some(constant)
             } else {
                 None
             }
@@ -252,8 +247,8 @@ where
                                 ui.text_wrapped(&ImString::new(format!(
                                     "#{} {}:\n{}",
                                     node_id.id(),
-                                    t.name,
-                                    t.description
+                                    t.name(),
+                                    t.description()
                                 )));
                             }
                             cake::Node::Output(_) => {
@@ -503,7 +498,9 @@ where
                     // Display connectors
                     const CONNECTOR_BORDER_THICKNESS: f32 = NODE_SLOT_RADIUS * 0.25;
                     const INPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
-                    for (slot_idx, &slot_name) in node.inputs_iter().enumerate() {
+                    for (slot_idx, slot_name) in
+                        node.input_slot_names_iter().into_iter().enumerate()
+                    {
                         let connector_pos = Vec2::new(node_states.get_state(&idx, |state| {
                             state.get_input_slot_pos(
                                 slot_idx,
@@ -565,7 +562,8 @@ where
                     // Show outputs for transform nodes
                     if let cake::NodeId::Transform(t_idx) = idx {
                         const OUTPUT_SLOT_COLOR: [f32; 4] = [0.59, 0.59, 0.59, 0.59];
-                        for (slot_idx, &slot_name) in node.outputs_iter().enumerate() {
+                        for (slot_idx, type_id) in node.outputs_iter().into_iter().enumerate() {
+                            let slot_name = type_id.name();
                             let connector_pos = node_states.get_state(&idx, |state| {
                                 state.get_output_slot_pos(
                                     slot_idx,
@@ -623,8 +621,12 @@ where
                     if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
                         let (p1, cp1, cp2, p2) = match *creating_link {
                             LinkExtremity::Output(output) => {
-                                let output_node_count =
-                                    self.dst.get_transform(output.t_idx).unwrap().output.len();
+                                let output_node_count = self
+                                    .dst
+                                    .get_transform(output.t_idx)
+                                    .unwrap()
+                                    .outputs()
+                                    .len();
                                 let output_node_state = self
                                     .node_states
                                     .get(&cake::NodeId::Transform(output.t_idx))
@@ -647,7 +649,7 @@ where
                                             .dst
                                             .get_transform(input.t_idx)
                                             .unwrap()
-                                            .input
+                                            .inputs()
                                             .len();
                                         let input_node_state = self
                                             .node_states
@@ -694,7 +696,7 @@ where
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
                             let input_node_count =
-                                self.dst.get_transform(input.t_idx).unwrap().input.len();
+                                self.dst.get_transform(input.t_idx).unwrap().inputs().len();
                             let input_node_state = self
                                 .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))
@@ -718,8 +720,12 @@ where
                         }
                     };
                     let p1 = offset + connector_in_pos;
-                    let output_node_count =
-                        self.dst.get_transform(output.t_idx).unwrap().output.len();
+                    let output_node_count = self
+                        .dst
+                        .get_transform(output.t_idx)
+                        .unwrap()
+                        .outputs()
+                        .len();
                     let output_node_state = self
                         .node_states
                         .get(&cake::NodeId::Transform(output.t_idx))
@@ -758,7 +764,7 @@ where
             ui.separator();
             for (i, node) in self.addable_nodes.iter().enumerate() {
                 ui.push_id(i as i32);
-                if ui.menu_item(&ImString::new(node.name)).build() {
+                if ui.menu_item(&ImString::new(node.name())).build() {
                     self.dst.add_transform(node);
                 }
                 ui.pop_id();
@@ -773,7 +779,7 @@ where
             for constant_type in T::editable_variants() {
                 let item_name = ImString::new(format!("Input node: {}", constant_type));
                 if ui.menu_item(&item_name).build() {
-                    let constant = Transformation::new_constant(T::default_for(constant_type));
+                    let constant = Transform::new_constant(T::default_for(constant_type));
                     self.dst.add_owned_transform(constant);
                 }
             }
@@ -813,12 +819,16 @@ where
             let mut purge_list = Vec::new();
             if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform_mut(t_idx) {
-                    if let cake::Algorithm::Constant(ref mut constants) = t.algorithm {
-                        for c in constants.iter_mut() {
-                            if constant_editor.editor(ui, c) {
-                                purge_list.push(id);
-                            }
+                    let mut changed = None;
+                    if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                        let mut c_copy = constant.clone();
+                        if constant_editor.editor(ui, &mut c_copy) {
+                            purge_list.push(id);
+                            changed = Some(c_copy);
                         }
+                    }
+                    if let Some(c) = changed {
+                        t.set_constant(c);
                     }
                 }
                 if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
@@ -884,7 +894,7 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone,
+    T: Clone + VariantName,
 {
     fn delete_selected_nodes(&mut self) {
         let selected_node_ids: Vec<_> = self

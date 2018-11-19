@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::error;
 use std::fmt;
 use std::marker::PhantomData;
@@ -9,22 +8,21 @@ use serde::ser::{Serialize, Serializer};
 use variant_name::VariantName;
 
 use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
-use transform::{Algorithm, TransformId, Transformation};
+use transform::{Algorithm, Transform};
 
-/// Trait that defines a function to get a [`Transformation`] by its name.
+/// Trait that defines a function to get a [`Transform`] by its name.
 pub trait NamedAlgorithms<E>
 where
     Self: Clone,
 {
     /// Get a transform by name.
-    fn get_transform(s: &str) -> Option<&'static Transformation<Self, E>>;
+    fn get_transform(s: &str) -> Option<&'static Transform<Self, E>>;
 }
 
 #[derive(Debug)]
 pub enum ImportError<E> {
-    TransformationNotFound(String),
+    TransformNotFound(String),
     ConstructionError(&'static str, DSTError<E>),
-    EmptyConstant,
 }
 
 impl<E> fmt::Display for ImportError<E>
@@ -33,16 +31,10 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ImportError::TransformationNotFound(ref s) => {
-                write!(f, "Transformation not found! {}", s)
-            }
+            ImportError::TransformNotFound(ref s) => write!(f, "Transform not found! {}", s),
             ImportError::ConstructionError(s, ref e) => {
                 write!(f, "Construction error! {} Caused by {}", s, e)
             }
-            ImportError::EmptyConstant => write!(
-                f,
-                "A constant node is empty in the input! An constant node cannot be empty."
-            ),
         }
     }
 }
@@ -55,24 +47,24 @@ impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
 
 #[derive(Copy, Clone, Debug, Serialize)]
 pub enum SerialTransform<'t, T: 't> {
-    Function(TransformId),
-    Constant(&'t [T]),
+    Function(&'static str),
+    Constant(&'t T),
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum DeserTransform<T, E> {
     Function(String),
-    Constant(Vec<T>),
+    Constant(T),
     Phantom(PhantomData<fn() -> E>),
 }
 
 impl<'t, T> SerialTransform<'t, T>
 where
-    T: 't + Clone,
+    T: 't + Clone + VariantName,
 {
-    pub fn new<E>(t: &'t Transformation<T, E>) -> Self {
-        match t.algorithm {
-            Algorithm::Function(_) => SerialTransform::Function(t.name),
+    pub fn new<E>(t: &'t Transform<T, E>) -> Self {
+        match t.algorithm() {
+            Algorithm::Function { id, .. } => SerialTransform::Function(id.name()),
             Algorithm::Constant(ref c) => SerialTransform::Constant(c),
         }
     }
@@ -82,34 +74,19 @@ impl<T, E> DeserTransform<T, E>
 where
     T: Clone + NamedAlgorithms<E> + VariantName,
 {
-    pub fn into(self) -> Result<Bow<'static, Transformation<T, E>>, ImportError<E>> {
+    pub fn into(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
         match self {
             DeserTransform::Function(name) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
                     Ok(Bow::Borrowed(t))
                 } else {
-                    Err(ImportError::TransformationNotFound(format!(
+                    Err(ImportError::TransformNotFound(format!(
                         "Transform '{}' not found!",
                         name
                     )))
                 }
             }
-            DeserTransform::Constant(constants) => {
-                let first_variant = constants
-                    .get(0)
-                    .map(|t| t.variant_name())
-                    .ok_or(ImportError::EmptyConstant)?;
-                Ok(Bow::Owned(Transformation {
-                    name: first_variant,
-                    description: Cow::Owned(format!(
-                        "Constant variable of type '{}'",
-                        first_variant
-                    )),
-                    input: vec![],
-                    output: constants.iter().map(|t| t.variant_name()).collect(),
-                    algorithm: Algorithm::Constant(constants),
-                }))
-            }
+            DeserTransform::Constant(c) => Ok(Bow::Owned(Transform::new_constant(c))),
             _ => panic!("PhantomData should not be used!"),
         }
     }
@@ -131,7 +108,7 @@ pub struct SerialMetaTransform<'d, T: 'd> {
 
 impl<'d, T> SerialDST<'d, T>
 where
-    T: 'd + Clone,
+    T: 'd + Clone + VariantName,
 {
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
@@ -197,7 +174,7 @@ where
 
 impl<'t, T, E> Serialize for DST<'t, T, E>
 where
-    T: 't + Clone + Serialize,
+    T: 't + Clone + Serialize + VariantName,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

@@ -97,7 +97,7 @@ impl Error for IOErr {
 }
 
 lazy_static! {
-    pub static ref TRANSFORMATIONS: Vec<cake::Transformation<IOValue, IOErr>> = {
+    pub static ref TRANSFORMATIONS: Vec<cake::Transform<IOValue, IOErr>> = {
         vec![
             cake_transform!(
                 "Open FITS file from a Path.",
@@ -227,9 +227,9 @@ Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
 }
 
 impl cake::NamedAlgorithms<IOErr> for IOValue {
-    fn get_transform(s: &str) -> Option<&'static cake::Transformation<IOValue, IOErr>> {
+    fn get_transform(s: &str) -> Option<&'static cake::Transform<IOValue, IOErr>> {
         for t in TRANSFORMATIONS.iter() {
-            if t.name == s {
+            if t.name() == s {
                 return Some(t);
             }
         }

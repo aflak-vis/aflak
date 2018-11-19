@@ -28,7 +28,6 @@ where
             .ok_or_else(|| {
                 DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
             })?;
-        let mut op = t.start();
         let mut results = Vec::with_capacity(deps.len());
         for _ in 0..(deps.len()) {
             results.push(Err(DSTError::NothingDoneYet));
@@ -49,9 +48,17 @@ where
                 })
             }
         });
+
+        let mut oks = Vec::with_capacity(results.len());
         for result in results {
-            op.feed(result?);
+            oks.push(result?);
         }
+
+        let mut op = t.start();
+        for r in &oks {
+            op.feed(r);
+        }
+
         match op.call().nth(output.output_i.into()) {
             None => Err(DSTError::ComputeError(
                 "No nth output received. This is a bug!".to_owned(),
@@ -84,7 +91,7 @@ where
 
 impl<'t, T, E> DST<'t, T, E>
 where
-    T: 't + Clone,
+    T: 't + Clone + VariantName,
     E: 't,
 {
     /// Purge all cache in the given output and all its children.

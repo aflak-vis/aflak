@@ -4,7 +4,8 @@ use std::slice;
 use dst::node::{Node, NodeId};
 use dst::MetaTransform;
 use dst::{Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
-use transform::Transformation;
+use transform::Transform;
+use variant_name::VariantName;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -74,7 +75,7 @@ impl Dependency {
 
 impl<'t, T: 't, E> Iterator for DependencyIter<'t, T, E>
 where
-    T: Clone,
+    T: Clone + VariantName,
 {
     type Item = Dependency;
     /// Push all parents on the stack recursively.
@@ -151,7 +152,7 @@ impl<'a, T: Clone, E> TransformIterator<'a, T, E> {
 }
 
 impl<'a, T: Clone, E> Iterator for TransformIterator<'a, T, E> {
-    type Item = (&'a TransformIdx, &'a Transformation<T, E>);
+    type Item = (&'a TransformIdx, &'a Transform<T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(idx, t)| (idx, t.transform()))
     }
@@ -183,7 +184,7 @@ impl<'a, T: Clone, E> Iterator for NodeIter<'a, T, E> {
 ///
 /// A link is a tuple ([`Output`], [`InputSlot`]). It is attached on one side to
 /// the [`Output`] of a transformation and to the other side on an input slot.
-/// The input slot is either the input to another [`Transformation`] or the
+/// The input slot is either the input to another [`Transform`] or the
 /// input slot of an output node.
 pub struct LinkIter<'a> {
     edges: EdgeIterator<'a>,

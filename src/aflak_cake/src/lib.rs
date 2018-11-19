@@ -45,7 +45,7 @@ macro_rules! cake_fn {
     // Special case where no argument is provided
     ($fn_name: ident<$enum_name: ident, $err_type: ty>() $fn_block: block) => {
         fn $fn_name(
-            _: Vec<::std::borrow::Cow<$enum_name>>,
+            _: Vec<&$enum_name>,
         ) -> Vec<Result<$enum_name, $err_type>> {
             $fn_block
         }
@@ -53,7 +53,7 @@ macro_rules! cake_fn {
     // Standard case
     ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) $fn_block: block) => {
         fn $fn_name(
-            input: Vec<::std::borrow::Cow<$enum_name>>,
+            input: Vec<&$enum_name>,
         ) -> Vec<Result<$enum_name, $err_type>> {
             #[allow(non_camel_case_types)]
             enum Args { $($x,)* }
@@ -98,40 +98,16 @@ macro_rules! cake_fn {
 macro_rules! cake_transform {
     ($description: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
-        use std::borrow::Cow;
 
-        $crate::Transformation {
-            name: stringify!($fn_name),
-            description: Cow::Borrowed($description),
-            input: vec![$((stringify!($x_type), {
-                cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
-            }), )*],
-            output: vec![$(stringify!($out_type), )*],
-            algorithm: $crate::Algorithm::Function($fn_name),
-        }
-    }};
-}
-
-/// Make a constant.
-///
-/// Subject for deprecation.
-/// You'd probably better use [`Transformation::new_constant`].
-#[macro_export]
-macro_rules! cake_constant {
-    ($const_name: ident, $($x: expr),*) => {{
-        use std::borrow::Cow;
-        use $crate::VariantName;
-
-        let constant = vec![$($x, )*];
-        $crate::Transformation {
-            name: stringify!($const_name),
-            description: Cow::Borrowed(
-                concat!("Constant variable of type '", stringify!($const_name), "'")
-            ),
-            input: vec![],
-            output: constant.iter().map(|c| c.variant_name()).collect(),
-            algorithm: $crate::Algorithm::Constant(constant),
-        }
+        $crate::Transform::from_algorithm($crate::Algorithm::Function {
+                f: $fn_name,
+                id: $crate::FnTransformId(stringify!($fn_name)),
+                description: $description,
+                inputs: vec![$(($crate::TypeId(stringify!($x_type)), {
+                  cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
+                 }), )*],
+                outputs: vec![$($crate::TypeId(stringify!($out_type)), )*],
+        })
     }};
 }
 

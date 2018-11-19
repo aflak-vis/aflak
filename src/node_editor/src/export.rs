@@ -5,7 +5,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transformation, VariantName};
+use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform, VariantName};
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +24,7 @@ pub struct SerialEditor<'e, T: 'e> {
 
 impl<'e, T> SerialEditor<'e, T>
 where
-    T: Clone,
+    T: Clone + VariantName,
 {
     fn new<E, ED>(editor: &'e NodeEditor<T, E, ED>) -> Self {
         Self {
@@ -45,7 +45,7 @@ pub struct DeserEditor<T, E> {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone,
+    T: Clone + VariantName,
 {
     pub fn export(&self) -> SerialEditor<T> {
         SerialEditor::new(self)
@@ -87,7 +87,7 @@ impl From<ser::Error> for ExportError {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone + Serialize,
+    T: Clone + Serialize + VariantName,
 {
     pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
         let serializable = self.export();
@@ -197,7 +197,7 @@ where
 {
     pub fn from_export_buf<R>(
         r: R,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: &'t [&'t Transform<T, E>],
         ed: ED,
     ) -> Result<Self, ImportError<E>>
     where
@@ -210,7 +210,7 @@ where
 
     pub fn from_ron_file<P>(
         file_path: P,
-        addable_nodes: &'t [&'t Transformation<T, E>],
+        addable_nodes: &'t [&'t Transform<T, E>],
         ed: ED,
     ) -> Result<Self, ImportError<E>>
     where

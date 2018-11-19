@@ -16,7 +16,7 @@ fn test_plus1() {
     let plus1transform = get_plus1_transform();
 
     let mut caller = plus1transform.start();
-    caller.feed_ref(&AlgoIO::Integer(1));
+    caller.feed(&AlgoIO::Integer(1));
     let mut ret = caller.call();
     assert_eq!(ret.next(), Some(Ok(AlgoIO::Integer(2))));
 }

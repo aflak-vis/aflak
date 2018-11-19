@@ -15,7 +15,7 @@ use support::*;
 use ron::de;
 use ron::ser;
 
-fn get_all_transforms() -> [Transformation<AlgoIO, E>; 4] {
+fn get_all_transforms() -> [Transform<AlgoIO, E>; 4] {
     [
         get_plus1_transform(),
         get_minus1_transform(),

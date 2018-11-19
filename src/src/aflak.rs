@@ -285,11 +285,6 @@ impl OutputWindow {
             if editable_values.contains_key(&value_id) {
                 let t_idx = editable_values.get(&value_id).unwrap();
                 if let Some(value) = node_editor.constant_node_value(*t_idx) {
-                    assert!(
-                        value.len() == 1,
-                        "Only constant nodes with exactly one value are supported",
-                    );
-                    let value = &value[0];
                     if let Err(e) = match value {
                         IOValue::Integer(i) => interaction.set_value(*i),
                         IOValue::Float(f) => interaction.set_value(*f),
@@ -327,7 +322,7 @@ impl OutputWindow {
             let value_id = (self.output, *id);
             if store.contains_key(&value_id) {
                 let t_idx = *store.get(&value_id).unwrap();
-                node_editor.update_constant_node(t_idx, vec![val]);
+                node_editor.update_constant_node(t_idx, val);
             } else {
                 let t_idx = node_editor.create_constant_node(val);
                 store.insert(value_id, t_idx);

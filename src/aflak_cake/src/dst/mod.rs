@@ -5,7 +5,8 @@ use std::error::Error;
 use std::fmt;
 use std::sync::RwLock;
 
-use transform::Transformation;
+use transform::Transform;
+use variant_name::VariantName;
 
 mod build;
 mod compute;
@@ -22,7 +23,7 @@ type Cache<T> = RwLock<Option<T>>;
 /// Each node is identified by a [`NodeId`].
 /// A DST has two types of nodes, transformation and output nodes.
 /// An output node is a leaf, it is the end of the journey of the data.
-/// A transformation node wraps a [`Transformation`] to takes input data and
+/// A transformation node wraps a [`Transform`] to takes input data and
 /// compute output data out of it.
 ///
 /// Each output node is identified by an [`OutputId`], while each transformation
@@ -37,7 +38,7 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: Clone + 't, E: 't> {
-    t: Bow<'t, Transformation<T, E>>,
+    t: Bow<'t, Transform<T, E>>,
     input_defaults: Vec<Option<T>>,
 }
 
@@ -45,19 +46,16 @@ impl<'t, T, E> MetaTransform<'t, T, E>
 where
     T: Clone,
 {
-    pub fn new(t: Bow<'t, Transformation<T, E>>) -> Self {
-        let input_defaults: Vec<_> = t.input.iter().map(|(_, default)| default.clone()).collect();
+    pub fn new(t: Bow<'t, Transform<T, E>>) -> Self {
+        let input_defaults = t.defaults();
         Self { t, input_defaults }
     }
 
-    pub fn new_with_defaults(
-        t: Bow<'t, Transformation<T, E>>,
-        input_defaults: Vec<Option<T>>,
-    ) -> Self {
+    pub fn new_with_defaults(t: Bow<'t, Transform<T, E>>, input_defaults: Vec<Option<T>>) -> Self {
         Self { t, input_defaults }
     }
 
-    pub fn transform(&self) -> &Transformation<T, E> {
+    pub fn transform(&self) -> &Transform<T, E> {
         self.t.as_ref()
     }
 
@@ -65,7 +63,7 @@ where
         &self.input_defaults
     }
 
-    pub fn transform_mut(&mut self) -> Option<&mut Transformation<T, E>> {
+    pub fn transform_mut(&mut self) -> Option<&mut Transform<T, E>> {
         self.t.borrow_mut()
     }
 
@@ -79,7 +77,7 @@ where
 }
 
 /// Tuple of a transformation and the default input values set up for it
-pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transformation<T, E>>, Vec<Option<T>>);
+pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<T, E>>, Vec<Option<T>>);
 
 /// Uniquely identify an ouput of a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -247,7 +245,7 @@ pub enum InputSlot {
 /// Convenient implementation for debugging
 impl<'t, T, E> fmt::Display for DST<'t, T, E>
 where
-    T: 't + Clone,
+    T: 't + Clone + VariantName,
     E: 't,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -265,13 +263,13 @@ where
 
 impl<'t, T, E> DST<'t, T, E>
 where
-    T: 't + Clone,
+    T: 't + Clone + VariantName,
     E: 't,
 {
     fn write_output(&self, f: &mut fmt::Formatter, depth: usize, output: &Output) -> fmt::Result {
         if let Some(meta) = self.transforms.get(&output.t_idx) {
             let t = meta.transform();
-            writeln!(f, "{}{}", pad(depth), t.name)?;
+            writeln!(f, "{}{}", pad(depth), t.name())?;
             let deps = self.outputs_attached_to_transform(output.t_idx).unwrap();
             for (i, dep) in deps.into_iter().enumerate() {
                 write!(f, "{}{}", pad(depth + 1), i)?;
