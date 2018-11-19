@@ -170,7 +170,6 @@ Third output contains (b - a)",
                     vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
             ),
-            
             cake_transform!(
                 "Average for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
