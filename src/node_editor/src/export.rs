@@ -5,11 +5,10 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{self, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform, VariantName};
+use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform, VariantName};
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use compute;
 use editor::NodeEditor;
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
@@ -109,20 +108,6 @@ where
     E: 'static,
 {
     pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
-        // Replace DST. Wait for no computing to take place.
-        use std::{thread, time};
-        const SLEEP_INTERVAL_MS: u64 = 1;
-        let sleep_interval = time::Duration::from_millis(SLEEP_INTERVAL_MS);
-        println!("Import requested! Wait for pending compute tasks to complete...");
-        let now = time::Instant::now();
-        loop {
-            if !self.is_compute_running() {
-                println!("Starting import after {:?}", now.elapsed());
-                break;
-            } else {
-                thread::sleep(sleep_interval);
-            }
-        }
         self.dst = import.dst.into()?;
 
         // Set Ui node states
@@ -137,13 +122,8 @@ where
         self.scrolling = Scrolling::new(import.scrolling);
 
         // Reset cache
-        self.output_results = {
-            let mut output_results = BTreeMap::new();
-            for (output_id, _) in self.dst.outputs_iter() {
-                output_results.insert(*output_id, compute::new_compute_result());
-            }
-            output_results
-        };
+        self.output_results = BTreeMap::new();
+        self.cache = Cache::new();
         Ok(())
     }
 }

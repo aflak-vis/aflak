@@ -9,17 +9,17 @@ use aflak_plot::{
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
 use cake::{OutputId, TransformIdx};
-use node_editor::{ComputationState, NodeEditor};
+use node_editor::NodeEditor;
 use primitives::{IOErr, IOValue, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
 use save_output;
 
-pub type AflakNodeEditor<'t> = NodeEditor<'t, IOValue, IOErr, MyConstantEditor>;
+pub type AflakNodeEditor = NodeEditor<'static, IOValue, IOErr, MyConstantEditor>;
 
-pub struct Aflak<'t> {
-    node_editor: AflakNodeEditor<'t>,
+pub struct Aflak {
+    node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     image1d_states: HashMap<ImString, plot::State>,
     image2d_states: HashMap<ImString, imshow::State>,
@@ -33,8 +33,8 @@ struct OutputWindow {
     window_name: ImString,
 }
 
-impl<'t> Aflak<'t> {
-    pub fn init(editor: AflakNodeEditor<'t>) -> Self {
+impl Aflak {
+    pub fn init(editor: AflakNodeEditor) -> Self {
         Self {
             node_editor: editor,
             layout_engine: LayoutEngine::new(),
@@ -90,29 +90,15 @@ impl OutputWindow {
             .position(position, ImGuiCond::FirstUseEver)
             .size(size, ImGuiCond::FirstUseEver);
         window.build(|| {
-            let compute_state = unsafe { aflak.node_editor.compute_output(self.output) };
-            let compute_state = &*compute_state.lock().unwrap();
-            match *compute_state {
-                ComputationState::NothingDone => {
+            let compute_state = aflak.node_editor.compute_output(self.output);
+            match compute_state {
+                None => {
                     ui.text("Initializing...");
                 }
-                ComputationState::RunningFirstTime => {
-                    ui.text("Computing...");
+                Some(Err(e)) => {
+                    ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                _ => {
-                    if let Some(result) = compute_state.result() {
-                        match result {
-                            Err(e) => ui.text_wrapped(&ImString::new(format!("{}", e))),
-                            Ok(result) => {
-                                self.computed_content(ui, aflak, result, gl_ctx, textures)
-                            }
-                        };
-                    } else {
-                        // As per the present computation state,
-                        // a result should be present. Else it's a bug.
-                        unreachable!();
-                    }
-                }
+                Some(Ok(result)) => self.computed_content(ui, aflak, &*result, gl_ctx, textures),
             }
         });
     }

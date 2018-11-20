@@ -1,6 +1,8 @@
 //! # aflak - Computational mAKE
 //!
 //! A crate to manage a graph of interdependent functions.
+extern crate chashmap;
+extern crate futures;
 extern crate rayon;
 
 extern crate boow;
@@ -9,12 +11,17 @@ extern crate serde;
 extern crate serde_derive;
 extern crate variant_name;
 
+mod cache;
 mod dst;
 mod export;
+mod future;
 mod transform;
 
+pub use cache::{Cache, CacheRef};
 pub use dst::*;
 pub use export::*;
+pub use future::Task;
+pub use futures::{future::Future, Async};
 pub use transform::*;
 
 pub use self::variant_name::VariantName;
