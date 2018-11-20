@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::sync::RwLock;
+use std::time::Instant;
 
 use transform::Transform;
 use variant_name::VariantName;
@@ -50,10 +51,28 @@ where
     }
 }
 
+impl<'t, T, E> DST<'t, T, E>
+where
+    T: VariantName,
+{
+    /// Get max(updated_on) for all this transform's dependencies.
+    /// panic if TransformIdx does not exist
+    pub fn updated_on(&self, t_idx: TransformIdx) -> Instant {
+        let mut updated_on = self.transforms[&t_idx].updated_on();
+        for dep in self._dependencies(Output::new(t_idx, 0)) {
+            let dep_t_idx = dep.transform_idx();
+            let dep_updated_on = self.transforms[&dep_t_idx].updated_on();
+            updated_on = updated_on.max(dep_updated_on);
+        }
+        updated_on
+    }
+}
+
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: 't, E: 't> {
     t: Bow<'t, Transform<T, E>>,
     input_defaults: Vec<Option<T>>,
+    updated_on: Instant,
 }
 
 impl<'t, T, E> Clone for MetaTransform<'t, T, E>
@@ -64,6 +83,7 @@ where
         Self {
             t: self.t.clone(),
             input_defaults: self.input_defaults.clone(),
+            updated_on: self.updated_on,
         }
     }
 }
@@ -74,13 +94,21 @@ where
 {
     pub fn new(t: Bow<'t, Transform<T, E>>) -> Self {
         let input_defaults = t.defaults();
-        Self { t, input_defaults }
+        Self {
+            t,
+            input_defaults,
+            updated_on: Instant::now(),
+        }
     }
 }
 
 impl<'t, T, E> MetaTransform<'t, T, E> {
     pub fn new_with_defaults(t: Bow<'t, Transform<T, E>>, input_defaults: Vec<Option<T>>) -> Self {
-        Self { t, input_defaults }
+        Self {
+            t,
+            input_defaults,
+            updated_on: Instant::now(),
+        }
     }
 
     pub fn transform(&self) -> &Transform<T, E> {
@@ -101,6 +129,10 @@ impl<'t, T, E> MetaTransform<'t, T, E> {
 
     pub fn tokenize(self) -> TransformAndDefaults<'t, T, E> {
         (self.t, self.input_defaults)
+    }
+
+    pub fn updated_on(&self) -> Instant {
+        self.updated_on.max(self.t.updated_on())
     }
 }
 
