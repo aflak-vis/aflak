@@ -11,6 +11,7 @@ use variant_name::VariantName;
 
 mod build;
 mod compute;
+mod compute_next;
 mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};

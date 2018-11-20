@@ -39,7 +39,7 @@ pub fn get_get_image_transform() -> Transform<AlgoIO, E> {
 }
 
 lazy_static! {
-    pub static ref TRANSFORMATIONS: Vec<Transform<AlgoIO, E>> = {
+    static ref TRANSFORMATIONS: Vec<Transform<AlgoIO, E>> = {
         vec![
             get_plus1_transform(),
             get_minus1_transform(),
@@ -47,11 +47,16 @@ lazy_static! {
             get_get_image_transform(),
         ]
     };
+    pub static ref TRANSFORMATIONS_REF: &'static [&'static Transform<AlgoIO, E>] = {
+        let vec = Box::new(TRANSFORMATIONS.iter().collect::<Vec<_>>());
+        let vec = Box::leak(vec);
+        vec.as_slice()
+    };
 }
 
 impl NamedAlgorithms<E> for AlgoIO {
     fn get_transform(s: &str) -> Option<&'static Transform<AlgoIO, E>> {
-        for t in TRANSFORMATIONS.iter() {
+        for t in TRANSFORMATIONS_REF.iter() {
             if t.name() == s {
                 return Some(t);
             }

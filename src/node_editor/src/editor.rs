@@ -7,9 +7,9 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, InputSlot, Transform, VariantName, DST};
+use cake::{self, Cache, DSTError, InputSlot, Transform, VariantName, DST};
 
-use compute::{self, ComputeResult};
+use compute::ComputationState;
 use constant_editor::ConstantEditor;
 use id_stack::GetId;
 use node_state::NodeStates;
@@ -24,7 +24,8 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
     new_link: Option<(cake::Output, InputSlot)>,
-    pub(crate) output_results: BTreeMap<cake::OutputId, ComputeResult<T, E>>,
+    pub(crate) output_results: BTreeMap<cake::OutputId, ComputationState<T, E>>,
+    pub(crate) cache: Cache<T, DSTError<E>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,
@@ -46,6 +47,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
             creating_link: None,
             new_link: None,
             output_results: BTreeMap::new(),
+            cache: Cache::new(),
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
@@ -77,14 +79,9 @@ where
     }
 
     pub fn from_dst(dst: DST<'t, T, E>, addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
-        let mut output_results = BTreeMap::new();
-        for (output_id, _) in dst.outputs_iter() {
-            output_results.insert(*output_id, compute::new_compute_result());
-        }
         Self {
             dst,
             addable_nodes,
-            output_results,
             constant_editor: ed,
             ..Default::default()
         }
@@ -771,9 +768,7 @@ where
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
-                let id = self.dst.create_output();
-                self.output_results
-                    .insert(id, compute::new_compute_result());
+                self.dst.create_output();
             }
             ui.separator();
             for constant_type in T::editable_variants() {
