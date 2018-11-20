@@ -134,6 +134,10 @@ impl<'t, T, E> MetaTransform<'t, T, E> {
     pub fn updated_on(&self) -> Instant {
         self.updated_on.max(self.t.updated_on())
     }
+
+    pub(crate) fn updated_now(&mut self) {
+        self.updated_on = Instant::now();
+    }
 }
 
 pub struct InputDefaultsMut<'a, 't: 'a, T: 'a + 't, E: 'a + 't> {
