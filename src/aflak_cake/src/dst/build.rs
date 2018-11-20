@@ -8,7 +8,7 @@ use boow::Bow;
 use variant_name::VariantName;
 
 use dst::node::{Node, NodeId};
-use dst::{DSTError, Input, InputList, Output, OutputId, TransformIdx, DST};
+use dst::{DSTError, Input, InputDefaultsMut, InputList, Output, OutputId, TransformIdx, DST};
 use dst::{MetaTransform, TransformAndDefaults};
 use transform::Transform;
 
@@ -249,7 +249,10 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Get a mutable reference to a transform's default inputs from its
     /// [`TransformIdx`].
     /// Return [`None`] if the target transform does not exist.
-    pub fn get_default_inputs_mut(&mut self, idx: TransformIdx) -> Option<&mut [Option<T>]> {
+    pub fn get_default_inputs_mut(
+        &mut self,
+        idx: TransformIdx,
+    ) -> Option<InputDefaultsMut<'_, 't, T, E>> {
         self.transforms.get_mut(&idx).map(|t| t.defaults_mut())
     }
 

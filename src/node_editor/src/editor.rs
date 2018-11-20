@@ -831,15 +831,19 @@ where
                     }
                 }
                 if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
-                    for (i, default_input) in default_inputs.iter_mut().enumerate() {
-                        if let Some(default_input) = default_input {
-                            if let Some(new_value) = constant_editor.editor(ui, default_input, i as i32) {
+                    for (i, mut default_input) in default_inputs.into_iter().enumerate() {
+                        let mut changed = None;
+                        if let Some(val) = default_input.read() {
+                            if let Some(new_value) = constant_editor.editor(ui, &val, i as i32) {
                                 purge_list.push(id);
-                                *default_input = new_value;
+                                changed = Some(new_value);
                             }
                         } else {
                             // Fill with dummy line for vertical alignment
                             ui.text("");
+                        }
+                        if let Some(new_value) = changed {
+                            default_input.write(new_value);
                         }
                     }
                 }
