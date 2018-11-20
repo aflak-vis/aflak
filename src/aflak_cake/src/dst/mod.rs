@@ -29,7 +29,7 @@ type Cache<T> = RwLock<Option<T>>;
 /// Each output node is identified by an [`OutputId`], while each transformation
 /// node is identified by a [`TransformIdx`].
 #[derive(Debug)]
-pub struct DST<'t, T: Clone + 't, E: 't> {
+pub struct DST<'t, T: 't, E: 't> {
     transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
@@ -37,7 +37,7 @@ pub struct DST<'t, T: Clone + 't, E: 't> {
 }
 
 #[derive(Debug)]
-pub struct MetaTransform<'t, T: Clone + 't, E: 't> {
+pub struct MetaTransform<'t, T: 't, E: 't> {
     t: Bow<'t, Transform<T, E>>,
     input_defaults: Vec<Option<T>>,
 }
@@ -50,7 +50,9 @@ where
         let input_defaults = t.defaults();
         Self { t, input_defaults }
     }
+}
 
+impl<'t, T, E> MetaTransform<'t, T, E> {
     pub fn new_with_defaults(t: Bow<'t, Transform<T, E>>, input_defaults: Vec<Option<T>>) -> Self {
         Self { t, input_defaults }
     }
@@ -245,7 +247,7 @@ pub enum InputSlot {
 /// Convenient implementation for debugging
 impl<'t, T, E> fmt::Display for DST<'t, T, E>
 where
-    T: 't + Clone + VariantName,
+    T: 't + VariantName,
     E: 't,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -263,7 +265,7 @@ where
 
 impl<'t, T, E> DST<'t, T, E>
 where
-    T: 't + Clone + VariantName,
+    T: 't + VariantName,
     E: 't,
 {
     fn write_output(&self, f: &mut fmt::Formatter, depth: usize, output: &Output) -> fmt::Result {

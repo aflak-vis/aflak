@@ -91,7 +91,7 @@ where
 
 impl<'t, T, E> DST<'t, T, E>
 where
-    T: 't + Clone + VariantName,
+    T: 't + VariantName,
     E: 't,
 {
     /// Purge all cache in the given output and all its children.

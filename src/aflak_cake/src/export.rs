@@ -11,10 +11,7 @@ use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, Transform};
 
 /// Trait that defines a function to get a [`Transform`] by its name.
-pub trait NamedAlgorithms<E>
-where
-    Self: Clone,
-{
+pub trait NamedAlgorithms<E>: Sized {
     /// Get a transform by name.
     fn get_transform(s: &str) -> Option<&'static Transform<Self, E>>;
 }
@@ -60,7 +57,7 @@ pub enum DeserTransform<T, E> {
 
 impl<'t, T> SerialTransform<'t, T>
 where
-    T: 't + Clone + VariantName,
+    T: 't + VariantName,
 {
     pub fn new<E>(t: &'t Transform<T, E>) -> Self {
         match t.algorithm() {
@@ -72,7 +69,7 @@ where
 
 impl<T, E> DeserTransform<T, E>
 where
-    T: Clone + NamedAlgorithms<E> + VariantName,
+    T: NamedAlgorithms<E>,
 {
     pub fn into(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
         match self {
@@ -146,7 +143,7 @@ pub struct DeserMetaTransform<T, E> {
 
 impl<T, E> DeserDST<T, E>
 where
-    T: Clone + NamedAlgorithms<E> + VariantName,
+    T: NamedAlgorithms<E> + VariantName,
 {
     pub fn into(self) -> Result<DST<'static, T, E>, ImportError<E>> {
         let mut dst = DST::new();

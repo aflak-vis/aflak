@@ -16,14 +16,27 @@ pub enum NodeId {
 
 /// Represents a [`Node`], which is either a [`Transform`] or some
 /// [`Output`].
-pub enum Node<'a, T: 'a + Clone, E: 'a> {
+pub enum Node<'a, T: 'a, E: 'a> {
     Transform(&'a Transform<T, E>),
     /// [`Output`] is `None` when there is an [`OutputId`] not connected to any
     /// [`Output`].
     Output(Option<&'a Output>),
 }
 
-impl<'a, T: Clone + VariantName, E> Node<'a, T, E> {
+impl<'a, T, E> Node<'a, T, E>
+where
+    T: Clone + VariantName,
+{
+    /// Iterate over each default value
+    pub fn inputs_default_iter(&self) -> Vec<Option<T>> {
+        match *self {
+            Node::Transform(t) => t.defaults(),
+            Node::Output(_) => vec![None],
+        }
+    }
+}
+
+impl<'a, T: VariantName, E> Node<'a, T, E> {
     /// Get node's name.
     pub fn name(&'a self, id: &NodeId) -> Cow<'static, str> {
         match *self {
@@ -44,14 +57,6 @@ impl<'a, T: Clone + VariantName, E> Node<'a, T, E> {
         match *self {
             Node::Transform(t) => t.inputs().into_iter().map(|s| s.name()).collect(),
             Node::Output(_) => vec!["Out"],
-        }
-    }
-
-    /// Iterate over each default value
-    pub fn inputs_default_iter(&self) -> Vec<Option<T>> {
-        match *self {
-            Node::Transform(t) => t.defaults(),
-            Node::Output(_) => vec![None],
         }
     }
 

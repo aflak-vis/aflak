@@ -14,7 +14,7 @@ use transform::Transform;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
-    T: Clone + VariantName,
+    T: VariantName,
 {
     /// Get [`Output`]s of given transformation that are currently in use.
     ///
@@ -213,7 +213,9 @@ where
         self.transforms.insert(idx, MetaTransform::new(t));
         idx
     }
+}
 
+impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Make a new empty [`DST`].
     pub fn new() -> Self {
         Self {

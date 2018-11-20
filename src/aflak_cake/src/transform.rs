@@ -73,10 +73,7 @@ impl<T: fmt::Debug, E> fmt::Debug for Transform<T, E> {
     }
 }
 
-impl<T, E> Transform<T, E>
-where
-    T: Clone,
-{
+impl<T, E> Transform<T, E> {
     pub fn updated_on(&self) -> Instant {
         self.updated_on
     }
