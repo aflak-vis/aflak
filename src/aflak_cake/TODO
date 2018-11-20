@@ -1,11 +1,11 @@
 ## Transformation
 
-- [ ] Do not store input and output directly within it.  Indeed method to
+- [x] Do not store input and output directly within it.  Indeed method to
   compute input and output depend on the type of the transformation (function,
   constant or macro in the future).  The input and output fields are thus
   obsolete and should not be used.
 
-- [ ] Same: Description and name should be a property of Algorithm. Constants
+- [x] Same: Description and name should be a property of Algorithm. Constants
   do have a stored description, and macro too, however it should be retrieved
   from the Algorithm property.
 
