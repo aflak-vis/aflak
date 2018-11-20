@@ -20,14 +20,14 @@
 
 - [ ] Implement compute_output as a future(-like) within aflak_cake, not in
   node_editor as it is now.
-- [ ] Each Transformation contains an Instant for its time of update
+- [x] Each Transformation contains an Instant for its time of update
   update (influencing compute results).
-- [ ] Each MetaTransform contains an Instant for its time of update,
+- [x] Each MetaTransform contains an Instant for its time of update,
   this includes new connections and updating of default values.
-- [ ] A MetaTransform's Instant is defined as
+- [x] A MetaTransform's Instant is defined as
   max(Transformation::updated_on, MetaTransform::updated_on)
-- [ ] A TransformIdx's Instant is defined as max(all its parents's instants).
-- [ ] Make DST clonable -> DST should not contain very big objects.
+- [x] A TransformIdx's Instant is defined as max(all its parents's instants).
+- [x] Make DST clonable -> DST should not contain very big objects.
   Big objects are found in the cache.
 - [ ] For each task, clone and send DST to a thread, along with a pointer to
   the cache.
