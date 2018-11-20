@@ -76,6 +76,7 @@ where
                     .entry(output)
                     .or_insert_with(|| InputList::new(vec![]));
                 inputs.push(input);
+                self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
             }
             self.purge_cache(output);
             Ok(())
@@ -88,6 +89,7 @@ where
             self.purge_cache(*output);
             let input_list = self.edges.get_mut(output).unwrap();
             input_list.inputs.retain(|input_| input_ != input);
+            self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
         }
     }
 
