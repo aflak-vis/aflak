@@ -821,10 +821,9 @@ where
                 if let Some(t) = dst.get_transform_mut(t_idx) {
                     let mut changed = None;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                        let mut c_copy = constant.clone();
-                        if constant_editor.editor(ui, &mut c_copy) {
+                        if let Some(new_value) = constant_editor.editor(ui, &constant, 0) {
                             purge_list.push(id);
-                            changed = Some(c_copy);
+                            changed = Some(new_value);
                         }
                     }
                     if let Some(c) = changed {
@@ -832,10 +831,11 @@ where
                     }
                 }
                 if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
-                    for default_input in default_inputs.iter_mut() {
+                    for (i, default_input) in default_inputs.iter_mut().enumerate() {
                         if let Some(default_input) = default_input {
-                            if constant_editor.editor(ui, default_input) {
+                            if let Some(new_value) = constant_editor.editor(ui, default_input, i as i32) {
                                 purge_list.push(id);
+                                *default_input = new_value;
                             }
                         } else {
                             // Fill with dummy line for vertical alignment

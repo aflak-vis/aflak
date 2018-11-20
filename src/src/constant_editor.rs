@@ -1,26 +1,31 @@
 use imgui_file_explorer::{UiFileExplorer, TOP_FOLDER};
 use node_editor::ConstantEditor;
-use primitives;
+use primitives::{self, IOValue};
 
-use imgui::{ImString, Ui};
+use imgui::{ImId, ImString, Ui};
 
 #[derive(Default)]
 pub struct MyConstantEditor;
 
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
-    fn editor(&self, ui: &Ui, constant: &mut primitives::IOValue) -> bool {
-        use primitives::IOValue;
+    fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I) -> Option<IOValue>
+    where
+        I: Into<ImId<'a>>,
+    {
+        ui.push_id(id);
 
-        ui.push_id(constant as *const primitives::IOValue as i32);
-        let changed = match *constant {
-            IOValue::Str(ref mut string) => {
+        let some_new_value = match *constant {
+            IOValue::Str(ref string) => {
                 let mut out = ImString::with_capacity(1024);
                 out.push_str(string);
                 let changed = ui.input_text(im_str!("String value"), &mut out).build();
-                *string = out.to_str().to_owned();
-                changed
+                if changed {
+                    Some(IOValue::Str(out.to_str().to_owned()))
+                } else {
+                    None
+                }
             }
-            IOValue::Integer(ref mut int) => {
+            IOValue::Integer(ref int) => {
                 use std::i32;
                 const MIN: i64 = i32::MIN as i64;
                 const MAX: i64 = i32::MAX as i64;
@@ -28,30 +33,52 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 if MIN <= *int && *int <= MAX {
                     let mut out = *int as i32;
                     let changed = ui.input_int(im_str!("Int value"), &mut out).build();
-                    *int = i64::from(out);
-                    changed
+                    if changed {
+                        Some(IOValue::Integer(i64::from(out)))
+                    } else {
+                        None
+                    }
                 } else {
                     ui.text(format!(
                         "Cannot edit integer smaller than {}\nor bigger than {}!\nGot {}.",
                         MIN, MAX, int
                     ));
-                    false
+                    None
                 }
             }
-            IOValue::Float(ref mut float) => ui.input_float(im_str!("Float value"), float).build(),
-            IOValue::Float2(ref mut floats) => {
-                ui.input_float2(im_str!("2 floats value"), floats).build()
+            IOValue::Float(ref float) => {
+                let mut f = *float;
+                if ui.input_float(im_str!("Float value"), &mut f).build() {
+                    Some(IOValue::Float(f))
+                } else {
+                    None
+                }
             }
-            IOValue::Float3(ref mut floats) => {
-                ui.input_float3(im_str!("3 floats value"), floats).build()
+            IOValue::Float2(ref floats) => {
+                let mut f2 = *floats;
+                if ui.input_float2(im_str!("2 floats value"), &mut f2).build() {
+                    Some(IOValue::Float2(f2))
+                } else {
+                    None
+                }
             }
-            IOValue::Bool(ref mut b) => {
-                let mut out = *b as bool;
-                let changed = ui.checkbox(im_str!("Bool value"), &mut out);
-                *b = bool::from(out);
-                changed
+            IOValue::Float3(ref floats) => {
+                let mut f3 = *floats;
+                if ui.input_float3(im_str!("3 floats value"), &mut f3).build() {
+                    Some(IOValue::Float3(f3))
+                } else {
+                    None
+                }
             }
-            IOValue::Path(ref mut file) => {
+            IOValue::Bool(ref b) => {
+                let mut b = *b;
+                if ui.checkbox(im_str!("Bool value"), &mut b) {
+                    Some(IOValue::Bool(b))
+                } else {
+                    None
+                }
+            }
+            IOValue::Path(ref file) => {
                 ui.text(file.to_str().unwrap_or("Unrepresentable path"));
                 let size = ui.get_item_rect_size();
 
@@ -63,13 +90,12 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                     });
                 if let Ok(Some(new_file)) = ret {
                     if *file != new_file {
-                        *file = new_file;
-                        true
+                        Some(IOValue::Path(new_file))
                     } else {
-                        false
+                        None
                     }
                 } else {
-                    false
+                    None
                 }
             }
             IOValue::Roi(ref roi) => {
@@ -84,12 +110,12 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                         }
                     }
                 };
-                false
+                None
             }
-            _ => false,
+            _ => None,
         };
         ui.pop_id();
 
-        changed
+        some_new_value
     }
 }
