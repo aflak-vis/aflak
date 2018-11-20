@@ -55,6 +55,31 @@ impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     }
 }
 
+impl<T, E> Clone for Algorithm<T, E>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        use Algorithm::*;
+        match *self {
+            Function {
+                f,
+                id,
+                description,
+                ref inputs,
+                ref outputs,
+            } => Function {
+                f,
+                id,
+                description,
+                inputs: inputs.clone(),
+                outputs: outputs.clone(),
+            },
+            Constant(ref t) => Constant(t.clone()),
+        }
+    }
+}
+
 /// A transformation defined by an [`Algorithm`], with a determined number of
 /// inputs and outputs.
 pub struct Transform<T, E> {
@@ -70,6 +95,18 @@ impl<T: fmt::Debug, E> fmt::Debug for Transform<T, E> {
             "Transform {{ updated_on: {:?}, algorithm: {:?} }}",
             self.updated_on, self.algorithm
         )
+    }
+}
+
+impl<T, E> Clone for Transform<T, E>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            updated_on: self.updated_on,
+            algorithm: self.algorithm.clone(),
+        }
     }
 }
 

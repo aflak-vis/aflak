@@ -36,10 +36,36 @@ pub struct DST<'t, T: 't, E: 't> {
     cache: HashMap<Output, Cache<T>>,
 }
 
+impl<'t, T, E> Clone for DST<'t, T, E>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            transforms: self.transforms.clone(),
+            edges: self.edges.clone(),
+            outputs: self.outputs.clone(),
+            cache: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: 't, E: 't> {
     t: Bow<'t, Transform<T, E>>,
     input_defaults: Vec<Option<T>>,
+}
+
+impl<'t, T, E> Clone for MetaTransform<'t, T, E>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            t: self.t.clone(),
+            input_defaults: self.input_defaults.clone(),
+        }
+    }
 }
 
 impl<'t, T, E> MetaTransform<'t, T, E>
@@ -138,7 +164,7 @@ impl fmt::Display for Input {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct InputList {
     /// List of all inputs to which the data is fed
     inputs: Vec<Input>,
