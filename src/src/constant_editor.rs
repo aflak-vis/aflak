@@ -45,6 +45,12 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             IOValue::Float3(ref mut floats) => {
                 ui.input_float3(im_str!("3 floats value"), floats).build()
             }
+            IOValue::Bool(ref mut b) => {
+                let mut out = *b as bool;
+                let changed = ui.checkbox(im_str!("Bool value"), &mut out);
+                *b = bool::from(out);
+                changed
+            }
             IOValue::Path(ref mut file) => {
                 ui.text(file.to_str().unwrap_or("Unrepresentable path"));
                 let size = ui.get_item_rect_size();
