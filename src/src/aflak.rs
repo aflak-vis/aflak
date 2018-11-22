@@ -162,6 +162,9 @@ impl OutputWindow {
             IOValue::Float3(floats) => {
                 ui.text(format!("{:?}", floats));
             }
+            IOValue::Bool(b) => {
+                ui.text(format!("{:?}", b));
+            }
             IOValue::Image1d(ref image) => {
                 let state = aflak
                     .image1d_states
