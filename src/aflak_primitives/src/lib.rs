@@ -36,6 +36,7 @@ pub enum IOValue {
     Float2([f32; 2]),
     Float3([f32; 3]),
     Str(String),
+    Bool(bool),
     Path(PathBuf),
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
@@ -56,6 +57,7 @@ impl PartialEq for IOValue {
             (Float2(f1), Float2(f2)) => f1 == f2,
             (Float3(f1), Float3(f2)) => f1 == f2,
             (Str(s1), Str(s2)) => s1 == s2,
+            (Bool(b1), Bool(b2)) => b1 == b2,
             (Image1d(i1), Image1d(i2)) => i1 == i2,
             (Image2d(i1), Image2d(i2)) => i1 == i2,
             (Image3d(i1), Image3d(i2)) => i1 == i2,
@@ -244,6 +246,7 @@ impl cake::DefaultFor for IOValue {
             "Float3" => IOValue::Float3([0.0; 3]),
             "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
+            "Bool" => IOValue::Bool(false),
             "Path" => IOValue::Path(PathBuf::from("/")),
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
@@ -252,7 +255,9 @@ impl cake::DefaultFor for IOValue {
 
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
-        &["Integer", "Float", "Float2", "Float3", "Roi", "Str", "Path"]
+        &[
+            "Integer", "Float", "Float2", "Float3", "Roi", "Str", "Bool", "Path",
+        ]
     }
 }
 
