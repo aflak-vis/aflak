@@ -196,7 +196,7 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)",
-                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float {
+                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
