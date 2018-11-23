@@ -20,7 +20,7 @@ before_install:
 
 script:
   - cargo build --all --verbose
-  - cargo test --all --verbose -- --test-threads=1
+  - cargo test --all --verbose
 
 jobs:
   include:
