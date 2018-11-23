@@ -87,10 +87,12 @@ impl<T, E> Cache<T, E> {
         }
     }
 
-    pub fn init<I: Iterator<Item = TransformIdx>>(&mut self, _ids: I) {
-        // for id in ids {
-        //     self.cache.entry(id).or_insert_with(|| RwLock::new(None));
-        // }
+    pub fn init<I: Iterator<Item = TransformIdx>>(&mut self, ids: I) {
+        for id in ids {
+            if !self.cache.contains_key(&id) {
+                self.cache.insert_new(id, None);
+            }
+        }
     }
 
     pub(crate) fn compute<F>(
@@ -111,8 +113,6 @@ impl<T, E> Cache<T, E> {
                     eprintln!("Cache to old for {:?}. Recompute...", t_idx);
                 }
             }
-        } else {
-            self.cache.insert_new(t_idx, None);
         }
 
         let result = f();
