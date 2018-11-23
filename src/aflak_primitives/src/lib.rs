@@ -206,8 +206,8 @@ Third output contains (b - a)",
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i1, i2, onband-width, min.
 Compute value = (i1 - i2) *fl / i1. if abs(value) > max, value changes to 0.",
-                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float = 1.0, max: Float = ::std::f32::INFINITY) -> Image2d {
-                    vec![run_create_equivalent_width(i1, i2, *fl, *max)]
+                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image2d {
+                    vec![run_create_equivalent_width(i1, i2, *fl, *max, *is_emission)]
                 }
             ),
             cake_transform!(
@@ -607,11 +607,12 @@ fn run_create_equivalent_width(
     i2: &WcsArray2,
     fl: f32,
     max: f32,
+    is_emission: bool,
 ) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
     let i2_arr = i2.scalar();
-    let out = (i1_arr - i2_arr) * fl / i1_arr;
-    let result = out.map(|v| if v.abs() > max { 0.0 } else { *v });
+    let out = (i1_arr - i2_arr) * fl / i1_arr * (if is_emission { -1.0 } else { 1.0 });
+    let result = out.map(|v| if *v > max { 0.0 } else { *v });
 
     // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
