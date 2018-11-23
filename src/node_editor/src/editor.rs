@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::error::Error;
 
 use imgui::{
-    sys, ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
-    ImVec2, StyleVar, Ui, WindowDrawList,
+    ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
+    StyleVar, Ui, WindowDrawList,
 };
 use serde::{Deserialize, Serialize};
 
@@ -171,16 +171,10 @@ where
             ui.open_popup(im_str!("Error!"));
         }
         ui.popup_modal(im_str!("Error!")).build(|| {
-            unsafe {
-                sys::igPushTextWrapPos(400.0);
-            }
-            {
+            ui.with_text_wrap_pos(400.0, || {
                 let e = &self.error_stack[self.error_stack.len() - 1];
                 ui.text_wrapped(&ImString::new(format!("{}", e)));
-            }
-            unsafe {
-                sys::igPopTextWrapPos();
-            }
+            });
             if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                 self.error_stack.pop();
                 ui.close_current_popup();
