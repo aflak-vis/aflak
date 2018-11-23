@@ -18,7 +18,11 @@ mod future;
 mod transform;
 
 pub use cache::Cache;
-pub use dst::*;
+pub use dst::{
+    DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot, LinkIter,
+    MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults, TransformIdx,
+    DST,
+};
 pub use export::*;
 pub use future::Task;
 pub use futures::{future::Future, Async};
