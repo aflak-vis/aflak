@@ -18,7 +18,7 @@
 
 ## DST
 
-- [ ] Implement compute_output as a future(-like) within aflak_cake, not in
+- [x] Implement compute_output as a future(-like) within aflak_cake, not in
   node_editor as it is now.
 - [x] Each Transformation contains an Instant for its time of update
   update (influencing compute results).
@@ -29,7 +29,7 @@
 - [x] A TransformIdx's Instant is defined as max(all its parents's instants).
 - [x] Make DST clonable -> DST should not contain very big objects.
   Big objects are found in the cache.
-- [ ] For each task, clone and send DST to a thread, along with a pointer to
+- [x] For each task, clone and send DST to a thread, along with a pointer to
   the cache.
 - [x] struct Cache {
           cache: HashMap<TransformIdx, RwLock<(Instant, Vec<Arc<T>>)>>,
