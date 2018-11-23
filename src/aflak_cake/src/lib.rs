@@ -17,7 +17,7 @@ mod export;
 mod future;
 mod transform;
 
-pub use cache::{Cache, CacheRef};
+pub use cache::Cache;
 pub use dst::*;
 pub use export::*;
 pub use future::Task;

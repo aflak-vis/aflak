@@ -9,6 +9,10 @@ use dst::TransformIdx;
 
 use chashmap::CHashMap;
 
+/// The Cache object used to run cached computations with cake
+///
+/// The cache is a concurrent hash-map, that will stay alive after
+/// being dropped at least until the last worker using the cache releases it.
 #[derive(Debug)]
 pub struct Cache<T, E> {
     cache: CHashMap<TransformIdx, Option<CacheBox<T, E>>>,
@@ -36,8 +40,8 @@ impl<T, E> CacheRef<T, E> {
     /// Compute and insert in cache *or* get from cache.
     /// Return None if the cache is scheduled for destruction.
     ///
-    /// I cached value is present and newer than transorm's instant, then
-    /// use it.
+    /// If cached value is present and newer than the providedd instant, then
+    /// do not do the heavy computation and return the cached value.
     pub(crate) fn compute<F>(
         &self,
         t_idx: TransformIdx,
@@ -71,6 +75,7 @@ struct CacheBox<T, E> {
 }
 
 impl<T, E> Cache<T, E> {
+    /// Initialize Cache
     pub fn new() -> Self {
         Self {
             cache: CHashMap::new(),
@@ -79,7 +84,7 @@ impl<T, E> Cache<T, E> {
         }
     }
 
-    pub fn get_ref(&self) -> CacheRef<T, E> {
+    pub(crate) fn get_ref(&self) -> CacheRef<T, E> {
         CacheRef {
             inner: self,
             in_use: self.in_use.clone(),
@@ -87,7 +92,7 @@ impl<T, E> Cache<T, E> {
         }
     }
 
-    pub fn init<I: Iterator<Item = TransformIdx>>(&mut self, ids: I) {
+    pub(crate) fn init<I: Iterator<Item = TransformIdx>>(&mut self, ids: I) {
         for id in ids {
             if !self.cache.contains_key(&id) {
                 self.cache.insert_new(id, None);
