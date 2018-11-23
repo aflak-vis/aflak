@@ -16,9 +16,12 @@ pub trait NamedAlgorithms<E>: Sized {
     fn get_transform(s: &str) -> Option<&'static Transform<Self, E>>;
 }
 
+/// Error type used to represent a failed deserialization into DST.
 #[derive(Debug)]
 pub enum ImportError<E> {
+    /// An unknown transform name was used.
     TransformNotFound(String),
+    /// The DST cannot be constructed because it is inconsistent.
     ConstructionError(&'static str, DSTError<E>),
 }
 
