@@ -30,7 +30,7 @@ where
             .or_insert_with(|| ComputationState {
                 previous_result: None,
                 task: dst.compute(id, cache),
-                counter: 0,
+                counter: 1,
             });
 
         const WRAP: u8 = 5;
