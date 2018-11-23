@@ -29,7 +29,7 @@ where
             .entry(id)
             .or_insert_with(|| ComputationState {
                 previous_result: None,
-                task: dst.compute_next(id, cache),
+                task: dst.compute(id, cache),
                 counter: 0,
             });
 
@@ -38,12 +38,12 @@ where
             match state.task.poll() {
                 Ok(Async::Ready(t)) => {
                     state.previous_result = Some(Ok(t));
-                    state.task = dst.compute_next(id, cache);
+                    state.task = dst.compute(id, cache);
                 }
                 Ok(Async::NotReady) => (),
                 Err(e) => {
                     state.previous_result = Some(Err(e));
-                    state.task = dst.compute_next(id, cache);
+                    state.task = dst.compute(id, cache);
                 }
             };
         }

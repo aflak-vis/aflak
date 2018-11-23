@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::slice;
-use std::sync::RwLock;
 
 use boow::Bow;
 use variant_name::VariantName;
@@ -78,7 +77,6 @@ where
                 inputs.push(input);
                 self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
             }
-            self.purge_cache(output);
             Ok(())
         }
     }
@@ -86,7 +84,6 @@ where
     /// Disconnect an output from an input
     pub fn disconnect(&mut self, output: &Output, input: &Input) {
         if self.edges.contains_key(output) {
-            self.purge_cache(*output);
             let input_list = self.edges.get_mut(output).unwrap();
             input_list.inputs.retain(|input_| input_ != input);
             self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
@@ -224,7 +221,6 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
             transforms: HashMap::new(),
             edges: HashMap::new(),
             outputs: HashMap::new(),
-            cache: HashMap::new(),
         }
     }
 
@@ -336,7 +332,6 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Attach an already registered output somewhere else
     pub fn update_output(&mut self, output_id: OutputId, output: Output) {
         self.outputs.insert(output_id, Some(output));
-        self.cache.insert(output, RwLock::new(None));
     }
 
     /// Detach output with given ID. Does nothing if output does not exist or
