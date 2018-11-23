@@ -94,6 +94,8 @@ where
     }
 }
 
+/// A representation of a DST for serialization.
+///
 /// Vectors are more portable than hashmaps for serialization.
 #[derive(Clone, Debug, Serialize)]
 pub struct SerialDST<'d, T: 'd> {
@@ -112,6 +114,7 @@ impl<'d, T> SerialDST<'d, T>
 where
     T: 'd + Clone + VariantName,
 {
+    /// Create a serializable representaion of the DST given as argument.
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
             transforms: dst
@@ -131,6 +134,7 @@ where
     }
 }
 
+/// A representation of a DST for deserialization.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserDST<T, E> {
@@ -150,6 +154,7 @@ impl<T, E> DeserDST<T, E>
 where
     T: NamedAlgorithms<E> + VariantName,
 {
+    /// Converts this intermediary representation of a DST into a normal DST.
     pub fn into(self) -> Result<DST<'static, T, E>, ImportError<E>> {
         let mut dst = DST::new();
         for (t_idx, DeserMetaTransform { t, input_defaults }) in self.transforms {
