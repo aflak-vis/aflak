@@ -24,7 +24,7 @@ fn test_plus1() {
     assert_eq!("Function(\"plus1\")", s);
 
     let plus1_deser: DeserTransform<AlgoIO, E> = from_str(&s).unwrap();
-    let plus1transform_back = plus1_deser.into().unwrap();
+    let plus1transform_back = plus1_deser.into_transform().unwrap();
 
     // Check that plus1transform_back behaves as plus1transform
     let mut caller = plus1transform_back.start();
@@ -38,7 +38,7 @@ fn test_plus1() {
     assert_eq!("Constant(Integer(1))", s);
 
     let const1_deser: DeserTransform<AlgoIO, E> = from_str(&s).unwrap();
-    let const1_back = const1_deser.into().unwrap();
+    let const1_back = const1_deser.into_transform().unwrap();
     // Check that const1_back behaves as const1
     let caller = const1_back.start();
     let mut ret = caller.call();

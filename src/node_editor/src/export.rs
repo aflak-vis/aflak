@@ -108,7 +108,7 @@ where
     E: 'static,
 {
     pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
-        self.dst = import.dst.into()?;
+        self.dst = import.dst.into_dst()?;
 
         // Set Ui node states
         self.node_states = {
