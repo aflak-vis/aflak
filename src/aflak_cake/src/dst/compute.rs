@@ -14,6 +14,9 @@ where
     T: Clone + VariantName + Send + Sync,
     E: Send + Sync,
 {
+    /// Return the value out of the output given as argument.
+    ///
+    /// Distribute computation over several threads (if available).
     pub fn compute(
         &self,
         output_id: OutputId,
@@ -42,7 +45,7 @@ where
         }
     }
 
-    pub fn _compute(&self, output: Output, cache: CacheRef<T, DSTError<E>>) -> NodeResult<T, E> {
+    fn _compute(&self, output: Output, cache: CacheRef<T, DSTError<E>>) -> NodeResult<T, E> {
         let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
             meta
         } else {
