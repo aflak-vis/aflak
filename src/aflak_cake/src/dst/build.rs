@@ -69,14 +69,12 @@ where
             for input_list in self.edges.values_mut() {
                 input_list.inputs.retain(|input_| input_ != &input)
             }
-            {
-                let inputs = self
-                    .edges
-                    .entry(output)
-                    .or_insert_with(|| InputList::new(vec![]));
-                inputs.push(input);
-                self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
-            }
+            let inputs = self
+                .edges
+                .entry(output)
+                .or_insert_with(|| InputList::new(vec![]));
+            inputs.push(input);
+            self.transforms.get_mut(&input.t_idx).unwrap().updated_now();
             Ok(())
         }
     }
