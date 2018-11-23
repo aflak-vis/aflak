@@ -115,13 +115,12 @@ impl<T, E> Cache<T, E> {
             self.cache.insert_new(t_idx, None);
         }
 
-        let time = Instant::now();
         let result = f();
 
         let ret = result.clone();
         let mut some_cache_box = self.cache.get_mut(&t_idx).unwrap();
         *some_cache_box = Some(CacheBox {
-            time,
+            time: t_instant,
             values: result,
         });
         ret
