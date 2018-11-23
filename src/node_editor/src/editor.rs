@@ -354,8 +354,9 @@ where
     }
 
     fn render_graph_canvas(&mut self, ui: &Ui) {
-        const NODE_SLOT_RADIUS: f32 = 5.0 * CURRENT_FONT_WINDOW_SCALE;
-        const NODE_SLOT_RADIUS_SQUARED: f32 = NODE_SLOT_RADIUS * NODE_SLOT_RADIUS;
+        const NODE_SLOT_RADIUS: f32 = 6.0 * CURRENT_FONT_WINDOW_SCALE;
+        const NODE_CLICK_BOX_RADIUS: f32 = 1.3 * NODE_SLOT_RADIUS;
+        const NODE_CLICK_BOX_RADIUS_SQUARED: f32 = NODE_CLICK_BOX_RADIUS * NODE_CLICK_BOX_RADIUS;
         // We don't detect "mouse release" events while dragging links onto slots.
         // Instead we check that our mouse delta is small enough. Otherwise we couldn't
         // hover other slots while dragging links.
@@ -511,7 +512,7 @@ where
                         if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                             if (mouse_pos - connector_screen_pos).squared_norm()
-                                <= NODE_SLOT_RADIUS_SQUARED
+                                <= NODE_CLICK_BOX_RADIUS_SQUARED
                             {
                                 self.drag_node = None;
                                 self.creating_link = Some(LinkExtremity::Input(match idx {
@@ -526,7 +527,7 @@ where
                             // Check if we hover slot!
                             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                             if (mouse_pos - connector_screen_pos).squared_norm()
-                                <= NODE_SLOT_RADIUS_SQUARED
+                                <= NODE_CLICK_BOX_RADIUS_SQUARED
                             {
                                 self.new_link = Some((
                                     link_output,
@@ -577,7 +578,7 @@ where
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                                 let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                                 if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
+                                    <= NODE_CLICK_BOX_RADIUS_SQUARED
                                 {
                                     self.drag_node = None;
                                     self.creating_link = Some(LinkExtremity::Output(
@@ -589,7 +590,7 @@ where
                                 // Check if we hover slot!
                                 let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                                 if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
+                                    <= NODE_CLICK_BOX_RADIUS_SQUARED
                                 {
                                     self.new_link =
                                         Some((cake::Output::new(t_idx, slot_idx), link_input));
