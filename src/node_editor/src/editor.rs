@@ -365,7 +365,6 @@ where
             draw_list.channels_split(5, |channels| {
                 let canvas_size = Vec2::new(ui.get_window_size());
                 let win_pos = Vec2::new(ui.get_cursor_screen_pos());
-                // TODO: Center view on a specific node
                 let offset = win_pos - self.scrolling.get_current();
 
                 if self.show_grid {
