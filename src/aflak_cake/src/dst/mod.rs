@@ -3,7 +3,6 @@ use boow::Bow;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use std::sync::RwLock;
 use std::time::Instant;
 
 use transform::Transform;
@@ -11,13 +10,10 @@ use variant_name::VariantName;
 
 mod build;
 mod compute;
-mod compute_next;
 mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
 pub use self::node::{Node, NodeId};
-
-type Cache<T> = RwLock<Option<T>>;
 
 /// Dynamic Syntax Tree
 ///
@@ -35,7 +31,6 @@ pub struct DST<'t, T: 't, E: 't> {
     transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: HashMap<Output, InputList>,
     outputs: HashMap<OutputId, Option<Output>>,
-    cache: HashMap<Output, Cache<T>>,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>
@@ -47,7 +42,6 @@ where
             transforms: self.transforms.clone(),
             edges: self.edges.clone(),
             outputs: self.outputs.clone(),
-            cache: HashMap::new(),
         }
     }
 }

@@ -1,138 +1,114 @@
-use std::sync::RwLock;
+use std::sync::Arc;
 
 use rayon;
+
+use cache::{Cache, CacheRef};
+use dst::{DSTError, Output, OutputId, DST};
+use future::Task;
 use variant_name::VariantName;
 
-use dst::node::NodeId;
-use dst::{DSTError, Output, OutputId, DST};
+pub type NodeResult<T, E> = Result<Arc<T>, Arc<DSTError<E>>>;
 
-impl<'t, T: 't, E: 't> DST<'t, T, E>
+impl<T, E> DST<'static, T, E>
 where
     T: Clone + VariantName + Send + Sync,
-    E: Send,
+    E: Send + Sync,
 {
-    fn _compute(&self, output: Output) -> Result<T, DSTError<E>> {
-        let meta = self.transforms.get(&output.t_idx).ok_or_else(|| {
-            DSTError::ComputeError(format!("Tranform {:?} not found!", output.t_idx))
-        })?;
-        let t = meta.transform();
-        let output_cache_lock = self.cache.get(&output).expect("Get output cache");
-        {
-            let output_cache = output_cache_lock.read().unwrap();
-            if let Some(ref cache) = *output_cache {
-                return Ok(cache.clone());
-            }
-        }
-        let deps = self
-            .outputs_attached_to_transform(output.t_idx)
-            .ok_or_else(|| {
-                DSTError::ComputeError(format!("Transform {:?} not found!", output.t_idx))
-            })?;
-        let mut results = Vec::with_capacity(deps.len());
-        for _ in 0..(deps.len()) {
-            results.push(Err(DSTError::NothingDoneYet));
-        }
-        let defaults = meta.defaults().to_vec();
-        rayon::scope(|s| {
-            for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults) {
-                s.spawn(move |_| {
-                    *result = if let Some(output) = parent_output {
-                        self._compute(output)
-                    } else if let Some(default) = default {
-                        Ok(default)
-                    } else {
-                        Err(DSTError::ComputeError(
-                            "Missing dependency! Cannot compute.".to_owned(),
-                        ))
-                    }
-                })
-            }
-        });
+    pub fn compute(
+        &self,
+        output_id: OutputId,
+        cache: &mut Cache<T, DSTError<E>>,
+    ) -> Task<Arc<T>, Arc<DSTError<E>>> {
+        let t_indices = self.transforms.keys().cloned();
+        cache.init(t_indices);
 
-        let mut oks = Vec::with_capacity(results.len());
-        for result in results {
-            oks.push(result?);
-        }
-
-        let mut op = t.start();
-        for r in &oks {
-            op.feed(r);
-        }
-
-        match op.call().nth(output.output_i.into()) {
-            None => Err(DSTError::ComputeError(
-                "No nth output received. This is a bug!".to_owned(),
-            )),
-            Some(result) => {
-                if let Ok(ref result) = result {
-                    let mut cache = output_cache_lock.write().unwrap();
-                    *cache = Some(result.clone())
-                }
-                result.map_err(DSTError::InnerComputeError)
+        if let Some(some_output) = self.outputs.get(&output_id) {
+            if let Some(output) = some_output {
+                let output = *output;
+                let cache_ref = cache.get_ref();
+                let dst = self.clone();
+                Task::new(move || dst._compute(output, cache_ref))
+            } else {
+                Task::errored(Arc::new(DSTError::MissingOutputID(format!(
+                    "Output ID {:?} is not attached!",
+                    output_id
+                ))))
             }
+        } else {
+            Task::errored(Arc::new(DSTError::MissingOutputID(format!(
+                "Output ID {:?} not found!",
+                output_id
+            ))))
         }
     }
 
-    /// Return the result of the computation to the output given as argument.
-    ///
-    /// If possible, computation is distributed on several threads.
-    pub fn compute(&self, output_id: OutputId) -> Result<T, DSTError<E>> {
-        self.outputs
-            .get(&output_id)
-            .ok_or_else(|| {
-                DSTError::MissingOutputID(format!("Output ID {:?} not found!", output_id))
-            }).and_then(|output| {
-                output.ok_or_else(|| {
-                    DSTError::MissingOutputID(format!("Output ID {:?} is not attached!", output_id))
-                })
-            }).and_then(|output| self._compute(output))
-    }
-}
+    pub fn _compute(&self, output: Output, cache: CacheRef<T, DSTError<E>>) -> NodeResult<T, E> {
+        let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
+            meta
+        } else {
+            return Err(Arc::new(DSTError::ComputeError(format!(
+                "Transform {:?} not found!",
+                output.t_idx
+            ))));
+        };
 
-impl<'t, T, E> DST<'t, T, E>
-where
-    T: 't + VariantName,
-    E: 't,
-{
-    /// Purge all cache in the given output and all its children.
-    pub(crate) fn purge_cache(&mut self, output: Output) {
-        self.cache.insert(output, RwLock::new(None));
-        let inputs: Option<Vec<_>> = self
-            .inputs_attached_to(&output)
-            .map(|inputs| inputs.cloned())
-            .map(Iterator::collect);
-        if let Some(inputs) = inputs {
-            for input in inputs {
-                let outputs = self.outputs_of_transformation(input.t_idx);
-                if let Some(outputs) = outputs {
-                    for output in outputs {
-                        self.purge_cache(output);
-                    }
+        let t_idx = output.t_idx;
+        let index: usize = output.output_i.into();
+        let updated_on = self.updated_on(t_idx);
+
+        if let Some(mut result) = cache.compute(t_idx, updated_on, || {
+            let deps = self
+                .outputs_attached_to_transform(t_idx)
+                .expect("Tranform not found!");
+
+            let mut results = Vec::with_capacity(deps.len());
+            for _ in 0..(deps.len()) {
+                results.push(Err(Arc::new(DSTError::NothingDoneYet)));
+            }
+            let defaults = meta.defaults().to_vec();
+            rayon::scope(|s| {
+                for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults)
+                {
+                    let cache_clone = cache.clone();
+                    s.spawn(move |_| {
+                        *result = if let Some(output) = parent_output {
+                            self._compute(output, cache_clone)
+                        } else if let Some(default) = default {
+                            Ok(Arc::new(default))
+                        } else {
+                            Err(Arc::new(DSTError::ComputeError(
+                                "Missing dependency! Cannot compute.".to_owned(),
+                            )))
+                        }
+                    })
+                }
+            });
+
+            let t = meta.transform();
+            let output_count = t.outputs().len();
+            let mut op = t.start();
+            for result in &results {
+                match result {
+                    Ok(ok) => op.feed(&**ok),
+                    Err(e) => return vec![Err((*e).clone()); output_count],
                 }
             }
-        }
-    }
-
-    /// Purge cache for specified node.
-    pub fn purge_cache_node(&mut self, node_id: &NodeId) {
-        match *node_id {
-            NodeId::Output(ref output_id) => {
-                let output = {
-                    if let Some(Some(output)) = self.outputs.get(output_id) {
-                        *output
-                    } else {
-                        return;
-                    }
-                };
-                self.purge_cache(output);
+            let mut out = Vec::with_capacity(output_count);
+            for output in op.call() {
+                out.push(
+                    output
+                        .map(Arc::new)
+                        .map_err(|e| Arc::new(DSTError::InnerComputeError(e))),
+                );
             }
-            NodeId::Transform(t_idx) => {
-                if let Some(outputs) = self.outputs_of_transformation(t_idx) {
-                    for output in outputs {
-                        self.purge_cache(output);
-                    }
-                }
-            }
+            out
+        }) {
+            result.remove(index)
+        } else {
+            Err(Arc::new(DSTError::ComputeError(format!(
+                "Cache is undergoing deletion! Cannot compute output {} now",
+                output,
+            ))))
         }
     }
 }

@@ -29,7 +29,7 @@ fn get_all_transforms() -> [Transform<AlgoIO, E>; 4] {
 
 macro_rules! assert_output_eq {
     ($dst: expr, $output: expr, $expected_value: expr, $cache: expr) => {{
-        let mut promise = $dst.compute_next($output, $cache);
+        let mut promise = $dst.compute($output, $cache);
         let out = loop {
             match promise.poll() {
                 Ok(Async::Ready(r)) => break r,

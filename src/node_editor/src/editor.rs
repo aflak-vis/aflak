@@ -107,19 +107,14 @@ where
     T: Clone + PartialEq + VariantName,
 {
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        let mut purge = false;
         if let Some(t) = self.dst.get_transform_mut(id) {
+            let mut new_value = false;
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                if *constant == val {
-                    purge = true;
-                }
+                new_value = *constant == val;
             }
-            if purge {
+            if new_value {
                 t.set_constant(val);
             }
-        }
-        if purge {
-            self.dst.purge_cache_node(&cake::NodeId::Transform(id));
         }
     }
 }
@@ -811,13 +806,11 @@ where
                 }
             });
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
-            let mut purge_list = Vec::new();
             if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform_mut(t_idx) {
                     let mut changed = None;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
                         if let Some(new_value) = constant_editor.editor(ui, &constant, 0) {
-                            purge_list.push(id);
                             changed = Some(new_value);
                         }
                     }
@@ -830,7 +823,6 @@ where
                         let mut changed = None;
                         if let Some(val) = default_input.read() {
                             if let Some(new_value) = constant_editor.editor(ui, &val, i as i32) {
-                                purge_list.push(id);
                                 changed = Some(new_value);
                             }
                         } else {
@@ -842,9 +834,6 @@ where
                         }
                     }
                 }
-            }
-            for node_id in purge_list {
-                dst.purge_cache_node(node_id);
             }
             // TODO: Add copy-paste buttons
         });
