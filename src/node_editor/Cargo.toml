@@ -8,7 +8,6 @@ license = "GPL-3.0-only"
 [dependencies]
 imgui = { path = "../../imgui-rs", version = "0.0.22-pre" }
 aflak_cake = { path = "../aflak_cake", version = "0.0.3" }
-rayon = "1.0"
 ron = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
