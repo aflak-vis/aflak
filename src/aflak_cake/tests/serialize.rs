@@ -12,7 +12,7 @@ extern crate serde;
 mod support;
 use support::*;
 
-use aflak_cake::{DeserTransform, SerialTransform};
+use aflak_cake::export::{DeserTransform, SerialTransform};
 use ron::de::from_str;
 use ron::ser::to_string;
 

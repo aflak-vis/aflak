@@ -42,12 +42,14 @@ impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
     }
 }
 
+#[doc(hidden)]
 #[derive(Copy, Clone, Debug, Serialize)]
 pub enum SerialTransform<'t, T: 't> {
     Function(&'static str),
     Constant(&'t T),
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug, Deserialize)]
 pub enum DeserTransform<T, E> {
     Function(String),
@@ -98,7 +100,7 @@ pub struct SerialDST<'d, T: 'd> {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct SerialMetaTransform<'d, T: 'd> {
+struct SerialMetaTransform<'d, T: 'd> {
     t: SerialTransform<'d, T>,
     input_defaults: Vec<Option<T>>,
 }
@@ -136,7 +138,7 @@ pub struct DeserDST<T, E> {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
-pub struct DeserMetaTransform<T, E> {
+struct DeserMetaTransform<T, E> {
     t: DeserTransform<T, E>,
     input_defaults: Vec<Option<T>>,
 }

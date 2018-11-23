@@ -13,7 +13,7 @@ extern crate variant_name;
 
 mod cache;
 mod dst;
-mod export;
+pub mod export;
 mod future;
 mod transform;
 
@@ -23,7 +23,7 @@ pub use dst::{
     MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults, TransformIdx,
     DST,
 };
-pub use export::*;
+pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
 pub use future::Task;
 pub use futures::{future::Future, Async};
 pub use transform::*;
