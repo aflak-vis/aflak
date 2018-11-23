@@ -69,6 +69,10 @@ where
     }
 }
 
+/// An owned or borrowed Transform to which meta-data is added.
+///
+/// Meta-data includes default values when no node is connected to input, for
+/// example.
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: 't, E: 't> {
     t: Bow<'t, Transform<T, E>>,
