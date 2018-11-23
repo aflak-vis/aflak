@@ -107,10 +107,7 @@ impl<T, E> Cache<T, E> {
         if let Some(some_cache_box) = self.cache.get(&t_idx) {
             if let Some(ref cache_box) = *some_cache_box {
                 if cache_box.time >= t_instant {
-                    eprintln!("Use cache for {:?}.", t_idx);
                     return cache_box.values.clone();
-                } else {
-                    eprintln!("Cache to old for {:?}. Recompute...", t_idx);
                 }
             }
         }
