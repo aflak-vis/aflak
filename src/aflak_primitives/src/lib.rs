@@ -623,12 +623,7 @@ fn run_create_equivalent_width(
 
 fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
-    let mut min: f32 = std::f32::MAX;
-    for i in i1_arr {
-        min = min.min(*i);
-    }
-    // TODO: What if min is negative? All will be shifted up!
-    let out = i1_arr.map(|v| (v + min.abs() + 1.0).log10());
+    let out = i1_arr.map(|v| v.log10());
     // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         out,
