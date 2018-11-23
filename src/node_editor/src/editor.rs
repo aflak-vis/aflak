@@ -183,7 +183,7 @@ where
 
         if ui.is_window_focused() && !ui.want_capture_keyboard() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
-            if ui.imgui().is_key_down(delete_index) {
+            if ui.imgui().is_key_pressed(delete_index) {
                 self.delete_selected_nodes();
             }
         }
