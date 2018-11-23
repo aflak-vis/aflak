@@ -20,6 +20,12 @@ pub struct Cache<T, E> {
     scheduled_for_destruction: Arc<AtomicBool>,
 }
 
+impl<T, E> Default for Cache<T, E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct CacheRef<T, E> {
     inner: *const Cache<T, E>,
     in_use: Arc<AtomicUsize>,
