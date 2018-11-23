@@ -46,6 +46,12 @@ where
     }
 }
 
+impl<'t, T, E> Default for DST<'t, T, E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'t, T, E> DST<'t, T, E>
 where
     T: VariantName,
