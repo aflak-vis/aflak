@@ -63,7 +63,7 @@ fn main() -> support::Result<()> {
     let mut aflak = Aflak::init(node_editor);
 
     let config = support::AppConfig {
-        title: "aflak".to_owned(),
+        title: format!("aflak {}", env!("CARGO_PKG_VERSION")),
         clear_color: CLEAR_COLOR,
         ini_filename: Some(ImString::new("aflak.ini")),
         ..Default::default()
