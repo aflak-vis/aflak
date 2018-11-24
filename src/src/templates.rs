@@ -206,6 +206,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                     Some(Float(20)),
                     Some(Float(10000000000)),
+                    Some(Bool(true)),
                 ],
             )),
             ((22), (
