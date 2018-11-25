@@ -10,8 +10,6 @@ pub struct ComputationState<T, E> {
     counter: u8,
 }
 
-impl<T, E> ComputationState<T, E> {}
-
 impl<T, E, ED> NodeEditor<'static, T, E, ED>
 where
     T: Clone + cake::VariantName + Send + Sync,
