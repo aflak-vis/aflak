@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use cake::{self, Async, DSTError, Future, Task};
+use cake::{self, Async, DSTError, Future, Task, Timed};
 
 use editor::NodeEditor;
 
 pub struct ComputationState<T, E> {
-    previous_result: Option<Result<Arc<T>, Arc<DSTError<E>>>>,
-    task: Task<Arc<T>, Arc<DSTError<E>>>,
+    previous_result: Option<Result<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>>,
+    task: Task<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>,
     counter: u8,
 }
 
@@ -19,7 +19,7 @@ where
     pub fn compute_output(
         &mut self,
         id: cake::OutputId,
-    ) -> Option<Result<Arc<T>, Arc<DSTError<E>>>> {
+    ) -> Option<Result<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>> {
         let dst = &self.dst;
         let cache = &mut self.cache;
         let state = self

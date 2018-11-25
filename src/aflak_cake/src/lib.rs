@@ -15,6 +15,7 @@ mod cache;
 mod dst;
 pub mod export;
 mod future;
+mod timed;
 mod transform;
 
 pub use cache::Cache;
@@ -26,6 +27,7 @@ pub use dst::{
 pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
 pub use future::Task;
 pub use futures::{future::Future, Async};
+pub use timed::Timed;
 pub use transform::*;
 
 pub use self::variant_name::VariantName;
