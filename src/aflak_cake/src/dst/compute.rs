@@ -8,7 +8,9 @@ use future::Task;
 use timed::Timed;
 use variant_name::VariantName;
 
-pub type NodeResult<T, E> = Result<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>;
+pub type SuccessOut<T> = Timed<Arc<T>>;
+pub type ErrorOut<E> = Timed<Arc<DSTError<E>>>;
+pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 
 impl<T, E> DST<'static, T, E>
 where
@@ -22,7 +24,7 @@ where
         &self,
         output_id: OutputId,
         cache: &mut Cache<T, DSTError<E>>,
-    ) -> Task<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>> {
+    ) -> Task<SuccessOut<T>, ErrorOut<E>> {
         let t_indices = self.transforms.keys().cloned();
         cache.init(t_indices);
 

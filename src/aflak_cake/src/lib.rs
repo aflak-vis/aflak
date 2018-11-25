@@ -20,9 +20,9 @@ mod transform;
 
 pub use cache::Cache;
 pub use dst::{
-    DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot, LinkIter,
-    MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults, TransformIdx,
-    DST,
+    compute, DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot,
+    LinkIter, MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults,
+    TransformIdx, DST,
 };
 pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
 pub use future::Task;

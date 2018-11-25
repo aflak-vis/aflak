@@ -1,12 +1,14 @@
-use std::sync::Arc;
-
-use cake::{self, Async, DSTError, Future, Task, Timed};
+use cake::{
+    self,
+    compute::{ErrorOut, NodeResult, SuccessOut},
+    Async, Future, Task,
+};
 
 use editor::NodeEditor;
 
 pub struct ComputationState<T, E> {
-    previous_result: Option<Result<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>>,
-    task: Task<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>,
+    previous_result: Option<NodeResult<T, E>>,
+    task: Task<SuccessOut<T>, ErrorOut<E>>,
     counter: u8,
 }
 
@@ -16,10 +18,7 @@ where
     E: Send + Sync,
 {
     /// Compute output's result asynchonously.
-    pub fn compute_output(
-        &mut self,
-        id: cake::OutputId,
-    ) -> Option<Result<Timed<Arc<T>>, Timed<Arc<DSTError<E>>>>> {
+    pub fn compute_output(&mut self, id: cake::OutputId) -> Option<NodeResult<T, E>> {
         let dst = &self.dst;
         let cache = &mut self.cache;
         let state = self

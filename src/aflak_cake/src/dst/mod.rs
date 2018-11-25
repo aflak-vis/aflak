@@ -9,7 +9,7 @@ use transform::Transform;
 use variant_name::VariantName;
 
 mod build;
-mod compute;
+pub mod compute;
 mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
