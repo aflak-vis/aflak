@@ -231,7 +231,10 @@ where
                         .build()
                     {
                         ui.separator();
-                        let node = self.dst.get_node(&node_id).unwrap();
+                        let node = self
+                            .dst
+                            .get_node(&node_id)
+                            .expect("Failed to get active node");
                         match node {
                             cake::Node::Transform(t) => {
                                 ui.text_wrapped(&ImString::new(format!(
