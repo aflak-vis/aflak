@@ -110,7 +110,7 @@ where
         if let Some(t) = self.dst.get_transform_mut(id) {
             let mut new_value = false;
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant == val;
+                new_value = *constant != val;
             }
             if new_value {
                 t.set_constant(val);
