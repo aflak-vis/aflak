@@ -212,9 +212,12 @@ if value > max, value changes to 0.",
                 }
             ),
             cake_transform!(
-                "Convert to log-scale. Parameter: 2D image i. Compute log(i).",
-                convert_to_logscale<IOValue, IOErr>(i1: Image2d) -> Image2d {
-                    vec![run_convert_to_logscale(i1)]
+                "Convert to log-scale. Parameter: 2D image i, a, v_min, v_max
+Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
+                convert_to_logscale<IOValue, IOErr>(i1: Image2d, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image2d {
+                    vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
+                }
+            ),
             cake_transform!(
                 "Image's min and max value. Parameter: 2D image i.
 Compute v_min(first), v_max(second)",
@@ -636,9 +639,16 @@ fn run_create_equivalent_width(
     ))))
 }
 
-fn run_convert_to_logscale(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+fn run_convert_to_logscale(
+    i1: &WcsArray2,
+    a: f32,
+    v_min: f32,
+    v_max: f32,
+) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
-    let out = i1_arr.map(|v| v.log10());
+    let x = i1_arr.map(|v| (v - v_min) / (v_max - v_min));
+    let out = x.map(|v| (a * v + 1.0).ln() / a.ln());
+
     // FIXME: Unit support
     Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
         out,
