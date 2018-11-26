@@ -220,6 +220,22 @@ if value > max, value changes to 0.",
                 }
             ),
             cake_transform!(
+                "Image's min and max value. Parameter: 2D image i.
+Compute v_min(first), v_max(second)",
+                image_min_max<IOValue, IOErr>(i1: Image2d) -> Float, Float {
+                    let mut min = std::f32::MAX;
+                    let mut max = std::f32::MIN;
+                    let i1_arr = i1.scalar();
+
+                    for i in i1_arr {
+                        min = min.min(*i);
+                        max = max.max(*i);
+                    }
+
+                    vec![Ok(IOValue::Float(min)), Ok(IOValue::Float(max))]
+                }
+            ),
+            cake_transform!(
                 "Negation. Parameter: 2D image i. Compute -i.",
                 negation<IOValue, IOErr>(i1: Image2d) -> Image2d {
                     vec![run_negation(i1)]
