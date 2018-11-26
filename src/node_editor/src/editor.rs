@@ -154,11 +154,15 @@ where
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states
-            let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
             let scroll = self.scrolling.get_current();
-            let offset = win_pos - scroll;
-            let clue = mouse_pos * 0.7 - offset;
+            let clue = if ui.is_window_focused() {
+                let offset = win_pos - scroll;
+                let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
+                mouse_pos * 0.7 - offset
+            } else {
+                scroll + Vec2(30.0, 30.0)
+            };
             self.node_states.init_node(&idx, clue);
         }
         if self.show_left_pane {
