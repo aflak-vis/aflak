@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use glium;
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Ui};
+use owning_ref::ArcRef;
 
 use aflak_plot::{
     imshow::{self, Textures, UiImage2d},
@@ -10,7 +11,7 @@ use aflak_plot::{
 };
 use cake::{OutputId, TransformIdx};
 use node_editor::NodeEditor;
-use primitives::{IOErr, IOValue, SuccessOut, ROI};
+use primitives::{ndarray, IOErr, IOValue, SuccessOut, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
@@ -22,7 +23,7 @@ pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     image1d_states: HashMap<ImString, plot::State>,
-    image2d_states: HashMap<ImString, imshow::State>,
+    image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::Array2<f32>>>>,
     editable_values: EditableValues,
 }
 
@@ -133,7 +134,8 @@ impl OutputWindow {
         ui.new_line();
 
         let created_on = SuccessOut::created_on(&result);
-        match &*SuccessOut::take(result) {
+        let value = SuccessOut::take(result);
+        match &*value {
             IOValue::Str(ref string) => {
                 ui.text(format!("{:?}", string));
             }
@@ -209,13 +211,17 @@ impl OutputWindow {
                     None => true,
                 };
                 if new_incoming_image {
-                    if let Err(e) = state.set_image(
-                        image.scalar().clone(),
-                        created_on,
-                        gl_ctx,
-                        texture_id,
-                        textures,
-                    ) {
+                    let value_ref: ArcRef<_> = value.clone().into();
+                    let image_ref = value_ref.map(|value| {
+                        if let IOValue::Image2d(image) = value {
+                            image.scalar()
+                        } else {
+                            unreachable!("Expect an Image2d")
+                        }
+                    });
+                    if let Err(e) =
+                        state.set_image(image_ref, created_on, gl_ctx, texture_id, textures)
+                    {
                         ui.text(format!("Error on creating image! {}", e));
                     }
                 }

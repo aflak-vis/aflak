@@ -5,8 +5,11 @@ mod state;
 
 pub use self::state::State;
 
+use std::borrow::Borrow;
+
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, ImTexture, Ui};
+use ndarray::Array2;
 
 use err::Error;
 use interactions;
@@ -66,7 +69,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     }).unwrap()
     /// }
     /// ```
-    fn image2d<F, FX, FY>(
+    fn image2d<F, FX, FY, I>(
         &self,
         ctx: &F,
         textures: &mut Textures,
@@ -74,12 +77,13 @@ impl<'ui> UiImage2d for Ui<'ui> {
         vunit: &str,
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,
-        state: &mut State,
+        state: &mut State<I>,
     ) -> Result<(), Error>
     where
         F: Facade,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
+        I: Borrow<Array2<f32>>,
     {
         let window_pos = self.get_window_pos();
         let cursor_pos = self.get_cursor_screen_pos();
@@ -121,7 +125,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
 
 /// Implementation of a UI to visualize a 2D image with ImGui and OpenGL
 pub trait UiImage2d {
-    fn image2d<F, FX, FY>(
+    fn image2d<F, FX, FY, I>(
         &self,
         ctx: &F,
         textures: &mut Textures,
@@ -129,10 +133,11 @@ pub trait UiImage2d {
         vunit: &str,
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,
-        state: &mut State,
+        state: &mut State<I>,
     ) -> Result<(), Error>
     where
         F: Facade,
         FX: Fn(f32) -> f32,
-        FY: Fn(f32) -> f32;
+        FY: Fn(f32) -> f32,
+        I: Borrow<Array2<f32>>;
 }

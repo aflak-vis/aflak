@@ -5,6 +5,7 @@ extern crate glium;
 #[macro_use]
 extern crate imgui;
 extern crate imgui_glium_renderer;
+extern crate owning_ref;
 
 extern crate aflak_cake as cake;
 extern crate aflak_imgui_glium_support as support;

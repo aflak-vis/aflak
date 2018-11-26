@@ -7,7 +7,7 @@ extern crate variant_name_derive;
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
 #[macro_use]
-extern crate ndarray;
+pub extern crate ndarray;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::time::Instant;
 
 use glium::backend::Facade;
@@ -18,7 +19,7 @@ use super::Error;
 use super::Textures;
 
 /// Current state of the visualization of a 2D image
-pub struct State {
+pub struct State<I> {
     pub(crate) lut: ColorLUT,
     /// Mouse position relative to the image (in pixels)
     pub mouse_pos: (f32, f32),
@@ -28,7 +29,7 @@ pub struct State {
     lut_max_moving: bool,
     interactions: Interactions,
     roi_input: RoiInputState,
-    image: image::Image,
+    image: image::Image<I>,
 }
 
 #[derive(Default)]
@@ -52,7 +53,7 @@ impl RoiInputState {
     }
 }
 
-impl Default for State {
+impl<I> Default for State<I> {
     fn default() -> Self {
         use std::f32;
         Self {
@@ -68,7 +69,10 @@ impl Default for State {
     }
 }
 
-impl State {
+impl<I> State<I>
+where
+    I: Borrow<Array2<f32>>,
+{
     pub fn stored_values(&self) -> ValueIter {
         self.interactions.value_iter()
     }
@@ -79,7 +83,7 @@ impl State {
 
     pub fn set_image<F>(
         &mut self,
-        image: Array2<f32>,
+        image: I,
         created_on: Instant,
         ctx: &F,
         texture_id: ImTexture,
@@ -96,7 +100,7 @@ impl State {
         self.image.created_on()
     }
 
-    pub(crate) fn image(&self) -> &image::Image {
+    pub(crate) fn image(&self) -> &image::Image<I> {
         &self.image
     }
 
