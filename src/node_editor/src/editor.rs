@@ -20,10 +20,10 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transform<T, E>],
     pub(crate) node_states: NodeStates,
-    active_node: Option<cake::NodeId>,
-    drag_node: Option<cake::NodeId>,
-    creating_link: Option<LinkExtremity>,
-    new_link: Option<(cake::Output, InputSlot)>,
+    pub(crate) active_node: Option<cake::NodeId>,
+    pub(crate) drag_node: Option<cake::NodeId>,
+    pub(crate) creating_link: Option<LinkExtremity>,
+    pub(crate) new_link: Option<(cake::Output, InputSlot)>,
     pub(crate) output_results: BTreeMap<cake::OutputId, ComputationState<T, E>>,
     pub(crate) cache: Cache<T, DSTError<E>>,
     pub show_left_pane: bool,
@@ -60,7 +60,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
     }
 }
 
-enum LinkExtremity {
+pub enum LinkExtremity {
     Output(cake::Output),
     Input(InputSlot),
 }

@@ -118,6 +118,13 @@ where
             }
             node_states
         };
+
+        // Reset all temporary values
+        self.active_node = None;
+        self.drag_node = None;
+        self.creating_link = None;
+        self.new_link = None;
+
         // Set scrolling offset
         self.scrolling = Scrolling::new(import.scrolling);
 
