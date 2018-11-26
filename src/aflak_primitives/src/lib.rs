@@ -96,6 +96,8 @@ impl Error for IOErr {
     }
 }
 
+pub type SuccessOut = cake::compute::SuccessOut<IOValue>;
+
 lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transform<IOValue, IOErr>> = {
         vec![

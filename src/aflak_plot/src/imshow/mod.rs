@@ -7,11 +7,9 @@ pub use self::state::State;
 
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, ImTexture, Ui};
-use ndarray::Array2;
 
 use err::Error;
 use interactions;
-use lims;
 use ticks;
 use util;
 
@@ -31,6 +29,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// extern crate ndarray;
     /// extern crate aflak_plot;
     ///
+    /// use std::time::Instant;
+    ///
     /// use imgui::{ImTexture, Ui};
     /// use ndarray::Array2;
     /// use aflak_plot::{
@@ -39,15 +39,20 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// };
     ///
     /// fn main() {
-    ///     let data = Array2::eye(10);
     ///     let mut state = imshow::State::default();
     ///     support::run(Default::default(), |ui, gl_ctx, textures| {
     ///         let texture_id = ImTexture::from(1);
+    ///         if state.image_created_on().is_none() {
+    ///             let data = Array2::eye(10);
+    ///             if let Err(e) = state.set_image(data, Instant::now(), gl_ctx, texture_id, textures) {
+    ///                 eprintln!("{:?}", e);
+    ///                 return false;
+    ///             }
+    ///         }
     ///         if let Err(e) = ui.image2d(
     ///             gl_ctx,
     ///             textures,
     ///             texture_id,
-    ///             &data,
     ///             "<unit>",
     ///             AxisTransform::none(),
     ///             AxisTransform::none(),
@@ -66,7 +71,6 @@ impl<'ui> UiImage2d for Ui<'ui> {
         ctx: &F,
         textures: &mut Textures,
         texture_id: ImTexture,
-        image: &Array2<f32>,
         vunit: &str,
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,
@@ -77,9 +81,6 @@ impl<'ui> UiImage2d for Ui<'ui> {
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
-        state.vmin = lims::get_vmin(image)?;
-        state.vmax = lims::get_vmax(image)?;
-
         let window_pos = self.get_window_pos();
         let cursor_pos = self.get_cursor_screen_pos();
         let window_size = self.get_window_size();
@@ -92,29 +93,24 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size.0 - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size.1 - (cursor_pos.1 - window_pos.1),
         );
-        let ([p, size], x_label_height) = state.show_image(
-            self,
-            ctx,
-            textures,
-            texture_id,
-            image,
-            vunit,
-            xaxis,
-            yaxis,
-            image_max_size,
-        )?;
+        let ([p, size], x_label_height) =
+            state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
 
         state.show_hist(
             self,
             [p.0 + size.0 as f32, p.1],
             [HIST_WIDTH, size.1 as f32],
-            image,
         );
-        state.show_bar(
+        let lut_bar_updated = state.show_bar(
             self,
             [p.0 + size.0 as f32 + HIST_WIDTH, p.1],
             [BAR_WIDTH, size.1 as f32],
         );
+        if lut_bar_updated {
+            state
+                .image()
+                .update_texture(ctx, texture_id, textures, &state.lut)?;
+        }
 
         self.set_cursor_screen_pos([p.0, p.1 + size.1 + x_label_height]);
         state.show_roi_selector(self);
@@ -130,7 +126,6 @@ pub trait UiImage2d {
         ctx: &F,
         textures: &mut Textures,
         texture_id: ImTexture,
-        image: &Array2<f32>,
         vunit: &str,
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,

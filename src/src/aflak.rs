@@ -10,7 +10,7 @@ use aflak_plot::{
 };
 use cake::{OutputId, TransformIdx};
 use node_editor::NodeEditor;
-use primitives::{IOErr, IOValue, ROI};
+use primitives::{IOErr, IOValue, SuccessOut, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
@@ -98,7 +98,7 @@ impl OutputWindow {
                 Some(Err(e)) => {
                     ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                Some(Ok(result)) => self.computed_content(ui, aflak, &*result, gl_ctx, textures),
+                Some(Ok(result)) => self.computed_content(ui, aflak, result, gl_ctx, textures),
             }
         });
     }
@@ -107,14 +107,14 @@ impl OutputWindow {
         &self,
         ui: &Ui,
         aflak: &mut Aflak,
-        result: &IOValue,
+        result: SuccessOut,
         gl_ctx: &F,
         textures: &mut Textures,
     ) where
         F: glium::backend::Facade,
     {
         if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-            if let Err(e) = save_output::save(self.output, result) {
+            if let Err(e) = save_output::save(self.output, &result) {
                 eprintln!("Error on saving output: '{}'", e);
             } else {
                 ui.open_popup(im_str!("FITS export completed!"));
@@ -132,7 +132,8 @@ impl OutputWindow {
 
         ui.new_line();
 
-        match *result {
+        let created_on = SuccessOut::created_on(&result);
+        match &*SuccessOut::take(result) {
             IOValue::Str(ref string) => {
                 ui.text(format!("{:?}", string));
             }
@@ -202,12 +203,27 @@ impl OutputWindow {
                     ),
                     _ => (None, None),
                 };
+                let unit = image.array().unit().repr();
+                let new_incoming_image = match state.image_created_on() {
+                    Some(image_created_on) => created_on > image_created_on,
+                    None => true,
+                };
+                if new_incoming_image {
+                    if let Err(e) = state.set_image(
+                        image.scalar().clone(),
+                        created_on,
+                        gl_ctx,
+                        texture_id,
+                        textures,
+                    ) {
+                        ui.text(format!("Error on creating image! {}", e));
+                    }
+                }
                 if let Err(e) = ui.image2d(
                     gl_ctx,
                     textures,
                     texture_id,
-                    image.scalar(),
-                    image.array().unit().repr(),
+                    unit,
                     x_transform,
                     y_transform,
                     state,
