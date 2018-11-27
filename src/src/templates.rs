@@ -50,7 +50,7 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((1), (
-                t: Constant(Path("{}")),
+                t: Constant(Path({:?})),
                 input_defaults: [
                 ],
             )),
@@ -251,7 +251,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((1), (
-                t: Constant(Path("{}")),
+                t: Constant(Path({:?})),
                 input_defaults: [
                 ],
             )),
