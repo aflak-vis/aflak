@@ -16,9 +16,12 @@ pub trait NamedAlgorithms<E>: Sized {
     fn get_transform(s: &str) -> Option<&'static Transform<Self, E>>;
 }
 
+/// Error type used to represent a failed deserialization into DST.
 #[derive(Debug)]
 pub enum ImportError<E> {
+    /// An unknown transform name was used.
     TransformNotFound(String),
+    /// The DST cannot be constructed because it is inconsistent.
     ConstructionError(&'static str, DSTError<E>),
 }
 
@@ -42,12 +45,14 @@ impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
     }
 }
 
+#[doc(hidden)]
 #[derive(Copy, Clone, Debug, Serialize)]
 pub enum SerialTransform<'t, T: 't> {
     Function(&'static str),
     Constant(&'t T),
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug, Deserialize)]
 pub enum DeserTransform<T, E> {
     Function(String),
@@ -71,7 +76,7 @@ impl<T, E> DeserTransform<T, E>
 where
     T: NamedAlgorithms<E>,
 {
-    pub fn into(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
+    pub fn into_transform(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
         match self {
             DeserTransform::Function(name) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
@@ -89,6 +94,8 @@ where
     }
 }
 
+/// A representation of a DST for serialization.
+///
 /// Vectors are more portable than hashmaps for serialization.
 #[derive(Clone, Debug, Serialize)]
 pub struct SerialDST<'d, T: 'd> {
@@ -98,7 +105,7 @@ pub struct SerialDST<'d, T: 'd> {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct SerialMetaTransform<'d, T: 'd> {
+struct SerialMetaTransform<'d, T: 'd> {
     t: SerialTransform<'d, T>,
     input_defaults: Vec<Option<T>>,
 }
@@ -107,6 +114,7 @@ impl<'d, T> SerialDST<'d, T>
 where
     T: 'd + Clone + VariantName,
 {
+    /// Create a serializable representaion of the DST given as argument.
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
             transforms: dst
@@ -126,6 +134,7 @@ where
     }
 }
 
+/// A representation of a DST for deserialization.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserDST<T, E> {
@@ -136,7 +145,7 @@ pub struct DeserDST<T, E> {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
-pub struct DeserMetaTransform<T, E> {
+struct DeserMetaTransform<T, E> {
     t: DeserTransform<T, E>,
     input_defaults: Vec<Option<T>>,
 }
@@ -145,10 +154,11 @@ impl<T, E> DeserDST<T, E>
 where
     T: NamedAlgorithms<E> + VariantName,
 {
-    pub fn into(self) -> Result<DST<'static, T, E>, ImportError<E>> {
+    /// Converts this intermediary representation of a DST into a normal DST.
+    pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError<E>> {
         let mut dst = DST::new();
         for (t_idx, DeserMetaTransform { t, input_defaults }) in self.transforms {
-            let t = t.into()?;
+            let t = t.into_transform()?;
             dst.add_transform_with_idx(t_idx, t, input_defaults);
         }
         for (output, input) in self.edges {
@@ -191,6 +201,6 @@ where
         D: Deserializer<'de>,
     {
         DeserDST::deserialize(deserializer)
-            .and_then(|deser_dst| deser_dst.into().map_err(de::Error::custom))
+            .and_then(|deser_dst| deser_dst.into_dst().map_err(de::Error::custom))
     }
 }

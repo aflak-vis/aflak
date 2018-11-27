@@ -1,5 +1,8 @@
-use glium::{backend::Facade, Texture2d};
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Textures, Ui};
+use std::borrow::Borrow;
+use std::time::Instant;
+
+use glium::backend::Facade;
+use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Ui};
 use ndarray::Array2;
 
 use super::hist;
@@ -13,12 +16,11 @@ use super::ticks::XYTicks;
 use super::util;
 use super::AxisTransform;
 use super::Error;
+use super::Textures;
 
 /// Current state of the visualization of a 2D image
-pub struct State {
+pub struct State<I> {
     pub(crate) lut: ColorLUT,
-    pub(crate) vmin: f32,
-    pub(crate) vmax: f32,
     /// Mouse position relative to the image (in pixels)
     pub mouse_pos: (f32, f32),
     /// Control whether histogram uses a log scale
@@ -27,6 +29,7 @@ pub struct State {
     lut_max_moving: bool,
     interactions: Interactions,
     roi_input: RoiInputState,
+    image: image::Image<I>,
 }
 
 #[derive(Default)]
@@ -50,24 +53,26 @@ impl RoiInputState {
     }
 }
 
-impl Default for State {
+impl<I> Default for State<I> {
     fn default() -> Self {
         use std::f32;
         Self {
             lut: BuiltinLUT::Flame.lut(),
-            vmin: f32::NAN,
-            vmax: f32::NAN,
             mouse_pos: (f32::NAN, f32::NAN),
             hist_logscale: true,
             lut_min_moving: false,
             lut_max_moving: false,
             interactions: Interactions::new(),
             roi_input: Default::default(),
+            image: Default::default(),
         }
     }
 }
 
-impl State {
+impl<I> State<I>
+where
+    I: Borrow<Array2<f32>>,
+{
     pub fn stored_values(&self) -> ValueIter {
         self.interactions.value_iter()
     }
@@ -76,11 +81,35 @@ impl State {
         self.interactions.iter_mut()
     }
 
-    pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S)
+    pub fn set_image<F>(
+        &mut self,
+        image: I,
+        created_on: Instant,
+        ctx: &F,
+        texture_id: ImTexture,
+        textures: &mut Textures,
+    ) -> Result<(), Error>
+    where
+        F: Facade,
+    {
+        self.image = image::Image::new(image, created_on, ctx, texture_id, textures, &self.lut)?;
+        Ok(())
+    }
+
+    pub fn image_created_on(&self) -> Option<Instant> {
+        self.image.created_on()
+    }
+
+    pub(crate) fn image(&self) -> &image::Image<I> {
+        &self.image
+    }
+
+    pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S) -> bool
     where
         P: Into<ImVec2>,
         S: Into<ImVec2>,
     {
+        let mut changed = false;
         let pos = pos.into();
         let size = size.into();
 
@@ -98,6 +127,7 @@ impl State {
                 ui.push_id(*builtin_lut as i32);
                 if ui.menu_item(builtin_lut.name()).build() {
                     self.lut.set_gradient(*builtin_lut);
+                    changed = true;
                 }
                 ui.pop_id();
             }
@@ -105,6 +135,8 @@ impl State {
 
         let draw_list = ui.get_window_draw_list();
 
+        let vmin = self.image.vmin();
+        let vmax = self.image.vmax();
         // Show triangle to change contrast
         {
             const TRIANGLE_LEFT_PADDING: f32 = 10.0;
@@ -132,7 +164,7 @@ impl State {
                     util::invert_color(min_color),
                 ).build();
             if lims.0 != 0.0 {
-                let min_threshold = util::lerp(self.vmin, self.vmax, lims.0);
+                let min_threshold = util::lerp(vmin, vmax, lims.0);
                 draw_list.add_text(
                     [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
                     COLOR,
@@ -152,6 +184,7 @@ impl State {
                 let (_, mouse_y) = ui.imgui().mouse_pos();
                 let min = 1.0 - (mouse_y - pos.y) / size.y;
                 self.lut.set_min(min);
+                changed = true;
             }
             if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                 self.lut_min_moving = false;
@@ -176,7 +209,7 @@ impl State {
                     util::invert_color(max_color),
                 ).build();
             if lims.1 < 1.0 {
-                let max_threshold = util::lerp(self.vmin, self.vmax, lims.1);
+                let max_threshold = util::lerp(vmin, vmax, lims.1);
                 draw_list.add_text(
                     [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
                     COLOR,
@@ -196,6 +229,7 @@ impl State {
                 let (_, mouse_y) = ui.imgui().mouse_pos();
                 let max = 1.0 - (mouse_y - pos.y) / size.y;
                 self.lut.set_max(max);
+                changed = true;
             }
             if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
                 self.lut_max_moving = false;
@@ -227,7 +261,7 @@ impl State {
         while i >= -0.01 {
             let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
             let y_pos = tick_y_pos - text_height / 2.5;
-            let val = self.vmax + (self.vmin - self.vmax) * i;
+            let val = vmax + (vmin - vmax) * i;
             draw_list.add_text(
                 [x_pos + size.x + LABEL_HORIZONTAL_PADDING, y_pos],
                 COLOR,
@@ -242,33 +276,26 @@ impl State {
             // TODO: Make step editable
             i -= TICK_STEP;
         }
+
+        changed
     }
 
-    pub(crate) fn show_image<F, FX, FY>(
+    pub(crate) fn show_image<FX, FY>(
         &mut self,
         ui: &Ui,
-        ctx: &F,
-        textures: &mut Textures<Texture2d>,
         texture_id: ImTexture,
-        image: &Array2<f32>,
         vunit: &str,
         xaxis: Option<AxisTransform<FX>>,
         yaxis: Option<AxisTransform<FY>>,
         max_size: (f32, f32),
     ) -> Result<([(f32, f32); 2], f32), Error>
     where
-        F: Facade,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
         const IMAGE_TOP_PADDING: f32 = 0.0;
 
-        // Returns a handle to the mutable texture (we could write on it)
-        let raw = image::make_raw_image(image, self)?;
-        let gl_texture = Texture2d::new(ctx, raw)?;
-        let tex_size = gl_texture.dimensions();
-        textures.replace(texture_id, gl_texture);
-
+        let tex_size = self.image.tex_size();
         let ticks = XYTicks::prepare(
             ui,
             (0.0, tex_size.0 as f32),
@@ -306,9 +333,9 @@ impl State {
         if ui.is_item_hovered() {
             let x = self.mouse_pos.0 as usize;
             let y = self.mouse_pos.1 as usize;
-            if y < image.dim().0 {
-                let index = [image.dim().0 - 1 - y, x];
-                if let Some(val) = image.get(index) {
+            if y < self.image.dim().0 {
+                let index = (self.image.dim().0 - 1 - y, x);
+                if let Some(val) = self.image.get(index) {
                     let x_measurement = xaxis.as_ref().map(|axis| Measurement {
                         v: axis.pix2world(x as f32),
                         unit: axis.unit(),
@@ -322,7 +349,7 @@ impl State {
                         x_measurement,
                         y_measurement,
                         Measurement {
-                            v: *val,
+                            v: val,
                             unit: vunit,
                         },
                     );
@@ -490,7 +517,7 @@ impl State {
         Ok(([p, size], x_labels_height))
     }
 
-    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S, image: &Array2<f32>)
+    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S)
     where
         P: Into<ImVec2>,
         S: Into<ImVec2>,
@@ -498,16 +525,19 @@ impl State {
         let pos = pos.into();
         let size = size.into();
 
+        let vmin = self.image.vmin();
+        let vmax = self.image.vmax();
+
         const FILL_COLOR: u32 = 0xFF999999;
         const BORDER_COLOR: u32 = 0xFF000000;
-        let hist = hist::histogram(image, self.vmin, self.vmax);
+        let hist = hist::histogram(self.image.inner(), vmin, vmax);
         if let Some(max_count) = hist.iter().map(|bin| bin.count).max() {
             let draw_list = ui.get_window_draw_list();
 
             let x_pos = pos.x;
             for bin in hist {
-                let y_pos = pos.y + size.y / (self.vmax - self.vmin) * (self.vmax - bin.start);
-                let y_pos_end = pos.y + size.y / (self.vmax - self.vmin) * (self.vmax - bin.end);
+                let y_pos = pos.y + size.y / (vmax - vmin) * (vmax - bin.start);
+                let y_pos_end = pos.y + size.y / (vmax - vmin) * (vmax - bin.end);
                 let length = size.x * if self.hist_logscale {
                     (bin.count as f32).log10() / (max_count as f32).log10()
                 } else {

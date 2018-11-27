@@ -9,7 +9,7 @@ use transform::Transform;
 use variant_name::VariantName;
 
 mod build;
-mod compute;
+pub mod compute;
 mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
@@ -46,6 +46,12 @@ where
     }
 }
 
+impl<'t, T, E> Default for DST<'t, T, E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'t, T, E> DST<'t, T, E>
 where
     T: VariantName,
@@ -63,6 +69,10 @@ where
     }
 }
 
+/// An owned or borrowed Transform to which meta-data is added.
+///
+/// Meta-data includes default values when no node is connected to input, for
+/// example.
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: 't, E: 't> {
     t: Bow<'t, Transform<T, E>>,

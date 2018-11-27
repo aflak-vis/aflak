@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use glium;
 use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Ui};
+use owning_ref::ArcRef;
 
 use aflak_plot::{
     imshow::{self, Textures, UiImage2d},
@@ -10,7 +11,7 @@ use aflak_plot::{
 };
 use cake::{OutputId, TransformIdx};
 use node_editor::NodeEditor;
-use primitives::{IOErr, IOValue, ROI};
+use primitives::{ndarray, IOErr, IOValue, SuccessOut, ROI};
 
 use constant_editor::MyConstantEditor;
 use layout::LayoutEngine;
@@ -22,7 +23,7 @@ pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     image1d_states: HashMap<ImString, plot::State>,
-    image2d_states: HashMap<ImString, imshow::State>,
+    image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::Array2<f32>>>>,
     editable_values: EditableValues,
 }
 
@@ -98,7 +99,7 @@ impl OutputWindow {
                 Some(Err(e)) => {
                     ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                Some(Ok(result)) => self.computed_content(ui, aflak, &*result, gl_ctx, textures),
+                Some(Ok(result)) => self.computed_content(ui, aflak, result, gl_ctx, textures),
             }
         });
     }
@@ -107,14 +108,14 @@ impl OutputWindow {
         &self,
         ui: &Ui,
         aflak: &mut Aflak,
-        result: &IOValue,
+        result: SuccessOut,
         gl_ctx: &F,
         textures: &mut Textures,
     ) where
         F: glium::backend::Facade,
     {
         if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-            if let Err(e) = save_output::save(self.output, result) {
+            if let Err(e) = save_output::save(self.output, &result) {
                 eprintln!("Error on saving output: '{}'", e);
             } else {
                 ui.open_popup(im_str!("FITS export completed!"));
@@ -132,7 +133,9 @@ impl OutputWindow {
 
         ui.new_line();
 
-        match *result {
+        let created_on = SuccessOut::created_on(&result);
+        let value = SuccessOut::take(result);
+        match &*value {
             IOValue::Str(ref string) => {
                 ui.text(format!("{:?}", string));
             }
@@ -202,12 +205,31 @@ impl OutputWindow {
                     ),
                     _ => (None, None),
                 };
+                let unit = image.array().unit().repr();
+                let new_incoming_image = match state.image_created_on() {
+                    Some(image_created_on) => created_on > image_created_on,
+                    None => true,
+                };
+                if new_incoming_image {
+                    let value_ref: ArcRef<_> = value.clone().into();
+                    let image_ref = value_ref.map(|value| {
+                        if let IOValue::Image2d(image) = value {
+                            image.scalar()
+                        } else {
+                            unreachable!("Expect an Image2d")
+                        }
+                    });
+                    if let Err(e) =
+                        state.set_image(image_ref, created_on, gl_ctx, texture_id, textures)
+                    {
+                        ui.text(format!("Error on creating image! {}", e));
+                    }
+                }
                 if let Err(e) = ui.image2d(
                     gl_ctx,
                     textures,
                     texture_id,
-                    image.scalar(),
-                    image.array().unit().repr(),
+                    unit,
                     x_transform,
                     y_transform,
                     state,

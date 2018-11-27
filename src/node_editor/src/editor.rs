@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::error::Error;
 
 use imgui::{
-    sys, ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString,
-    ImVec2, StyleVar, Ui, WindowDrawList,
+    ImGuiCol, ImGuiKey, ImGuiMouseCursor, ImGuiSelectableFlags, ImMouseButton, ImString, ImVec2,
+    StyleVar, Ui, WindowDrawList,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,10 +20,10 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transform<T, E>],
     pub(crate) node_states: NodeStates,
-    active_node: Option<cake::NodeId>,
-    drag_node: Option<cake::NodeId>,
-    creating_link: Option<LinkExtremity>,
-    new_link: Option<(cake::Output, InputSlot)>,
+    pub(crate) active_node: Option<cake::NodeId>,
+    pub(crate) drag_node: Option<cake::NodeId>,
+    pub(crate) creating_link: Option<LinkExtremity>,
+    pub(crate) new_link: Option<(cake::Output, InputSlot)>,
     pub(crate) output_results: BTreeMap<cake::OutputId, ComputationState<T, E>>,
     pub(crate) cache: Cache<T, DSTError<E>>,
     pub show_left_pane: bool,
@@ -60,7 +60,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
     }
 }
 
-enum LinkExtremity {
+pub enum LinkExtremity {
     Output(cake::Output),
     Input(InputSlot),
 }
@@ -110,7 +110,7 @@ where
         if let Some(t) = self.dst.get_transform_mut(id) {
             let mut new_value = false;
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant == val;
+                new_value = *constant != val;
             }
             if new_value {
                 t.set_constant(val);
@@ -154,11 +154,15 @@ where
     pub fn render(&mut self, ui: &Ui) {
         for idx in self.dst.node_ids() {
             // Initialization of node states
-            let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
             let scroll = self.scrolling.get_current();
-            let offset = win_pos - scroll;
-            let clue = mouse_pos * 0.7 - offset;
+            let clue = if ui.is_window_focused() {
+                let offset = win_pos - scroll;
+                let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
+                mouse_pos * 0.7 - offset
+            } else {
+                scroll + Vec2(30.0, 30.0)
+            };
             self.node_states.init_node(&idx, clue);
         }
         if self.show_left_pane {
@@ -171,25 +175,19 @@ where
             ui.open_popup(im_str!("Error!"));
         }
         ui.popup_modal(im_str!("Error!")).build(|| {
-            unsafe {
-                sys::igPushTextWrapPos(400.0);
-            }
-            {
+            ui.with_text_wrap_pos(400.0, || {
                 let e = &self.error_stack[self.error_stack.len() - 1];
                 ui.text_wrapped(&ImString::new(format!("{}", e)));
-            }
-            unsafe {
-                sys::igPopTextWrapPos();
-            }
+            });
             if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                 self.error_stack.pop();
                 ui.close_current_popup();
             }
         });
 
-        if ui.is_window_focused() {
+        if ui.is_window_focused() && !ui.want_capture_keyboard() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
-            if ui.imgui().is_key_down(delete_index) {
+            if ui.imgui().is_key_pressed(delete_index) {
                 self.delete_selected_nodes();
             }
         }
@@ -233,7 +231,10 @@ where
                         .build()
                     {
                         ui.separator();
-                        let node = self.dst.get_node(&node_id).unwrap();
+                        let node = self
+                            .dst
+                            .get_node(&node_id)
+                            .expect("Failed to get active node");
                         match node {
                             cake::Node::Transform(t) => {
                                 ui.text_wrapped(&ImString::new(format!(
@@ -360,8 +361,9 @@ where
     }
 
     fn render_graph_canvas(&mut self, ui: &Ui) {
-        const NODE_SLOT_RADIUS: f32 = 5.0 * CURRENT_FONT_WINDOW_SCALE;
-        const NODE_SLOT_RADIUS_SQUARED: f32 = NODE_SLOT_RADIUS * NODE_SLOT_RADIUS;
+        const NODE_SLOT_RADIUS: f32 = 6.0 * CURRENT_FONT_WINDOW_SCALE;
+        const NODE_CLICK_BOX_RADIUS: f32 = 1.3 * NODE_SLOT_RADIUS;
+        const NODE_CLICK_BOX_RADIUS_SQUARED: f32 = NODE_CLICK_BOX_RADIUS * NODE_CLICK_BOX_RADIUS;
         // We don't detect "mouse release" events while dragging links onto slots.
         // Instead we check that our mouse delta is small enough. Otherwise we couldn't
         // hover other slots while dragging links.
@@ -371,7 +373,6 @@ where
             draw_list.channels_split(5, |channels| {
                 let canvas_size = Vec2::new(ui.get_window_size());
                 let win_pos = Vec2::new(ui.get_cursor_screen_pos());
-                // TODO: Center view on a specific node
                 let offset = win_pos - self.scrolling.get_current();
 
                 if self.show_grid {
@@ -518,7 +519,7 @@ where
                         if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                             if (mouse_pos - connector_screen_pos).squared_norm()
-                                <= NODE_SLOT_RADIUS_SQUARED
+                                <= NODE_CLICK_BOX_RADIUS_SQUARED
                             {
                                 self.drag_node = None;
                                 self.creating_link = Some(LinkExtremity::Input(match idx {
@@ -533,7 +534,7 @@ where
                             // Check if we hover slot!
                             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                             if (mouse_pos - connector_screen_pos).squared_norm()
-                                <= NODE_SLOT_RADIUS_SQUARED
+                                <= NODE_CLICK_BOX_RADIUS_SQUARED
                             {
                                 self.new_link = Some((
                                     link_output,
@@ -584,7 +585,7 @@ where
                             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                                 let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                                 if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
+                                    <= NODE_CLICK_BOX_RADIUS_SQUARED
                                 {
                                     self.drag_node = None;
                                     self.creating_link = Some(LinkExtremity::Output(
@@ -596,7 +597,7 @@ where
                                 // Check if we hover slot!
                                 let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();
                                 if (mouse_pos - connector_screen_pos).squared_norm()
-                                    <= NODE_SLOT_RADIUS_SQUARED
+                                    <= NODE_CLICK_BOX_RADIUS_SQUARED
                                 {
                                     self.new_link =
                                         Some((cake::Output::new(t_idx, slot_idx), link_input));

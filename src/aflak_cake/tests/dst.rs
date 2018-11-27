@@ -37,7 +37,7 @@ macro_rules! assert_output_eq {
                 Err(e) => panic!("Fails: {}", e),
             }
         };
-        assert_eq!(*out, $expected_value);
+        assert_eq!(**out, $expected_value);
     }};
 }
 

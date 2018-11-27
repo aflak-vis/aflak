@@ -19,5 +19,11 @@ pub fn build_cli() -> App<'static, 'static> {
                 .value_name("TEMPLATE NAME")
                 .possible_values(TEMPLATES)
                 .help("The name of the template to use"),
+        ).arg(
+            Arg::with_name("ron")
+                .long("ron")
+                .value_name("RON FILE")
+                .conflicts_with("template")
+                .help("Import editor from .ron file"),
         )
 }

@@ -108,7 +108,7 @@ where
     E: 'static,
 {
     pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
-        self.dst = import.dst.into()?;
+        self.dst = import.dst.into_dst()?;
 
         // Set Ui node states
         self.node_states = {
@@ -118,6 +118,13 @@ where
             }
             node_states
         };
+
+        // Reset all temporary values
+        self.active_node = None;
+        self.drag_node = None;
+        self.creating_link = None;
+        self.new_link = None;
+
         // Set scrolling offset
         self.scrolling = Scrolling::new(import.scrolling);
 
