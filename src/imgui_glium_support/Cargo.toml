@@ -6,6 +6,6 @@ description = "Support crate for using glium with imgui, made for aflak project"
 license = "GPL-3.0-only"
 
 [dependencies]
-glium = { version = "0.22", features = ["glutin"] }
+glium = { git = "https://github.com/malikolivier/glium", rev = "6382a4e776ead7be167ccc9aff2698996a806e28" }
 imgui = { path = "../../imgui-rs", version = "0.0.22-pre" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }
