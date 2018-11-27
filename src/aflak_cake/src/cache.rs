@@ -6,6 +6,7 @@ use std::thread;
 use std::time::Instant;
 
 use dst::TransformIdx;
+use timed::Timed;
 
 use chashmap::CHashMap;
 
@@ -53,7 +54,7 @@ impl<T, E> CacheRef<T, E> {
         t_idx: TransformIdx,
         t_instant: Instant,
         f: F,
-    ) -> Option<Vec<Result<Arc<T>, Arc<E>>>>
+    ) -> Option<Timed<Vec<Result<Arc<T>, Arc<E>>>>>
     where
         F: FnOnce() -> Vec<Result<Arc<T>, Arc<E>>>,
     {
@@ -111,14 +112,14 @@ impl<T, E> Cache<T, E> {
         t_idx: TransformIdx,
         t_instant: Instant,
         f: F,
-    ) -> Vec<Result<Arc<T>, Arc<E>>>
+    ) -> Timed<Vec<Result<Arc<T>, Arc<E>>>>
     where
         F: FnOnce() -> Vec<Result<Arc<T>, Arc<E>>>,
     {
         if let Some(some_cache_box) = self.cache.get(&t_idx) {
             if let Some(ref cache_box) = *some_cache_box {
                 if cache_box.time >= t_instant {
-                    return cache_box.values.clone();
+                    return Timed::from_instant(cache_box.values.clone(), cache_box.time);
                 }
             }
         }
@@ -131,7 +132,7 @@ impl<T, E> Cache<T, E> {
             time: t_instant,
             values: result,
         });
-        ret
+        Timed::from_instant(ret, t_instant)
     }
 }
 

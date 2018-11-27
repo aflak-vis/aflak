@@ -13,15 +13,21 @@ extern crate variant_name;
 
 mod cache;
 mod dst;
-mod export;
+pub mod export;
 mod future;
+mod timed;
 mod transform;
 
 pub use cache::Cache;
-pub use dst::*;
-pub use export::*;
+pub use dst::{
+    compute, DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot,
+    LinkIter, MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults,
+    TransformIdx, DST,
+};
+pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
 pub use future::Task;
 pub use futures::{future::Future, Async};
+pub use timed::Timed;
 pub use transform::*;
 
 pub use self::variant_name::VariantName;

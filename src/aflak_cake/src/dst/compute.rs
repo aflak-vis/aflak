@@ -5,9 +5,12 @@ use rayon;
 use cache::{Cache, CacheRef};
 use dst::{DSTError, Output, OutputId, DST};
 use future::Task;
+use timed::Timed;
 use variant_name::VariantName;
 
-pub type NodeResult<T, E> = Result<Arc<T>, Arc<DSTError<E>>>;
+pub type SuccessOut<T> = Timed<Arc<T>>;
+pub type ErrorOut<E> = Timed<Arc<DSTError<E>>>;
+pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 
 impl<T, E> DST<'static, T, E>
 where
@@ -21,7 +24,7 @@ where
         &self,
         output_id: OutputId,
         cache: &mut Cache<T, DSTError<E>>,
-    ) -> Task<Arc<T>, Arc<DSTError<E>>> {
+    ) -> Task<SuccessOut<T>, ErrorOut<E>> {
         let t_indices = self.transforms.keys().cloned();
         cache.init(t_indices);
 
@@ -32,16 +35,16 @@ where
                 let dst = self.clone();
                 Task::new(move || dst._compute(output, cache_ref))
             } else {
-                Task::errored(Arc::new(DSTError::MissingOutputID(format!(
+                Task::errored(Timed::from(Arc::new(DSTError::MissingOutputID(format!(
                     "Output ID {:?} is not attached!",
                     output_id
-                ))))
+                )))))
             }
         } else {
-            Task::errored(Arc::new(DSTError::MissingOutputID(format!(
+            Task::errored(Timed::from(Arc::new(DSTError::MissingOutputID(format!(
                 "Output ID {:?} not found!",
                 output_id
-            ))))
+            )))))
         }
     }
 
@@ -49,17 +52,17 @@ where
         let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
             meta
         } else {
-            return Err(Arc::new(DSTError::ComputeError(format!(
+            return Err(Timed::from(Arc::new(DSTError::ComputeError(format!(
                 "Transform {:?} not found!",
                 output.t_idx
-            ))));
+            )))));
         };
 
         let t_idx = output.t_idx;
         let index: usize = output.output_i.into();
         let updated_on = self.updated_on(t_idx);
 
-        if let Some(mut result) = cache.compute(t_idx, updated_on, || {
+        if let Some(result) = cache.compute(t_idx, updated_on, || {
             let deps = self
                 .outputs_attached_to_transform(t_idx)
                 .expect("Tranform not found!");
@@ -75,7 +78,7 @@ where
                     let cache_clone = cache.clone();
                     s.spawn(move |_| {
                         *result = if let Some(output) = parent_output {
-                            self._compute(output, cache_clone)
+                            Timed::take_from_result(self._compute(output, cache_clone))
                         } else if let Some(default) = default {
                             Ok(Arc::new(default))
                         } else {
@@ -106,12 +109,13 @@ where
             }
             out
         }) {
-            result.remove(index)
+            let timed = Timed::map(result, |mut result| result.remove(index));
+            Timed::map_result(timed)
         } else {
-            Err(Arc::new(DSTError::ComputeError(format!(
+            Err(Timed::from(Arc::new(DSTError::ComputeError(format!(
                 "Cache is undergoing deletion! Cannot compute output {} now",
                 output,
-            ))))
+            )))))
         }
     }
 }

@@ -3,7 +3,7 @@ use primitives;
 
 pub fn save(
     output: cake::OutputId,
-    data: &primitives::IOValue,
+    data: &primitives::SuccessOut,
 ) -> Result<(), primitives::ExportError> {
     let path = file_name(output);
     println!("Saving output #{} to '{}'", output.id(), &path);

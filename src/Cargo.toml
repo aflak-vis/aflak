@@ -23,6 +23,7 @@ clap = "2.32.0"
 glium = { version = "0.22", default-features = true }
 imgui = { path = "../imgui-rs", version = "0.0.22-pre" }
 imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }
+owning_ref = "0.4.0"
 
 [build-dependencies]
 clap = "2.32.0"
