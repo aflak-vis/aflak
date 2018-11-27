@@ -107,12 +107,33 @@ fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<Read>, io::Error> {
         };
         Ok(Box::new(template))
     } else if let Some(ron_file) = matches.value_of("ron") {
-        let file = fs::File::open(ron_file)?;
-        Ok(Box::new(file))
+        if ron_file == "-" {
+            Ok(Box::new(StdinReader::default()))
+        } else {
+            let file = fs::File::open(ron_file)?;
+            Ok(Box::new(file))
+        }
     } else {
         // Fall back to default template
         let default_template = templates::show_frame_and_wave(fits_path);
         Ok(Box::new(default_template))
+    }
+}
+
+struct StdinReader {
+    r: io::Stdin,
+}
+
+impl Default for StdinReader {
+    fn default() -> Self {
+        Self { r: io::stdin() }
+    }
+}
+
+impl io::Read for StdinReader {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut lock = self.r.lock();
+        lock.read(buf)
     }
 }
 
