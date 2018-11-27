@@ -506,4 +506,14 @@ mod test {
         let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
         assert!(editor.is_ok());
     }
+
+    #[test]
+    fn import_with_windows_style_paths() {
+        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
+        let transformations = transformations_ref.as_slice();
+
+        let buf = show_equivalent_width(r"C:\path\to\fits\file.fits");
+        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        assert!(editor.is_ok());
+    }
 }
