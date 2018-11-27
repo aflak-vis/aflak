@@ -172,14 +172,6 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
 (
     dst: (
         transforms: [
-            ((19), (
-                t: Function("average"),
-                input_defaults: [
-                    None,
-                    Some(Integer(3134)),
-                    Some(Integer(3154)),
-                ],
-            )),
             ((20), (
                 t: Function("average"),
                 input_defaults: [
@@ -188,15 +180,29 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Integer(3119)),
                 ],
             )),
-            ((1), (
-                t: Constant(Path("{}")),
-                input_defaults: [
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_3d_image"),
+            ((22), (
+                t: Function("linear_composition_2d"),
                 input_defaults: [
                     None,
+                    None,
+                    Some(Float(0.533333)),
+                    Some(Float(0.467)),
+                ],
+            )),
+            ((19), (
+                t: Function("average"),
+                input_defaults: [
+                    None,
+                    Some(Integer(3134)),
+                    Some(Integer(3154)),
+                ],
+            )),
+            ((21), (
+                t: Function("average"),
+                input_defaults: [
+                    None,
+                    Some(Integer(3174)),
+                    Some(Integer(3194)),
                 ],
             )),
             ((23), (
@@ -209,13 +215,24 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Bool(true)),
                 ],
             )),
-            ((22), (
-                t: Function("linear_composition_2d"),
+            ((3), (
+                t: Function("fits_to_3d_image"),
                 input_defaults: [
                     None,
+                ],
+            )),
+            ((26), (
+                t: Function("convert_to_logscale"),
+                input_defaults: [
                     None,
-                    Some(Float(0.533333)),
-                    Some(Float(0.467)),
+                    Some(Float(1000)),
+                    None,
+                    None,
+                ],
+            )),
+            ((1), (
+                t: Constant(Path("{}")),
+                input_defaults: [
                 ],
             )),
             ((2), (
@@ -224,16 +241,43 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                 ],
             )),
-            ((21), (
-                t: Function("average"),
+            ((24), (
+                t: Function("ratio_from_bands"),
                 input_defaults: [
                     None,
-                    Some(Integer(3174)),
-                    Some(Integer(3194)),
+                    None,
+                    None,
+                ],
+            )),
+            ((25), (
+                t: Function("image_min_max"),
+                input_defaults: [
+                    None,
                 ],
             )),
         ],
         edges: [
+            ((
+                t_idx: (22),
+                output_i: (0),
+            ), (
+                t_idx: (23),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (25),
+                output_i: (0),
+            ), (
+                t_idx: (26),
+                input_i: (2),
+            )),
+            ((
+                t_idx: (24),
+                output_i: (0),
+            ), (
+                t_idx: (22),
+                input_i: (2),
+            )),
             ((
                 t_idx: (21),
                 output_i: (0),
@@ -242,10 +286,24 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 input_i: (1),
             )),
             ((
+                t_idx: (21),
+                output_i: (1),
+            ), (
+                t_idx: (24),
+                input_i: (2),
+            )),
+            ((
                 t_idx: (20),
+                output_i: (1),
+            ), (
+                t_idx: (24),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (2),
                 output_i: (0),
             ), (
-                t_idx: (22),
+                t_idx: (3),
                 input_i: (0),
             )),
             ((
@@ -256,17 +314,24 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 input_i: (0),
             )),
             ((
-                t_idx: (2),
-                output_i: (0),
+                t_idx: (19),
+                output_i: (1),
             ), (
-                t_idx: (3),
+                t_idx: (24),
                 input_i: (0),
             )),
             ((
-                t_idx: (22),
+                t_idx: (23),
                 output_i: (0),
             ), (
+                t_idx: (25),
+                input_i: (0),
+            )),
+            ((
                 t_idx: (23),
+                output_i: (0),
+            ), (
+                t_idx: (26),
                 input_i: (0),
             )),
             ((
@@ -275,6 +340,27 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (23),
                 input_i: (1),
+            )),
+            ((
+                t_idx: (25),
+                output_i: (1),
+            ), (
+                t_idx: (26),
+                input_i: (3),
+            )),
+            ((
+                t_idx: (20),
+                output_i: (0),
+            ), (
+                t_idx: (22),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (24),
+                output_i: (1),
+            ), (
+                t_idx: (22),
+                input_i: (3),
             )),
             ((
                 t_idx: (3),
@@ -303,21 +389,21 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 t_idx: (19),
                 output_i: (0),
             ))),
-            ((5), Some((
-                t_idx: (23),
-                output_i: (0),
-            ))),
             ((7), Some((
                 t_idx: (22),
+                output_i: (0),
+            ))),
+            ((8), Some((
+                t_idx: (26),
                 output_i: (0),
             ))),
         ],
     ),
     node_states: [
         (Transform((1)), (
-            selected: false,
+            selected: true,
             pos: (-872, -701),
-            size: (471, 200),
+            size: (408, 200),
         )),
         (Transform((2)), (
             selected: false,
@@ -346,18 +432,28 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
         (Transform((22)), (
             selected: false,
-            pos: (231, -459),
+            pos: (348, -449),
             size: (210, 101),
         )),
         (Transform((23)), (
             selected: false,
-            pos: (477, -623),
-            size: (210, 101),
+            pos: (573, -621),
+            size: (210, 120),
         )),
-        (Output((5)), (
-            selected: true,
-            pos: (794, -588),
-            size: (72, 29),
+        (Transform((24)), (
+            selected: false,
+            pos: (204.29999, -356),
+            size: (121, 80),
+        )),
+        (Transform((25)), (
+            selected: false,
+            pos: (820.6, -483.40002),
+            size: (100, 45.400024),
+        )),
+        (Transform((26)), (
+            selected: false,
+            pos: (910.6, -627),
+            size: (209.40002, 99),
         )),
         (Output((6)), (
             selected: false,
@@ -366,11 +462,16 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
         (Output((7)), (
             selected: false,
-            pos: (532, -401),
+            pos: (628, -408),
             size: (72, 29),
         )),
+        (Output((8)), (
+            selected: false,
+            pos: (1148.2999, -495.10004),
+            size: (72, 28.100037),
+        )),
     ],
-    scrolling: (-878, -730),
+    scrolling: (69, -882),
 )
         "#,
         path
