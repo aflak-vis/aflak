@@ -22,7 +22,10 @@ mod save_output;
 mod templates;
 
 use std::env;
+use std::fs;
+use std::io::{self, Read};
 use std::path::PathBuf;
+use std::process;
 
 use imgui::ImString;
 
@@ -43,13 +46,16 @@ fn main() -> support::Result<()> {
 
     let matches = cli::build_cli().version(version()).get_matches();
 
-    let fits = matches.value_of("fits");
-    let fits_path = path_clean_up(fits, "file.fits");
-
-    let import_data = match matches.value_of("template") {
-        Some("waveform") | None => templates::show_frame_and_wave(fits_path),
-        Some("equivalent_width") => templates::show_equivalent_width(fits_path),
-        Some(template) => unreachable!("Got '{}', an unexpected result.", template),
+    let import_data = match open_buffer(&matches) {
+        Ok(buf) => buf,
+        Err(e) => {
+            if let Some(file_name) = matches.value_of("ron") {
+                eprintln!("Error on opening file '{}': {}", file_name, e);
+            } else {
+                eprintln!("Error on opening buffer: {}", e);
+            }
+            process::exit(1)
+        }
     };
 
     let node_editor =
@@ -88,6 +94,26 @@ fn path_clean_up(path: Option<&str>, default: &str) -> PathBuf {
         pwd.join(path)
     };
     path.canonicalize().unwrap_or(path)
+}
+
+fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<Read>, io::Error> {
+    let fits = matches.value_of("fits");
+    let fits_path = path_clean_up(fits, "file.fits");
+    if let Some(template_name) = matches.value_of("template") {
+        let template = match template_name {
+            "waveform" => templates::show_frame_and_wave(fits_path),
+            "equivalent_width" => templates::show_equivalent_width(fits_path),
+            _ => unreachable!("Got '{}', an unexpected result.", template_name),
+        };
+        Ok(Box::new(template))
+    } else if let Some(ron_file) = matches.value_of("ron") {
+        let file = fs::File::open(ron_file)?;
+        Ok(Box::new(file))
+    } else {
+        // Fall back to default template
+        let default_template = templates::show_frame_and_wave(fits_path);
+        Ok(Box::new(default_template))
+    }
 }
 
 fn version() -> &'static str {
