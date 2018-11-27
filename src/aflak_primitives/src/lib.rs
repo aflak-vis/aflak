@@ -550,6 +550,14 @@ fn run_linear_composition_1d(
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
+    let i1_dim = i1.scalar().dim();
+    let i2_dim = i2.scalar().dim();
+    if i1_dim != i2_dim {
+        return Err(IOErr::UnexpectedInput(format!(
+            "linear_composition_1d: Cannot compose arrays of different dimensions (first array has dimension {:?}, while second array has dimension {:?}",
+            i1_dim, i2_dim
+        )));
+    }
     let out = i1 * coef1 + i2 * coef2;
     Ok(IOValue::Image1d(out))
 }
@@ -560,6 +568,14 @@ fn run_linear_composition_2d(
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
+    let i1_dim = i1.scalar().dim();
+    let i2_dim = i2.scalar().dim();
+    if i1_dim != i2_dim {
+        return Err(IOErr::UnexpectedInput(format!(
+            "linear_composition_2d: Cannot compose arrays of different dimensions (first array has dimension {:?}, while second array has dimension {:?}",
+            i1_dim, i2_dim
+        )));
+    }
     let out = i1 * coef1 + i2 * coef2;
     Ok(IOValue::Image2d(out))
 }
