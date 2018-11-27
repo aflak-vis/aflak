@@ -471,7 +471,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             size: (72, 28.100037),
         )),
     ],
-    scrolling: (-583, -1077),
+    scrolling: (-578, -819),
 )
         "#,
         path
