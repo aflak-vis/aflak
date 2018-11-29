@@ -1,9 +1,9 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{Array1, Array2, Array3};
+use ndarray::{Array1, Array2, Array3, Ix3};
 
-use super::IOErr;
+use fits::{FitsArrayReadError, FitsDataToArray};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Unit {
@@ -64,7 +64,7 @@ struct MetaWcsArray1 {
 }
 
 impl WcsArray3 {
-    pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray3, IOErr> {
+    pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray3, FitsArrayReadError> {
         fn read_unit(hdu: &Hdu, key: &str) -> Unit {
             if let Some(HeaderValue::CharacterString(unit)) = hdu.value(key) {
                 Unit::Custom(unit.to_owned())
@@ -75,19 +75,8 @@ impl WcsArray3 {
 
         let data = hdu.read_data();
         let image = match *data {
-            FitsData::FloatingPoint32(ref image) => {
-                let sh = &image.shape;
-                if sh.len() != 3 {
-                    let msg = format!("Expects a 3-dimensional FITS file as input. But the input file has {} dimensions.", sh.len());
-                    return Err(IOErr::UnexpectedInput(msg));
-                }
-                Array3::from_shape_vec((sh[2], sh[1], sh[0]), image.data.clone())
-                    .map_err(IOErr::ShapeError)?
-            }
-            _ => {
-                let msg = "Expected FITS HDU to contain FloatingPoint32 data";
-                return Err(IOErr::UnexpectedInput(msg.to_owned()));
-            }
+            FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
+            _ => return Err(FitsArrayReadError::UnsupportedData),
         };
         let vunit = read_unit(hdu, "BUNIT");
         let cunit1 = read_unit(hdu, "CUNIT1");

@@ -13,6 +13,7 @@ extern crate serde;
 extern crate serde_derive;
 
 mod export;
+mod fits;
 mod roi;
 mod unit;
 
@@ -300,7 +301,9 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
                     .to_owned(),
             )
         })?;
-    WcsArray3::from_hdu(&primary_hdu).map(IOValue::Image3d)
+    WcsArray3::from_hdu(&primary_hdu)
+        .map(IOValue::Image3d)
+        .map_err(|e| IOErr::FITSErr(format!("{}", e)))
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
