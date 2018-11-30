@@ -345,6 +345,11 @@ where
                                 self.error_stack.push(Box::new(e));
                             }
                         }
+                        if ui.is_item_hovered() {
+                            ui.tooltip(|| {
+                                ui.text("Import editor from 'editor_graph_export.ron'.");
+                            });
+                        }
                         ui.same_line(ui.get_window_size().0 - 180.0);
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
                             if let Err(e) = self.export_to_file("editor_graph_export.ron") {
@@ -354,6 +359,11 @@ where
                                 ui.open_popup(im_str!("export-success"));
                                 self.success_stack.push(ImString::new("Editor content was exported with success to 'editor_graph_export.ron'!"));
                             }
+                        }
+                        if ui.is_item_hovered() {
+                            ui.tooltip(|| {
+                                ui.text("Export editor content to 'editor_graph_export.ron'.");
+                            });
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
                         ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
