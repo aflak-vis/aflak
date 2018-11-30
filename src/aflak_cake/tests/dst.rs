@@ -92,6 +92,25 @@ fn test_connect_wrong_types() {
 }
 
 #[test]
+fn test_connect_convertible_types() {
+    let [_plus1, _minus1, get1, _image] = get_all_transforms();
+    let divide10 = get_divide_by_10_transform();
+
+    // An arrow points from a box's input to a box's output  `OUT -> INT`
+    // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
+    // a, get1
+    // \-> b, divide10 -> OUT1
+    let mut dst = DST::new();
+    let a = dst.add_transform(&get1);
+    let b = dst.add_transform(&divide10);
+    let _out1 = dst.attach_output(Output::new(b, 0)).unwrap();
+    assert!(
+        dst.connect(Output::new(a, 0), Input::new(b, 0)).is_ok(),
+        "Could not connnected convertible types"
+    );
+}
+
+#[test]
 fn test_cache_reset() {
     let [plus1, minus1, get1] = if let &[plus1, minus1, get1, _image] = *TRANSFORMATIONS_REF {
         [plus1, minus1, get1]
