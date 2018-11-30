@@ -325,14 +325,14 @@ where
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file("editor_graph_export.ron") {
-                                eprintln!("Error on export! {}", e);
+                                eprintln!("Error on import! {}", e);
                                 self.error_stack.push(Box::new(e));
                             }
                         }
                         ui.same_line(ui.get_window_size().0 - 180.0);
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
                             if let Err(e) = self.export_to_file("editor_graph_export.ron") {
-                                eprintln!("Error on import! {}", e);
+                                eprintln!("Error on export! {}", e);
                                 self.error_stack.push(Box::new(e));
                             }
                         }
