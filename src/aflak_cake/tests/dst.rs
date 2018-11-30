@@ -18,12 +18,13 @@ use futures::{future::Future, Async};
 use ron::de;
 use ron::ser;
 
-fn get_all_transforms() -> [Transform<AlgoIO, E>; 4] {
+fn get_all_transforms() -> [Transform<AlgoIO, E>; 5] {
     [
         get_plus1_transform(),
         get_minus1_transform(),
         get_get1_transform(),
         get_get_image_transform(),
+        get_divide_by_10_transform(),
     ]
 }
 
@@ -43,7 +44,7 @@ macro_rules! assert_output_eq {
 
 #[test]
 fn test_make_dst_and_iterate_dependencies() {
-    let [plus1, minus1, get1, _image] = get_all_transforms();
+    let [plus1, minus1, get1, _image, _] = get_all_transforms();
 
     // An arrow points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
@@ -74,7 +75,7 @@ fn test_make_dst_and_iterate_dependencies() {
 
 #[test]
 fn test_connect_wrong_types() {
-    let [plus1, _minus1, _get1, image] = get_all_transforms();
+    let [plus1, _minus1, _get1, image, _] = get_all_transforms();
 
     // An arrow points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
@@ -93,8 +94,7 @@ fn test_connect_wrong_types() {
 
 #[test]
 fn test_connect_convertible_types() {
-    let [_plus1, _minus1, get1, _image] = get_all_transforms();
-    let divide10 = get_divide_by_10_transform();
+    let [_plus1, _minus1, get1, _image, divide10] = get_all_transforms();
 
     // An arrow points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
@@ -144,7 +144,7 @@ fn test_cache_reset() {
 
 #[test]
 fn test_remove_node() {
-    let [plus1, minus1, get1, _image] = get_all_transforms();
+    let [plus1, minus1, get1, _image, _] = get_all_transforms();
 
     // a, get1 -------------------> c, plus1 -> d, plus1 -> OUT1
     // \-> b, minus1 -> OUT2        \-> e, plus1
