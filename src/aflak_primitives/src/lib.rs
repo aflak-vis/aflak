@@ -296,7 +296,20 @@ impl cake::EditableVariants for IOValue {
 }
 
 impl cake::ConvertibleVariants for IOValue {
-    const CONVERTION_TABLE: &'static [cake::ConvertibleVariant<Self>] = &[];
+    const CONVERTION_TABLE: &'static [cake::ConvertibleVariant<Self>] =
+        &[cake::ConvertibleVariant {
+            from: "Integer",
+            into: "Float",
+            f: integer_to_float,
+        }];
+}
+
+fn integer_to_float(from: &IOValue) -> IOValue {
+    if let IOValue::Integer(int) = from {
+        IOValue::Float(*int as f32)
+    } else {
+        panic!("Unexpected input!")
+    }
 }
 
 /// Open FITS file
