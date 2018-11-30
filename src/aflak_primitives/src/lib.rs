@@ -164,6 +164,11 @@ If bool value is checked, then replaces the values above the threshold with NaN,
                     vec![run_clip3d(image, *threshold, *above)]
                 }
             ),
+            cake_transform!("Replace all NaN values in 3D image with the provided value.",
+                replace_nan_image3d<IOValue, IOErr>(image: Image3d, placeholder: Float = 0.0) -> Image3d {
+                    vec![run_replace_nan_image3d(image, *placeholder)]
+                }
+            ),
             cake_transform!(
                 "Compose 2 1D-vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
@@ -645,6 +650,18 @@ fn run_clip3d(image: &WcsArray3, threshold: f32, above: bool) -> Result<IOValue,
     for f in image.scalar_mut().iter_mut() {
         if (above && *f >= threshold) || (!above && *f <= threshold) {
             *f = ::std::f32::NAN;
+        }
+    }
+
+    Ok(IOValue::Image3d(image))
+}
+
+fn run_replace_nan_image3d(image: &WcsArray3, placeholder: f32) -> Result<IOValue, IOErr> {
+    let mut image = image.clone();
+
+    for f in image.scalar_mut().iter_mut() {
+        if f.is_nan() {
+            *f = placeholder;
         }
     }
 
