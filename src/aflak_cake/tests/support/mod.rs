@@ -5,6 +5,7 @@ use variant_name::VariantName;
 #[derive(Clone, PartialEq, Debug, VariantName, Serialize, Deserialize)]
 pub enum AlgoIO {
     Integer(u64),
+    Float(f64),
     Image2d(Vec<Vec<f64>>),
 }
 
@@ -27,6 +28,12 @@ pub fn get_plus1_transform() -> Transform<AlgoIO, E> {
 pub fn get_minus1_transform() -> Transform<AlgoIO, E> {
     cake_transform!("Substract 1", minus1<AlgoIO, E>(i: Integer) -> Integer {
         vec![Ok(AlgoIO::Integer(i - 1))]
+    })
+}
+
+pub fn get_divide_by_10_transform() -> Transform<AlgoIO, E> {
+    cake_transform!("Divide by 10", divide_by_10<AlgoIO, E>(f: Float) -> Float {
+        vec![Ok(AlgoIO::Float(f / 10.0))]
     })
 }
 
@@ -66,5 +73,17 @@ impl NamedAlgorithms<E> for AlgoIO {
 }
 
 impl ConvertibleVariants for AlgoIO {
-    const CONVERTION_TABLE: &'static [ConvertibleVariant<Self>] = &[];
+    const CONVERTION_TABLE: &'static [ConvertibleVariant<Self>] = &[ConvertibleVariant {
+        from: "Integer",
+        into: "Float",
+        f: integer_to_float,
+    }];
+}
+
+fn integer_to_float(from: &AlgoIO) -> AlgoIO {
+    if let AlgoIO::Integer(int) = from {
+        AlgoIO::Float(*int as _)
+    } else {
+        panic!("Unexpected input!")
+    }
 }
