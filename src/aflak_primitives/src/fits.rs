@@ -14,7 +14,7 @@ pub trait FitsDataToArray<Dimension> {
 pub enum FitsArrayReadError {
     UnexpectedDimension { expected: usize, got: usize },
     ShapeError(ndarray::ShapeError),
-    UnsupportedData,
+    UnsupportedData(&'static str),
 }
 
 impl fmt::Display for FitsArrayReadError {
@@ -26,7 +26,9 @@ impl fmt::Display for FitsArrayReadError {
                 expected, got
             ),
             FitsArrayReadError::ShapeError(ref e) => e.fmt(f),
-            FitsArrayReadError::UnsupportedData => write!(f, "Unsupported data array format."),
+            FitsArrayReadError::UnsupportedData(format) => {
+                write!(f, "Unsupported data array format: '{}'.", format)
+            }
         }
     }
 }

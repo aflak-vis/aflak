@@ -77,7 +77,15 @@ impl WcsArray3 {
         let image = match *data {
             FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
             FitsData::FloatingPoint64(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
-            _ => return Err(FitsArrayReadError::UnsupportedData),
+            FitsData::IntegersI32(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("IntegersI32"))
+            }
+            FitsData::IntegersU32(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("IntegersU32"))
+            }
+            FitsData::Characters(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("Characters"))
+            }
         };
         let vunit = read_unit(hdu, "BUNIT");
         let cunit1 = read_unit(hdu, "CUNIT1");
