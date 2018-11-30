@@ -324,6 +324,8 @@ where
     }
 
     fn render_graph_node(&mut self, ui: &Ui) {
+        const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
+
         ui.child_frame(im_str!("GraphNodeChildWindow"), (0.0, 0.0))
             .build(|| {
                 if self.show_top_pane {
@@ -340,29 +342,35 @@ where
                         ui.text(im_str!("Scroll with Ctrl+LMB or Alt+LMB."));
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
-                            if let Err(e) = self.import_from_file("editor_graph_export.ron") {
+                            if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
                                 eprintln!("Error on import! {}", e);
                                 self.error_stack.push(Box::new(e));
                             }
                         }
                         if ui.is_item_hovered() {
                             ui.tooltip(|| {
-                                ui.text("Import editor from 'editor_graph_export.ron'.");
+                                ui.text(im_str!("Import editor from '{}'.", EDITOR_EXPORT_FILE));
                             });
                         }
                         ui.same_line(ui.get_window_size().0 - 180.0);
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
-                            if let Err(e) = self.export_to_file("editor_graph_export.ron") {
+                            if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
                                 eprintln!("Error on export! {}", e);
                                 self.error_stack.push(Box::new(e));
                             } else {
                                 ui.open_popup(im_str!("export-success"));
-                                self.success_stack.push(ImString::new("Editor content was exported with success to 'editor_graph_export.ron'!"));
+                                self.success_stack.push(ImString::new(format!(
+                                    "Editor content was exported with success to '{}'!",
+                                    EDITOR_EXPORT_FILE
+                                )));
                             }
                         }
                         if ui.is_item_hovered() {
                             ui.tooltip(|| {
-                                ui.text("Export editor content to 'editor_graph_export.ron'.");
+                                ui.text(im_str!(
+                                    "Export editor content to '{}'.",
+                                    EDITOR_EXPORT_FILE
+                                ));
                             });
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
