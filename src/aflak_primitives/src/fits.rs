@@ -53,3 +53,22 @@ impl FitsDataToArray<Ix3> for FitsDataArray<f32> {
         }
     }
 }
+
+impl FitsDataToArray<Ix3> for FitsDataArray<f64> {
+    type Target = Array3<f32>;
+
+    fn to_array(&self) -> Result<Array3<f32>, FitsArrayReadError> {
+        let sh = &self.shape;
+        if sh.len() != 3 {
+            Err(FitsArrayReadError::UnexpectedDimension {
+                expected: 3,
+                got: sh.len(),
+            })
+        } else {
+            Array3::from_shape_vec(
+                (sh[2], sh[1], sh[0]),
+                self.data.iter().map(|f| *f as f32).collect(),
+            ).map_err(FitsArrayReadError::ShapeError)
+        }
+    }
+}

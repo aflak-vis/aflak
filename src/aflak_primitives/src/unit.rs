@@ -76,6 +76,7 @@ impl WcsArray3 {
         let data = hdu.read_data();
         let image = match *data {
             FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
+            FitsData::FloatingPoint64(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
             _ => return Err(FitsArrayReadError::UnsupportedData),
         };
         let vunit = read_unit(hdu, "BUNIT");
