@@ -146,6 +146,7 @@ where
         + cake::NamedAlgorithms<E>
         + cake::VariantName
         + cake::DefaultFor
+        + cake::ConvertibleVariants
         + Serialize
         + for<'de> Deserialize<'de>,
     ED: ConstantEditor<T>,

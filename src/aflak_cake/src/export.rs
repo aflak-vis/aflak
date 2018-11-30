@@ -7,6 +7,7 @@ use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use variant_name::VariantName;
 
+use super::ConvertibleVariants;
 use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
 use transform::{Algorithm, Transform};
 
@@ -152,7 +153,7 @@ struct DeserMetaTransform<T, E> {
 
 impl<T, E> DeserDST<T, E>
 where
-    T: NamedAlgorithms<E> + VariantName,
+    T: NamedAlgorithms<E> + VariantName + ConvertibleVariants,
 {
     /// Converts this intermediary representation of a DST into a normal DST.
     pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError<E>> {
@@ -193,7 +194,7 @@ where
 
 impl<'de, 't, T, E> Deserialize<'de> for DST<'static, T, E>
 where
-    T: 't + Clone + Deserialize<'de> + NamedAlgorithms<E> + VariantName,
+    T: 't + Clone + Deserialize<'de> + NamedAlgorithms<E> + VariantName + ConvertibleVariants,
     E: fmt::Display,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

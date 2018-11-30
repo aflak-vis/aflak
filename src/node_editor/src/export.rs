@@ -104,7 +104,7 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: 'static + Clone + NamedAlgorithms<E> + VariantName,
+    T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
 {
     pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
@@ -178,7 +178,12 @@ impl<E> From<cake::ImportError<E>> for ImportError<E> {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: 'static + Clone + NamedAlgorithms<E> + VariantName + for<'de> Deserialize<'de>,
+    T: 'static
+        + Clone
+        + NamedAlgorithms<E>
+        + VariantName
+        + cake::ConvertibleVariants
+        + for<'de> Deserialize<'de>,
     E: 'static,
     ED: Default,
 {

@@ -6,6 +6,7 @@ use std::slice;
 use boow::Bow;
 use variant_name::VariantName;
 
+use super::super::ConvertibleVariants;
 use dst::node::{Node, NodeId};
 use dst::{DSTError, Input, InputDefaultsMut, InputList, Output, OutputId, TransformIdx, DST};
 use dst::{MetaTransform, TransformAndDefaults};
@@ -38,7 +39,10 @@ where
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
     /// If input is already connector to another output, delete this output.
-    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>> {
+    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>>
+    where
+        T: ConvertibleVariants,
+    {
         if !self.output_exists(&output) {
             Err(DSTError::InvalidOutput(format!(
                 "{} does not exist in this graph!",
@@ -177,14 +181,18 @@ where
 
     /// Check if edge can be added to the current graph.
     /// Especially check if the input type is the same as the output type.
-    fn is_edge_compatible(&self, input: &Input, output: &Output) -> bool {
+    fn is_edge_compatible(&self, input: &Input, output: &Output) -> bool
+    where
+        T: ConvertibleVariants,
+    {
         match (
             self.get_transform(input.t_idx),
             self.get_transform(output.t_idx),
         ) {
             (Some(input_t), Some(output_t)) => {
-                input_t.nth_input_type(input.input_i.into())
-                    == output_t.nth_output_type(output.output_i.into())
+                let input_type = input_t.nth_input_type(input.input_i.into());
+                let output_type = output_t.nth_output_type(output.output_i.into());
+                T::convertible(output_type.name(), input_type.name())
             }
             _ => false,
         }
