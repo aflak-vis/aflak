@@ -9,6 +9,8 @@ When [reporting a bug](https://github.com/aflak-vis/aflak/issues) please
 include:
 
 * Your operating system name and version.
+* Your `aflak` version. You can get it by typing `aflak --version` in the
+    terminal.
 * Any details about your local setup that might be helpful in
     troubleshooting.
 * Detailed steps to reproduce the bug.
