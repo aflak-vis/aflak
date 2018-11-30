@@ -45,7 +45,7 @@ macro_rules! assert_output_eq {
 fn test_make_dst_and_iterate_dependencies() {
     let [plus1, minus1, get1, _image] = get_all_transforms();
 
-    // An error points from a box's input to a box's output  `OUT -> INT`
+    // An arrow points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
     // a, get1 -------------------> c, plus1 -> d, plus1 -> OUT1
     // \-> b, minus1 -> OUT2        \-> e, plus1
@@ -76,7 +76,7 @@ fn test_make_dst_and_iterate_dependencies() {
 fn test_connect_wrong_types() {
     let [plus1, _minus1, _get1, image] = get_all_transforms();
 
-    // An error points from a box's input to a box's output  `OUT -> INT`
+    // An arrow points from a box's input to a box's output  `OUT -> INT`
     // We build the dst as follows (all functions are trivial and only have 1 output or 0/1 input):
     // a, image
     // \-> b, plus1 -> OUT1
