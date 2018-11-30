@@ -296,17 +296,30 @@ impl cake::EditableVariants for IOValue {
 }
 
 impl cake::ConvertibleVariants for IOValue {
-    const CONVERTION_TABLE: &'static [cake::ConvertibleVariant<Self>] =
-        &[cake::ConvertibleVariant {
+    const CONVERTION_TABLE: &'static [cake::ConvertibleVariant<Self>] = &[
+        cake::ConvertibleVariant {
             from: "Integer",
             into: "Float",
             f: integer_to_float,
-        }];
+        },
+        cake::ConvertibleVariant {
+            from: "Float",
+            into: "Integer",
+            f: float_to_integer,
+        },
+    ];
 }
 
 fn integer_to_float(from: &IOValue) -> IOValue {
     if let IOValue::Integer(int) = from {
         IOValue::Float(*int as f32)
+    } else {
+        panic!("Unexpected input!")
+    }
+}
+fn float_to_integer(from: &IOValue) -> IOValue {
+    if let IOValue::Float(f) = from {
+        IOValue::Integer(f.round() as _)
     } else {
         panic!("Unexpected input!")
     }
