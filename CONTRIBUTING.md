@@ -5,7 +5,7 @@ little bit helps, and credit will always be given.
 
 ## Bug reports
 
-When [reporting a bug](https://github.com/aflak-vis/aflak/issues>) please
+When [reporting a bug](https://github.com/aflak-vis/aflak/issues) please
 include:
 
 * Your operating system name and version.
@@ -28,7 +28,7 @@ If you are proposing a feature:
 
 To set up `aflak` for local development:
 
-*1.* Fork [aflak](https://github.com/aflak-vis/aflak>)
+*1.* Fork [aflak](https://github.com/aflak-vis/aflak)
    (look for the "Fork" button).
 
 *2.* Clone your fork locally::
