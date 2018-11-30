@@ -117,6 +117,39 @@ impl WcsArray4 {
             array: vunit.new(image),
         })
     }
+
+    pub fn scalar(&self) -> &Array4<f32> {
+        self.array.scalar()
+    }
+
+    pub fn array(&self) -> &Dimensioned<Array4<f32>> {
+        &self.array
+    }
+
+    pub(crate) fn make_slice3(
+        &self,
+        index: &[(usize, f32, f32); 3],
+        array: Dimensioned<Array3<f32>>,
+    ) -> WcsArray3 {
+        let slice_index = [index[0].0, index[1].0];
+        let new_meta = self.meta.as_ref().map(|meta| MetaWcsArray3 {
+            wcs: meta
+                .wcs
+                .slice(&slice_index)
+                .transform(index[0].0, index[0].1, index[0].2)
+                .transform(index[1].0, index[1].1, index[1].2)
+                .transform(index[2].0, index[2].1, index[2].2),
+            cunits: [
+                meta.cunits[index[0].0].clone(),
+                meta.cunits[index[1].0].clone(),
+                meta.cunits[index[2].0].clone(),
+            ],
+        });
+        WcsArray3 {
+            meta: new_meta,
+            array,
+        }
+    }
 }
 
 impl WcsArray3 {

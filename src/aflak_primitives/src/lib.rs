@@ -122,6 +122,12 @@ lazy_static! {
                 }
             ),
             cake_transform!(
+                "Slice one frame of a 4D dataset into a 3D dataset.",
+                slice_one_frame_4d_to_3d<IOValue, IOErr>(image: Image4d, frame: Integer = 0) -> Image3d {
+                    vec![run_slice_one_frame_4d_to_3d(image, *frame)]
+                }
+            ),
+            cake_transform!(
                 "Slice an arbitrary plane through a 3D dataset and return the slice.",
                 slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
                     vec![run_slice_3d_to_2d(image, map)]
@@ -323,6 +329,36 @@ fn run_fits_to_4d_image(fits: &fitrs::Fits) -> Result<IOValue, IOErr> {
     WcsArray4::from_hdu(primary_hdu)
         .map(IOValue::Image4d)
         .map_err(|e| IOErr::FITSErr(format!("{}", e)))
+}
+
+fn run_slice_one_frame_4d_to_3d(input_img: &WcsArray4, frame_idx: i64) -> Result<IOValue, IOErr> {
+    if frame_idx < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "slice_one_frame_4d_to_3d: frame index must be positive, got {}",
+            frame_idx
+        )));
+    }
+
+    let frame_idx = frame_idx as usize;
+
+    let image_val = input_img.scalar();
+
+    let (frame_cnt, _, _, _) = image_val.dim();
+
+    if frame_idx >= frame_cnt {
+        return Err(IOErr::UnexpectedInput(format!(
+            "slice_one_frame_4d_to_3d: frame index higher than input image's frame count ({} >= {})",
+            frame_idx, frame_cnt
+        )));
+    }
+    let out = image_val.slice(s![frame_idx, .., .., ..]);
+
+    let wrap_with_unit = input_img.make_slice3(
+        &[(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)],
+        input_img.array().with_new_value(out.to_owned()),
+    );
+
+    Ok(IOValue::Image3d(wrap_with_unit))
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
