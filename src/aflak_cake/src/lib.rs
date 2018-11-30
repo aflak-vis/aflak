@@ -18,6 +18,7 @@ mod future;
 mod timed;
 mod transform;
 
+pub use boow::Bow;
 pub use cache::Cache;
 pub use dst::{
     compute, DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot,
@@ -50,6 +51,47 @@ pub trait EditableVariants: VariantName {
     }
 }
 
+pub struct ConvertibleVariant<T> {
+    pub from: &'static str,
+    pub into: &'static str,
+    pub f: fn(&T) -> T,
+}
+
+pub trait ConvertibleVariants: VariantName + Sized + 'static {
+    const CONVERTION_TABLE: &'static [ConvertibleVariant<Self>];
+
+    fn convert<'a>(
+        from: &'static str,
+        into: &'static str,
+        value: &'a Self,
+    ) -> Option<Bow<'a, Self>> {
+        if from == into {
+            Some(Bow::Borrowed(value))
+        } else if let Some(variant) = Self::CONVERTION_TABLE
+            .iter()
+            .find(|variant| variant.from == from && variant.into == into)
+        {
+            let out = (variant.f)(value);
+            Some(Bow::Owned(out))
+        } else {
+            None
+        }
+    }
+
+    fn convertible(from: &'static str, into: &'static str) -> bool {
+        if from == into {
+            true
+        } else if let Some(_) = Self::CONVERTION_TABLE
+            .iter()
+            .find(|variant| variant.from == from && variant.into == into)
+        {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 /// Make it easier to define a function used for a transform. Used internally
 /// by [`cake_transform`]. You probably want to directly use [`cake_transform`].
 #[doc(hidden)]
@@ -66,7 +108,7 @@ macro_rules! cake_fn {
     // Standard case
     ($fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident),*) $fn_block: block) => {
         fn $fn_name(
-            input: Vec<&$enum_name>,
+            input: Vec<$crate::Bow<$enum_name>>,
         ) -> Vec<Result<$enum_name, $err_type>> {
             #[allow(non_camel_case_types)]
             enum Args { $($x,)* }

@@ -295,6 +295,10 @@ impl cake::EditableVariants for IOValue {
     }
 }
 
+impl cake::ConvertibleVariants for IOValue {
+    const CONVERTION_TABLE: &'static [cake::ConvertibleVariant<Self>] = &[];
+}
+
 /// Open FITS file
 fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
     let path = path.as_ref();

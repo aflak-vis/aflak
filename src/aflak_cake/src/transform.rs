@@ -3,6 +3,9 @@ use std::fmt;
 use std::time::Instant;
 use std::vec;
 
+use boow::Bow;
+
+use super::ConvertibleVariants;
 use variant_name::VariantName;
 
 /// Static string that identifies a transformation.
@@ -42,7 +45,7 @@ pub enum Algorithm<T, E> {
     Constant(T),
 }
 
-type PlainFunction<T, E> = fn(Vec<&T>) -> Vec<Result<T, E>>;
+type PlainFunction<T, E> = fn(Vec<Bow<'_, T>>) -> Vec<Result<T, E>>;
 
 impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -125,7 +128,7 @@ impl<T, E> Transform<T, E> {
 pub struct TransformCaller<'a, 'i, T: 'a + 'i, E: 'a> {
     expected_input_types: vec::IntoIter<TypeId>,
     algorithm: &'a Algorithm<T, E>,
-    input: Vec<&'i T>,
+    input: Vec<Bow<'i, T>>,
 }
 
 impl<T, E> Transform<T, E> {
@@ -234,23 +237,21 @@ where
 
 impl<'a, 'i, T, E> TransformCaller<'a, 'i, T, E>
 where
-    T: VariantName,
+    T: VariantName + ConvertibleVariants,
 {
     /// Feed next argument to transformation. Expect a reference as input.
-    pub fn feed(&mut self, input: &'i T) {
-        self.check_type(input);
-        self.input.push(input);
-    }
-
     /// Panic if expected type is not provided or if too many arguments are supplied.
-    fn check_type(&mut self, input: &T) {
+    pub fn feed(&mut self, input: &'i T) {
         let expected_type = self
             .expected_input_types
             .next()
             .expect("Not all type consumed")
             .0;
-        if input.variant_name() != expected_type {
-            panic!("Wrong type on feeding algorithm!");
+        let input_type = input.variant_name();
+        if let Some(converted_input) = T::convert(input_type, expected_type, input) {
+            self.input.push(converted_input);
+        } else {
+            panic!("Cannot convert '{}' to '{}'", input_type, expected_type)
         }
     }
 }

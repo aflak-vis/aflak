@@ -64,3 +64,7 @@ impl NamedAlgorithms<E> for AlgoIO {
         None
     }
 }
+
+impl ConvertibleVariants for AlgoIO {
+    const CONVERTION_TABLE: &'static [ConvertibleVariant<Self>] = &[];
+}

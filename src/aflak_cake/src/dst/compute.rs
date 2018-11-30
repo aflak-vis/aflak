@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rayon;
 
+use super::super::ConvertibleVariants;
 use cache::{Cache, CacheRef};
 use dst::{DSTError, Output, OutputId, DST};
 use future::Task;
@@ -14,7 +15,7 @@ pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 
 impl<T, E> DST<'static, T, E>
 where
-    T: Clone + VariantName + Send + Sync,
+    T: Clone + VariantName + ConvertibleVariants + Send + Sync,
     E: Send + Sync,
 {
     /// Return the value out of the output given as argument.

@@ -14,7 +14,7 @@ pub struct ComputationState<T, E> {
 
 impl<T, E, ED> NodeEditor<'static, T, E, ED>
 where
-    T: Clone + cake::VariantName + Send + Sync,
+    T: Clone + cake::VariantName + cake::ConvertibleVariants + Send + Sync,
     E: Send + Sync,
 {
     /// Compute output's result asynchonously.
