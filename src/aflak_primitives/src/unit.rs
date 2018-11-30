@@ -190,6 +190,10 @@ impl WcsArray3 {
         self.array.scalar()
     }
 
+    pub fn scalar_mut(&mut self) -> &mut Array3<f32> {
+        self.array.scalar_mut()
+    }
+
     pub fn array(&self) -> &Dimensioned<Array3<f32>> {
         &self.array
     }
@@ -299,6 +303,10 @@ impl<V> Dimensioned<V> {
 
     pub fn scalar(&self) -> &V {
         &self.value
+    }
+
+    pub fn scalar_mut(&mut self) -> &mut V {
+        &mut self.value
     }
 
     pub fn unit(&self) -> &Unit {

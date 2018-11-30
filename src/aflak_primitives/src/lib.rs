@@ -157,6 +157,13 @@ for 0 <= i < n and 0 <= j < m",
                     vec![run_extract_wave(image, roi)]
                 }
             ),
+            cake_transform!("Replace all values above or below a threshold in a 3D image with NaN.
+Takes two parameters: a threshold and a bool.
+If bool value is checked, then replaces the values above the threshold with NaN, else replace the values below the threshold with NaN.",
+                clip_image3d<IOValue, IOErr>(image: Image3d, threshold: Float = 0.0, above: Bool = false) -> Image3d {
+                    vec![run_clip3d(image, *threshold, *above)]
+                }
+            ),
             cake_transform!(
                 "Compose 2 1D-vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
@@ -630,6 +637,18 @@ fn run_extract_wave(image: &WcsArray3, roi: &roi::ROI) -> Result<IOValue, IOErr>
         2,
         image.array().with_new_value(Array1::from_vec(wave)),
     )))
+}
+
+fn run_clip3d(image: &WcsArray3, threshold: f32, above: bool) -> Result<IOValue, IOErr> {
+    let mut image = image.clone();
+
+    for f in image.scalar_mut().iter_mut() {
+        if (above && *f >= threshold) || (!above && *f <= threshold) {
+            *f = ::std::f32::NAN;
+        }
+    }
+
+    Ok(IOValue::Image3d(image))
 }
 
 fn run_linear_composition_1d(
