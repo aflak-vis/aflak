@@ -1,7 +1,7 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{Array1, Array2, Array3, Ix3};
+use ndarray::{Array1, Array2, Array3, Array4, Ix3, Ix4};
 
 use fits::{FitsArrayReadError, FitsDataToArray};
 
@@ -16,6 +16,21 @@ pub struct Dimensioned<V> {
     value: V,
     unit: Unit,
     homogeneous: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WcsArray4 {
+    meta: Option<MetaWcsArray4>,
+    array: Dimensioned<Array4<f32>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct MetaWcsArray4 {
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    // TODO: Handle serialization for WCS
+    wcs: WCS,
+    cunits: [Unit; 4],
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -63,16 +78,49 @@ struct MetaWcsArray1 {
     cunit: Unit,
 }
 
+fn read_unit(hdu: &Hdu, key: &str) -> Unit {
+    if let Some(HeaderValue::CharacterString(unit)) = hdu.value(key) {
+        Unit::Custom(unit.to_owned())
+    } else {
+        Unit::None
+    }
+}
+
+impl WcsArray4 {
+    pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray4, FitsArrayReadError> {
+        let data = hdu.read_data();
+        let image = match *data {
+            FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix4>::to_array(image)?,
+            FitsData::FloatingPoint64(ref image) => FitsDataToArray::<Ix4>::to_array(image)?,
+            FitsData::IntegersI32(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("IntegersI32"))
+            }
+            FitsData::IntegersU32(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("IntegersU32"))
+            }
+            FitsData::Characters(_) => {
+                return Err(FitsArrayReadError::UnsupportedData("Characters"))
+            }
+        };
+
+        let vunit = read_unit(hdu, "BUNIT");
+        let cunit1 = read_unit(hdu, "CUNIT1");
+        let cunit2 = read_unit(hdu, "CUNIT2");
+        let cunit3 = read_unit(hdu, "CUNIT3");
+        let cunit4 = read_unit(hdu, "CUNIT4");
+        let wcs = WCS::new(hdu);
+        Ok(Self {
+            meta: Some(MetaWcsArray4 {
+                wcs,
+                cunits: [cunit1, cunit2, cunit3, cunit4],
+            }),
+            array: vunit.new(image),
+        })
+    }
+}
+
 impl WcsArray3 {
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray3, FitsArrayReadError> {
-        fn read_unit(hdu: &Hdu, key: &str) -> Unit {
-            if let Some(HeaderValue::CharacterString(unit)) = hdu.value(key) {
-                Unit::Custom(unit.to_owned())
-            } else {
-                Unit::None
-            }
-        }
-
         let data = hdu.read_data();
         let image = match *data {
             FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,

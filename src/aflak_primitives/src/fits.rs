@@ -2,7 +2,7 @@ use std::error;
 use std::fmt;
 
 use fitrs::FitsDataArray;
-use ndarray::{self, Array3, Ix3};
+use ndarray::{self, Array3, Array4, Ix3, Ix4};
 
 pub trait FitsDataToArray<Dimension> {
     type Target;
@@ -69,6 +69,42 @@ impl FitsDataToArray<Ix3> for FitsDataArray<f64> {
         } else {
             Array3::from_shape_vec(
                 (sh[2], sh[1], sh[0]),
+                self.data.iter().map(|f| *f as f32).collect(),
+            ).map_err(FitsArrayReadError::ShapeError)
+        }
+    }
+}
+
+impl FitsDataToArray<Ix4> for FitsDataArray<f32> {
+    type Target = Array4<f32>;
+
+    fn to_array(&self) -> Result<Array4<f32>, FitsArrayReadError> {
+        let sh = &self.shape;
+        if sh.len() != 4 {
+            Err(FitsArrayReadError::UnexpectedDimension {
+                expected: 4,
+                got: sh.len(),
+            })
+        } else {
+            Array4::from_shape_vec((sh[3], sh[2], sh[1], sh[0]), self.data.clone())
+                .map_err(FitsArrayReadError::ShapeError)
+        }
+    }
+}
+
+impl FitsDataToArray<Ix4> for FitsDataArray<f64> {
+    type Target = Array4<f32>;
+
+    fn to_array(&self) -> Result<Array4<f32>, FitsArrayReadError> {
+        let sh = &self.shape;
+        if sh.len() != 4 {
+            Err(FitsArrayReadError::UnexpectedDimension {
+                expected: 4,
+                got: sh.len(),
+            })
+        } else {
+            Array4::from_shape_vec(
+                (sh[3], sh[2], sh[1], sh[0]),
                 self.data.iter().map(|f| *f as f32).collect(),
             ).map_err(FitsArrayReadError::ShapeError)
         }

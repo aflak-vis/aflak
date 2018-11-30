@@ -19,7 +19,7 @@ mod unit;
 
 pub use export::ExportError;
 pub use roi::ROI;
-pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3};
+pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3, WcsArray4};
 
 use std::error::Error;
 use std::fmt;
@@ -45,6 +45,7 @@ pub enum IOValue {
     Image1d(WcsArray1),
     Image2d(WcsArray2),
     Image3d(WcsArray3),
+    Image4d(WcsArray4),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
@@ -112,6 +113,12 @@ lazy_static! {
                 "Extract 3D dataset from FITS file.",
                 fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
                     vec![run_fits_to_3d_image(fits)]
+                }
+            ),
+            cake_transform!(
+                "Extract 4D dataset from FITS file.",
+                fits_to_4d_image<IOValue, IOErr>(fits: Fits) -> Image4d {
+                    vec![run_fits_to_4d_image(&*fits)]
                 }
             ),
             cake_transform!(
@@ -303,6 +310,18 @@ fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
         })?;
     WcsArray3::from_hdu(&primary_hdu)
         .map(IOValue::Image3d)
+        .map_err(|e| IOErr::FITSErr(format!("{}", e)))
+}
+
+/// Turn a FITS file into a 4D image
+fn run_fits_to_4d_image(fits: &fitrs::Fits) -> Result<IOValue, IOErr> {
+    let primary_hdu = fits.get(0).ok_or_else(|| {
+        IOErr::UnexpectedInput(
+            "Could not find Primary HDU in FITS file. Is the file valid?".to_owned(),
+        )
+    })?;
+    WcsArray4::from_hdu(primary_hdu)
+        .map(IOValue::Image4d)
         .map_err(|e| IOErr::FITSErr(format!("{}", e)))
 }
 
