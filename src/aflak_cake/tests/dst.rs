@@ -112,7 +112,7 @@ fn test_connect_convertible_types() {
 
 #[test]
 fn test_cache_reset() {
-    let [plus1, minus1, get1] = if let &[plus1, minus1, get1, _image] = *TRANSFORMATIONS_REF {
+    let [plus1, minus1, get1] = if let &[plus1, minus1, get1, _image, _] = *TRANSFORMATIONS_REF {
         [plus1, minus1, get1]
     } else {
         unreachable!()

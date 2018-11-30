@@ -52,6 +52,7 @@ lazy_static! {
             get_minus1_transform(),
             get_get1_transform(),
             get_get_image_transform(),
+            get_divide_by_10_transform(),
         ]
     };
     pub static ref TRANSFORMATIONS_REF: &'static [&'static Transform<AlgoIO, E>] = {
