@@ -44,11 +44,6 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Roi(All)),
                 ],
             )),
-            ((5), (
-                t: Constant(Roi(All)),
-                input_defaults: [
-                ],
-            )),
             ((1), (
                 t: Constant(Path({:?})),
                 input_defaults: [
@@ -76,13 +71,6 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (3),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (5),
-                output_i: (0),
-            ), (
-                t_idx: (4),
-                input_i: (1),
             )),
             ((
                 t_idx: (3),
