@@ -34,6 +34,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     pub show_grid: bool,
     constant_editor: ED,
     error_stack: Vec<Box<Error>>,
+    success_stack: Vec<ImString>,
 }
 
 impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
@@ -56,6 +57,7 @@ impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
             show_grid: true,
             constant_editor: ED::default(),
             error_stack: vec![],
+            success_stack: vec![],
         }
     }
 }
@@ -182,6 +184,20 @@ where
             });
             if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                 self.error_stack.pop();
+                ui.close_current_popup();
+            }
+        });
+        // Render success popup
+        if self.error_stack.is_empty() && !self.success_stack.is_empty() {
+            ui.open_popup(im_str!("Success!"));
+        }
+        ui.popup_modal(im_str!("Success!")).build(|| {
+            {
+                let msg = &self.success_stack[self.success_stack.len() - 1];
+                ui.text(msg);
+            }
+            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                self.success_stack.pop();
                 ui.close_current_popup();
             }
         });
@@ -334,6 +350,9 @@ where
                             if let Err(e) = self.export_to_file("editor_graph_export.ron") {
                                 eprintln!("Error on export! {}", e);
                                 self.error_stack.push(Box::new(e));
+                            } else {
+                                ui.open_popup(im_str!("export-success"));
+                                self.success_stack.push(ImString::new("Editor content was exported with success to 'editor_graph_export.ron'!"));
                             }
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
