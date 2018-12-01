@@ -63,6 +63,7 @@ impl PartialEq for IOValue {
             (Image1d(i1), Image1d(i2)) => i1 == i2,
             (Image2d(i1), Image2d(i2)) => i1 == i2,
             (Image3d(i1), Image3d(i2)) => i1 == i2,
+            (Image4d(i1), Image4d(i2)) => i1 == i2,
             (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
             (Roi(r1), Roi(r2)) => r1 == r2,
             (Path(p1), Path(p2)) => p1 == p2,
