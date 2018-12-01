@@ -32,6 +32,14 @@ You may find a demo video [here](https://vimeo.com/290328343).
 from the [SDSS MaNGA](https://www.sdss.org/surveys/manga/) dataset.
 Other FITS files may or may not work. Feedback and bug report is welcome.
 
+## Update
+
+If aflak is already installed, just append the `--force` flag to the `cargo`
+command in order to overwrite the current install of aflak with a new one.
+
+```sh
+cargo install --force --git https://github.com/aflak-vis/aflak aflak
+```
 
 ## Slower install
 
