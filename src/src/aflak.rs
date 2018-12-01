@@ -243,6 +243,46 @@ impl OutputWindow {
                     &mut aflak.node_editor,
                 );
             }
+            IOValue::Image(ref image) => {
+                use primitives::ndarray::Dimension;
+                match image.scalar().dim().ndim() {
+                    1 => {
+                        let state = aflak
+                            .image1d_states
+                            .entry(self.window_name.to_owned())
+                            .or_insert_with(plot::State::default);
+
+                        self.update_state_from_editor(
+                            state.stored_values_mut(),
+                            &aflak.editable_values,
+                            &aflak.node_editor,
+                        );
+                        let unit = image.array().unit().repr();
+                        let transform = match (image.cunits(), image.wcs()) {
+                            (Some(units), Some(wcs)) => {
+                                Some(AxisTransform::new(units[0].repr(), move |t| {
+                                    wcs.pix2world([t, 0.0, 0.0])[0]
+                                }))
+                            }
+                            _ => None,
+                        };
+                        if let Err(e) = ui.image1d(&image.scalar1(), &unit, transform, state) {
+                            ui.text(format!("Error on drawing plot! {}", e))
+                        }
+                        self.update_editor_from_state(
+                            state.stored_values(),
+                            &mut aflak.editable_values,
+                            &mut aflak.node_editor,
+                        );
+                    }
+                    2 => {
+                        // TODO
+                    }
+                    _ => {
+                        ui.text(format!("{:?}", image.scalar().dim().as_array_view()));
+                    }
+                }
+            }
             IOValue::Fits(ref fits) => for (i, hdu) in fits.iter().enumerate() {
                 use primitives::fitrs::HeaderValue::*;
                 use std::borrow::Cow;

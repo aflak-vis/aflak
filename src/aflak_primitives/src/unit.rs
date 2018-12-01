@@ -1,7 +1,7 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{Array1, Array2, Array3, Array4, ArrayD, Ix3, Ix4, IxDyn};
+use ndarray::{Array1, Array2, Array3, Array4, ArrayD, ArrayView1, Ix3, Ix4, IxDyn};
 
 use fits::{FitsArrayReadError, FitsDataToArray};
 
@@ -137,8 +137,21 @@ impl WcsArray {
         self.array.scalar()
     }
 
+    pub fn scalar1(&self) -> ArrayView1<f32> {
+        let i = self.array.scalar();
+        i.slice(s![..])
+    }
+
     pub fn array(&self) -> &Dimensioned<ArrayD<f32>> {
         &self.array
+    }
+
+    pub fn cunits(&self) -> Option<&[Unit]> {
+        self.meta.as_ref().map(|meta| meta.cunits.as_ref())
+    }
+
+    pub fn wcs(&self) -> Option<&WCS> {
+        self.meta.as_ref().map(|meta| &meta.wcs)
     }
 
     pub(crate) fn make_slice(
