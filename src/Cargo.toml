@@ -39,3 +39,10 @@ members = [
     "variant_name",
     "variant_name_derive",
 ]
+
+
+[package.metadata.deb]
+assets = [
+    ["target/release/aflak", "usr/bin/", "755"],
+    ["../README.md", "usr/share/doc/aflak/README", "644"],
+]
