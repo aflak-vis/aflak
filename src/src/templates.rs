@@ -467,12 +467,203 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
     Cursor::new(ron)
 }
 
+pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
+    let path = path.as_ref().to_string_lossy();
+    let ron = format!(
+        r#"
+(
+    dst: (
+        transforms: [
+            ((6), (
+                t: Function("slice_3d_to_2d"),
+                input_defaults: [
+                    None,
+                    None,
+                ],
+            )),
+            ((8), (
+                t: Function("clip_image3d"),
+                input_defaults: [
+                    None,
+                    Some(Float(0)),
+                    Some(Bool(false)),
+                ],
+            )),
+            ((9), (
+                t: Function("replace_nan_image3d"),
+                input_defaults: [
+                    None,
+                    Some(Float(0)),
+                ],
+            )),
+            ((4), (
+                t: Function("extract_wave"),
+                input_defaults: [
+                    None,
+                    Some(Roi(All)),
+                ],
+            )),
+            ((1), (
+                t: Constant(Path({:?})),
+                input_defaults: [
+                ],
+            )),
+            ((3), (
+                t: Function("fits_to_3d_image"),
+                input_defaults: [
+                    None,
+                ],
+            )),
+            ((2), (
+                t: Function("open_fits"),
+                input_defaults: [
+                    None,
+                ],
+            )),
+            ((7), (
+                t: Function("make_plane3d"),
+                input_defaults: [
+                    Some(Float3((100, 0, 0))),
+                    Some(Float3((0, 0, 1))),
+                    Some(Float3((0, 1, 0))),
+                    Some(Integer(1041)),
+                    Some(Integer(257)),
+                ],
+            )),
+        ],
+        edges: [
+            ((
+                t_idx: (1),
+                output_i: (0),
+            ), (
+                t_idx: (2),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (8),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (8),
+                output_i: (0),
+            ), (
+                t_idx: (9),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (3),
+                output_i: (0),
+            ), (
+                t_idx: (8),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (7),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (2),
+                output_i: (0),
+            ), (
+                t_idx: (3),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (9),
+                output_i: (0),
+            ), (
+                t_idx: (4),
+                input_i: (0),
+            )),
+        ],
+        outputs: [
+            ((1), Some((
+                t_idx: (4),
+                output_i: (0),
+            ))),
+            ((2), Some((
+                t_idx: (6),
+                output_i: (0),
+            ))),
+        ],
+    ),
+    node_states: [
+        (Transform((1)), (
+            selected: false,
+            pos: (-785, -596),
+            size: (289, 200),
+        )),
+        (Transform((2)), (
+            selected: false,
+            pos: (-445, -490),
+            size: (72, 46),
+        )),
+        (Transform((3)), (
+            selected: false,
+            pos: (-329, -461),
+            size: (121, 46),
+        )),
+        (Transform((4)), (
+            selected: false,
+            pos: (421, -561),
+            size: (93, 63),
+        )),
+        (Transform((5)), (
+            selected: false,
+            pos: (51, -334),
+            size: (44, 28.5),
+        )),
+        (Transform((6)), (
+            selected: false,
+            pos: (128, -284),
+            size: (107, 63),
+        )),
+        (Transform((7)), (
+            selected: false,
+            pos: (-241, -273),
+            size: (231, 124),
+        )),
+        (Transform((8)), (
+            selected: false,
+            pos: (-144.5, -478.5),
+            size: (209.5, 83.5),
+        )),
+        (Transform((9)), (
+            selected: false,
+            pos: (139.59998, -527.80005),
+            size: (209.40002, 64.80005),
+        )),
+        (Output((1)), (
+            selected: false,
+            pos: (594, -531),
+            size: (72, 29),
+        )),
+        (Output((2)), (
+            selected: false,
+            pos: (360, -256),
+            size: (72, 29),
+        )),
+    ],
+    scrolling: (-818, -667),
+)
+        "#,
+        path
+    );
+    Cursor::new(ron)
+}
+
 #[cfg(test)]
 mod test {
     use node_editor::NodeEditor;
     use primitives;
 
-    use super::{show_equivalent_width, show_frame_and_wave};
+    use super::{show_equivalent_width, show_fits_cleaning, show_frame_and_wave};
     use constant_editor::MyConstantEditor;
 
     #[test]
@@ -504,4 +695,15 @@ mod test {
         let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
         assert!(editor.is_ok());
     }
+
+    #[test]
+    fn import_fits_cleaning() {
+        let transformations_ref = primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>();
+        let transformations = transformations_ref.as_slice();
+
+        let buf = show_fits_cleaning("file.fits");
+        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        assert!(editor.is_ok());
+    }
+
 }

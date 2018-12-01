@@ -103,6 +103,7 @@ fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<Read>, io::Error> {
         let template = match template_name {
             "waveform" => templates::show_frame_and_wave(fits_path),
             "equivalent_width" => templates::show_equivalent_width(fits_path),
+            "fits_cleaning" => templates::show_fits_cleaning(fits_path),
             _ => unreachable!("Got '{}', an unexpected result.", template_name),
         };
         Ok(Box::new(template))
