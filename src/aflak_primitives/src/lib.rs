@@ -19,7 +19,7 @@ mod unit;
 
 pub use export::ExportError;
 pub use roi::ROI;
-pub use unit::{Dimensioned, Unit, WcsArray1, WcsArray2, WcsArray3, WcsArray4};
+pub use unit::{Dimensioned, Unit, WcsArray, WcsArray1, WcsArray2, WcsArray3, WcsArray4};
 
 use std::error::Error;
 use std::fmt;
@@ -46,6 +46,7 @@ pub enum IOValue {
     Image2d(WcsArray2),
     Image3d(WcsArray3),
     Image4d(WcsArray4),
+    Image(WcsArray),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }

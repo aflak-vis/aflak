@@ -2,7 +2,7 @@ use std::error;
 use std::fmt;
 
 use fitrs::FitsDataArray;
-use ndarray::{self, Array3, Array4, Ix3, Ix4};
+use ndarray::{self, Array3, Array4, ArrayD, Ix3, Ix4, IxDyn};
 
 pub trait FitsDataToArray<Dimension> {
     type Target;
@@ -108,5 +108,24 @@ impl FitsDataToArray<Ix4> for FitsDataArray<f64> {
                 self.data.iter().map(|f| *f as f32).collect(),
             ).map_err(FitsArrayReadError::ShapeError)
         }
+    }
+}
+
+impl FitsDataToArray<IxDyn> for FitsDataArray<f32> {
+    type Target = ArrayD<f32>;
+
+    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
+        ArrayD::from_shape_vec(sh, self.data.clone()).map_err(FitsArrayReadError::ShapeError)
+    }
+}
+
+impl FitsDataToArray<IxDyn> for FitsDataArray<f64> {
+    type Target = ArrayD<f32>;
+
+    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
+        ArrayD::from_shape_vec(sh, self.data.iter().map(|f| *f as f32).collect())
+            .map_err(FitsArrayReadError::ShapeError)
     }
 }
