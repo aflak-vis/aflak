@@ -48,8 +48,9 @@ You will need to initialize the git submodules.
 
 ```sh
 git clone https://github.com/aflak-vis/aflak
-cd aflak
+cd aflak/src
 git submodule update --init --recursive
+cargo install --path .
 ```
 
 ## Build
