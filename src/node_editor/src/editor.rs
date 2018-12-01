@@ -898,7 +898,10 @@ where
             ).thickness(line_thickness)
             .build();
 
-        if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+        if ui.is_item_hovered()
+            && !ui.is_item_active()
+            && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
+        {
             self.active_node = Some(*id);
             self.drag_node = Some(*id);
             if !ui.imgui().key_ctrl() {
