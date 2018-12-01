@@ -83,7 +83,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                 let size = ui.get_item_rect_size();
 
                 let mut ret = Ok(None);
-                ui.child_frame(im_str!("edit"), (size.0.max(200.0), 150.0))
+                ui.child_frame(im_str!("edit"), (size.0.max(400.0), 150.0))
                     .scrollbar_horizontal(true)
                     .build(|| {
                         ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit"]);
