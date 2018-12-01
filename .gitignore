@@ -2,3 +2,13 @@
 **/target
 **/*.rs.bk
 Cargo.lock
+
+callgrind.out.*
+
+# Files generated/loaded by aflak
+*.ini
+*.ron
+*.fits
+
+# Text editors
+.vscode
