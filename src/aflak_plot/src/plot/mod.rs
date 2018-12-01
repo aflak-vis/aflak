@@ -1,7 +1,7 @@
 mod state;
 
 use imgui::Ui;
-use ndarray::Array1;
+use ndarray::{ArrayBase, Data, Ix1};
 
 use super::interactions;
 use super::lims;
@@ -13,26 +13,28 @@ use super::Error;
 pub use self::state::State;
 
 pub trait UiImage1d {
-    fn image1d<F>(
+    fn image1d<S, F>(
         &self,
-        image: &Array1<f32>,
+        image: &ArrayBase<S, Ix1>,
         vunit: &str,
         axis: Option<AxisTransform<F>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
+        S: Data<Elem = f32>,
         F: Fn(f32) -> f32;
 }
 
 impl<'ui> UiImage1d for Ui<'ui> {
-    fn image1d<F>(
+    fn image1d<S, F>(
         &self,
-        image: &Array1<f32>,
+        image: &ArrayBase<S, Ix1>,
         vunit: &str,
         axis: Option<AxisTransform<F>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
+        S: Data<Elem = f32>,
         F: Fn(f32) -> f32,
     {
         let p = self.get_cursor_screen_pos();

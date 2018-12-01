@@ -20,7 +20,7 @@ fn main() -> Result<(), support::Error> {
     let mut state = plot::State::default();
 
     const MAX: f32 = 4.0 * f32::consts::PI;
-    let sin = ndarray::ArrayBase::linspace(0.0, MAX, 100).mapv_into(f32::sin);
+    let sin = ndarray::Array1::linspace(0.0, MAX, 100).mapv_into(f32::sin);
 
     support::run(config, |ui, _, _| {
         ui.window(im_str!("Sin")).build(|| {

@@ -1,5 +1,5 @@
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
-use ndarray::Array1;
+use ndarray::{ArrayBase, Data, Ix1};
 
 use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine};
 use super::lims;
@@ -40,16 +40,17 @@ impl State {
         self.interactions.iter_mut()
     }
 
-    pub(crate) fn plot<F, P, S>(
+    pub(crate) fn plot<D, F, P, S>(
         &mut self,
         ui: &Ui,
-        image: &Array1<f32>,
+        image: &ArrayBase<D, Ix1>,
         vunit: &str,
         axis: Option<AxisTransform<F>>,
         pos: P,
         size: S,
     ) -> Result<(), Error>
     where
+        D: Data<Elem = f32>,
         F: Fn(f32) -> f32,
         P: Into<ImVec2>,
         S: Into<ImVec2>,
