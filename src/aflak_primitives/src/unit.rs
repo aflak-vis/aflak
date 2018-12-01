@@ -140,6 +140,29 @@ impl WcsArray {
     pub fn array(&self) -> &Dimensioned<ArrayD<f32>> {
         &self.array
     }
+
+    pub(crate) fn make_slice(
+        &self,
+        indices: &[(usize, f32, f32)],
+        array: Dimensioned<ArrayD<f32>>,
+    ) -> WcsArray {
+        let slice_index: Vec<_> = indices.iter().map(|idx| idx.0).collect();
+        let new_meta = self.meta.as_ref().map(|meta| {
+            let mut wcs = meta.wcs.slice(&slice_index);
+            for (i, start, end) in indices {
+                wcs = wcs.transform(*i, *start, *end);
+            }
+            let mut cunits = [Unit::None, Unit::None, Unit::None, Unit::None];
+            for (i, _, _) in indices {
+                cunits[*i] = meta.cunits[*i].clone();
+            }
+            MetaWcsArray { wcs, cunits }
+        });
+        WcsArray {
+            meta: new_meta,
+            array,
+        }
+    }
 }
 
 impl WcsArray4 {

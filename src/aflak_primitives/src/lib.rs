@@ -27,7 +27,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, ArrayView3, Axis};
+use ndarray::{Array1, Array2, ArrayView3, Axis, Dimension};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -128,6 +128,12 @@ lazy_static! {
                 "Extract 4D dataset from FITS file.",
                 fits_to_4d_image<IOValue, IOErr>(fits: Fits) -> Image4d {
                     vec![run_fits_to_4d_image(&*fits)]
+                }
+            ),
+            cake_transform!(
+                "Slice one frame of a n-dimensional dataset turning it into an (n-1)-dimensional dataset.",
+                slice_one_frame<IOValue, IOErr>(image: Image, frame: Integer = 0) -> Image {
+                    vec![run_slice_one_frame(image, *frame)]
                 }
             ),
             cake_transform!(
@@ -444,6 +450,42 @@ fn run_slice_one_frame_4d_to_3d(input_img: &WcsArray4, frame_idx: i64) -> Result
     );
 
     Ok(IOValue::Image3d(wrap_with_unit))
+}
+
+fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, IOErr> {
+    if frame_idx < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "slice_one_frame: frame index must be positive, got {}",
+            frame_idx
+        )));
+    }
+
+    let frame_idx = frame_idx as usize;
+
+    let image_val = input_img.scalar();
+
+    let dim = image_val.dim();
+    let ndim = dim.ndim();
+    let frame_cnt = if let Some(frame_cnt) = dim.as_array_view().first() {
+        *frame_cnt
+    } else {
+        return Err(IOErr::UnexpectedInput("Empty array".to_owned()));
+    };
+    if frame_idx >= frame_cnt {
+        return Err(IOErr::UnexpectedInput(format!(
+            "slice_one_frame: frame index higher than input image's frame count ({} >= {})",
+            frame_idx, frame_cnt
+        )));
+    }
+
+    let out = image_val.index_axis(Axis(0), frame_idx);
+
+    let wrap_with_unit = input_img.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        input_img.array().with_new_value(out.to_owned()),
+    );
+
+    Ok(IOValue::Image(wrap_with_unit))
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
