@@ -29,6 +29,7 @@ impl LayoutEngine {
     pub fn default_output_window_position_size(
         &mut self,
         name: &ImString,
+        display_size: (f32, f32),
     ) -> ((f32, f32), (f32, f32)) {
         if self.outputs.contains(name) {
             ((NAN, NAN), (NAN, NAN))
@@ -40,17 +41,15 @@ impl LayoutEngine {
                 (row as f32, col as f32)
             };
             self.outputs.push(name.clone());
-            (
-                (
-                    EDITOR_WINDOW_DEFAULT_POSITION.0
-                        + col * (OUTPUT_WINDOW_DEFAULT_SIZE.0 + OUTPUT_WINDOW_DEFAULT_MARGIN),
-                    EDITOR_WINDOW_DEFAULT_POSITION.1
-                        + EDITOR_WINDOW_DEFAULT_SIZE.1
-                        + OUTPUT_WINDOW_DEFAULT_MARGIN
-                        + row * (OUTPUT_WINDOW_DEFAULT_SIZE.1 + OUTPUT_WINDOW_DEFAULT_MARGIN),
-                ),
-                OUTPUT_WINDOW_DEFAULT_SIZE,
-            )
+            let pos_x = (EDITOR_WINDOW_DEFAULT_POSITION.0
+                + col * (OUTPUT_WINDOW_DEFAULT_SIZE.0 + OUTPUT_WINDOW_DEFAULT_MARGIN))
+                % display_size.0;
+            let pos_y = (EDITOR_WINDOW_DEFAULT_POSITION.1
+                + EDITOR_WINDOW_DEFAULT_SIZE.1
+                + OUTPUT_WINDOW_DEFAULT_MARGIN
+                + row * (OUTPUT_WINDOW_DEFAULT_SIZE.1 + OUTPUT_WINDOW_DEFAULT_MARGIN))
+                % display_size.1;
+            ((pos_x, pos_y), OUTPUT_WINDOW_DEFAULT_SIZE)
         }
     }
 }

@@ -82,9 +82,10 @@ impl OutputWindow {
     where
         F: glium::backend::Facade,
     {
+        let display_size = ui.imgui().display_size();
         let (position, size) = aflak
             .layout_engine
-            .default_output_window_position_size(&self.window_name);
+            .default_output_window_position_size(&self.window_name, display_size);
         let window_name = self.window_name.to_owned();
         let window = ui
             .window(&window_name)
