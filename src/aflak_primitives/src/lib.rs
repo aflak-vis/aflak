@@ -113,6 +113,12 @@ lazy_static! {
                 }
             ),
             cake_transform!(
+                "Extract dataset from FITS file.",
+                fits_to_image<IOValue, IOErr>(fits: Fits, hdu_idx: Integer = 0, extension: Str = "".to_owned()) -> Image {
+                    vec![run_fits_to_image(fits, *hdu_idx, extension)]
+                }
+            ),
+            cake_transform!(
                 "Extract 3D dataset from FITS file.",
                 fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
                     vec![run_fits_to_3d_image(fits)]
@@ -346,6 +352,40 @@ fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
     fitrs::Fits::open(path)
         .map(|fits| IOValue::Fits(Arc::new(fits)))
         .map_err(|err| IOErr::IoError(err, format!("Could not open file {:?}", path)))
+}
+
+/// Turn a FITS file into an image
+fn run_fits_to_image(
+    fits: &Arc<fitrs::Fits>,
+    hdu_idx: i64,
+    extension: &str,
+) -> Result<IOValue, IOErr> {
+    let primary_hdu = fits
+        .get_by_name(extension)
+        .or_else(|| {
+            if hdu_idx < 0 {
+                None
+            } else {
+                fits.get(hdu_idx as usize)
+            }
+        }).ok_or_else(|| {
+            let hdu_name = if hdu_idx == 0 {
+                "Primary HDU".to_owned()
+            } else {
+                format!("HDU #{}", hdu_idx)
+            };
+            if extension == "" {
+                IOErr::UnexpectedInput(format!("Could not find {} in FITS file.", hdu_name))
+            } else {
+                IOErr::UnexpectedInput(format!(
+                    "Could not find HDU '{}', nor {} in FITS file.",
+                    extension, hdu_name
+                ))
+            }
+        })?;
+    WcsArray::from_hdu(&primary_hdu)
+        .map(IOValue::Image)
+        .map_err(|e| IOErr::FITSErr(format!("{}", e)))
 }
 
 /// Turn a FITS file into a 3D image
