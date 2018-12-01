@@ -12,7 +12,7 @@ by providing a visual programming language interface.
 
 ## Getting started
 
-Minimum Rust version: 1.26.2.
+Minimum Rust version: 1.28.0.
 
 Install the rust toolchain with [rustup](https://rustup.rs/).
 
