@@ -583,7 +583,7 @@ fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IO
                 WcsArray::from_array(array)
             };
             IOValue::Image(array)
-        }).map_err(|e| IOErr::ShapeError(e, "Unhandled error".to_owned()))
+        }).map_err(|e| IOErr::ShapeError(e, "slice3d_to_2d: Unexpected error".to_owned()))
 }
 
 /// Make a 2D plane slicing the 3D space
