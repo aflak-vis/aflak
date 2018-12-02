@@ -585,22 +585,22 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
     node_states: [
         (Transform((1)), (
             selected: false,
-            pos: (-785, -596),
-            size: (289, 200),
+            pos: (-819, -648),
+            size: (415, 200),
         )),
         (Transform((2)), (
             selected: false,
-            pos: (-445, -490),
+            pos: (-364, -502),
             size: (72, 46),
         )),
         (Transform((3)), (
             selected: false,
-            pos: (-329, -461),
-            size: (121, 46),
+            pos: (-273, -443),
+            size: (217, 84),
         )),
         (Transform((4)), (
             selected: false,
-            pos: (421, -561),
+            pos: (547, -570),
             size: (93, 63),
         )),
         (Transform((5)), (
@@ -610,8 +610,8 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
         (Transform((6)), (
             selected: false,
-            pos: (128, -284),
-            size: (107, 63),
+            pos: (244, -424),
+            size: (196, 65),
         )),
         (Transform((7)), (
             selected: false,
@@ -620,22 +620,22 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
         (Transform((8)), (
             selected: false,
-            pos: (-144.5, -478.5),
+            pos: (-0.5, -491.5),
             size: (209.5, 83.5),
         )),
         (Transform((9)), (
             selected: false,
-            pos: (139.59998, -527.80005),
+            pos: (267.59998, -533.80005),
             size: (209.40002, 64.80005),
         )),
         (Output((1)), (
-            selected: false,
-            pos: (594, -531),
+            selected: true,
+            pos: (710, -527),
             size: (72, 29),
         )),
         (Output((2)), (
             selected: false,
-            pos: (360, -256),
+            pos: (501, -385),
             size: (72, 29),
         )),
     ],
