@@ -377,7 +377,9 @@ where
                         }
                         ui.same_line(ui.get_window_size().0 - 120.0);
                         ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
-                        ui.text(im_str!("Double-click LMB on slots to remove their links."));
+                        ui.text(im_str!(
+                            "Press Delete or Backspace key to remove selected nodes."
+                        ));
                     });
                 }
                 const GRAPH_STYLE_VAR: [StyleVar; 2] = [
