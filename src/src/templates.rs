@@ -22,9 +22,11 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((3), (
-                t: Function("fits_to_3d_image"),
+                t: Function("fits_to_image"),
                 input_defaults: [
                     None,
+                    Some(Integer(0)),
+                    Some(Str("FLUX")),
                 ],
             )),
             ((7), (
@@ -216,7 +218,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((22), (
-                t: Function("linear_composition_2d"),
+                t: Function("linear_composition"),
                 input_defaults: [
                     None,
                     None,
@@ -233,9 +235,11 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((3), (
-                t: Function("fits_to_3d_image"),
+                t: Function("fits_to_image"),
                 input_defaults: [
                     None,
+                    Some(Integer(0)),
+                    Some(Str("FLUX")),
                 ],
             )),
             ((1), (
@@ -482,7 +486,7 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((8), (
-                t: Function("clip_image3d"),
+                t: Function("clip_image"),
                 input_defaults: [
                     None,
                     Some(Float(0)),
@@ -490,7 +494,7 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((9), (
-                t: Function("replace_nan_image3d"),
+                t: Function("replace_nan_image"),
                 input_defaults: [
                     None,
                     Some(Float(0)),
@@ -509,9 +513,11 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((3), (
-                t: Function("fits_to_3d_image"),
+                t: Function("fits_to_image"),
                 input_defaults: [
                     None,
+                    Some(Integer(0)),
+                    Some(Str("")),
                 ],
             )),
             ((2), (

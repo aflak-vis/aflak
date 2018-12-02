@@ -133,8 +133,16 @@ impl WcsArray {
         })
     }
 
+    pub fn from_array(array: Dimensioned<ArrayD<f32>>) -> Self {
+        Self { meta: None, array }
+    }
+
     pub fn scalar(&self) -> &ArrayD<f32> {
         self.array.scalar()
+    }
+
+    pub fn scalar_mut(&mut self) -> &mut ArrayD<f32> {
+        self.array.scalar_mut()
     }
 
     pub fn scalar1(&self) -> ArrayView1<f32> {
@@ -500,6 +508,17 @@ impl<'a> ops::Mul<f32> for &'a WcsArray2 {
     }
 }
 
+impl<'a> ops::Mul<f32> for &'a WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        WcsArray {
+            meta: self.meta.clone(),
+            array: self.array() * rhs,
+        }
+    }
+}
+
 impl ops::Add for WcsArray1 {
     type Output = WcsArray1;
 
@@ -526,6 +545,22 @@ impl ops::Add for WcsArray2 {
             None
         };
         WcsArray2 {
+            meta,
+            array: self.array + rhs.array,
+        }
+    }
+}
+
+impl ops::Add for WcsArray {
+    type Output = WcsArray;
+
+    fn add(self, rhs: WcsArray) -> Self::Output {
+        let meta = if self.meta == rhs.meta {
+            self.meta
+        } else {
+            None
+        };
+        WcsArray {
             meta,
             array: self.array + rhs.array,
         }

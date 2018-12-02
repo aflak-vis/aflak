@@ -27,7 +27,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, ArrayView3, Axis, Dimension};
+use ndarray::{Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, Ix3, Slice};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -79,7 +79,7 @@ pub enum IOErr {
     IoError(io::Error, String),
     FITSErr(String),
     UnexpectedInput(String),
-    ShapeError(ndarray::ShapeError),
+    ShapeError(ndarray::ShapeError, String),
 }
 
 impl fmt::Display for IOErr {
@@ -90,7 +90,7 @@ impl fmt::Display for IOErr {
             IoError(e, s) => write!(f, "I/O error! {}. This was caused by '{}'.", s, e),
             FITSErr(s) => write!(f, "FITS-related error! {}", s),
             UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
-            ShapeError(e) => e.fmt(f),
+            ShapeError(e, s) => write!(f, "Shape error! {}. This was caused by '{}'.", s, e),
         }
     }
 }
@@ -119,32 +119,14 @@ lazy_static! {
                 }
             ),
             cake_transform!(
-                "Extract 3D dataset from FITS file.",
-                fits_to_3d_image<IOValue, IOErr>(fits: Fits) -> Image3d {
-                    vec![run_fits_to_3d_image(fits)]
-                }
-            ),
-            cake_transform!(
-                "Extract 4D dataset from FITS file.",
-                fits_to_4d_image<IOValue, IOErr>(fits: Fits) -> Image4d {
-                    vec![run_fits_to_4d_image(&*fits)]
-                }
-            ),
-            cake_transform!(
                 "Slice one frame of a n-dimensional dataset turning it into an (n-1)-dimensional dataset.",
                 slice_one_frame<IOValue, IOErr>(image: Image, frame: Integer = 0) -> Image {
                     vec![run_slice_one_frame(image, *frame)]
                 }
             ),
             cake_transform!(
-                "Slice one frame of a 4D dataset into a 3D dataset.",
-                slice_one_frame_4d_to_3d<IOValue, IOErr>(image: Image4d, frame: Integer = 0) -> Image3d {
-                    vec![run_slice_one_frame_4d_to_3d(image, *frame)]
-                }
-            ),
-            cake_transform!(
                 "Slice an arbitrary plane through a 3D dataset and return the slice.",
-                slice_3d_to_2d<IOValue, IOErr>(image: Image3d, map: Map2dTo3dCoords) -> Image2d {
+                slice_3d_to_2d<IOValue, IOErr>(image: Image, map: Map2dTo3dCoords) -> Image {
                     vec![run_slice_3d_to_2d(image, map)]
                 }
             ),
@@ -167,35 +149,28 @@ for 0 <= i < n and 0 <= j < m",
                 }
             ),
             cake_transform!(
-                "Extract waveform from 3D image with the provided region of interest.",
-                extract_wave<IOValue, IOErr>(image: Image3d, roi: Roi = roi::ROI::All) -> Image1d {
+                "Extract waveform from image with the provided region of interest.",
+                extract_wave<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
                     vec![run_extract_wave(image, roi)]
                 }
             ),
-            cake_transform!("Replace all values above or below a threshold in a 3D image with NaN.
+            cake_transform!("Replace all values above or below a threshold in a image with NaN.
 Takes two parameters: a threshold and a bool.
 If bool value is checked, then replaces the values above the threshold with NaN, else replace the values below the threshold with NaN.",
-                clip_image3d<IOValue, IOErr>(image: Image3d, threshold: Float = 0.0, above: Bool = false) -> Image3d {
-                    vec![run_clip3d(image, *threshold, *above)]
+                clip_image<IOValue, IOErr>(image: Image, threshold: Float = 0.0, above: Bool = false) -> Image {
+                    vec![run_clip(image, *threshold, *above)]
                 }
             ),
-            cake_transform!("Replace all NaN values in 3D image with the provided value.",
-                replace_nan_image3d<IOValue, IOErr>(image: Image3d, placeholder: Float = 0.0) -> Image3d {
-                    vec![run_replace_nan_image3d(image, *placeholder)]
-                }
-            ),
-            cake_transform!(
-                "Compose 2 1D-vectors. Parameters: u, v, a, b.
-Compute a*u + b*v.",
-                linear_composition_1d<IOValue, IOErr>(i1: Image1d, i2: Image1d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image1d {
-                    vec![run_linear_composition_1d(i1, i2, *coef1, *coef2)]
+            cake_transform!("Replace all NaN values in image with the provided value.",
+                replace_nan_image<IOValue, IOErr>(image: Image, placeholder: Float = 0.0) -> Image {
+                    vec![run_replace_nan_image(image, *placeholder)]
                 }
             ),
             cake_transform!(
-                "Compose 2 2D-vectors. Parameters: u, v, a, b.
+                "Compose 2 vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
-                linear_composition_2d<IOValue, IOErr>(i1: Image2d, i2: Image2d, coef1: Float = 1.0, coef2: Float = 1.0) -> Image2d {
-                    vec![run_linear_composition_2d(i1, i2, *coef1, *coef2)]
+                linear_composition<IOValue, IOErr>(i1: Image, i2: Image, coef1: Float = 1.0, coef2: Float = 1.0) -> Image {
+                    vec![run_linear_composition(i1, i2, *coef1, *coef2)]
                 }
             ),
             cake_transform!(
@@ -209,7 +184,7 @@ Compute a*u + b*v.",
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)",
-                integral<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
+                integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
@@ -239,7 +214,7 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)",
-                average<IOValue, IOErr>(image: Image3d, start: Integer = 0, end: Integer = 1) -> Image2d, Float, Float {
+                average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
@@ -250,21 +225,21 @@ Third output contains (b - a)",
 Parameters i1, i2, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
 if value > max, value changes to 0.",
-                create_equivalent_width<IOValue, IOErr>(i1: Image2d, i2: Image2d, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image2d {
+                create_equivalent_width<IOValue, IOErr>(i1: Image, i2: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
                     vec![run_create_equivalent_width(i1, i2, *fl, *max, *is_emission)]
                 }
             ),
             cake_transform!(
                 "Convert to log-scale. Parameter: 2D image i, a, v_min, v_max
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
-                convert_to_logscale<IOValue, IOErr>(i1: Image2d, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image2d {
+                convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
                 }
             ),
             cake_transform!(
-                "Image's min and max value. Parameter: 2D image i.
+                "Image's min and max value. Parameter: image i.
 Compute v_min(first), v_max(second)",
-                image_min_max<IOValue, IOErr>(i1: Image2d) -> Float, Float {
+                image_min_max<IOValue, IOErr>(i1: Image) -> Float, Float {
                     let mut min = std::f32::MAX;
                     let mut max = std::f32::MIN;
                     let i1_arr = i1.scalar();
@@ -278,8 +253,8 @@ Compute v_min(first), v_max(second)",
                 }
             ),
             cake_transform!(
-                "Negation. Parameter: 2D image i. Compute -i.",
-                negation<IOValue, IOErr>(i1: Image2d) -> Image2d {
+                "Negation. Parameter: image i. Compute -i.",
+                negation<IOValue, IOErr>(i1: Image) -> Image {
                     vec![run_negation(i1)]
                 }
             ),
@@ -489,7 +464,7 @@ fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, 
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
+fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
     use std::f32::EPSILON;
 
     #[derive(Debug)]
@@ -665,15 +640,16 @@ fn run_slice_3d_to_2d(input_img: &WcsArray3, map: &Array2<[f32; 3]>) -> Result<I
     }
     Array2::from_shape_vec(map.dim(), out)
         .map(|array| {
+            let array = array.into_dyn();
             let array = input_img.array().with_new_value(array);
             let params = MapReverseParams::new(map);
             let array = if let Some(axes) = params.sliced_axes() {
-                input_img.make_slice2(&axes, array)
+                input_img.make_slice(&axes, array)
             } else {
-                WcsArray2::from_array(array)
+                WcsArray::from_array(array)
             };
-            IOValue::Image2d(array)
-        }).map_err(IOErr::ShapeError)
+            IOValue::Image(array)
+        }).map_err(|e| IOErr::ShapeError(e, "Unhandled error".to_owned()))
 }
 
 /// Make a 2D plane slicing the 3D space
@@ -713,23 +689,40 @@ fn run_make_plane3d(
     Ok(IOValue::Map2dTo3dCoords(map))
 }
 
-fn run_extract_wave(image: &WcsArray3, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let image_val = image.scalar();
-    let mut wave = Vec::with_capacity(image_val.len());
-    for i in 0..image_val.dim().0 {
+
+    let image3 =
+        match image_val.view().into_dimensionality::<Ix3>() {
+            Ok(image3) => image3,
+            Err(e) => return Err(IOErr::ShapeError(
+                e,
+                format!(
+                    "run_extract_wave: Expected an image of dimension 3 as input but got an image of dimension {}",
+                    image_val.ndim()
+                ),
+            )),
+        };
+
+    let mut wave = Vec::with_capacity(image3.len());
+    for i in 0..image3.dim().0 {
         let mut res = 0.0;
-        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
+        for (_, val) in roi.filter(image3.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
     }
-    Ok(IOValue::Image1d(image.make_slice1(
-        2,
-        image.array().with_new_value(Array1::from_vec(wave)),
-    )))
+    Ok(IOValue::Image(
+        image.make_slice(
+            &[(2, 0.0, 1.0)],
+            image
+                .array()
+                .with_new_value(Array1::from_vec(wave).into_dyn()),
+        ),
+    ))
 }
 
-fn run_clip3d(image: &WcsArray3, threshold: f32, above: bool) -> Result<IOValue, IOErr> {
+fn run_clip(image: &WcsArray, threshold: f32, above: bool) -> Result<IOValue, IOErr> {
     let mut image = image.clone();
 
     for f in image.scalar_mut().iter_mut() {
@@ -738,10 +731,10 @@ fn run_clip3d(image: &WcsArray3, threshold: f32, above: bool) -> Result<IOValue,
         }
     }
 
-    Ok(IOValue::Image3d(image))
+    Ok(IOValue::Image(image))
 }
 
-fn run_replace_nan_image3d(image: &WcsArray3, placeholder: f32) -> Result<IOValue, IOErr> {
+fn run_replace_nan_image(image: &WcsArray, placeholder: f32) -> Result<IOValue, IOErr> {
     let mut image = image.clone();
 
     for f in image.scalar_mut().iter_mut() {
@@ -750,12 +743,12 @@ fn run_replace_nan_image3d(image: &WcsArray3, placeholder: f32) -> Result<IOValu
         }
     }
 
-    Ok(IOValue::Image3d(image))
+    Ok(IOValue::Image(image))
 }
 
-fn run_linear_composition_1d(
-    i1: &WcsArray1,
-    i2: &WcsArray1,
+fn run_linear_composition(
+    i1: &WcsArray,
+    i2: &WcsArray,
     coef1: f32,
     coef2: f32,
 ) -> Result<IOValue, IOErr> {
@@ -763,39 +756,21 @@ fn run_linear_composition_1d(
     let i2_dim = i2.scalar().dim();
     if i1_dim != i2_dim {
         return Err(IOErr::UnexpectedInput(format!(
-            "linear_composition_1d: Cannot compose arrays of different dimensions (first array has dimension {:?}, while second array has dimension {:?}",
+            "linear_composition: Cannot compose arrays of different dimensions (first array has dimension {:?}, while second array has dimension {:?}",
             i1_dim, i2_dim
         )));
     }
     let out = i1 * coef1 + i2 * coef2;
-    Ok(IOValue::Image1d(out))
-}
-
-fn run_linear_composition_2d(
-    i1: &WcsArray2,
-    i2: &WcsArray2,
-    coef1: f32,
-    coef2: f32,
-) -> Result<IOValue, IOErr> {
-    let i1_dim = i1.scalar().dim();
-    let i2_dim = i2.scalar().dim();
-    if i1_dim != i2_dim {
-        return Err(IOErr::UnexpectedInput(format!(
-            "linear_composition_2d: Cannot compose arrays of different dimensions (first array has dimension {:?}, while second array has dimension {:?}",
-            i1_dim, i2_dim
-        )));
-    }
-    let out = i1 * coef1 + i2 * coef2;
-    Ok(IOValue::Image2d(out))
+    Ok(IOValue::Image(out))
 }
 
 fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
 }
 
-fn reduce_array3_slice<F>(im: &WcsArray3, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
+fn reduce_array_slice<F>(im: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
 where
-    F: Fn(&ArrayView3<f32>) -> Array2<f32>,
+    F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
@@ -813,7 +788,13 @@ where
     let end = end as usize;
 
     let image_val = im.scalar();
-    let (frame_cnt, _, _) = image_val.dim();
+    let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
+        *frame_cnt
+    } else {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Empty array! Cannot reduce."
+        )));
+    };
 
     if end >= frame_cnt {
         return Err(IOErr::UnexpectedInput(format!(
@@ -828,28 +809,29 @@ where
         )));
     }
 
-    let slices = image_val.slice(s![start..end, .., ..]);
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
     let raw = f(&slices);
+    let ndim = raw.ndim();
 
-    let wrap_with_unit = im.make_slice2(
-        &[(0, 0.0, 1.0), (1, 0.0, 1.0)],
+    let wrap_with_unit = im.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
         im.array().with_new_value(raw),
     );
 
-    Ok(IOValue::Image2d(wrap_with_unit))
+    Ok(IOValue::Image(wrap_with_unit))
 }
 
-fn run_integral(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    reduce_array3_slice(im, start, end, |slices| slices.sum_axis(Axis(0)))
+fn run_integral(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(im, start, end, |slices| slices.sum_axis(Axis(0)))
 }
 
-fn run_average(im: &WcsArray3, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    reduce_array3_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
+fn run_average(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
 }
 
 fn run_create_equivalent_width(
-    i1: &WcsArray2,
-    i2: &WcsArray2,
+    i1: &WcsArray,
+    i2: &WcsArray,
     fl: f32,
     max: f32,
     is_emission: bool,
@@ -860,14 +842,14 @@ fn run_create_equivalent_width(
     let result = out.map(|v| if *v > max { 0.0 } else { *v });
 
     // FIXME: Unit support
-    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         result,
         Unit::None,
     ))))
 }
 
 fn run_convert_to_logscale(
-    i1: &WcsArray2,
+    i1: &WcsArray,
     a: f32,
     v_min: f32,
     v_max: f32,
@@ -877,17 +859,17 @@ fn run_convert_to_logscale(
     let out = x.map(|v| (a * v + 1.0).ln() / a.ln());
 
     // FIXME: Unit support
-    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         out,
         Unit::None,
     ))))
 }
 
-fn run_negation(i1: &WcsArray2) -> Result<IOValue, IOErr> {
+fn run_negation(i1: &WcsArray) -> Result<IOValue, IOErr> {
     let i1_arr = i1.scalar();
     let out = i1_arr.map(|v| -v);
     // FIXME: Unit support
-    Ok(IOValue::Image2d(WcsArray2::from_array(Dimensioned::new(
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         out,
         Unit::None,
     ))))
@@ -895,19 +877,17 @@ fn run_negation(i1: &WcsArray2) -> Result<IOValue, IOErr> {
 
 #[cfg(test)]
 mod test {
-    use super::{
-        run_fits_to_3d_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue,
-    };
+    use super::{run_fits_to_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
     #[test]
     fn test_open_fits() {
         let path = "test/test.fits";
         if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
-            if let IOValue::Image3d(image3d) = run_fits_to_3d_image(&fits).unwrap() {
+            if let IOValue::Image(image) = run_fits_to_image(&fits, 0, "").unwrap() {
                 if let IOValue::Map2dTo3dCoords(map) =
                     run_make_plane3d(&[0.0, 0.0, 0.0], &[1.0, 0.5, 0.0], &[0.0, 0.5, 1.0], 10, 20)
                         .unwrap()
                 {
-                    let _sliced_image = run_slice_3d_to_2d(&image3d, &map);
+                    let _sliced_image = run_slice_3d_to_2d(&image, &map);
                     return;
                 }
             }
