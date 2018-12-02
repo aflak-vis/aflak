@@ -53,10 +53,10 @@ impl<'a, T: VariantName, E> Node<'a, T, E> {
     }
 
     /// Iterate over name of each input slot
-    pub fn input_slot_names_iter(&self) -> Vec<&'static str> {
+    pub fn input_slot_names_iter(&self) -> Vec<String> {
         match *self {
-            Node::Transform(t) => t.input_types().into_iter().map(|s| s.name()).collect(),
-            Node::Output(_) => vec!["Out"],
+            Node::Transform(t) => t.inputs().iter().map(|s| s.name_with_type()).collect(),
+            Node::Output(_) => vec!["Out".to_owned()],
         }
     }
 

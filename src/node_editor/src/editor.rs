@@ -548,13 +548,13 @@ where
                             .filled(true)
                             .build();
                         if self.show_connection_names {
-                            let name_size =
-                                ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
+                            let slot_name = ImString::new(slot_name);
+                            let name_size = ui.calc_text_size(&slot_name, false, -1.0);
                             ui.set_cursor_screen_pos((
                                 connector_screen_pos.0 - NODE_SLOT_RADIUS - name_size.x,
                                 connector_screen_pos.1 - name_size.y,
                             ));
-                            ui.text(&ImString::new(slot_name));
+                            ui.text(slot_name);
                         }
                         if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
                             let mouse_pos: Vec2 = ui.imgui().mouse_pos().into();

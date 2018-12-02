@@ -52,6 +52,12 @@ pub struct TransformInputSlot<T> {
     pub name: &'static str,
 }
 
+impl<T> TransformInputSlot<T> {
+    pub fn name_with_type(&self) -> String {
+        format!("{}: {}", self.name, self.type_id.name())
+    }
+}
+
 type PlainFunction<T, E> = fn(Vec<Bow<'_, T>>) -> Vec<Result<T, E>>;
 
 impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
@@ -166,6 +172,13 @@ impl<T, E> Transform<T, E> {
                 inputs.iter().map(|input| input.type_id).collect()
             }
             Algorithm::Constant(_) => vec![],
+        }
+    }
+
+    pub fn inputs(&self) -> &[TransformInputSlot<T>] {
+        match self.algorithm {
+            Algorithm::Function { ref inputs, .. } => inputs,
+            Algorithm::Constant(_) => &[],
         }
     }
 
