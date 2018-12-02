@@ -173,7 +173,7 @@ impl OutputWindow {
                         let transform = match (image.cunits(), image.wcs()) {
                             (Some(units), Some(wcs)) => {
                                 Some(AxisTransform::new(units[0].repr(), move |t| {
-                                    wcs.pix2world([t, 0.0, 0.0])[0]
+                                    wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
                                 }))
                             }
                             _ => None,
@@ -202,13 +202,13 @@ impl OutputWindow {
                         let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
                             (Some(units), Some(wcs)) => (
                                 Some(AxisTransform::new(units[0].repr(), move |t| {
-                                    wcs.pix2world([t, 0.0, 0.0])[0]
+                                    wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
                                 })),
                                 Some(AxisTransform::new(units[1].repr(), {
                                     let max_height =
                                         (image.scalar().dim().as_array_view().first().unwrap() - 1)
                                             as f32;
-                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
+                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
                                 })),
                             ),
                             _ => (None, None),
