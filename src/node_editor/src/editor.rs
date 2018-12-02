@@ -682,7 +682,7 @@ where
                                             .dst
                                             .get_transform(input.t_idx)
                                             .unwrap()
-                                            .inputs()
+                                            .input_types()
                                             .len();
                                         let input_node_state = self
                                             .node_states
@@ -728,8 +728,12 @@ where
                 for (output, input_slot) in self.dst.links_iter() {
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
-                            let input_node_count =
-                                self.dst.get_transform(input.t_idx).unwrap().inputs().len();
+                            let input_node_count = self
+                                .dst
+                                .get_transform(input.t_idx)
+                                .unwrap()
+                                .input_types()
+                                .len();
                             let input_node_state = self
                                 .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))

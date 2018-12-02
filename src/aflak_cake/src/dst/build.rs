@@ -282,7 +282,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         idx: TransformIdx,
     ) -> Option<Vec<Option<Output>>> {
         self.get_transform(idx).map(|t| {
-            let len = t.inputs().len();
+            let len = t.input_types().len();
             (0..len)
                 .map(|i| self.output_attached_to(&Input::new(idx, i)))
                 .collect()

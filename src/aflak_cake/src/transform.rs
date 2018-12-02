@@ -160,7 +160,7 @@ impl<T, E> Transform<T, E> {
         self.algorithm = Algorithm::Constant(t);
     }
 
-    pub fn inputs(&self) -> Vec<TypeId> {
+    pub fn input_types(&self) -> Vec<TypeId> {
         match self.algorithm {
             Algorithm::Function { ref inputs, .. } => {
                 inputs.iter().map(|input| input.type_id).collect()
@@ -172,7 +172,7 @@ impl<T, E> Transform<T, E> {
     /// Ready the transformation to be called.
     pub fn start(&self) -> TransformCaller<T, E> {
         TransformCaller {
-            expected_input_types: self.inputs().into_iter(),
+            expected_input_types: self.input_types().into_iter(),
             algorithm: &self.algorithm,
             input: Vec::new(),
         }
@@ -180,12 +180,12 @@ impl<T, E> Transform<T, E> {
 
     /// Check that input exists for the transform
     pub fn input_exists(&self, input_i: usize) -> bool {
-        input_i < self.inputs().len()
+        input_i < self.input_types().len()
     }
 
     /// Return nth input type. Panic if input_i > self.input.len()
     pub fn nth_input_type(&self, input_i: usize) -> TypeId {
-        self.inputs()[input_i]
+        self.input_types()[input_i]
     }
 }
 

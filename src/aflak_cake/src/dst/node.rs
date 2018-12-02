@@ -55,7 +55,7 @@ impl<'a, T: VariantName, E> Node<'a, T, E> {
     /// Iterate over name of each input slot
     pub fn input_slot_names_iter(&self) -> Vec<&'static str> {
         match *self {
-            Node::Transform(t) => t.inputs().into_iter().map(|s| s.name()).collect(),
+            Node::Transform(t) => t.input_types().into_iter().map(|s| s.name()).collect(),
             Node::Output(_) => vec!["Out"],
         }
     }
@@ -63,7 +63,7 @@ impl<'a, T: VariantName, E> Node<'a, T, E> {
     /// Return number of inputs
     pub fn inputs_count(&self) -> usize {
         match *self {
-            Node::Transform(t) => t.inputs().len(),
+            Node::Transform(t) => t.input_types().len(),
             Node::Output(_) => 1,
         }
     }

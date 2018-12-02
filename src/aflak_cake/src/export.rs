@@ -198,7 +198,7 @@ where
             }
 
             // Type check
-            for (input_default, expected_type_id) in input_defaults.iter().zip(t.inputs()) {
+            for (input_default, expected_type_id) in input_defaults.iter().zip(t.input_types()) {
                 if let Some(input_default) = input_default {
                     if input_default.variant_name() != expected_type_id.name() {
                         return Err(ImportError::UnexpectedDefaultInputType {
