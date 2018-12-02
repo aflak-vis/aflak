@@ -153,13 +153,31 @@ struct DeserMetaTransform<T, E> {
 
 impl<T, E> DeserDST<T, E>
 where
-    T: NamedAlgorithms<E> + VariantName + ConvertibleVariants,
+    T: Clone + NamedAlgorithms<E> + VariantName + ConvertibleVariants,
 {
     /// Converts this intermediary representation of a DST into a normal DST.
     pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError<E>> {
         let mut dst = DST::new();
-        for (t_idx, DeserMetaTransform { t, input_defaults }) in self.transforms {
-            let t = t.into_transform()?;
+        for (t_idx, meta) in self.transforms {
+            let t = meta.t.into_transform()?;
+            let orig_defaults = t.defaults();
+            let mut input_defaults = Vec::with_capacity(orig_defaults.len());
+            let mut orig_defaults_iter = orig_defaults.into_iter();
+            // Add received default values.
+            // Complete with original default values if some are missing.
+            for (got_default, orig_default) in
+                meta.input_defaults.into_iter().zip(&mut orig_defaults_iter)
+            {
+                if got_default.is_none() {
+                    input_defaults.push(orig_default);
+                } else {
+                    input_defaults.push(got_default);
+                }
+            }
+            for orig_default in orig_defaults_iter {
+                input_defaults.push(orig_default);
+            }
+
             dst.add_transform_with_idx(t_idx, t, input_defaults);
         }
         for (output, input) in self.edges {
