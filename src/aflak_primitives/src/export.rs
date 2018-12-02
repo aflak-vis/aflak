@@ -12,6 +12,15 @@ impl IOValue {
         Fits::create(
             path,
             match self {
+                IOValue::Image(arr) => {
+                    let arr = arr.scalar();
+                    Hdu::new(
+                        arr.shape(),
+                        arr.as_slice()
+                            .expect("Could not get slice out of array")
+                            .to_owned(),
+                    )
+                }
                 IOValue::Image1d(arr) => {
                     let arr = arr.scalar();
                     Hdu::new(
