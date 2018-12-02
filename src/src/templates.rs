@@ -580,6 +580,10 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 t_idx: (6),
                 output_i: (0),
             ))),
+            ((3), Some((
+                t_idx: (2),
+                output_i: (0),
+            ))),
         ],
     ),
     node_states: [
@@ -637,6 +641,11 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
             selected: false,
             pos: (501, -385),
             size: (72, 29),
+        )),
+        (Output((3)), (
+            selected: false,
+            pos: (-176, -566.30005),
+            size: (72, 28.300049),
         )),
     ],
     scrolling: (-818, -667),
