@@ -21,24 +21,6 @@ impl IOValue {
                             .to_owned(),
                     )
                 }
-                IOValue::Image1d(arr) => {
-                    let arr = arr.scalar();
-                    Hdu::new(
-                        arr.shape(),
-                        arr.as_slice()
-                            .expect("Could not get slice out of array")
-                            .to_owned(),
-                    )
-                }
-                IOValue::Image2d(arr) => {
-                    let arr = arr.scalar();
-                    Hdu::new(
-                        arr.shape(),
-                        arr.as_slice()
-                            .expect("Could not get slice out of array")
-                            .to_owned(),
-                    )
-                }
                 _ => {
                     return Err(ExportError::NotImplemented(
                         "Can only save Image1d and Image2d",

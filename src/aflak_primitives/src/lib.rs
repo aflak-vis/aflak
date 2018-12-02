@@ -42,10 +42,6 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
-    Image1d(WcsArray1),
-    Image2d(WcsArray2),
-    Image3d(WcsArray3),
-    Image4d(WcsArray4),
     Image(WcsArray),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
@@ -61,10 +57,6 @@ impl PartialEq for IOValue {
             (Float3(f1), Float3(f2)) => f1 == f2,
             (Str(s1), Str(s2)) => s1 == s2,
             (Bool(b1), Bool(b2)) => b1 == b2,
-            (Image1d(i1), Image1d(i2)) => i1 == i2,
-            (Image2d(i1), Image2d(i2)) => i1 == i2,
-            (Image3d(i1), Image3d(i2)) => i1 == i2,
-            (Image4d(i1), Image4d(i2)) => i1 == i2,
             (Image(i1), Image(i2)) => i1 == i2,
             (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
             (Roi(r1), Roi(r2)) => r1 == r2,
@@ -367,64 +359,6 @@ fn run_fits_to_image(
     WcsArray::from_hdu(&primary_hdu)
         .map(IOValue::Image)
         .map_err(|e| IOErr::FITSErr(format!("{}", e)))
-}
-
-/// Turn a FITS file into a 3D image
-fn run_fits_to_3d_image(fits: &Arc<fitrs::Fits>) -> Result<IOValue, IOErr> {
-    let primary_hdu = fits
-        .get_by_name("FLUX")
-        .or_else(|| fits.get(0))
-        .ok_or_else(|| {
-            IOErr::UnexpectedInput(
-                "Could not find HDU FLUX nor Primary HDU in FITS file. Is the file valid?"
-                    .to_owned(),
-            )
-        })?;
-    WcsArray3::from_hdu(&primary_hdu)
-        .map(IOValue::Image3d)
-        .map_err(|e| IOErr::FITSErr(format!("{}", e)))
-}
-
-/// Turn a FITS file into a 4D image
-fn run_fits_to_4d_image(fits: &fitrs::Fits) -> Result<IOValue, IOErr> {
-    let primary_hdu = fits.get(0).ok_or_else(|| {
-        IOErr::UnexpectedInput(
-            "Could not find Primary HDU in FITS file. Is the file valid?".to_owned(),
-        )
-    })?;
-    WcsArray4::from_hdu(primary_hdu)
-        .map(IOValue::Image4d)
-        .map_err(|e| IOErr::FITSErr(format!("{}", e)))
-}
-
-fn run_slice_one_frame_4d_to_3d(input_img: &WcsArray4, frame_idx: i64) -> Result<IOValue, IOErr> {
-    if frame_idx < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "slice_one_frame_4d_to_3d: frame index must be positive, got {}",
-            frame_idx
-        )));
-    }
-
-    let frame_idx = frame_idx as usize;
-
-    let image_val = input_img.scalar();
-
-    let (frame_cnt, _, _, _) = image_val.dim();
-
-    if frame_idx >= frame_cnt {
-        return Err(IOErr::UnexpectedInput(format!(
-            "slice_one_frame_4d_to_3d: frame index higher than input image's frame count ({} >= {})",
-            frame_idx, frame_cnt
-        )));
-    }
-    let out = image_val.slice(s![frame_idx, .., .., ..]);
-
-    let wrap_with_unit = input_img.make_slice3(
-        &[(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)],
-        input_img.array().with_new_value(out.to_owned()),
-    );
-
-    Ok(IOValue::Image3d(wrap_with_unit))
 }
 
 fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, IOErr> {
