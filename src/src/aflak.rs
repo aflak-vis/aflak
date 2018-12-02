@@ -23,7 +23,7 @@ pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     image1d_states: HashMap<ImString, plot::State>,
-    image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::Array2<f32>>>>,
+    image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>>,
     editable_values: EditableValues,
 }
 
@@ -182,67 +182,7 @@ impl OutputWindow {
                     &mut aflak.node_editor,
                 );
             }
-            IOValue::Image2d(ref image) => {
-                let state = aflak
-                    .image2d_states
-                    .entry(self.window_name.to_owned())
-                    .or_insert_with(imshow::State::default);
-
-                self.update_state_from_editor(
-                    state.stored_values_mut(),
-                    &aflak.editable_values,
-                    &aflak.node_editor,
-                );
-                let texture_id = ImTexture::from(hash_imstring(&self.window_name));
-                let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
-                    (Some(units), Some(wcs)) => (
-                        Some(AxisTransform::new(units[0].repr(), move |t| {
-                            wcs.pix2world([t, 0.0, 0.0])[0]
-                        })),
-                        Some(AxisTransform::new(units[1].repr(), {
-                            let max_height = (image.scalar().dim().0 - 1) as f32;
-                            move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
-                        })),
-                    ),
-                    _ => (None, None),
-                };
-                let unit = image.array().unit().repr();
-                let new_incoming_image = match state.image_created_on() {
-                    Some(image_created_on) => created_on > image_created_on,
-                    None => true,
-                };
-                if new_incoming_image {
-                    let value_ref: ArcRef<_> = value.clone().into();
-                    let image_ref = value_ref.map(|value| {
-                        if let IOValue::Image2d(image) = value {
-                            image.scalar()
-                        } else {
-                            unreachable!("Expect an Image2d")
-                        }
-                    });
-                    if let Err(e) =
-                        state.set_image(image_ref, created_on, gl_ctx, texture_id, textures)
-                    {
-                        ui.text(format!("Error on creating image! {}", e));
-                    }
-                }
-                if let Err(e) = ui.image2d(
-                    gl_ctx,
-                    textures,
-                    texture_id,
-                    unit,
-                    x_transform,
-                    y_transform,
-                    state,
-                ) {
-                    ui.text(format!("Error on drawing image! {}", e));
-                }
-                self.update_editor_from_state(
-                    state.stored_values(),
-                    &mut aflak.editable_values,
-                    &mut aflak.node_editor,
-                );
-            }
+            IOValue::Image2d(_) => ui.text("Unimplemented"),
             IOValue::Image(ref image) => {
                 use primitives::ndarray::Dimension;
                 match image.scalar().dim().ndim() {
@@ -276,7 +216,67 @@ impl OutputWindow {
                         );
                     }
                     2 => {
-                        // TODO
+                        let state = aflak
+                            .image2d_states
+                            .entry(self.window_name.to_owned())
+                            .or_insert_with(imshow::State::default);
+
+                        self.update_state_from_editor(
+                            state.stored_values_mut(),
+                            &aflak.editable_values,
+                            &aflak.node_editor,
+                        );
+                        let texture_id = ImTexture::from(hash_imstring(&self.window_name));
+                        let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
+                            (Some(units), Some(wcs)) => (
+                                Some(AxisTransform::new(units[0].repr(), move |t| {
+                                    wcs.pix2world([t, 0.0, 0.0])[0]
+                                })),
+                                Some(AxisTransform::new(units[1].repr(), {
+                                    let max_height =
+                                        (image.scalar().dim().as_array_view().first().unwrap() - 1)
+                                            as f32;
+                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0])[1]
+                                })),
+                            ),
+                            _ => (None, None),
+                        };
+                        let unit = image.array().unit().repr();
+                        let new_incoming_image = match state.image_created_on() {
+                            Some(image_created_on) => created_on > image_created_on,
+                            None => true,
+                        };
+                        if new_incoming_image {
+                            let value_ref: ArcRef<_> = value.clone().into();
+                            let image_ref = value_ref.map(|value| {
+                                if let IOValue::Image(image) = value {
+                                    image.scalar()
+                                } else {
+                                    unreachable!("Expect an Image")
+                                }
+                            });
+                            if let Err(e) =
+                                state.set_image(image_ref, created_on, gl_ctx, texture_id, textures)
+                            {
+                                ui.text(format!("Error on creating image! {}", e));
+                            }
+                        }
+                        if let Err(e) = ui.image2d(
+                            gl_ctx,
+                            textures,
+                            texture_id,
+                            unit,
+                            x_transform,
+                            y_transform,
+                            state,
+                        ) {
+                            ui.text(format!("Error on drawing image! {}", e));
+                        }
+                        self.update_editor_from_state(
+                            state.stored_values(),
+                            &mut aflak.editable_values,
+                            &mut aflak.node_editor,
+                        );
                     }
                     _ => {
                         ui.text(format!("{:?}", image.scalar().dim().as_array_view()));

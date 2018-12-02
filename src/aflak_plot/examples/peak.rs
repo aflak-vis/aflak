@@ -25,7 +25,7 @@ fn main() {
         if state.image_created_on().is_none() {
             const WIDTH: usize = 200;
             const HEIGHT: usize = 100;
-            let image_data = ndarray::Array2::from_shape_fn((HEIGHT, WIDTH), |(j, i)| {
+            let image_data = ndarray::Array2::from_shape_fn([HEIGHT, WIDTH], |(j, i)| {
                 use std::f32;
                 let i = i as isize;
                 let j = j as isize;
@@ -34,7 +34,8 @@ fn main() {
                 let sin = f32::sin((i - width / 3) as f32 / WIDTH as f32 * 2.0 * f32::consts::PI);
                 let cos = f32::cos((j - height / 3) as f32 / HEIGHT as f32 * 2.0 * f32::consts::PI);
                 f32::exp(sin * sin + cos * cos)
-            });
+            }).into_dimensionality()
+            .unwrap();
             state
                 .set_image(image_data, Instant::now(), gl_ctx, texture_id, textures)
                 .unwrap();

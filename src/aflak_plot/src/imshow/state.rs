@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use glium::backend::Facade;
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Ui};
-use ndarray::Array2;
+use ndarray::ArrayD;
 
 use super::hist;
 use super::image;
@@ -71,7 +71,7 @@ impl<I> Default for State<I> {
 
 impl<I> State<I>
 where
-    I: Borrow<Array2<f32>>,
+    I: Borrow<ArrayD<f32>>,
 {
     pub fn stored_values(&self) -> ValueIter {
         self.interactions.value_iter()
@@ -334,7 +334,7 @@ where
             let x = self.mouse_pos.0 as usize;
             let y = self.mouse_pos.1 as usize;
             if y < self.image.dim().0 {
-                let index = (self.image.dim().0 - 1 - y, x);
+                let index = [self.image.dim().0 - 1 - y, x];
                 if let Some(val) = self.image.get(index) {
                     let x_measurement = xaxis.as_ref().map(|axis| Measurement {
                         v: axis.pix2world(x as f32),
@@ -530,7 +530,7 @@ where
 
         const FILL_COLOR: u32 = 0xFF999999;
         const BORDER_COLOR: u32 = 0xFF000000;
-        let hist = hist::histogram(self.image.inner(), vmin, vmax);
+        let hist = hist::histogram(&self.image.inner(), vmin, vmax);
         if let Some(max_count) = hist.iter().map(|bin| bin.count).max() {
             let draw_list = ui.get_window_draw_list();
 

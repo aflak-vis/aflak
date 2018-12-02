@@ -1,4 +1,4 @@
-use ndarray::Array2;
+use ndarray::{ArrayBase, Data, Ix2};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Bin {
@@ -7,7 +7,10 @@ pub struct Bin {
     pub count: usize,
 }
 
-pub fn histogram(data: &Array2<f32>, min: f32, max: f32) -> Vec<Bin> {
+pub fn histogram<S>(data: &ArrayBase<S, Ix2>, min: f32, max: f32) -> Vec<Bin>
+where
+    S: Data<Elem = f32>,
+{
     const HISTOGRAM_BIN_COUNT: usize = 100;
     let mut bins = Vec::with_capacity(HISTOGRAM_BIN_COUNT);
     let size = (max - min) / HISTOGRAM_BIN_COUNT as f32;

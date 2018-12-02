@@ -1,7 +1,7 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{Array1, Array2, Array3, Array4, ArrayD, ArrayView1, Ix3, Ix4, IxDyn};
+use ndarray::{Array1, Array2, Array3, Array4, ArrayD, ArrayView1, ArrayView2, Ix3, Ix4, IxDyn};
 
 use fits::{FitsArrayReadError, FitsDataToArray};
 
@@ -140,6 +140,11 @@ impl WcsArray {
     pub fn scalar1(&self) -> ArrayView1<f32> {
         let i = self.array.scalar();
         i.slice(s![..])
+    }
+
+    pub fn scalar2(&self) -> ArrayView2<f32> {
+        let i = self.array.scalar();
+        i.slice(s![.., ..])
     }
 
     pub fn array(&self) -> &Dimensioned<ArrayD<f32>> {

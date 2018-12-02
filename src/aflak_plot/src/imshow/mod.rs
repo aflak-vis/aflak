@@ -9,7 +9,7 @@ use std::borrow::Borrow;
 
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, ImTexture, Ui};
-use ndarray::Array2;
+use ndarray::ArrayD;
 
 use err::Error;
 use interactions;
@@ -46,7 +46,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     support::run(Default::default(), |ui, gl_ctx, textures| {
     ///         let texture_id = ImTexture::from(1);
     ///         if state.image_created_on().is_none() {
-    ///             let data = Array2::eye(10);
+    ///             let data = Array2::eye(10).into_dimensionality().unwrap();
     ///             if let Err(e) = state.set_image(data, Instant::now(), gl_ctx, texture_id, textures) {
     ///                 eprintln!("{:?}", e);
     ///                 return false;
@@ -83,7 +83,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         F: Facade,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
-        I: Borrow<Array2<f32>>,
+        I: Borrow<ArrayD<f32>>,
     {
         let window_pos = self.get_window_pos();
         let cursor_pos = self.get_cursor_screen_pos();
@@ -139,5 +139,5 @@ pub trait UiImage2d {
         F: Facade,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
-        I: Borrow<Array2<f32>>;
+        I: Borrow<ArrayD<f32>>;
 }

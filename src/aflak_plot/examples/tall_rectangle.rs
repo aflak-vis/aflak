@@ -32,7 +32,7 @@ fn main() {
                         image_data.push(i as f32);
                     }
                 }
-                ndarray::Array2::from_shape_vec((HEIGHT, WIDTH), image_data).unwrap()
+                ndarray::ArrayD::from_shape_vec(vec![HEIGHT, WIDTH], image_data).unwrap()
             };
             state
                 .set_image(image_data, Instant::now(), gl_ctx, texture_id, textures)
