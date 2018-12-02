@@ -36,13 +36,19 @@ pub enum Algorithm<T, E> {
         id: FnTransformId,
         description: &'static str,
         /// Inputs of the transformation, may include a default value
-        inputs: Vec<(TypeId, Option<T>)>,
+        inputs: Vec<TransformInputSlot<T>>,
         /// Outputs of the transformation
         outputs: Vec<TypeId>,
     },
     /// Use this variant for algorithms with no input. Such algorithm will
     /// always return this constant.
     Constant(T),
+}
+
+#[derive(Clone)]
+pub struct TransformInputSlot<T> {
+    pub type_id: TypeId,
+    pub default: Option<T>,
 }
 
 type PlainFunction<T, E> = fn(Vec<Bow<'_, T>>) -> Vec<Result<T, E>>;
@@ -156,7 +162,7 @@ impl<T, E> Transform<T, E> {
     pub fn inputs(&self) -> Vec<TypeId> {
         match self.algorithm {
             Algorithm::Function { ref inputs, .. } => {
-                inputs.iter().map(|(type_id, _)| *type_id).collect()
+                inputs.iter().map(|input| input.type_id).collect()
             }
             Algorithm::Constant(_) => vec![],
         }
@@ -190,7 +196,7 @@ where
         match self.algorithm {
             Algorithm::Function { ref inputs, .. } => inputs
                 .iter()
-                .map(|(_, default)| default.as_ref().cloned())
+                .map(|input| input.default.as_ref().cloned())
                 .collect(),
             Algorithm::Constant(_) => vec![],
         }

@@ -158,9 +158,11 @@ macro_rules! cake_transform {
                 f: $fn_name,
                 id: $crate::FnTransformId(stringify!($fn_name)),
                 description: $description,
-                inputs: vec![$(($crate::TypeId(stringify!($x_type)), {
-                  cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*)
-                 }), )*],
+                inputs: vec![$(
+                    $crate::TransformInputSlot {
+                        type_id: $crate::TypeId(stringify!($x_type)),
+                        default: cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*),
+                    }, )*],
                 outputs: vec![$($crate::TypeId(stringify!($out_type)), )*],
         })
     }};
