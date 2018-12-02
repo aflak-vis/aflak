@@ -22,6 +22,13 @@ pub trait NamedAlgorithms<E>: Sized {
 pub enum ImportError<E> {
     /// An unknown transform name was used.
     TransformNotFound(String),
+    /// Default input type does not conform to expectation.
+    UnexpectedDefaultInputType {
+        expected: &'static str,
+        got: &'static str,
+        transform_name: &'static str,
+        transform_idx: TransformIdx,
+    },
     /// The DST cannot be constructed because it is inconsistent.
     ConstructionError(&'static str, DSTError<E>),
 }
@@ -33,6 +40,18 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ImportError::TransformNotFound(ref s) => write!(f, "Transform not found! {}", s),
+            ImportError::UnexpectedDefaultInputType {
+                expected,
+                got,
+                transform_name,
+                transform_idx,
+            } => {
+                write!(
+                f,
+                "Unexpected default input type! Expected '{}' but got '{}' in transform '{}' (#{})",
+                expected, got, transform_name, transform_idx.id(),
+            )
+            }
             ImportError::ConstructionError(s, ref e) => {
                 write!(f, "Construction error! {} Caused by {}", s, e)
             }
@@ -176,6 +195,20 @@ where
             }
             for orig_default in orig_defaults_iter {
                 input_defaults.push(orig_default);
+            }
+
+            // Type check
+            for (input_default, expected_type_id) in input_defaults.iter().zip(t.inputs()) {
+                if let Some(input_default) = input_default {
+                    if input_default.variant_name() != expected_type_id.name() {
+                        return Err(ImportError::UnexpectedDefaultInputType {
+                            expected: expected_type_id.name(),
+                            got: input_default.variant_name(),
+                            transform_name: t.name(),
+                            transform_idx: t_idx,
+                        });
+                    }
+                }
             }
 
             dst.add_transform_with_idx(t_idx, t, input_defaults);
