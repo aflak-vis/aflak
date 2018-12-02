@@ -162,6 +162,7 @@ macro_rules! cake_transform {
                     $crate::TransformInputSlot {
                         type_id: $crate::TypeId(stringify!($x_type)),
                         default: cake_some_first_value!($( $enum_name::$x_type($x_default_val) ),*),
+                        name: stringify!($x),
                     }, )*],
                 outputs: vec![$($crate::TypeId(stringify!($out_type)), )*],
         })

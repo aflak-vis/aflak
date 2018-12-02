@@ -49,6 +49,7 @@ pub enum Algorithm<T, E> {
 pub struct TransformInputSlot<T> {
     pub type_id: TypeId,
     pub default: Option<T>,
+    pub name: &'static str,
 }
 
 type PlainFunction<T, E> = fn(Vec<Bow<'_, T>>) -> Vec<Result<T, E>>;
