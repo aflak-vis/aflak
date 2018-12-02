@@ -479,10 +479,10 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
     dst: (
         transforms: [
             ((6), (
-                t: Function("slice_3d_to_2d"),
+                t: Function("slice_one_frame"),
                 input_defaults: [
                     None,
-                    None,
+                    Some(Integer(0)),
                 ],
             )),
             ((8), (
@@ -526,16 +526,6 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                 ],
             )),
-            ((7), (
-                t: Function("make_plane3d"),
-                input_defaults: [
-                    Some(Float3((100, 0, 0))),
-                    Some(Float3((0, 0, 1))),
-                    Some(Float3((0, 1, 0))),
-                    Some(Integer(1041)),
-                    Some(Integer(257)),
-                ],
-            )),
         ],
         edges: [
             ((
@@ -565,13 +555,6 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (8),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (7),
-                output_i: (0),
-            ), (
-                t_idx: (6),
-                input_i: (1),
             )),
             ((
                 t_idx: (2),
