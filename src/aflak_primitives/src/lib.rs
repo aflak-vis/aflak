@@ -19,7 +19,7 @@ mod unit;
 
 pub use export::ExportError;
 pub use roi::ROI;
-pub use unit::{Dimensioned, Unit, WcsArray, WcsArray1, WcsArray2, WcsArray3, WcsArray4};
+pub use unit::{Dimensioned, Unit, WcsArray};
 
 use std::error::Error;
 use std::fmt;

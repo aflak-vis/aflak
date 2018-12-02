@@ -1,7 +1,7 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{Array1, Array2, Array3, Array4, ArrayD, ArrayView1, ArrayView2, Ix3, Ix4, IxDyn};
+use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
 
 use fits::{FitsArrayReadError, FitsDataToArray};
 
@@ -31,66 +31,6 @@ struct MetaWcsArray {
     // TODO: Handle serialization for WCS
     wcs: WCS,
     cunits: [Unit; 4],
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct WcsArray4 {
-    meta: Option<MetaWcsArray4>,
-    array: Dimensioned<Array4<f32>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray4 {
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
-    // TODO: Handle serialization for WCS
-    wcs: WCS,
-    cunits: [Unit; 4],
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct WcsArray3 {
-    meta: Option<MetaWcsArray3>,
-    array: Dimensioned<Array3<f32>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray3 {
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
-    // TODO: Handle serialization for WCS
-    wcs: WCS,
-    cunits: [Unit; 3],
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct WcsArray2 {
-    meta: Option<MetaWcsArray2>,
-    array: Dimensioned<Array2<f32>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray2 {
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
-    // TODO: Handle serialization for WCS
-    wcs: WCS,
-    cunits: [Unit; 2],
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct WcsArray1 {
-    meta: Option<MetaWcsArray1>,
-    array: Dimensioned<Array1<f32>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray1 {
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
-    // TODO: Handle serialization for WCS
-    wcs: WCS,
-    cunit: Unit,
 }
 
 fn read_unit(hdu: &Hdu, key: &str) -> Unit {
@@ -188,199 +128,6 @@ impl WcsArray {
             meta: new_meta,
             array,
         }
-    }
-}
-
-impl WcsArray4 {
-    pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray4, FitsArrayReadError> {
-        let data = hdu.read_data();
-        let image = match *data {
-            FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix4>::to_array(image)?,
-            FitsData::FloatingPoint64(ref image) => FitsDataToArray::<Ix4>::to_array(image)?,
-            FitsData::IntegersI32(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("IntegersI32"))
-            }
-            FitsData::IntegersU32(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("IntegersU32"))
-            }
-            FitsData::Characters(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("Characters"))
-            }
-        };
-
-        let vunit = read_unit(hdu, "BUNIT");
-        let cunit1 = read_unit(hdu, "CUNIT1");
-        let cunit2 = read_unit(hdu, "CUNIT2");
-        let cunit3 = read_unit(hdu, "CUNIT3");
-        let cunit4 = read_unit(hdu, "CUNIT4");
-        let wcs = WCS::new(hdu);
-        Ok(Self {
-            meta: Some(MetaWcsArray4 {
-                wcs,
-                cunits: [cunit1, cunit2, cunit3, cunit4],
-            }),
-            array: vunit.new(image),
-        })
-    }
-
-    pub fn scalar(&self) -> &Array4<f32> {
-        self.array.scalar()
-    }
-
-    pub fn array(&self) -> &Dimensioned<Array4<f32>> {
-        &self.array
-    }
-
-    pub(crate) fn make_slice3(
-        &self,
-        index: &[(usize, f32, f32); 3],
-        array: Dimensioned<Array3<f32>>,
-    ) -> WcsArray3 {
-        let slice_index = [index[0].0, index[1].0];
-        let new_meta = self.meta.as_ref().map(|meta| MetaWcsArray3 {
-            wcs: meta
-                .wcs
-                .slice(&slice_index)
-                .transform(index[0].0, index[0].1, index[0].2)
-                .transform(index[1].0, index[1].1, index[1].2)
-                .transform(index[2].0, index[2].1, index[2].2),
-            cunits: [
-                meta.cunits[index[0].0].clone(),
-                meta.cunits[index[1].0].clone(),
-                meta.cunits[index[2].0].clone(),
-            ],
-        });
-        WcsArray3 {
-            meta: new_meta,
-            array,
-        }
-    }
-}
-
-impl WcsArray3 {
-    pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray3, FitsArrayReadError> {
-        let data = hdu.read_data();
-        let image = match *data {
-            FitsData::FloatingPoint32(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
-            FitsData::FloatingPoint64(ref image) => FitsDataToArray::<Ix3>::to_array(image)?,
-            FitsData::IntegersI32(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("IntegersI32"))
-            }
-            FitsData::IntegersU32(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("IntegersU32"))
-            }
-            FitsData::Characters(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("Characters"))
-            }
-        };
-        let vunit = read_unit(hdu, "BUNIT");
-        let cunit1 = read_unit(hdu, "CUNIT1");
-        let cunit2 = read_unit(hdu, "CUNIT2");
-        let cunit3 = read_unit(hdu, "CUNIT3");
-        let wcs = WCS::new(hdu);
-        Ok(Self {
-            meta: Some(MetaWcsArray3 {
-                wcs,
-                cunits: [cunit1, cunit2, cunit3],
-            }),
-            array: vunit.new(image),
-        })
-    }
-
-    pub fn from_array(array: Dimensioned<Array3<f32>>) -> Self {
-        Self { meta: None, array }
-    }
-
-    pub fn scalar(&self) -> &Array3<f32> {
-        self.array.scalar()
-    }
-
-    pub fn scalar_mut(&mut self) -> &mut Array3<f32> {
-        self.array.scalar_mut()
-    }
-
-    pub fn array(&self) -> &Dimensioned<Array3<f32>> {
-        &self.array
-    }
-
-    pub(crate) fn make_slice1(&self, index: usize, array: Dimensioned<Array1<f32>>) -> WcsArray1 {
-        let new_meta = self.meta.as_ref().map(|meta| MetaWcsArray1 {
-            wcs: meta.wcs.slice(&[index]),
-            cunit: meta.cunits[index].clone(),
-        });
-        WcsArray1 {
-            meta: new_meta,
-            array,
-        }
-    }
-
-    pub(crate) fn make_slice2(
-        &self,
-        index: &[(usize, f32, f32); 2],
-        array: Dimensioned<Array2<f32>>,
-    ) -> WcsArray2 {
-        let slice_index = [index[0].0, index[1].0];
-        let new_meta = self.meta.as_ref().map(|meta| MetaWcsArray2 {
-            wcs: meta
-                .wcs
-                .slice(&slice_index)
-                .transform(index[0].0, index[0].1, index[0].2)
-                .transform(index[1].0, index[1].1, index[1].2),
-            cunits: [
-                meta.cunits[index[0].0].clone(),
-                meta.cunits[index[1].0].clone(),
-            ],
-        });
-        WcsArray2 {
-            meta: new_meta,
-            array,
-        }
-    }
-}
-
-impl WcsArray2 {
-    pub fn from_array(array: Dimensioned<Array2<f32>>) -> Self {
-        Self { meta: None, array }
-    }
-
-    pub fn scalar(&self) -> &Array2<f32> {
-        self.array.scalar()
-    }
-
-    pub fn array(&self) -> &Dimensioned<Array2<f32>> {
-        &self.array
-    }
-
-    pub fn cunits(&self) -> Option<[&Unit; 2]> {
-        self.meta
-            .as_ref()
-            .map(|meta| [&meta.cunits[0], &meta.cunits[1]])
-    }
-
-    pub fn wcs(&self) -> Option<&WCS> {
-        self.meta.as_ref().map(|meta| &meta.wcs)
-    }
-}
-
-impl WcsArray1 {
-    pub fn from_array(array: Dimensioned<Array1<f32>>) -> Self {
-        Self { meta: None, array }
-    }
-
-    pub fn scalar(&self) -> &Array1<f32> {
-        self.array.scalar()
-    }
-
-    pub fn array(&self) -> &Dimensioned<Array1<f32>> {
-        &self.array
-    }
-
-    pub fn cunit(&self) -> Option<&Unit> {
-        self.meta.as_ref().map(|meta| &meta.cunit)
-    }
-
-    pub fn wcs(&self) -> Option<&WCS> {
-        self.meta.as_ref().map(|meta| &meta.wcs)
     }
 }
 
@@ -486,28 +233,6 @@ impl fmt::Display for Unit {
     }
 }
 
-impl<'a> ops::Mul<f32> for &'a WcsArray1 {
-    type Output = WcsArray1;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        WcsArray1 {
-            meta: self.meta.clone(),
-            array: self.array() * rhs,
-        }
-    }
-}
-
-impl<'a> ops::Mul<f32> for &'a WcsArray2 {
-    type Output = WcsArray2;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        WcsArray2 {
-            meta: self.meta.clone(),
-            array: self.array() * rhs,
-        }
-    }
-}
-
 impl<'a> ops::Mul<f32> for &'a WcsArray {
     type Output = WcsArray;
 
@@ -515,38 +240,6 @@ impl<'a> ops::Mul<f32> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: self.array() * rhs,
-        }
-    }
-}
-
-impl ops::Add for WcsArray1 {
-    type Output = WcsArray1;
-
-    fn add(self, rhs: WcsArray1) -> Self::Output {
-        let meta = if self.meta == rhs.meta {
-            self.meta
-        } else {
-            None
-        };
-        WcsArray1 {
-            meta,
-            array: self.array + rhs.array,
-        }
-    }
-}
-
-impl ops::Add for WcsArray2 {
-    type Output = WcsArray2;
-
-    fn add(self, rhs: WcsArray2) -> Self::Output {
-        let meta = if self.meta == rhs.meta {
-            self.meta
-        } else {
-            None
-        };
-        WcsArray2 {
-            meta,
-            array: self.array + rhs.array,
         }
     }
 }
