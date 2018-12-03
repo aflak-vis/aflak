@@ -51,7 +51,7 @@ pub enum Error {
     Glutin(DisplayCreationError),
     Render(RendererError),
     SwapBuffers(SwapBuffersError),
-    Message(String),
+    Message(&'static str),
 }
 pub type Result<T> = result::Result<T, Error>;
 
@@ -96,7 +96,7 @@ where
     // otherwise.
     let hidpi_factor = window.get_hidpi_factor().round();
 
-    let mut renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize renderer");
+    let mut renderer = Renderer::init(&mut imgui, &display)?;
 
     glutin_support::configure_keys(&mut imgui);
 
@@ -129,7 +129,9 @@ where
 
         glutin_support::update_mouse_cursor(&imgui, &window);
 
-        let frame_size = glutin_support::get_frame_size(&window, hidpi_factor).unwrap();
+        let frame_size = glutin_support::get_frame_size(&window, hidpi_factor).ok_or(
+            Error::Message("Could not get frame size. Window no longer exists!"),
+        )?;
 
         let ui = imgui.frame(frame_size, delta_s);
         if !run_ui(&ui, display.get_context(), renderer.textures()) {
@@ -143,7 +145,7 @@ where
             config.clear_color[2],
             config.clear_color[3],
         );
-        renderer.render(&mut target, ui).expect("Rendering failed");
+        renderer.render(&mut target, ui)?;
         target.finish()?;
 
         if quit {
