@@ -33,6 +33,7 @@ pub struct AppConfig {
     pub log_filename: Option<ImString>,
     pub window_width: u32,
     pub window_height: u32,
+    pub maximized: bool,
 }
 
 impl Default for AppConfig {
@@ -44,6 +45,7 @@ impl Default for AppConfig {
             log_filename: None,
             window_width: 1024,
             window_height: 768,
+            maximized: false,
         }
     }
 }
@@ -100,7 +102,7 @@ where
         .with_dimensions(glutin::dpi::LogicalSize::new(
             config.window_width as f64,
             config.window_height as f64,
-        )).with_maximized(true);
+        )).with_maximized(config.maximized);
     let display = Display::new(builder, context, &events_loop)?;
     let window = display.gl_window();
 

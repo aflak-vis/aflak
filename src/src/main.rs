@@ -73,6 +73,7 @@ fn main() -> support::Result<()> {
         title: format!("aflak {}", env!("CARGO_PKG_VERSION")),
         clear_color: CLEAR_COLOR,
         ini_filename: Some(ImString::new("aflak.ini")),
+        maximized: true,
         ..Default::default()
     };
     support::run(config, |ui, gl_ctx, textures| {
