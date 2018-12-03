@@ -29,8 +29,10 @@ aflak --help
 You may find a demo video [here](https://vimeo.com/290328343).
 
 **Disclaimer**: Most testing until now has been done with FITS files sampled
-from the [SDSS MaNGA](https://www.sdss.org/surveys/manga/) dataset.
-Other FITS files may or may not work. Feedback and bug report is welcome.
+from the [SDSS MaNGA](https://www.sdss.org/surveys/manga/), and some files
+from ALMA. Standard-compliant FITS should be openable without issue, if
+you meet any issue, please file an issue, provide the FITS file, a
+screenshot and explain what's wrong/unexpected.
 
 **NB**:
 - The first time you run aflak, the window layout may not be what you
