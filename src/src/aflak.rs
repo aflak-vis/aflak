@@ -270,6 +270,8 @@ impl OutputWindow {
                         ImString::new(format!("Hdu #{}", i))
                     },
                 };
+
+                ui.push_id(i as i32);
                 ui.tree_node(&tree_name).build(|| {
                     for (key, value) in hdu {
                         ui.text(key);
@@ -291,6 +293,7 @@ impl OutputWindow {
                         ui.separator();
                     }
                 });
+                ui.pop_id();
             },
             _ => {
                 ui.text("Unimplemented");
