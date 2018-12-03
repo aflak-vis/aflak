@@ -5,6 +5,8 @@ extern crate imgui_glium_renderer;
 
 mod glutin_support;
 
+use std::error;
+use std::fmt;
 use std::rc::Rc;
 use std::result;
 use std::time::Instant;
@@ -53,6 +55,20 @@ pub enum Error {
     SwapBuffers(SwapBuffersError),
     Message(&'static str),
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::Glutin(ref e) => e.fmt(f),
+            Error::Render(ref e) => e.fmt(f),
+            Error::SwapBuffers(ref e) => e.fmt(f),
+            Error::Message(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl error::Error for Error {}
+
 pub type Result<T> = result::Result<T, Error>;
 
 impl From<DisplayCreationError> for Error {
