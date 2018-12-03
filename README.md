@@ -32,6 +32,14 @@ You may find a demo video [here](https://vimeo.com/290328343).
 from the [SDSS MaNGA](https://www.sdss.org/surveys/manga/) dataset.
 Other FITS files may or may not work. Feedback and bug report is welcome.
 
+**NB**:
+- The first time you run aflak, the window layout may not be what you
+prefer. You may want to resize / move some windows with the mouse the
+very first time your run aflak.
+Hopefully, aflak remembers the arrangement of your windows between sessions.
+- It is advised to use aflak with a large screen more 2000-pixel large
+for a better experience. 3000-pixel is even better!
+
 ## Update
 
 If aflak is already installed, just append the `--force` flag to the `cargo`
@@ -60,17 +68,12 @@ cd aflak/src
 cargo build --release
 ```
 
-## Run aflak
+## Run aflak from source
 
 ```sh
 cd aflak/src
 cargo run --release -- -f <FITS_FILE>
 ```
-
-**NB**: The first time you run aflak, the window layout may not be what you
-prefer. You may want to resize / move some windows with the mouse the
-very first time your run aflak.
-Hopefully, aflak remembers the arrangement of your windows between sessions.
 
 ## Development
 
