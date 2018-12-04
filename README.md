@@ -15,6 +15,7 @@ by providing a visual programming language interface.
 Minimum Rust version: 1.28.0.
 
 Install the rust toolchain with [rustup](https://rustup.rs/).
+You will need a working C & C++ environment to install from sources.
 
 ## Quick install (nightly)
 
