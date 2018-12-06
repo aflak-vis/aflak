@@ -73,6 +73,14 @@ impl WcsArray {
         })
     }
 
+    pub fn pix2world(&self, axis: usize, pixel: f32) -> Option<f32> {
+        self.meta.as_ref().map(|meta| {
+            let mut input = [0.0; 4];
+            input[axis] = pixel;
+            meta.wcs.pix2world(input)[axis]
+        })
+    }
+
     pub fn from_array(array: Dimensioned<ArrayD<f32>>) -> Self {
         Self { meta: None, array }
     }
