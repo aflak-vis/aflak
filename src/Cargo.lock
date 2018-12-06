@@ -57,10 +57,12 @@ version = "0.0.3"
 dependencies = [
  "aflak_cake 0.0.3",
  "fitrs 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ndarray 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "variant_name 0.0.1",
  "variant_name_derive 0.0.1",
  "vo 0.0.1 (git+https://github.com/malikolivier/vo?rev=8ec6ae95ffea30ef11970e45c3eb3a09e3db50b3)",

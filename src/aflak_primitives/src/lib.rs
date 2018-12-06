@@ -6,15 +6,19 @@ extern crate variant_name_derive;
 #[macro_use]
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
+extern crate hyper;
 #[macro_use]
 pub extern crate ndarray;
 extern crate serde;
+extern crate tokio;
 #[macro_use]
 extern crate serde_derive;
+extern crate vo;
 
 mod export;
 mod fits;
 mod roi;
+mod sia;
 mod unit;
 
 pub use export::ExportError;
@@ -43,6 +47,9 @@ pub enum IOValue {
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
     Image(WcsArray),
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    VOTable(vo::table::VOTable),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }
@@ -72,6 +79,7 @@ pub enum IOErr {
     FITSErr(String),
     UnexpectedInput(String),
     ShapeError(ndarray::ShapeError, String),
+    SIAError(vo::sia::Error),
 }
 
 impl fmt::Display for IOErr {
@@ -83,6 +91,7 @@ impl fmt::Display for IOErr {
             FITSErr(s) => write!(f, "FITS-related error! {}", s),
             UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
             ShapeError(e, s) => write!(f, "Shape error! {}. This was caused by '{}'.", s, e),
+            SIAError(e) => e.fmt(f),
         }
     }
 }
@@ -102,6 +111,24 @@ lazy_static! {
                 "Open FITS file from a Path.",
                 open_fits<IOValue, IOErr>(path: Path) -> Fits {
                     vec![run_open_fits(path)]
+                }
+            ),
+            cake_transform!(
+                "Query FITS files from a database using Simple Image Access protocol.",
+                sia_query<IOValue, IOErr>(pos: Float2) -> VOTable {
+                    vec![sia::run_query(*pos)]
+                }
+            ),
+            cake_transform!(
+                "Get Link to access image from VOTable",
+                acref_from_record<IOValue, IOErr>(table: VOTable, i: Integer = 0) -> Str {
+                    vec![sia::run_acref_from_record(table, *i)]
+                }
+            ),
+            cake_transform!(
+                "Download FITS from the provided link",
+                download_fits<IOValue, IOErr>(url: Str = "".to_owned()) -> Fits {
+                    vec![sia::run_download_fits(url)]
                 }
             ),
             cake_transform!(
