@@ -245,6 +245,15 @@ Compute v_min(first), v_max(second)",
                 }
             ),
             cake_transform!(
+                "Extract min/max wavelength value of each pixel.
+Parameter: 2D image i, start, end, is_min (start <= end)
+Output argmax/argmin map of flux; wavelength
+Note: output discrete wavelength value",
+                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 1, end: Integer = 2, is_min: Bool = false) -> Image {
+                    vec![run_argminmax(i1, *start, *end, *is_min)]
+                }
+            ),
+            cake_transform!(
                 "Negation. Parameter: image i. Compute -i.",
                 negation<IOValue, IOErr>(i1: Image) -> Image {
                     vec![run_negation(i1)]
@@ -765,6 +774,81 @@ fn run_integral(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
 fn run_average(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     reduce_array_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
+}
+
+fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    if start <= 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be more than zero, but got {}",
+            start
+        )));
+    }
+    if end <= 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be more than zero, but got {}",
+            end
+        )));
+    }
+
+    let image_val = im.scalar();
+
+    let _image3 = match image_val.view().into_dimensionality::<Ix3>() {
+        Ok(image3) => image3,
+        Err(e) => {
+            return Err(IOErr::ShapeError(
+                e,
+                format!(
+                    "run_argminmax: Expected an image of dimension 3 as input but got an image of dimension {}",
+                    image_val.ndim()
+                ),
+            ))
+        }
+    };
+
+    let start = (start - 1) as usize;
+    let end = (end - 1) as usize;
+
+    if start >= end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start higher than end ({} >= {})",
+            start + 1, end + 1
+        )));
+    }
+
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+
+    let waveimg = Array2::from_shape_fn(
+        (slices.len_of(Axis(1)), slices.len_of(Axis(2))),
+        |(i, j)| {
+            let mut value = if !is_min {
+                -std::f32::INFINITY
+            } else {
+                std::f32::INFINITY
+            };
+            let mut out = 0.0;
+            for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+                if !is_min && slice[[i, j]] > value {
+                    value = slice[[i, j]];
+                    out = match im.pix2world(2, (k + start) as f32) {
+                        Some(value) => value,
+                        None => (k + start) as f32,
+                    };
+                } else if is_min && slice[[i, j]] < value {
+                    value = slice[[i, j]];
+                    out = match im.pix2world(2, (k + start) as f32) {
+                        Some(value) => value,
+                        None => (k + start) as f32,
+                    };
+                }
+            }
+            out
+        },
+    );
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        waveimg.into_dyn(),
+        Unit::None,
+    ))))
 }
 
 fn run_create_equivalent_width(
