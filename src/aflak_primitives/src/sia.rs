@@ -1,10 +1,7 @@
 use std::fs;
-use std::io::Write;
 
-use hyper;
-use hyper::rt::{Future, Stream};
-use tokio;
-use vo::sia::{self, SiaService};
+use reqwest;
+use vo::sia::SiaService;
 use vo::table::{Cell, VOTable};
 
 use super::{IOErr, IOValue};
@@ -54,57 +51,30 @@ pub fn run_acref_from_record(votable: &VOTable, index: i64) -> Result<IOValue, I
 }
 
 pub fn run_download_fits(url: &str) -> Result<IOValue, IOErr> {
-    let client = hyper::Client::new();
-    match url.parse() {
-        Ok(uri) => {
-            let tmp_file_name = "tmp.fits";
-            match fs::File::create(tmp_file_name) {
-                Ok(mut file) => {
-                    let promise = client
-                        .get(uri)
-                        .map_err(|e| IOErr::UnexpectedInput(format!("{}", e)))
-                        .map(|res| {
-                            println!("{:?}", res);
-                            println!("SUCCESS: {}", res.status().is_success());
-                            res.into_body()
-                        }).and_then(move |body| {
-                            body.map_err(|e| IOErr::UnexpectedInput(format!("{}", e)))
-                                .for_each(move |chunk| {
-                                    file.write_all(&chunk).map_err(|e| {
-                                        IOErr::IoError(
-                                            e,
-                                            format!(
-                                                "download_fits: Could not write to file '{}'.",
-                                                tmp_file_name
-                                            ),
-                                        )
-                                    })
-                                })
-                        });
-                    use super::run_open_fits;
+    println!("URL: {}", url);
+    let client = reqwest::Client::new();
+    let tmp_file_name = "tmp.fits";
+    match fs::File::create(tmp_file_name) {
+        Ok(mut file) => {
+            match client
+                .get(url)
+                .send()
+                .and_then(|response| response.error_for_status())
+            {
+                Ok(mut response) => response
+                    .copy_to(&mut file)
+                    .map_err(|e| IOErr::UnexpectedInput(format!("{}", e))),
+                Err(e) => Err(IOErr::UnexpectedInput(format!("{}", e))),
+            }?;
 
-                    let mut runtime = tokio::runtime::Runtime::new().map_err(|e| {
-                        IOErr::SIAError(sia::Error::RuntimeError(
-                            e,
-                            "Could not initialize a Tokio runtime.",
-                        ))
-                    })?;
-                    runtime
-                        .block_on(promise)
-                        .and_then(|_| run_open_fits(tmp_file_name))
-                }
-                Err(e) => Err(IOErr::IoError(
-                    e,
-                    format!(
-                        "download_fits: Could not create temporary file '{}'.",
-                        tmp_file_name
-                    ),
-                )),
-            }
+            super::run_open_fits(tmp_file_name)
         }
-        Err(e) => Err(IOErr::UnexpectedInput(format!(
-            "download_fits: Could not parse privded URL '{}'. Error: {}",
-            url, e
-        ))),
+        Err(e) => Err(IOErr::IoError(
+            e,
+            format!(
+                "download_fits: Could not create temporary file '{}'.",
+                tmp_file_name
+            ),
+        )),
     }
 }

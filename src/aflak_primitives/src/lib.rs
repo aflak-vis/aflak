@@ -6,11 +6,10 @@ extern crate variant_name_derive;
 #[macro_use]
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
-extern crate hyper;
 #[macro_use]
 pub extern crate ndarray;
+extern crate reqwest;
 extern crate serde;
-extern crate tokio;
 #[macro_use]
 extern crate serde_derive;
 extern crate vo;
