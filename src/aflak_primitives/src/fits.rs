@@ -77,3 +77,23 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<i32>> {
         ).map_err(FitsArrayReadError::ShapeError)
     }
 }
+
+impl FitsDataToArray<IxDyn> for FitsDataArray<Option<u32>> {
+    type Target = ArrayD<f32>;
+
+    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
+        ArrayD::from_shape_vec(
+            sh,
+            self.data
+                .iter()
+                .map(|some_int| {
+                    if let Some(int) = some_int {
+                        *int as f32
+                    } else {
+                        std::f32::NAN
+                    }
+                }).collect(),
+        ).map_err(FitsArrayReadError::ShapeError)
+    }
+}
