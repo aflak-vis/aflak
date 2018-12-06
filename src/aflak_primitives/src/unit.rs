@@ -47,9 +47,7 @@ impl WcsArray {
         let image = match *data {
             FitsData::FloatingPoint32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
             FitsData::FloatingPoint64(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
-            FitsData::IntegersI32(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("IntegersI32"))
-            }
+            FitsData::IntegersI32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
             FitsData::IntegersU32(_) => {
                 return Err(FitsArrayReadError::UnsupportedData("IntegersU32"))
             }
