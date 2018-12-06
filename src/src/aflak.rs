@@ -258,43 +258,53 @@ impl OutputWindow {
                     }
                 }
             }
-            IOValue::Fits(ref fits) => for (i, hdu) in fits.iter().enumerate() {
-                use primitives::fitrs::HeaderValue::*;
-                use std::borrow::Cow;
+            IOValue::Fits(ref fits) => {
+                let mut has_hdus = false;
+                for (i, hdu) in fits.iter().enumerate() {
+                    use primitives::fitrs::HeaderValue::*;
+                    use std::borrow::Cow;
 
-                let tree_name = match hdu.value("EXTNAME") {
-                    Some(CharacterString(extname)) => ImString::new(extname.as_str()),
-                    _ => if i == 0 {
-                        im_str!("Primary HDU").to_owned()
-                    } else {
-                        ImString::new(format!("Hdu #{}", i))
-                    },
-                };
+                    has_hdus = true;
 
-                ui.push_id(i as i32);
-                ui.tree_node(&tree_name).build(|| {
-                    for (key, value) in hdu {
-                        ui.text(key);
-                        if let Some(value) = value {
-                            ui.same_line(150.0);
-                            let value = match value {
-                                CharacterString(s) => Cow::Borrowed(s.as_str()),
-                                Logical(true) => Cow::Borrowed("True"),
-                                Logical(false) => Cow::Borrowed("False"),
-                                IntegerNumber(i) => Cow::Owned(format!("{}", i)),
-                                RealFloatingNumber(f) => Cow::Owned(format!("{:E}", f)),
-                                ComplexIntegerNumber(a, b) => Cow::Owned(format!("{} + {}i", a, b)),
-                                ComplexFloatingNumber(a, b) => {
-                                    Cow::Owned(format!("{:E} + {:E}i", a, b))
-                                }
-                            };
-                            ui.text(value);
+                    let tree_name = match hdu.value("EXTNAME") {
+                        Some(CharacterString(extname)) => ImString::new(extname.as_str()),
+                        _ => if i == 0 {
+                            im_str!("Primary HDU").to_owned()
+                        } else {
+                            ImString::new(format!("Hdu #{}", i))
+                        },
+                    };
+
+                    ui.push_id(i as i32);
+                    ui.tree_node(&tree_name).build(|| {
+                        for (key, value) in hdu {
+                            ui.text(key);
+                            if let Some(value) = value {
+                                ui.same_line(150.0);
+                                let value = match value {
+                                    CharacterString(s) => Cow::Borrowed(s.as_str()),
+                                    Logical(true) => Cow::Borrowed("True"),
+                                    Logical(false) => Cow::Borrowed("False"),
+                                    IntegerNumber(i) => Cow::Owned(format!("{}", i)),
+                                    RealFloatingNumber(f) => Cow::Owned(format!("{:E}", f)),
+                                    ComplexIntegerNumber(a, b) => {
+                                        Cow::Owned(format!("{} + {}i", a, b))
+                                    }
+                                    ComplexFloatingNumber(a, b) => {
+                                        Cow::Owned(format!("{:E} + {:E}i", a, b))
+                                    }
+                                };
+                                ui.text(value);
+                            }
+                            ui.separator();
                         }
-                        ui.separator();
-                    }
-                });
-                ui.pop_id();
-            },
+                    });
+                    ui.pop_id();
+                }
+                if !has_hdus {
+                    ui.text("Input Fits appears invalid. No HDU could be found.");
+                }
+            }
             _ => {
                 ui.text("Unimplemented");
             }
