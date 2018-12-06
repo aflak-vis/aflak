@@ -172,12 +172,12 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
+                "Integral for 3D Image. Parameters: a=start-1, b=end-1 (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)",
-                integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0;
+                integral<IOValue, IOErr>(image: Image, start: Integer = 1, end: Integer = 2) -> Image, Float, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0 - 1.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
@@ -202,12 +202,12 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 }
             ),
             cake_transform!(
-                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
+                "Average for 3D Image. Parameters: a=start-1, b=end-1 (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)",
-                average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0;
+                average<IOValue, IOErr>(image: Image, start: Integer = 1, end: Integer = 2) -> Image, Float, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0 - 1.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
@@ -710,20 +710,20 @@ fn reduce_array_slice<F>(im: &WcsArray, start: i64, end: i64, f: F) -> Result<IO
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
-    if start < 0 {
+    if start <= 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "start must be positive, but got {}",
+            "start must be more than zero, but got {}",
             start
         )));
     }
-    if end < 0 {
+    if end <= 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "end must be positive, but got {}",
+            "end must be more than zero, but got {}",
             end
         )));
     }
-    let start = start as usize;
-    let end = end as usize;
+    let start = (start - 1) as usize;
+    let end = (end - 1) as usize;
 
     let image_val = im.scalar();
     let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
@@ -737,13 +737,13 @@ where
     if end >= frame_cnt {
         return Err(IOErr::UnexpectedInput(format!(
             "end higher than input image's frame count ({} >= {})",
-            end, frame_cnt
+            end + 1, frame_cnt
         )));
     }
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start, end
+            start + 1, end + 1
         )));
     }
 
