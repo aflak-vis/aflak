@@ -223,3 +223,14 @@ where
         self.import_from_buf(f)
     }
 }
+
+impl<'t, T, E, ED> ToString for NodeEditor<'t, T, E, ED>
+where
+    T: Clone + Serialize + VariantName,
+{
+    fn to_string(&self) -> String {
+        let mut buf = vec![];
+        let _ = self.export_to_buf(&mut buf); // Writing to memory buffer cannot fail
+        String::from_utf8_lossy(&buf).to_string()
+    }
+}

@@ -137,7 +137,7 @@ impl OutputWindow {
         F: glium::backend::Facade,
     {
         if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-            if let Err(e) = save_output::save(self.output, &result) {
+            if let Err(e) = save_output::save(self.output, &result, &aflak.node_editor) {
                 eprintln!("Error on saving output: '{}'", e);
                 aflak.error_alerts.push(Box::new(e));
             } else {

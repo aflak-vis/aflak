@@ -9,7 +9,11 @@ use fitrs::{Fits, Hdu};
 use super::IOValue;
 
 impl IOValue {
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
+    pub fn save<P, R>(&self, path: P, r: &R) -> Result<(), ExportError>
+    where
+        P: AsRef<Path>,
+        R: ToString,
+    {
         match self {
             IOValue::Integer(i) => write_to_file_as_display(path, i)?,
             IOValue::Float(f) => write_to_file_as_display(path, f)?,
@@ -21,15 +25,14 @@ impl IOValue {
             IOValue::Fits(_) => return Err(ExportError::NotImplemented("Cannot copy FITS file.")),
             IOValue::Image(arr) => {
                 let arr = arr.scalar();
-                Fits::create(
-                    path,
-                    Hdu::new(
-                        arr.shape(),
-                        arr.as_slice()
-                            .expect("Could not get slice out of array")
-                            .to_owned(),
-                    ),
-                )?;
+                let mut hdu = Hdu::new(
+                    arr.shape(),
+                    arr.as_slice()
+                        .expect("Could not get slice out of array")
+                        .to_owned(),
+                );
+                hdu.insert("AFLAPROV", r.to_string());
+                Fits::create(path, hdu)?;
             }
             IOValue::Map2dTo3dCoords(_) => {
                 return Err(ExportError::NotImplemented("Cannot export Map2dTo3dCoords"))
