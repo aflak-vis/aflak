@@ -49,7 +49,7 @@ fn main() -> support::Result<()> {
     let import_data = match open_buffer(&matches) {
         Ok(buf) => buf,
         Err(e) => {
-            if let Some(file_name) = matches.value_of("ron") {
+            if let Some(file_name) = matches.value_of("load") {
                 eprintln!("Error on opening file '{}': {}", file_name, e);
             } else {
                 eprintln!("Error on opening buffer: {}", e);
@@ -109,11 +109,25 @@ fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<Read>, io::Error> {
             _ => unreachable!("Got '{}', an unexpected result.", template_name),
         };
         Ok(Box::new(template))
-    } else if let Some(ron_file) = matches.value_of("ron") {
-        if ron_file == "-" {
+    } else if let Some(file_path) = matches.value_of("load") {
+        if file_path == "-" {
             Ok(Box::new(StdinReader::default()))
+        } else if file_path.ends_with(".fits") {
+            let fits = primitives::fitrs::Fits::open(file_path)?;
+            if let Some(primary_hdu) = fits.get(0) {
+                if let Some(primitives::fitrs::HeaderValue::CharacterString(string)) =
+                    primary_hdu.value("AFLAPROV")
+                {
+                    let read = ::std::io::Cursor::new(string.to_owned());
+                    Ok(Box::new(read))
+                } else {
+                    panic!("Could not find AFLAPROV key in FITS file '{}'. Was this FITS file exported by aflak?", file_path)
+                }
+            } else {
+                panic!("Selected FITS file '{}' does not appear to have a primary HDU. It is probably not a FITS file.", file_path)
+            }
         } else {
-            let file = fs::File::open(ron_file)?;
+            let file = fs::File::open(file_path)?;
             Ok(Box::new(file))
         }
     } else {

@@ -22,10 +22,11 @@ pub fn build_cli() -> App<'static, 'static> {
                 .help("The name of the template to use"),
         )
         .arg(
-            Arg::with_name("ron")
-                .long("ron")
-                .value_name("RON FILE")
+            Arg::with_name("load")
+                .short("l")
+                .long("load")
+                .value_name("FILE")
                 .conflicts_with("template")
-                .help("Import editor from .ron file"),
+                .help("Import editor from .ron or aflak-exported .fits file"),
         )
 }
