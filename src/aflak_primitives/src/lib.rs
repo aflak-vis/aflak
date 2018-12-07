@@ -254,6 +254,21 @@ Note: output discrete wavelength value",
                 }
             ),
             cake_transform!(
+                "Create velocity field map
+Parameter: 2D image (which has wavelength value w_i in each pixel), representative wavelength w_0
+Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
+                create_velocity_field_map<IOValue, IOErr>(i1: Image, w_0: Float = 0.0) -> Image {
+                    let c = 3e5;
+                    let i1_arr = i1.scalar();
+                    let out = i1_arr.map(|v| c * (*v - w_0) / w_0);
+                    // FIXME: Unit support
+                    vec![Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+                        out,
+                        Unit::None,
+                    ))))]
+                }
+            ),
+            cake_transform!(
                 "Negation. Parameter: image i. Compute -i.",
                 negation<IOValue, IOErr>(i1: Image) -> Image {
                     vec![run_negation(i1)]
