@@ -9,22 +9,22 @@ use super::IOValue;
 
 impl IOValue {
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<Fits, ExportError> {
-        Fits::create(
-            path,
-            match self {
-                IOValue::Image(arr) => {
-                    let arr = arr.scalar();
+        match self {
+            IOValue::Image(arr) => {
+                let arr = arr.scalar();
+                Fits::create(
+                    path,
                     Hdu::new(
                         arr.shape(),
                         arr.as_slice()
                             .expect("Could not get slice out of array")
                             .to_owned(),
-                    )
-                }
-                _ => return Err(ExportError::NotImplemented("Can only save Image")),
-            },
-        )
-        .map_err(ExportError::IOError)
+                    ),
+                )
+                .map_err(ExportError::IOError)
+            }
+            _ => return Err(ExportError::NotImplemented("Can only save Image")),
+        }
     }
 
     pub fn extension(&self) -> &'static str {
