@@ -26,6 +26,13 @@ impl IOValue {
         )
         .map_err(ExportError::IOError)
     }
+
+    pub fn extension(&self) -> &'static str {
+        match self {
+            IOValue::Image(_) => "fits",
+            _ => "txt",
+        }
+    }
 }
 
 #[derive(Debug)]

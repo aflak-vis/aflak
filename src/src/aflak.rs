@@ -147,7 +147,7 @@ impl OutputWindow {
         ui.popup_modal(im_str!("FITS export completed!")).build(|| {
             ui.text(format!(
                 "File saved with success to '{}'.",
-                save_output::file_name(self.output)
+                save_output::file_name(&result, self.output)
             ));
             if ui.button(im_str!("Close"), (0.0, 0.0)) {
                 ui.close_current_popup();
