@@ -21,11 +21,7 @@ impl IOValue {
                             .to_owned(),
                     )
                 }
-                _ => {
-                    return Err(ExportError::NotImplemented(
-                        "Can only save Image1d and Image2d",
-                    ))
-                }
+                _ => return Err(ExportError::NotImplemented("Can only save Image")),
             },
         )
         .map_err(ExportError::IOError)
