@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::error;
 
 use glium;
-use imgui::{ImGuiCond, ImStr, ImString, ImTexture, Ui};
+use imgui::{ImGuiCond, ImMouseButton, ImStr, ImString, ImTexture, Ui};
 use owning_ref::ArcRef;
 
 use aflak_plot::{
@@ -25,6 +26,7 @@ pub struct Aflak {
     image1d_states: HashMap<ImString, plot::State>,
     image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>>,
     editable_values: EditableValues,
+    error_alerts: Vec<Box<error::Error>>,
 }
 
 type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
@@ -42,6 +44,7 @@ impl Aflak {
             image1d_states: HashMap::new(),
             image2d_states: HashMap::new(),
             editable_values: HashMap::new(),
+            error_alerts: vec![],
         }
     }
 
@@ -69,6 +72,22 @@ impl Aflak {
             let mut output_window = self.output_window(output);
             output_window.draw(ui, self, gl_ctx, textures);
         }
+    }
+
+    pub fn show_errors(&mut self, ui: &Ui) {
+        if !self.error_alerts.is_empty() {
+            ui.open_popup(im_str!("Error"));
+        }
+        ui.popup_modal(im_str!("Error")).build(|| {
+            {
+                let e = &self.error_alerts[self.error_alerts.len() - 1];
+                ui.text(&ImString::new(format!("{}", e)));
+            }
+            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                self.error_alerts.pop();
+                ui.close_current_popup();
+            }
+        });
     }
 
     fn output_window(&mut self, output: OutputId) -> OutputWindow {
@@ -120,6 +139,7 @@ impl OutputWindow {
         if ui.button(im_str!("Save data"), (0.0, 0.0)) {
             if let Err(e) = save_output::save(self.output, &result) {
                 eprintln!("Error on saving output: '{}'", e);
+                aflak.error_alerts.push(Box::new(e));
             } else {
                 ui.open_popup(im_str!("FITS export completed!"));
             }
