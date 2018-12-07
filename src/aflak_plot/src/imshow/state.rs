@@ -5,7 +5,6 @@ use glium::backend::Facade;
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Ui};
 use ndarray::ArrayD;
 
-use super::hist;
 use super::image;
 use super::interactions::{
     FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter,
@@ -535,7 +534,7 @@ where
 
         const FILL_COLOR: u32 = 0xFF999999;
         const BORDER_COLOR: u32 = 0xFF000000;
-        let hist = hist::histogram(&self.image.inner(), vmin, vmax);
+        let hist = self.image.hist();
         if let Some(max_count) = hist.iter().map(|bin| bin.count).max() {
             let draw_list = ui.get_window_draw_list();
 

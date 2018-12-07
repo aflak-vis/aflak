@@ -9,6 +9,7 @@ use glium::{
 use imgui::ImTexture;
 use ndarray::{ArrayBase, ArrayD, ArrayView2, Data, Dimension, Ix2};
 
+use super::hist;
 use super::lut::ColorLUT;
 use super::{Error, Textures};
 use lims;
@@ -50,6 +51,7 @@ pub struct Image<I> {
     tex_size: (f32, f32),
     created_on: Option<Instant>,
     data: Option<I>,
+    hist: Vec<hist::Bin>,
 }
 
 impl<I> Default for Image<I> {
@@ -61,6 +63,7 @@ impl<I> Default for Image<I> {
             tex_size: (0.0, 0.0),
             created_on: None,
             data: None,
+            hist: vec![],
         }
     }
 }
@@ -88,7 +91,7 @@ where
     where
         F: Facade,
     {
-        let (vmin, vmax, tex_size) = {
+        let (vmin, vmax, tex_size, hist) = {
             let image = coerce_to_array_view2(&image);
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
@@ -99,7 +102,8 @@ where
             let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
             textures.replace(texture_id, gl_texture);
 
-            (vmin, vmax, tex_size)
+            let hist = hist::histogram(&image, vmin, vmax);
+            (vmin, vmax, tex_size, hist)
         };
 
         Ok(Image {
@@ -108,6 +112,7 @@ where
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
+            hist,
         })
     }
 
@@ -143,9 +148,8 @@ where
         (dim_view[0], dim_view[1])
     }
 
-    pub fn inner(&self) -> ArrayView2<f32> {
-        let image = self.data.as_ref().expect("Image is cached");
-        coerce_to_array_view2(image)
+    pub fn hist(&self) -> &[hist::Bin] {
+        &self.hist
     }
 
     pub fn vmin(&self) -> f32 {
