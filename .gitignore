@@ -9,6 +9,7 @@ callgrind.out.*
 *.ini
 *.ron
 *.fits
+.aflak-downloads
 
 # Text editors
 .vscode

@@ -1,10 +1,9 @@
-use std::fs;
-
 use reqwest;
 use vo::sia::SiaService;
 use vo::table::{Cell, VOTable};
 
 use super::{IOErr, IOValue};
+use download;
 
 pub fn run_query(pos: [f32; 2]) -> Result<IOValue, IOErr> {
     let query = SiaService::UNI_HEIDELBERG.create_query((pos[0] as f64, pos[1] as f64));
@@ -57,28 +56,9 @@ pub fn run_download_fits(url: &str) -> Result<IOValue, IOErr> {
     ///  - Prevent the same file from being downloaded twice from the same url using file lock
     println!("URL: {}", url);
     let client = reqwest::Client::new();
-    let tmp_file_name = "tmp.fits";
-    match fs::File::create(tmp_file_name) {
-        Ok(mut file) => {
-            match client
-                .get(url)
-                .send()
-                .and_then(|response| response.error_for_status())
-            {
-                Ok(mut response) => response
-                    .copy_to(&mut file)
-                    .map_err(|e| IOErr::UnexpectedInput(format!("{}", e))),
-                Err(e) => Err(IOErr::UnexpectedInput(format!("{}", e))),
-            }?;
+    let tmp_file_path = download::download(&client, url).map_err(|e| {
+        IOErr::UnexpectedInput(format!("download_fits: Could not download file. {}", e))
+    })?;
 
-            super::run_open_fits(tmp_file_name)
-        }
-        Err(e) => Err(IOErr::IoError(
-            e,
-            format!(
-                "download_fits: Could not create temporary file '{}'.",
-                tmp_file_name
-            ),
-        )),
-    }
+    super::run_open_fits(tmp_file_path)
 }

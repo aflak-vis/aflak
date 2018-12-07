@@ -14,6 +14,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate vo;
 
+mod download;
 mod export;
 mod fits;
 mod roi;
