@@ -746,13 +746,15 @@ where
     if end >= frame_cnt {
         return Err(IOErr::UnexpectedInput(format!(
             "end higher than input image's frame count ({} >= {})",
-            end + 1, frame_cnt
+            end + 1,
+            frame_cnt
         )));
     }
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start + 1, end + 1
+            start + 1,
+            end + 1
         )));
     }
 
@@ -811,7 +813,8 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start + 1, end + 1
+            start + 1,
+            end + 1
         )));
     }
 
