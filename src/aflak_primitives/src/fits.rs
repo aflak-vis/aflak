@@ -71,7 +71,7 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<i32>> {
                     if let Some(int) = some_int {
                         *int as f32
                     } else {
-                        std::f32::NAN
+                        ::std::f32::NAN
                     }
                 })
                 .collect(),
@@ -93,7 +93,7 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<u32>> {
                     if let Some(int) = some_int {
                         *int as f32
                     } else {
-                        std::f32::NAN
+                        ::std::f32::NAN
                     }
                 })
                 .collect(),
