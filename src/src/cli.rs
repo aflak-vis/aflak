@@ -12,14 +12,16 @@ pub fn build_cli() -> App<'static, 'static> {
                 .long("fits")
                 .value_name("FITS")
                 .help("Set a FITS file to load"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("template")
                 .short("t")
                 .long("template")
                 .value_name("TEMPLATE NAME")
                 .possible_values(TEMPLATES)
                 .help("The name of the template to use"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("ron")
                 .long("ron")
                 .value_name("RON FILE")

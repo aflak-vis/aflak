@@ -47,8 +47,10 @@ fn main() {
                 Some(AxisTransform::new("X Axis", |x| x)),
                 Some(AxisTransform::new("Y Axis", |y| y)),
                 &mut state,
-            ).expect("Image2d failed");
+            )
+            .expect("Image2d failed");
         });
         true
-    }).unwrap();
+    })
+    .unwrap();
 }

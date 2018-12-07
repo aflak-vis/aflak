@@ -147,7 +147,8 @@ where
                             input_defaults: meta.defaults().to_vec(),
                         },
                     )
-                }).collect(),
+                })
+                .collect(),
             edges: dst.edges_iter().collect(),
             outputs: dst.outputs_iter().collect(),
         }

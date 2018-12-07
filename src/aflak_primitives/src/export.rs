@@ -27,7 +27,8 @@ impl IOValue {
                     ))
                 }
             },
-        ).map_err(ExportError::IOError)
+        )
+        .map_err(ExportError::IOError)
     }
 }
 

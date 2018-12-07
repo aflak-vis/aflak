@@ -34,7 +34,8 @@ fn main() {
                 let sin = f32::sin((i - width / 3) as f32 / WIDTH as f32 * 2.0 * f32::consts::PI);
                 let cos = f32::cos((j - height / 3) as f32 / HEIGHT as f32 * 2.0 * f32::consts::PI);
                 f32::exp(sin * sin + cos * cos)
-            }).into_dimensionality()
+            })
+            .into_dimensionality()
             .unwrap();
             state
                 .set_image(image_data, Instant::now(), gl_ctx, texture_id, textures)
@@ -49,8 +50,10 @@ fn main() {
                 Some(AxisTransform::new("X Axis", |x| x)),
                 Some(AxisTransform::new("Y Axis", |y| y)),
                 &mut state,
-            ).expect("Image2d failed");
+            )
+            .expect("Image2d failed");
         });
         true
-    }).unwrap();
+    })
+    .unwrap();
 }

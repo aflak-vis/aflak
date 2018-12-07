@@ -79,7 +79,8 @@ impl XTicks {
                 };
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 (label, text_size)
-            }).collect();
+            })
+            .collect();
         let axis_label = {
             let unit = axis.map(|axis| axis.unit()).unwrap_or("");
             let label = ImString::new(unit);
@@ -150,7 +151,8 @@ impl YTicks {
                 };
                 let text_size = ui.calc_text_size(&label, false, -1.0);
                 (label, text_size)
-            }).collect();
+            })
+            .collect();
         let axis_label = {
             let unit = axis.map(|axis| axis.unit()).unwrap_or("");
             let label = ImString::new(unit);

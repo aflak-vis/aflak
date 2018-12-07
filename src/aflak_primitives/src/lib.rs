@@ -341,7 +341,8 @@ fn run_fits_to_image(
             } else {
                 fits.get(hdu_idx as usize)
             }
-        }).ok_or_else(|| {
+        })
+        .ok_or_else(|| {
             let hdu_name = if hdu_idx == 0 {
                 "Primary HDU".to_owned()
             } else {
@@ -548,11 +549,13 @@ fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IO
         }
         fn non_zero_factor(&self, index: usize) -> Option<f32> {
             match (self.dir1[index], self.dir2[index]) {
-                (Some(x), Some(y)) => if x.abs() < EPSILON {
-                    Some(y)
-                } else {
-                    Some(x)
-                },
+                (Some(x), Some(y)) => {
+                    if x.abs() < EPSILON {
+                        Some(y)
+                    } else {
+                        Some(x)
+                    }
+                }
                 _ => None,
             }
         }
@@ -583,7 +586,8 @@ fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IO
                 WcsArray::from_array(array)
             };
             IOValue::Image(array)
-        }).map_err(|e| IOErr::ShapeError(e, "slice3d_to_2d: Unexpected error".to_owned()))
+        })
+        .map_err(|e| IOErr::ShapeError(e, "slice3d_to_2d: Unexpected error".to_owned()))
 }
 
 /// Make a 2D plane slicing the 3D space

@@ -50,10 +50,12 @@ impl Aflak {
             .position(
                 self.layout_engine.default_editor_window_position(),
                 ImGuiCond::FirstUseEver,
-            ).size(
+            )
+            .size(
                 self.layout_engine.default_editor_window_size(),
                 ImGuiCond::FirstUseEver,
-            ).build(|| {
+            )
+            .build(|| {
                 self.node_editor.render(ui);
             });
     }
@@ -268,11 +270,13 @@ impl OutputWindow {
 
                     let tree_name = match hdu.value("EXTNAME") {
                         Some(CharacterString(extname)) => ImString::new(extname.as_str()),
-                        _ => if i == 0 {
-                            im_str!("Primary HDU").to_owned()
-                        } else {
-                            ImString::new(format!("Hdu #{}", i))
-                        },
+                        _ => {
+                            if i == 0 {
+                                im_str!("Primary HDU").to_owned()
+                            } else {
+                                ImString::new(format!("Hdu #{}", i))
+                            }
+                        }
                     };
 
                     ui.push_id(i as i32);

@@ -73,8 +73,10 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<i32>> {
                     } else {
                         std::f32::NAN
                     }
-                }).collect(),
-        ).map_err(FitsArrayReadError::ShapeError)
+                })
+                .collect(),
+        )
+        .map_err(FitsArrayReadError::ShapeError)
     }
 }
 
@@ -93,7 +95,9 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<u32>> {
                     } else {
                         std::f32::NAN
                     }
-                }).collect(),
-        ).map_err(FitsArrayReadError::ShapeError)
+                })
+                .collect(),
+        )
+        .map_err(FitsArrayReadError::ShapeError)
     }
 }
