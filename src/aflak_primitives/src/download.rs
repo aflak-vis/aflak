@@ -87,7 +87,7 @@ pub fn download(client: &reqwest::Client, url: &str) -> Result<PathBuf, Error> {
         if let Err(e) = fs::rename(&download_file_path, &file_path) {
             return Err(Error::IoError {
                 msg: format!(
-                    "Could not move downloaded in from {:?} to {:?}.",
+                    "Could not move downloaded file from {:?} to {:?}.",
                     download_file_path, file_path
                 ),
                 e,
