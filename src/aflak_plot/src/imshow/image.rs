@@ -13,12 +13,12 @@ use super::lut::ColorLUT;
 use super::{Error, Textures};
 use lims;
 
-fn make_raw_image<'a, S>(
+fn make_raw_image<S>(
     image: &ArrayBase<S, Ix2>,
     vmin: f32,
     vmax: f32,
     lut: &ColorLUT,
-) -> Result<RawImage2d<'a, u8>, Error>
+) -> Result<RawImage2d<'static, u8>, Error>
 where
     S: Data<Elem = f32>,
 {
