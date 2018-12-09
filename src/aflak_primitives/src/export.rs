@@ -34,6 +34,7 @@ impl IOValue {
                 hdu.insert("AFLAPROV", r.to_string());
                 Fits::create(path, hdu)?;
             }
+            IOValue::VOTable(_) => return Err(ExportError::NotImplemented("Cannot export VOTable")),
             IOValue::Map2dTo3dCoords(_) => {
                 return Err(ExportError::NotImplemented("Cannot export Map2dTo3dCoords"))
             }
