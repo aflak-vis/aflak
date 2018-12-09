@@ -52,8 +52,6 @@ pub fn run_acref_from_record(votable: &VOTable, index: i64) -> Result<IOValue, I
 pub fn run_download_fits(url: &str) -> Result<IOValue, IOErr> {
     /// TODO:
     ///  - Use single client for whole aflak
-    ///  - Cache downloaded files with appropriate names (IDs) on the file system
-    ///  - Prevent the same file from being downloaded twice from the same url using file lock
     println!("URL: {}", url);
     let client = reqwest::Client::new();
     let tmp_file_path = download::download(&client, url).map_err(|e| {
