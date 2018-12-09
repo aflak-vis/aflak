@@ -899,7 +899,7 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
             return Err(IOErr::ShapeError(
                 e,
                 format!(
-                    "run_argminmax: Expected an image of dimension 3 as input but got an image of dimension {}",
+                    "run_centroid: Expected an image of dimension 3 as input but got an image of dimension {}",
                     image_val.ndim()
                 ),
             ))
