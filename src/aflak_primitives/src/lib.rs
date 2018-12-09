@@ -248,9 +248,10 @@ Compute v_min(first), v_max(second)",
                 "Extract min/max wavelength value of each pixel.
 Parameter: 2D image i, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
-Note: output discrete wavelength value",
-                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 1, end: Integer = 2, is_min: Bool = false) -> Image {
-                    vec![run_argminmax(i1, *start, *end, *is_min)]
+Second output contains max/min flux map
+Note: output wavelength values are discrete",
+                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 1, end: Integer = 2, is_min: Bool = false) -> Image, Image {
+                    vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
                 }
             ),
             cake_transform!(
@@ -799,6 +800,26 @@ fn run_integral(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
 fn run_average(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     reduce_array_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
+}
+
+fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    if !is_min {
+        reduce_array_slice(im, start, end, |slices| {
+            slices.fold_axis(
+                Axis(0),
+                -std::f32::INFINITY,
+                |x, y| if x > y { *x } else { *y },
+            )
+        })
+    } else {
+        reduce_array_slice(im, start, end, |slices| {
+            slices.fold_axis(
+                Axis(0),
+                std::f32::INFINITY,
+                |x, y| if x < y { *x } else { *y },
+            )
+        })
+    }
 }
 
 fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
