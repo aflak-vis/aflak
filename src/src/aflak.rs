@@ -329,6 +329,30 @@ impl OutputWindow {
                     ui.text("Input Fits appears invalid. No HDU could be found.");
                 }
             }
+            IOValue::VOTable(ref votable) => {
+                if votable.len() == 0 {
+                    ui.text("Empty votable");
+                } else {
+                    let mut i = 0;
+                    for table in votable.tables() {
+                        if let Some(rows) = table.rows() {
+                            for row in rows {
+                                ui.text(format!(
+                                    "{}: {} {}",
+                                    i,
+                                    row.get_by_id("obs_publisher_did")
+                                        .map(|cell| format!("{}", cell))
+                                        .unwrap_or("None".to_owned()),
+                                    row.get_by_id("access_url")
+                                        .map(|cell| format!("{}", cell))
+                                        .unwrap_or("None".to_owned()),
+                                ));
+                                i += 1;
+                            }
+                        }
+                    }
+                }
+            }
             _ => {
                 ui.text("Unimplemented");
             }
