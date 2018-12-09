@@ -83,6 +83,23 @@ pub fn download(client: &reqwest::Client, url: &str) -> Result<PathBuf, Error> {
                 })
             }
         }
+        // TODO do no use outside binary to decompress FITS files
+        if url.ends_with(".gz") {
+            // Decompress file
+            let gzipped_path = download_path.join(format!("{}.download.gz", file_name));
+            fs::copy(&download_file_path, &gzipped_path).map_err(|e| Error::IoError {
+                msg: "Copy!".to_owned(),
+                e,
+            })?;
+            ::std::process::Command::new("gzip")
+                .args(&[
+                    "-d",
+                    "-f",
+                    gzipped_path.to_string_lossy().to_string().as_str(),
+                ])
+                .output()
+                .expect("gzip run with success");
+        }
         // TODO: Delete download file on errors... (Make type and implement Drop)
         if let Err(e) = fs::rename(&download_file_path, &file_path) {
             return Err(Error::IoError {
