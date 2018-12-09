@@ -98,6 +98,34 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
                     None
                 }
             }
+            IOValue::SiaService(ref service) => {
+                use primitives::vo::sia::SiaService;
+                use std::borrow::Cow;
+                let services = vec![
+                    (SiaService::GAVO.map(Cow::Borrowed), im_str!("GAVO")),
+                    (SiaService::CADC.map(Cow::Borrowed), im_str!("CADC")),
+                ];
+                let mut selected = -1;
+                for (i, s) in services.iter().enumerate() {
+                    if service == &s.0 {
+                        selected = i as i32;
+                        break;
+                    }
+                }
+                let mut service_names = vec![];
+                for s in &services {
+                    service_names.push(s.1);
+                }
+                let previous_selected = selected;
+                ui.combo(im_str!("Service"), &mut selected, &service_names, -1);
+                if previous_selected == selected {
+                    None
+                } else {
+                    services
+                        .get(selected as usize)
+                        .map(|s| IOValue::SiaService(s.0.clone()))
+                }
+            }
             IOValue::Roi(ref roi) => {
                 match roi {
                     primitives::ROI::All => ui.text("Whole image"),

@@ -7,11 +7,14 @@ use vo::table::{Cell, VOTable};
 use super::{IOErr, IOValue};
 use download;
 
-pub type SiaService = sia::SiaService<Cow<'static, String>>;
+pub type SiaService = sia::SiaService<Cow<'static, str>>;
 
-pub fn run_query(pos: [f32; 2]) -> Result<IOValue, IOErr> {
-    let query = sia::SiaService::GAVO
-        .map(Cow::Borrowed)
+pub fn no_service() -> SiaService {
+    sia::SiaService::new(Cow::Owned(String::new()))
+}
+
+pub fn run_query(service: &SiaService, pos: [f32; 2]) -> Result<IOValue, IOErr> {
+    let query = service
         .create_query((pos[0] as f64, pos[1] as f64))
         .with_format(sia::Format::Fits);
     match query.execute_sync() {

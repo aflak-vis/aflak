@@ -12,7 +12,7 @@ extern crate reqwest;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate vo;
+pub extern crate vo;
 
 mod download;
 mod export;
@@ -118,8 +118,8 @@ lazy_static! {
             ),
             cake_transform!(
                 "Query FITS files from a database using Simple Image Access protocol.",
-                sia_query<IOValue, IOErr>(pos: Float2) -> VOTable {
-                    vec![sia::run_query(*pos)]
+                sia_query<IOValue, IOErr>(service: SiaService = sia::no_service(), pos: Float2) -> VOTable {
+                    vec![sia::run_query(service, *pos)]
                 }
             ),
             cake_transform!(
