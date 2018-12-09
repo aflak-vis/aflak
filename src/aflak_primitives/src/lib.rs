@@ -331,6 +331,11 @@ impl cake::ConvertibleVariants for IOValue {
             into: "Integer",
             f: float_to_integer,
         },
+        cake::ConvertibleVariant {
+            from: "Str",
+            into: "SiaService",
+            f: str_to_siaservice,
+        },
     ];
 }
 
@@ -344,6 +349,15 @@ fn integer_to_float(from: &IOValue) -> IOValue {
 fn float_to_integer(from: &IOValue) -> IOValue {
     if let IOValue::Float(f) = from {
         IOValue::Integer(f.round() as _)
+    } else {
+        panic!("Unexpected input!")
+    }
+}
+fn str_to_siaservice(from: &IOValue) -> IOValue {
+    if let IOValue::Str(s) = from {
+        IOValue::SiaService(vo::sia::SiaService::new(::std::borrow::Cow::Owned(
+            s.to_owned(),
+        )))
     } else {
         panic!("Unexpected input!")
     }
