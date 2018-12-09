@@ -50,6 +50,9 @@ pub enum IOValue {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     VOTable(vo::table::VOTable),
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    SiaService(sia::SiaService),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
 }

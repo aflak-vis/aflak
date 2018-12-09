@@ -35,6 +35,9 @@ impl IOValue {
                 Fits::create(path, hdu)?;
             }
             IOValue::VOTable(_) => return Err(ExportError::NotImplemented("Cannot export VOTable")),
+            IOValue::SiaService(_) => {
+                return Err(ExportError::NotImplemented("Cannot export SiaService"))
+            }
             IOValue::Map2dTo3dCoords(_) => {
                 return Err(ExportError::NotImplemented("Cannot export Map2dTo3dCoords"))
             }

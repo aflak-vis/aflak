@@ -1,12 +1,19 @@
+use std::borrow::Cow;
+
 use reqwest;
-use vo::sia::SiaService;
+use vo::sia;
 use vo::table::{Cell, VOTable};
 
 use super::{IOErr, IOValue};
 use download;
 
+pub type SiaService = sia::SiaService<Cow<'static, String>>;
+
 pub fn run_query(pos: [f32; 2]) -> Result<IOValue, IOErr> {
-    let query = SiaService::UNI_HEIDELBERG.create_query((pos[0] as f64, pos[1] as f64));
+    let query = sia::SiaService::GAVO
+        .map(Cow::Borrowed)
+        .create_query((pos[0] as f64, pos[1] as f64))
+        .with_format(sia::Format::Fits);
     match query.execute_sync() {
         Ok(results) => Ok(IOValue::VOTable(results.into_table())),
         Err(e) => Err(IOErr::SIAError(e)),
@@ -28,8 +35,10 @@ pub fn run_acref_from_record(votable: &VOTable, index: i64) -> Result<IOValue, I
         if let Some(rows) = table.rows() {
             for row in rows {
                 if i == index {
-                    return if let Some(Cell::Character(link)) =
-                        row.get_by_ucd("VOX:Image_AccessReference")
+                    return if let Some(Cell::Character(link)) = row
+                        .get_by_ucd("VOX:Image_AccessReference")
+                        .or_else(|| row.get_by_id("access_url"))
+                        .or_else(|| row.get_by_name("access_url"))
                     {
                         Ok(IOValue::Str(link.to_owned()))
                     } else {
