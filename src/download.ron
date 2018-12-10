@@ -1,0 +1,133 @@
+(
+    dst: (
+        transforms: [
+            ((12), (
+                t: Constant(Float2((161.02, -59.68))),
+                input_defaults: [
+                ],
+            )),
+            ((10), (
+                t: Function("download_fits"),
+                input_defaults: [
+                    Some(Str("")),
+                ],
+            )),
+            ((8), (
+                t: Function("sia_query"),
+                input_defaults: [
+                    Some(SiaService((
+                        url: "http://dc.zah.uni-heidelberg.de/__system__/siap2/sitewide/siap2.xml",
+                    ))),
+                    None,
+                ],
+            )),
+            ((9), (
+                t: Function("access_url"),
+                input_defaults: [
+                    None,
+                    Some(Integer(0)),
+                ],
+            )),
+            ((11), (
+                t: Function("fits_to_image"),
+                input_defaults: [
+                    None,
+                    Some(Integer(0)),
+                    Some(Str("")),
+                ],
+            )),
+        ],
+        edges: [
+            ((
+                t_idx: (10),
+                output_i: (0),
+            ), (
+                t_idx: (11),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (12),
+                output_i: (0),
+            ), (
+                t_idx: (8),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (9),
+                output_i: (0),
+            ), (
+                t_idx: (10),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (8),
+                output_i: (0),
+            ), (
+                t_idx: (9),
+                input_i: (0),
+            )),
+        ],
+        outputs: [
+            ((1), Some((
+                t_idx: (11),
+                output_i: (0),
+            ))),
+            ((2), Some((
+                t_idx: (10),
+                output_i: (0),
+            ))),
+            ((3), Some((
+                t_idx: (9),
+                output_i: (0),
+            ))),
+        ],
+    ),
+    node_states: [
+        (Transform((5)), (
+            selected: false,
+            pos: (51, -334),
+            size: (44, 28.5),
+        )),
+        (Transform((8)), (
+            selected: false,
+            pos: (144, -631.4),
+            size: (182, 64.400024),
+        )),
+        (Transform((9)), (
+            selected: false,
+            pos: (489.09998, -624),
+            size: (195.90002, 65),
+        )),
+        (Transform((10)), (
+            selected: false,
+            pos: (767, -628.7),
+            size: (217, 47.700012),
+        )),
+        (Transform((11)), (
+            selected: false,
+            pos: (1141.2999, -624.2),
+            size: (216.7002, 83.20001),
+        )),
+        (Transform((12)), (
+            selected: false,
+            pos: (-262.5, -606.2),
+            size: (230.5, 47.200012),
+        )),
+        (Output((1)), (
+            selected: true,
+            pos: (1445.7, -592.9),
+            size: (72, 28.900024),
+        )),
+        (Output((2)), (
+            selected: false,
+            pos: (1044.7999, -512.5),
+            size: (71.99988, 28.5),
+        )),
+        (Output((3)), (
+            selected: false,
+            pos: (764.4, -528.7),
+            size: (72, 28.700012),
+        )),
+    ],
+    scrolling: (-292, -647),
+)
