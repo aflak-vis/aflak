@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error;
 
 use glium;
-use imgui::{ImGuiCond, ImMouseButton, ImStr, ImString, ImTexture, Ui};
+use imgui::{ImGuiCond, ImMouseButton, ImString, ImTexture, Ui};
 use owning_ref::ArcRef;
 
 use aflak_plot::{
@@ -23,8 +23,8 @@ pub type AflakNodeEditor = NodeEditor<'static, IOValue, IOErr, MyConstantEditor>
 pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
-    image1d_states: HashMap<ImString, plot::State>,
-    image2d_states: HashMap<ImString, imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>>,
+    image1d_states: HashMap<OutputId, plot::State>,
+    image2d_states: HashMap<OutputId, imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>>,
     editable_values: EditableValues,
     error_alerts: Vec<Box<error::Error>>,
 }
@@ -193,7 +193,7 @@ impl OutputWindow {
                     1 => {
                         let state = aflak
                             .image1d_states
-                            .entry(self.window_name.to_owned())
+                            .entry(self.output)
                             .or_insert_with(plot::State::default);
 
                         self.update_state_from_editor(
@@ -222,7 +222,7 @@ impl OutputWindow {
                     2 => {
                         let state = aflak
                             .image2d_states
-                            .entry(self.window_name.to_owned())
+                            .entry(self.output)
                             .or_insert_with(imshow::State::default);
 
                         self.update_state_from_editor(
@@ -230,7 +230,7 @@ impl OutputWindow {
                             &aflak.editable_values,
                             &aflak.node_editor,
                         );
-                        let texture_id = ImTexture::from(hash_imstring(&self.window_name));
+                        let texture_id = ImTexture::from(hash_outputid(self.output));
                         let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
                             (Some(units), Some(wcs)) => (
                                 Some(AxisTransform::new(units[0].repr(), move |t| {
@@ -403,11 +403,11 @@ impl OutputWindow {
 }
 
 /// Used to compute the ID of a texture
-fn hash_imstring(string: &ImStr) -> usize {
+fn hash_outputid(id: OutputId) -> usize {
     use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hasher;
+    use std::hash::{Hash, Hasher};
 
     let mut h = DefaultHasher::new();
-    h.write(string.to_str().as_bytes());
+    id.hash(&mut h);
     h.finish() as usize
 }
