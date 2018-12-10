@@ -122,7 +122,7 @@ lazy_static! {
             ),
             cake_transform!(
                 "Get Link to access image from VOTable",
-                acref_from_record<IOValue, IOErr>(table: VOTable, i: Integer = 0) -> Str {
+                access_url<IOValue, IOErr>(table: VOTable, i: Integer = 0) -> Str {
                     vec![sia::run_acref_from_record(table, *i)]
                 }
             ),
