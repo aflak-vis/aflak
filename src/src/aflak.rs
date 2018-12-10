@@ -33,7 +33,6 @@ type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
 
 struct OutputWindow {
     output: OutputId,
-    window_name: ImString,
     output_saved_success_popup: bool,
 }
 
@@ -94,7 +93,6 @@ impl Aflak {
     fn output_window(&mut self, output: OutputId) -> OutputWindow {
         OutputWindow {
             output,
-            window_name: ImString::new(format!("Output #{}", output.id())),
             output_saved_success_popup: false,
         }
     }
@@ -105,11 +103,11 @@ impl OutputWindow {
     where
         F: glium::backend::Facade,
     {
+        let window_name = ImString::new(format!("Output #{}", self.output.id()));
         let display_size = ui.imgui().display_size();
         let (position, size) = aflak
             .layout_engine
-            .default_output_window_position_size(&self.window_name, display_size);
-        let window_name = self.window_name.to_owned();
+            .default_output_window_position_size(&window_name, display_size);
         let window = ui
             .window(&window_name)
             .position(position, ImGuiCond::FirstUseEver)
