@@ -34,6 +34,7 @@ type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
 struct OutputWindow {
     output: OutputId,
     window_name: ImString,
+    output_saved_success_popup: bool,
 }
 
 impl Aflak {
@@ -94,12 +95,13 @@ impl Aflak {
         OutputWindow {
             output,
             window_name: ImString::new(format!("Output #{}", output.id())),
+            output_saved_success_popup: false,
         }
     }
 }
 
 impl OutputWindow {
-    fn draw<F>(&self, ui: &Ui, aflak: &mut Aflak, gl_ctx: &F, textures: &mut Textures)
+    fn draw<F>(&mut self, ui: &Ui, aflak: &mut Aflak, gl_ctx: &F, textures: &mut Textures)
     where
         F: glium::backend::Facade,
     {
@@ -111,7 +113,8 @@ impl OutputWindow {
         let window = ui
             .window(&window_name)
             .position(position, ImGuiCond::FirstUseEver)
-            .size(size, ImGuiCond::FirstUseEver);
+            .size(size, ImGuiCond::FirstUseEver)
+            .menu_bar(true);
         window.build(|| {
             let compute_state = aflak.node_editor.compute_output(self.output);
             match compute_state {
@@ -127,7 +130,7 @@ impl OutputWindow {
     }
 
     fn computed_content<F>(
-        &self,
+        &mut self,
         ui: &Ui,
         aflak: &mut Aflak,
         result: SuccessOut,
@@ -136,13 +139,21 @@ impl OutputWindow {
     ) where
         F: glium::backend::Facade,
     {
-        if ui.button(im_str!("Save data"), (0.0, 0.0)) {
-            if let Err(e) = save_output::save(self.output, &result) {
-                eprintln!("Error on saving output: '{}'", e);
-                aflak.error_alerts.push(Box::new(e));
-            } else {
-                ui.open_popup(im_str!("FITS export completed!"));
-            }
+        ui.menu_bar(|| {
+            ui.menu(im_str!("File")).build(|| {
+                if ui.menu_item(im_str!("Save")).build() {
+                    if let Err(e) = save_output::save(self.output, &result) {
+                        eprintln!("Error on saving output: '{}'", e);
+                        aflak.error_alerts.push(Box::new(e));
+                    } else {
+                        self.output_saved_success_popup = true;
+                    }
+                }
+            });
+        });
+
+        if self.output_saved_success_popup {
+            ui.open_popup(im_str!("FITS export completed!"));
         }
         ui.popup_modal(im_str!("FITS export completed!")).build(|| {
             ui.text(format!(
@@ -150,11 +161,10 @@ impl OutputWindow {
                 save_output::file_name(&result, self.output)
             ));
             if ui.button(im_str!("Close"), (0.0, 0.0)) {
+                self.output_saved_success_popup = false;
                 ui.close_current_popup();
             }
         });
-
-        ui.new_line();
 
         let created_on = SuccessOut::created_on(&result);
         let value = SuccessOut::take(result);
