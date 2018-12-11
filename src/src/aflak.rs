@@ -32,6 +32,7 @@ struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
     editable_values: EditableValues,
+    show_pixels: bool,
 }
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
@@ -164,6 +165,9 @@ impl OutputWindow {
                         output_saved_success_popup = true;
                     }
                 }
+                ui.menu_item(im_str!("Show pixels"))
+                    .selected(&mut self.show_pixels)
+                    .build();
             });
         });
 
@@ -211,13 +215,17 @@ impl OutputWindow {
                             node_editor,
                         );
                         let unit = image.array().unit().repr();
-                        let transform = match (image.cunits(), image.wcs()) {
-                            (Some(units), Some(wcs)) => {
-                                Some(AxisTransform::new(units[0].repr(), move |t| {
-                                    wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                                }))
+                        let transform = if self.show_pixels {
+                            None
+                        } else {
+                            match (image.cunits(), image.wcs()) {
+                                (Some(units), Some(wcs)) => {
+                                    Some(AxisTransform::new(units[0].repr(), move |t| {
+                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                    }))
+                                }
+                                _ => None,
                             }
-                            _ => None,
                         };
                         if let Err(e) =
                             ui.image1d(&image.scalar1(), &unit, transform, &mut self.image1d_state)
@@ -237,19 +245,24 @@ impl OutputWindow {
                             node_editor,
                         );
                         let texture_id = ImTexture::from(hash_outputid(output));
-                        let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
-                            (Some(units), Some(wcs)) => (
-                                Some(AxisTransform::new(units[0].repr(), move |t| {
-                                    wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                                })),
-                                Some(AxisTransform::new(units[1].repr(), {
-                                    let max_height =
-                                        (image.scalar().dim().as_array_view().first().unwrap() - 1)
-                                            as f32;
-                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
-                                })),
-                            ),
-                            _ => (None, None),
+                        let (x_transform, y_transform) = if self.show_pixels {
+                            (None, None)
+                        } else {
+                            match (image.cunits(), image.wcs()) {
+                                (Some(units), Some(wcs)) => (
+                                    Some(AxisTransform::new(units[0].repr(), move |t| {
+                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                    })),
+                                    Some(AxisTransform::new(units[1].repr(), {
+                                        let max_height =
+                                            (image.scalar().dim().as_array_view().first().unwrap()
+                                                - 1)
+                                                as f32;
+                                        move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                    })),
+                                ),
+                                _ => (None, None),
+                            }
                         };
                         let unit = image.array().unit().repr();
                         let new_incoming_image = match self.image2d_state.image_created_on() {
