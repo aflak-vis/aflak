@@ -33,7 +33,6 @@ type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
 
 struct OutputWindow {
     output: OutputId,
-    output_saved_success_popup: bool,
 }
 
 impl Aflak {
@@ -91,15 +90,12 @@ impl Aflak {
     }
 
     fn output_window(&mut self, output: OutputId) -> OutputWindow {
-        OutputWindow {
-            output,
-            output_saved_success_popup: false,
-        }
+        OutputWindow { output }
     }
 }
 
 impl OutputWindow {
-    fn draw<F>(&mut self, ui: &Ui, aflak: &mut Aflak, gl_ctx: &F, textures: &mut Textures)
+    fn draw<F>(&self, ui: &Ui, aflak: &mut Aflak, gl_ctx: &F, textures: &mut Textures)
     where
         F: glium::backend::Facade,
     {
@@ -128,7 +124,7 @@ impl OutputWindow {
     }
 
     fn computed_content<F>(
-        &mut self,
+        &self,
         ui: &Ui,
         aflak: &mut Aflak,
         result: SuccessOut,
@@ -137,6 +133,7 @@ impl OutputWindow {
     ) where
         F: glium::backend::Facade,
     {
+        let mut output_saved_success_popup = false;
         ui.menu_bar(|| {
             ui.menu(im_str!("File")).build(|| {
                 if ui.menu_item(im_str!("Save")).build() {
@@ -144,13 +141,13 @@ impl OutputWindow {
                         eprintln!("Error on saving output: '{}'", e);
                         aflak.error_alerts.push(Box::new(e));
                     } else {
-                        self.output_saved_success_popup = true;
+                        output_saved_success_popup = true;
                     }
                 }
             });
         });
 
-        if self.output_saved_success_popup {
+        if output_saved_success_popup {
             ui.open_popup(im_str!("FITS export completed!"));
         }
         ui.popup_modal(im_str!("FITS export completed!")).build(|| {
@@ -159,7 +156,6 @@ impl OutputWindow {
                 save_output::file_name(&result, self.output)
             ));
             if ui.button(im_str!("Close"), (0.0, 0.0)) {
-                self.output_saved_success_popup = false;
                 ui.close_current_popup();
             }
         });
