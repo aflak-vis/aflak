@@ -31,10 +31,6 @@ pub struct Aflak {
 
 type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
 
-struct OutputWindow {
-    output: OutputId,
-}
-
 impl Aflak {
     pub fn init(editor: AflakNodeEditor) -> Self {
         Self {
@@ -68,8 +64,7 @@ impl Aflak {
     {
         let outputs = self.node_editor.outputs();
         for output in outputs {
-            let mut output_window = self.output_window(output);
-            output_window.draw(ui, self, gl_ctx, textures);
+            self.draw_output(ui, output, gl_ctx, textures);
         }
     }
 
@@ -89,19 +84,13 @@ impl Aflak {
         });
     }
 
-    fn output_window(&mut self, output: OutputId) -> OutputWindow {
-        OutputWindow { output }
-    }
-}
-
-impl OutputWindow {
-    fn draw<F>(&self, ui: &Ui, aflak: &mut Aflak, gl_ctx: &F, textures: &mut Textures)
+    fn draw_output<F>(&mut self, ui: &Ui, output: OutputId, gl_ctx: &F, textures: &mut Textures)
     where
         F: glium::backend::Facade,
     {
-        let window_name = ImString::new(format!("Output #{}", self.output.id()));
+        let window_name = ImString::new(format!("Output #{}", output.id()));
         let display_size = ui.imgui().display_size();
-        let (position, size) = aflak
+        let (position, size) = self
             .layout_engine
             .default_output_window_position_size(&window_name, display_size);
         let window = ui
@@ -110,7 +99,7 @@ impl OutputWindow {
             .size(size, ImGuiCond::FirstUseEver)
             .menu_bar(true);
         window.build(|| {
-            let compute_state = aflak.node_editor.compute_output(self.output);
+            let compute_state = self.node_editor.compute_output(output);
             match compute_state {
                 None => {
                     ui.text("Initializing...");
@@ -118,15 +107,15 @@ impl OutputWindow {
                 Some(Err(e)) => {
                     ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                Some(Ok(result)) => self.computed_content(ui, aflak, result, gl_ctx, textures),
+                Some(Ok(result)) => self.computed_content(ui, output, result, gl_ctx, textures),
             }
         });
     }
 
     fn computed_content<F>(
-        &self,
+        &mut self,
         ui: &Ui,
-        aflak: &mut Aflak,
+        output: OutputId,
         result: SuccessOut,
         gl_ctx: &F,
         textures: &mut Textures,
@@ -137,9 +126,9 @@ impl OutputWindow {
         ui.menu_bar(|| {
             ui.menu(im_str!("File")).build(|| {
                 if ui.menu_item(im_str!("Save")).build() {
-                    if let Err(e) = save_output::save(self.output, &result) {
+                    if let Err(e) = save_output::save(output, &result) {
                         eprintln!("Error on saving output: '{}'", e);
-                        aflak.error_alerts.push(Box::new(e));
+                        self.error_alerts.push(Box::new(e));
                     } else {
                         output_saved_success_popup = true;
                     }
@@ -153,7 +142,7 @@ impl OutputWindow {
         ui.popup_modal(im_str!("FITS export completed!")).build(|| {
             ui.text(format!(
                 "File saved with success to '{}'.",
-                save_output::file_name(&result, self.output)
+                save_output::file_name(&result, output)
             ));
             if ui.button(im_str!("Close"), (0.0, 0.0)) {
                 ui.close_current_popup();
@@ -185,15 +174,16 @@ impl OutputWindow {
                 use primitives::ndarray::Dimension;
                 match image.scalar().dim().ndim() {
                     1 => {
-                        let state = aflak
+                        let state = self
                             .image1d_states
-                            .entry(self.output)
+                            .entry(output)
                             .or_insert_with(plot::State::default);
 
-                        self.update_state_from_editor(
+                        Self::update_state_from_editor(
+                            output,
                             state.stored_values_mut(),
-                            &aflak.editable_values,
-                            &aflak.node_editor,
+                            &self.editable_values,
+                            &self.node_editor,
                         );
                         let unit = image.array().unit().repr();
                         let transform = match (image.cunits(), image.wcs()) {
@@ -207,24 +197,26 @@ impl OutputWindow {
                         if let Err(e) = ui.image1d(&image.scalar1(), &unit, transform, state) {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
-                        self.update_editor_from_state(
+                        Self::update_editor_from_state(
+                            output,
                             state.stored_values(),
-                            &mut aflak.editable_values,
-                            &mut aflak.node_editor,
+                            &mut self.editable_values,
+                            &mut self.node_editor,
                         );
                     }
                     2 => {
-                        let state = aflak
+                        let state = self
                             .image2d_states
-                            .entry(self.output)
+                            .entry(output)
                             .or_insert_with(imshow::State::default);
 
-                        self.update_state_from_editor(
+                        Self::update_state_from_editor(
+                            output,
                             state.stored_values_mut(),
-                            &aflak.editable_values,
-                            &aflak.node_editor,
+                            &self.editable_values,
+                            &self.node_editor,
                         );
-                        let texture_id = ImTexture::from(hash_outputid(self.output));
+                        let texture_id = ImTexture::from(hash_outputid(output));
                         let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
                             (Some(units), Some(wcs)) => (
                                 Some(AxisTransform::new(units[0].repr(), move |t| {
@@ -270,10 +262,11 @@ impl OutputWindow {
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
-                        self.update_editor_from_state(
+                        Self::update_editor_from_state(
+                            output,
                             state.stored_values(),
-                            &mut aflak.editable_values,
-                            &mut aflak.node_editor,
+                            &mut self.editable_values,
+                            &mut self.node_editor,
                         );
                     }
                     _ => {
@@ -340,13 +333,13 @@ impl OutputWindow {
     }
 
     fn update_state_from_editor(
-        &self,
+        output: OutputId,
         interactions: InteractionIterMut,
         editable_values: &EditableValues,
         node_editor: &AflakNodeEditor,
     ) {
         for (id, interaction) in interactions {
-            let value_id = (self.output, *id);
+            let value_id = (output, *id);
             if editable_values.contains_key(&value_id) {
                 let t_idx = editable_values.get(&value_id).unwrap();
                 if let Some(value) = node_editor.constant_node_value(*t_idx) {
@@ -370,7 +363,7 @@ impl OutputWindow {
     }
 
     fn update_editor_from_state(
-        &self,
+        output: OutputId,
         value_iter: ValueIter,
         store: &mut EditableValues,
         node_editor: &mut AflakNodeEditor,
@@ -384,7 +377,7 @@ impl OutputWindow {
                 Value::Float3(f) => IOValue::Float3(f),
                 Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             };
-            let value_id = (self.output, *id);
+            let value_id = (output, *id);
             if store.contains_key(&value_id) {
                 let t_idx = *store.get(&value_id).unwrap();
                 node_editor.update_constant_node(t_idx, val);
