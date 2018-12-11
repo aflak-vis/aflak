@@ -23,22 +23,25 @@ pub type AflakNodeEditor = NodeEditor<'static, IOValue, IOErr, MyConstantEditor>
 pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
-    image1d_states: HashMap<OutputId, plot::State>,
-    image2d_states: HashMap<OutputId, imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>>,
-    editable_values: EditableValues,
+    output_windows: HashMap<OutputId, OutputWindow>,
     error_alerts: Vec<Box<error::Error>>,
 }
 
-type EditableValues = HashMap<(OutputId, InteractionId), TransformIdx>;
+#[derive(Default)]
+struct OutputWindow {
+    image1d_state: plot::State,
+    image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
+    editable_values: EditableValues,
+}
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 impl Aflak {
     pub fn init(editor: AflakNodeEditor) -> Self {
         Self {
             node_editor: editor,
             layout_engine: LayoutEngine::new(),
-            image1d_states: HashMap::new(),
-            image2d_states: HashMap::new(),
-            editable_values: HashMap::new(),
+            output_windows: HashMap::new(),
             error_alerts: vec![],
         }
     }
@@ -64,7 +67,16 @@ impl Aflak {
     {
         let outputs = self.node_editor.outputs();
         for output in outputs {
-            self.draw_output(ui, output, gl_ctx, textures);
+            let output_window = self.output_windows.entry(output).or_default();
+            output_window.draw(
+                ui,
+                output,
+                &mut self.layout_engine,
+                &mut self.node_editor,
+                &mut self.error_alerts,
+                gl_ctx,
+                textures,
+            );
         }
     }
 
@@ -83,23 +95,32 @@ impl Aflak {
             }
         });
     }
+}
 
-    fn draw_output<F>(&mut self, ui: &Ui, output: OutputId, gl_ctx: &F, textures: &mut Textures)
-    where
+impl OutputWindow {
+    pub fn draw<F>(
+        &mut self,
+        ui: &Ui,
+        output: OutputId,
+        layout: &mut LayoutEngine,
+        node_editor: &mut AflakNodeEditor,
+        error_alerts: &mut Vec<Box<error::Error>>,
+        gl_ctx: &F,
+        textures: &mut Textures,
+    ) where
         F: glium::backend::Facade,
     {
         let window_name = ImString::new(format!("Output #{}", output.id()));
         let display_size = ui.imgui().display_size();
-        let (position, size) = self
-            .layout_engine
-            .default_output_window_position_size(&window_name, display_size);
+        let (position, size) =
+            layout.default_output_window_position_size(&window_name, display_size);
         let window = ui
             .window(&window_name)
             .position(position, ImGuiCond::FirstUseEver)
             .size(size, ImGuiCond::FirstUseEver)
             .menu_bar(true);
         window.build(|| {
-            let compute_state = self.node_editor.compute_output(output);
+            let compute_state = node_editor.compute_output(output);
             match compute_state {
                 None => {
                     ui.text("Initializing...");
@@ -107,7 +128,15 @@ impl Aflak {
                 Some(Err(e)) => {
                     ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                Some(Ok(result)) => self.computed_content(ui, output, result, gl_ctx, textures),
+                Some(Ok(result)) => self.computed_content(
+                    ui,
+                    output,
+                    result,
+                    node_editor,
+                    error_alerts,
+                    gl_ctx,
+                    textures,
+                ),
             }
         });
     }
@@ -117,6 +146,8 @@ impl Aflak {
         ui: &Ui,
         output: OutputId,
         result: SuccessOut,
+        node_editor: &mut AflakNodeEditor,
+        error_alerts: &mut Vec<Box<error::Error>>,
         gl_ctx: &F,
         textures: &mut Textures,
     ) where
@@ -128,7 +159,7 @@ impl Aflak {
                 if ui.menu_item(im_str!("Save")).build() {
                     if let Err(e) = save_output::save(output, &result) {
                         eprintln!("Error on saving output: '{}'", e);
-                        self.error_alerts.push(Box::new(e));
+                        error_alerts.push(Box::new(e));
                     } else {
                         output_saved_success_popup = true;
                     }
@@ -174,16 +205,10 @@ impl Aflak {
                 use primitives::ndarray::Dimension;
                 match image.scalar().dim().ndim() {
                     1 => {
-                        let state = self
-                            .image1d_states
-                            .entry(output)
-                            .or_insert_with(plot::State::default);
-
                         Self::update_state_from_editor(
-                            output,
-                            state.stored_values_mut(),
+                            self.image1d_state.stored_values_mut(),
                             &self.editable_values,
-                            &self.node_editor,
+                            node_editor,
                         );
                         let unit = image.array().unit().repr();
                         let transform = match (image.cunits(), image.wcs()) {
@@ -194,27 +219,22 @@ impl Aflak {
                             }
                             _ => None,
                         };
-                        if let Err(e) = ui.image1d(&image.scalar1(), &unit, transform, state) {
+                        if let Err(e) =
+                            ui.image1d(&image.scalar1(), &unit, transform, &mut self.image1d_state)
+                        {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
                         Self::update_editor_from_state(
-                            output,
-                            state.stored_values(),
+                            self.image1d_state.stored_values(),
                             &mut self.editable_values,
-                            &mut self.node_editor,
+                            node_editor,
                         );
                     }
                     2 => {
-                        let state = self
-                            .image2d_states
-                            .entry(output)
-                            .or_insert_with(imshow::State::default);
-
                         Self::update_state_from_editor(
-                            output,
-                            state.stored_values_mut(),
+                            self.image2d_state.stored_values_mut(),
                             &self.editable_values,
-                            &self.node_editor,
+                            node_editor,
                         );
                         let texture_id = ImTexture::from(hash_outputid(output));
                         let (x_transform, y_transform) = match (image.cunits(), image.wcs()) {
@@ -232,7 +252,7 @@ impl Aflak {
                             _ => (None, None),
                         };
                         let unit = image.array().unit().repr();
-                        let new_incoming_image = match state.image_created_on() {
+                        let new_incoming_image = match self.image2d_state.image_created_on() {
                             Some(image_created_on) => created_on > image_created_on,
                             None => true,
                         };
@@ -245,8 +265,9 @@ impl Aflak {
                                     unreachable!("Expect an Image")
                                 }
                             });
-                            if let Err(e) =
-                                state.set_image(image_ref, created_on, gl_ctx, texture_id, textures)
+                            if let Err(e) = self
+                                .image2d_state
+                                .set_image(image_ref, created_on, gl_ctx, texture_id, textures)
                             {
                                 ui.text(format!("Error on creating image! {}", e));
                             }
@@ -258,15 +279,14 @@ impl Aflak {
                             unit,
                             x_transform,
                             y_transform,
-                            state,
+                            &mut self.image2d_state,
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
                         Self::update_editor_from_state(
-                            output,
-                            state.stored_values(),
+                            self.image2d_state.stored_values(),
                             &mut self.editable_values,
-                            &mut self.node_editor,
+                            node_editor,
                         );
                     }
                     _ => {
@@ -333,15 +353,13 @@ impl Aflak {
     }
 
     fn update_state_from_editor(
-        output: OutputId,
         interactions: InteractionIterMut,
         editable_values: &EditableValues,
         node_editor: &AflakNodeEditor,
     ) {
         for (id, interaction) in interactions {
-            let value_id = (output, *id);
-            if editable_values.contains_key(&value_id) {
-                let t_idx = editable_values.get(&value_id).unwrap();
+            if editable_values.contains_key(id) {
+                let t_idx = editable_values.get(id).unwrap();
                 if let Some(value) = node_editor.constant_node_value(*t_idx) {
                     if let Err(e) = match value {
                         IOValue::Integer(i) => interaction.set_value(*i),
@@ -357,13 +375,12 @@ impl Aflak {
                     eprintln!("No constant node found for transform '{:?}'", t_idx);
                 }
             } else {
-                eprintln!("ValueID '{:?}' not found in store", value_id);
+                eprintln!("'{:?}' not found in store", id);
             }
         }
     }
 
     fn update_editor_from_state(
-        output: OutputId,
         value_iter: ValueIter,
         store: &mut EditableValues,
         node_editor: &mut AflakNodeEditor,
@@ -377,13 +394,12 @@ impl Aflak {
                 Value::Float3(f) => IOValue::Float3(f),
                 Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             };
-            let value_id = (output, *id);
-            if store.contains_key(&value_id) {
-                let t_idx = *store.get(&value_id).unwrap();
+            if store.contains_key(id) {
+                let t_idx = *store.get(id).unwrap();
                 node_editor.update_constant_node(t_idx, val);
             } else {
                 let t_idx = node_editor.create_constant_node(val);
-                store.insert(value_id, t_idx);
+                store.insert(*id, t_idx);
             }
         }
     }
