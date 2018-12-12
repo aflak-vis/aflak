@@ -172,12 +172,13 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Integral for 3D Image. Parameters: a=start-1, b=end-1 (a <= b).
+                "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
-Third output contains (b - a)",
-                integral<IOValue, IOErr>(image: Image, start: Integer = 1, end: Integer = 2) -> Image, Float, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0 - 1.0;
+Third output contains (b - a)
+Note: a and b are 0-based indexing",
+                integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_integral(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
@@ -202,12 +203,13 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 }
             ),
             cake_transform!(
-                "Average for 3D Image. Parameters: a=start-1, b=end-1 (a <= b).
+                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
-Third output contains (b - a)",
-                average<IOValue, IOErr>(image: Image, start: Integer = 1, end: Integer = 2) -> Image, Float, Float {
-                    let middle = (*start as f32 + *end as f32) / 2.0 - 1.0;
+Third output contains (b - a)
+Note: a and b are 0-based indexing",
+                average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
+                    let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
                     vec![run_average(image, *start, *end), Ok(IOValue::Float(middle)), Ok(IOValue::Float(width))]
                 }
@@ -249,16 +251,17 @@ Compute v_min(first), v_max(second)",
 Parameter: 2D image i, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
-Note: output wavelength values are discrete",
-                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 1, end: Integer = 2, is_min: Bool = false) -> Image, Image {
+Note: output wavelength values are discrete. start and end are 0-based indexing",
+                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
                     vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
                 }
             ),
             cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
 Parameter: 3D image i (which has wavelength value w_i and flux f_i), start, end
-Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
-                extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 1, end: Integer = 2) -> Image {
+Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
+Note: start and end are 0-based indexing",
+                extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_centroid(i1, *start, *end)]
                 }
             ),
@@ -743,20 +746,20 @@ fn reduce_array_slice<F>(im: &WcsArray, start: i64, end: i64, f: F) -> Result<IO
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
-    if start <= 0 {
+    if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "start must be more than zero, but got {}",
+            "start must be positive, but got {}",
             start
         )));
     }
-    if end <= 0 {
+    if end < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "end must be more than zero, but got {}",
+            "end must be positive, but got {}",
             end
         )));
     }
-    let start = (start - 1) as usize;
-    let end = (end - 1) as usize;
+    let start = start as usize;
+    let end = end as usize;
 
     let image_val = im.scalar();
     let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
@@ -770,15 +773,13 @@ where
     if end >= frame_cnt {
         return Err(IOErr::UnexpectedInput(format!(
             "end higher than input image's frame count ({} >= {})",
-            end + 1,
-            frame_cnt
+            end, frame_cnt
         )));
     }
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start + 1,
-            end + 1
+            start, end
         )));
     }
 
@@ -823,15 +824,15 @@ fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOVal
 }
 
 fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
-    if start <= 0 {
+    if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "start must be more than zero, but got {}",
+            "start must be positive, but got {}",
             start
         )));
     }
-    if end <= 0 {
+    if end < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "end must be more than zero, but got {}",
+            "end must be positive, but got {}",
             end
         )));
     }
@@ -851,14 +852,13 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         }
     };
 
-    let start = (start - 1) as usize;
-    let end = (end - 1) as usize;
+    let start = start as usize;
+    let end = end as usize;
 
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start + 1,
-            end + 1
+            start, end
         )));
     }
 
@@ -899,15 +899,15 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 }
 
 fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    if start <= 0 {
+    if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "start must be more than zero, but got {}",
+            "start must be positive, but got {}",
             start
         )));
     }
-    if end <= 0 {
+    if end < 0 {
         return Err(IOErr::UnexpectedInput(format!(
-            "end must be more than zero, but got {}",
+            "end must be positive, but got {}",
             end
         )));
     }
@@ -927,14 +927,13 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
         }
     };
 
-    let start = (start - 1) as usize;
-    let end = (end - 1) as usize;
+    let start = start as usize;
+    let end = end as usize;
 
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
-            start + 1,
-            end + 1
+            start, end
         )));
     }
 
