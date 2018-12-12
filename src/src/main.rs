@@ -18,6 +18,7 @@ mod aflak;
 mod cli;
 mod constant_editor;
 mod layout;
+mod output_window;
 mod save_output;
 mod templates;
 
