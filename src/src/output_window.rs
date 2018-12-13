@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error;
 
 use glium;
-use imgui::{ImGuiCond, ImString, ImTexture, Ui};
+use imgui::{ImString, ImTexture, Ui, Window};
 use owning_ref::ArcRef;
 
 use aflak_plot::{
@@ -14,7 +14,6 @@ use cake::{OutputId, TransformIdx};
 use primitives::{ndarray, IOValue, SuccessOut, ROI};
 
 use aflak::AflakNodeEditor;
-use layout::LayoutEngine;
 use save_output;
 
 #[derive(Default)]
@@ -28,11 +27,11 @@ pub struct OutputWindow {
 type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 impl OutputWindow {
-    pub fn draw<F>(
+    pub fn draw<'ui, F>(
         &mut self,
-        ui: &Ui,
+        ui: &'ui Ui,
         output: OutputId,
-        layout: &mut LayoutEngine,
+        window: Window<'ui, '_>,
         node_editor: &mut AflakNodeEditor,
         error_alerts: &mut Vec<Box<error::Error>>,
         gl_ctx: &F,
@@ -40,16 +39,7 @@ impl OutputWindow {
     ) where
         F: glium::backend::Facade,
     {
-        let window_name = ImString::new(format!("Output #{}", output.id()));
-        let display_size = ui.imgui().display_size();
-        let (position, size) =
-            layout.default_output_window_position_size(&window_name, display_size);
-        let window = ui
-            .window(&window_name)
-            .position(position, ImGuiCond::FirstUseEver)
-            .size(size, ImGuiCond::FirstUseEver)
-            .menu_bar(true);
-        window.build(|| {
+        window.menu_bar(true).build(|| {
             let compute_state = node_editor.compute_output(output);
             match compute_state {
                 None => {

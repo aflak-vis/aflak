@@ -54,10 +54,19 @@ impl Aflak {
         let outputs = self.node_editor.outputs();
         for output in outputs {
             let output_window = self.output_windows.entry(output).or_default();
+            let window_name = ImString::new(format!("Output #{}", output.id()));
+            let display_size = ui.imgui().display_size();
+            let (position, size) = self
+                .layout_engine
+                .default_output_window_position_size(&window_name, display_size);
+            let window = ui
+                .window(&window_name)
+                .position(position, ImGuiCond::FirstUseEver)
+                .size(size, ImGuiCond::FirstUseEver);
             output_window.draw(
                 ui,
                 output,
-                &mut self.layout_engine,
+                window,
                 &mut self.node_editor,
                 &mut self.error_alerts,
                 gl_ctx,
