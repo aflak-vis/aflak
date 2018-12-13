@@ -839,18 +839,12 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 
     let image_val = im.scalar();
 
-    let _image3 = match image_val.view().into_dimensionality::<Ix3>() {
-        Ok(image3) => image3,
-        Err(e) => {
-            return Err(IOErr::ShapeError(
-                e,
-                format!(
-                    "run_argminmax: Expected an image of dimension 3 as input but got an image of dimension {}",
-                    image_val.ndim()
-                ),
-            ))
-        }
-    };
+    if image_val.ndim() != 3 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "expected 3 dimensional image, but got {} dimensional image",
+            image_val.ndim(),
+        )));
+    }
 
     let start = start as usize;
     let end = end as usize;
@@ -914,18 +908,12 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
     let image_val = im.scalar();
 
-    let _image3 = match image_val.view().into_dimensionality::<Ix3>() {
-        Ok(image3) => image3,
-        Err(e) => {
-            return Err(IOErr::ShapeError(
-                e,
-                format!(
-                    "run_centroid: Expected an image of dimension 3 as input but got an image of dimension {}",
-                    image_val.ndim()
-                ),
-            ))
-        }
-    };
+    if image_val.ndim() != 3 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "expected 3 dimensional image, but got {} dimensional image",
+            image_val.ndim(),
+        )));
+    }
 
     let start = start as usize;
     let end = end as usize;
