@@ -879,10 +879,14 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         out
     });
 
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        waveimg.into_dyn(),
-        Unit::None,
-    ))))
+    let ndim = waveimg.ndim();
+    //FIXME: Wrong unit
+    let wrap_with_unit = im.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        im.array().with_new_value(waveimg),
+    );
+
+    Ok(IOValue::Image(wrap_with_unit))
 }
 
 fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
@@ -941,10 +945,14 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
     let result = waveimg / flux_sum;
 
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        result.into_dyn(),
-        Unit::None,
-    ))))
+    let ndim = result.ndim();
+    //FIXME: Wrong unit
+    let wrap_with_unit = im.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        im.array().with_new_value(result),
+    );
+
+    Ok(IOValue::Image(wrap_with_unit))
 }
 
 fn run_create_equivalent_width(
