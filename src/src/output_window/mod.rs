@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::error;
+use std::fmt;
 use std::time::Instant;
 
+mod visualizable;
+
 use glium;
-use imgui::{ImString, ImTexture, Ui, Window};
+use imgui::{ImTexture, Ui, Window};
 use owning_ref::ArcRef;
 
 use aflak_plot::{
@@ -11,9 +14,10 @@ use aflak_plot::{
     plot::{self, UiImage1d},
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
-use cake::{OutputId, TransformIdx, VariantName};
+use cake::{OutputId, TransformIdx};
 use primitives::{ndarray, IOValue, SuccessOut, ROI};
 
+use self::visualizable::{Initializing, Unimplemented, Visualizable};
 use aflak::AflakNodeEditor;
 
 #[derive(Default)]
@@ -74,11 +78,8 @@ impl OutputWindow {
                         fits.draw(ui, window);
                         vec![]
                     }
-                    _ => {
-                        let unimplemented = Unimplemented {
-                            variant: value.variant_name(),
-                        };
-                        unimplemented.draw(ui, window);
+                    val => {
+                        Unimplemented::new(val).draw(ui, window);
                         vec![]
                     }
                 }
@@ -158,43 +159,6 @@ struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
     node_editor: &'ed mut AflakNodeEditor,
     gl_ctx: &'gl F,
     textures: &'tex mut Textures,
-}
-
-struct Initializing;
-
-impl Visualizable for Initializing {
-    fn visualize(&self, ui: &Ui) {
-        ui.text("Initialiazing...");
-    }
-}
-
-struct Unimplemented {
-    variant: &'static str,
-}
-
-impl Visualizable for Unimplemented {
-    fn visualize(&self, ui: &Ui) {
-        ui.text(format!(
-            "Cannot visualize variable of type '{}'!",
-            self.variant
-        ));
-    }
-}
-
-use std::fmt;
-
-impl<E: fmt::Display> Visualizable for cake::DSTError<E> {
-    fn visualize(&self, ui: &Ui) {
-        ui.text_wrapped(&ImString::new(format!("{}", self)));
-    }
-}
-
-trait Visualizable {
-    fn visualize(&self, ui: &Ui);
-
-    fn draw<'ui>(&self, ui: &'ui Ui, window: Window<'ui, '_>) {
-        window.build(|| self.visualize(ui));
-    }
 }
 
 trait MenuBar {
@@ -515,56 +479,6 @@ impl MenuBar for primitives::WcsArray {
     }
 
     const EXTENSION: &'static str = "fits";
-}
-
-impl Visualizable for Fits {
-    fn visualize(&self, ui: &Ui) {
-        let mut has_hdus = false;
-        for (i, hdu) in self.iter().enumerate() {
-            use primitives::fitrs::HeaderValue::*;
-            use std::borrow::Cow;
-
-            has_hdus = true;
-
-            let tree_name = match hdu.value("EXTNAME") {
-                Some(CharacterString(extname)) => ImString::new(extname.as_str()),
-                _ => {
-                    if i == 0 {
-                        im_str!("Primary HDU").to_owned()
-                    } else {
-                        ImString::new(format!("Hdu #{}", i))
-                    }
-                }
-            };
-
-            ui.push_id(i as i32);
-            ui.tree_node(&tree_name).build(|| {
-                for (key, value) in hdu {
-                    ui.text(key);
-                    if let Some(value) = value {
-                        ui.same_line(150.0);
-                        let value = match value {
-                            CharacterString(s) => Cow::Borrowed(s.as_str()),
-                            Logical(true) => Cow::Borrowed("True"),
-                            Logical(false) => Cow::Borrowed("False"),
-                            IntegerNumber(i) => Cow::Owned(format!("{}", i)),
-                            RealFloatingNumber(f) => Cow::Owned(format!("{:E}", f)),
-                            ComplexIntegerNumber(a, b) => Cow::Owned(format!("{} + {}i", a, b)),
-                            ComplexFloatingNumber(a, b) => {
-                                Cow::Owned(format!("{:E} + {:E}i", a, b))
-                            }
-                        };
-                        ui.text(value);
-                    }
-                    ui.separator();
-                }
-            });
-            ui.pop_id();
-        }
-        if !has_hdus {
-            ui.text("Input Fits appears invalid. No HDU could be found.");
-        }
-    }
 }
 
 use std::error::Error;
