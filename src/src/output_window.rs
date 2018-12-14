@@ -89,9 +89,9 @@ impl OutputWindow {
         });
 
         if output_saved_success_popup {
-            ui.open_popup(im_str!("FITS export completed!"));
+            ui.open_popup(im_str!("Export completed!"));
         }
-        ui.popup_modal(im_str!("FITS export completed!")).build(|| {
+        ui.popup_modal(im_str!("Export completed!")).build(|| {
             ui.text(format!(
                 "File saved with success to '{}'.",
                 save_output::file_name(&result, output)
