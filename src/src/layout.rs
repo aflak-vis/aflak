@@ -4,7 +4,7 @@ pub struct LayoutEngine {
     outputs: Vec<ImString>,
 }
 
-const EDITOR_WINDOW_DEFAULT_POSITION: (f32, f32) = (50.0, 50.0);
+const EDITOR_WINDOW_DEFAULT_POSITION: (f32, f32) = (10.0, 10.0);
 const EDITOR_WINDOW_DEFAULT_SIZE: (f32, f32) = (1200.0, 800.0);
 
 const OUTPUT_WINDOW_DEFAULT_SIZE: (f32, f32) = (600.0, 400.0);
@@ -20,12 +20,14 @@ impl LayoutEngine {
         LayoutEngine { outputs: vec![] }
     }
 
-    pub fn default_editor_window_position(&self) -> (f32, f32) {
-        EDITOR_WINDOW_DEFAULT_POSITION
-    }
-
-    pub fn default_editor_window_size(&self) -> (f32, f32) {
-        EDITOR_WINDOW_DEFAULT_SIZE
+    pub fn default_editor_layout(&self, display_size: (f32, f32)) -> Layout {
+        let position = EDITOR_WINDOW_DEFAULT_POSITION;
+        let default_size = EDITOR_WINDOW_DEFAULT_SIZE;
+        let size = (
+            default_size.0.min(display_size.0 - position.0),
+            default_size.1.min(default_size.1 - position.1),
+        );
+        Layout { position, size }
     }
 
     /// Align windows on a 4-column-wide grid
