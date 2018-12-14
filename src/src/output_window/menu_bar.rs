@@ -36,6 +36,10 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
     pub textures: &'tex mut Textures,
 }
 
+/// Similar to Visualizable, excepts that the types that implements this trait
+/// are more complex.
+/// The can be exported to disk and display options can be included in a menu
+/// bar.
 pub trait MenuBar {
     fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
     where
