@@ -59,7 +59,7 @@ impl Aflak {
             let mut window = ui.window(&window_name);
             if let Some(Layout { position, size }) = self
                 .layout_engine
-                .default_output_window_position_size(&window_name, display_size)
+                .default_output_window_layout(&window_name, display_size)
             {
                 window = window
                     .position(position, ImGuiCond::FirstUseEver)

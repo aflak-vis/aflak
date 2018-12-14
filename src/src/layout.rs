@@ -30,7 +30,7 @@ impl LayoutEngine {
 
     /// Align windows on a 4-column-wide grid
     /// Return None if a window with the given name already exists.
-    pub fn default_output_window_position_size(
+    pub fn default_output_window_layout(
         &mut self,
         name: &ImString,
         display_size: (f32, f32),
