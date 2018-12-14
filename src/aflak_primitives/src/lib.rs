@@ -839,13 +839,6 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 
     let image_val = im.scalar();
 
-    if image_val.ndim() != 3 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "expected 3 dimensional image, but got {} dimensional image",
-            image_val.ndim(),
-        )));
-    }
-
     let start = start as usize;
     let end = end as usize;
 
@@ -857,34 +850,34 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
     }
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
 
-    let waveimg = Array2::from_shape_fn(
-        (slices.len_of(Axis(1)), slices.len_of(Axis(2))),
-        |(i, j)| {
-            let mut value = if !is_min {
-                -std::f32::INFINITY
-            } else {
-                std::f32::INFINITY
-            };
-            let mut out = 0.0;
-            for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
-                if !is_min && slice[[i, j]] > value {
-                    value = slice[[i, j]];
-                    out = match im.pix2world(2, (k + start) as f32) {
-                        Some(value) => value,
-                        None => (k + start) as f32,
-                    };
-                } else if is_min && slice[[i, j]] < value {
-                    value = slice[[i, j]];
-                    out = match im.pix2world(2, (k + start) as f32) {
-                        Some(value) => value,
-                        None => (k + start) as f32,
-                    };
-                }
+    let waveimg = ArrayD::from_shape_fn(new_size, |index| {
+        let mut value = if !is_min {
+            -std::f32::INFINITY
+        } else {
+            std::f32::INFINITY
+        };
+        let mut out = 0.0;
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            if !is_min && slice[&index] > value {
+                value = slice[&index];
+                out = match im.pix2world(2, (k + start) as f32) {
+                    Some(value) => value,
+                    None => (k + start) as f32,
+                };
+            } else if is_min && slice[&index] < value {
+                value = slice[&index];
+                out = match im.pix2world(2, (k + start) as f32) {
+                    Some(value) => value,
+                    None => (k + start) as f32,
+                };
             }
-            out
-        },
-    );
+        }
+        out
+    });
 
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         waveimg.into_dyn(),
