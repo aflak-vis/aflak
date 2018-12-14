@@ -1,5 +1,3 @@
-use std::f32::NAN;
-
 use imgui::ImString;
 
 pub struct LayoutEngine {
@@ -11,6 +9,11 @@ const EDITOR_WINDOW_DEFAULT_SIZE: (f32, f32) = (1200.0, 800.0);
 
 const OUTPUT_WINDOW_DEFAULT_SIZE: (f32, f32) = (600.0, 400.0);
 const OUTPUT_WINDOW_DEFAULT_MARGIN: f32 = 50.0;
+
+pub struct Layout {
+    pub position: (f32, f32),
+    pub size: (f32, f32),
+}
 
 impl LayoutEngine {
     pub fn new() -> LayoutEngine {
@@ -26,13 +29,14 @@ impl LayoutEngine {
     }
 
     /// Align windows on a 4-column-wide grid
+    /// Return None if a window with the given name already exists.
     pub fn default_output_window_position_size(
         &mut self,
         name: &ImString,
         display_size: (f32, f32),
-    ) -> ((f32, f32), (f32, f32)) {
+    ) -> Option<Layout> {
         if self.outputs.contains(name) {
-            ((NAN, NAN), (NAN, NAN))
+            None
         } else {
             let (row, col) = {
                 let n = self.outputs.len();
@@ -49,7 +53,10 @@ impl LayoutEngine {
                 + OUTPUT_WINDOW_DEFAULT_MARGIN
                 + row * (OUTPUT_WINDOW_DEFAULT_SIZE.1 + OUTPUT_WINDOW_DEFAULT_MARGIN))
                 % display_size.1;
-            ((pos_x, pos_y), OUTPUT_WINDOW_DEFAULT_SIZE)
+            Some(Layout {
+                position: (pos_x, pos_y),
+                size: OUTPUT_WINDOW_DEFAULT_SIZE,
+            })
         }
     }
 }

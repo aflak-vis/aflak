@@ -10,7 +10,7 @@ use node_editor::NodeEditor;
 use primitives::{IOErr, IOValue};
 
 use constant_editor::MyConstantEditor;
-use layout::LayoutEngine;
+use layout::{Layout, LayoutEngine};
 use output_window::OutputWindow;
 
 pub type AflakNodeEditor = NodeEditor<'static, IOValue, IOErr, MyConstantEditor>;
@@ -56,13 +56,15 @@ impl Aflak {
             let output_window = self.output_windows.entry(output).or_default();
             let window_name = ImString::new(format!("Output #{}", output.id()));
             let display_size = ui.imgui().display_size();
-            let (position, size) = self
+            let mut window = ui.window(&window_name);
+            if let Some(Layout { position, size }) = self
                 .layout_engine
-                .default_output_window_position_size(&window_name, display_size);
-            let window = ui
-                .window(&window_name)
-                .position(position, ImGuiCond::FirstUseEver)
-                .size(size, ImGuiCond::FirstUseEver);
+                .default_output_window_position_size(&window_name, display_size)
+            {
+                window = window
+                    .position(position, ImGuiCond::FirstUseEver)
+                    .size(size, ImGuiCond::FirstUseEver);
+            }
             let new_errors =
                 output_window.draw(ui, output, window, &mut self.node_editor, gl_ctx, textures);
             self.error_alerts.extend(new_errors);
