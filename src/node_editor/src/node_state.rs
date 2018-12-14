@@ -6,6 +6,7 @@ use vec2::Vec2;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeState {
+    #[serde(skip_serializing, skip_deserializing)]
     pub selected: bool,
     pub pos: Vec2,
     pub size: Vec2,
