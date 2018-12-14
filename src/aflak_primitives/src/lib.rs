@@ -901,13 +901,6 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
     let image_val = im.scalar();
 
-    if image_val.ndim() != 3 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "expected 3 dimensional image, but got {} dimensional image",
-            image_val.ndim(),
-        )));
-    }
-
     let start = start as usize;
     let end = end as usize;
 
@@ -919,34 +912,32 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     }
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+    let new_size_2 = new_size.clone();
 
-    let flux_sum = Array2::from_shape_fn(
-        (slices.len_of(Axis(1)), slices.len_of(Axis(2))),
-        |(i, j)| {
-            let mut out = 0.0;
-            for (_, slice) in slices.axis_iter(Axis(0)).enumerate() {
-                let flux = slice[[i, j]];
-                out += flux;
-            }
-            out
-        },
-    );
+    let flux_sum = ArrayD::from_shape_fn(new_size, |index| {
+        let mut out = 0.0;
+        for (_, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            out += flux;
+        }
+        out
+    });
 
-    let waveimg = Array2::from_shape_fn(
-        (slices.len_of(Axis(1)), slices.len_of(Axis(2))),
-        |(i, j)| {
-            let mut out = 0.0;
-            for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
-                let flux = slice[[i, j]];
-                let wavelength = match im.pix2world(2, (k + start) as f32) {
-                    Some(value) => value,
-                    None => (k + start) as f32,
-                };
-                out += flux * wavelength;
-            }
-            out
-        },
-    );
+    let waveimg = ArrayD::from_shape_fn(new_size_2, |index| {
+        let mut out = 0.0;
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            let wavelength = match im.pix2world(2, (k + start) as f32) {
+                Some(value) => value,
+                None => (k + start) as f32,
+            };
+            out += flux * wavelength;
+        }
+        out
+    });
 
     let result = waveimg / flux_sum;
 
