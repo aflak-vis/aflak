@@ -972,25 +972,22 @@ fn run_convert_to_logscale(
     v_min: f32,
     v_max: f32,
 ) -> Result<IOValue, IOErr> {
-    let i1_arr = i1.scalar();
-    let x = i1_arr.map(|v| (v - v_min) / (v_max - v_min));
-    let out = x.map(|v| (a * v + 1.0).ln() / a.ln());
+    let mut out = i1.clone();
+    for v in out.scalar_mut().iter_mut() {
+        *v = (*v - v_min) / (v_max - v_min);
+        *v = (a * *v + 1.0).ln() / a.ln();
+    }
 
-    // FIXME: Unit support
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out,
-        Unit::None,
-    ))))
+    Ok(IOValue::Image(out))
 }
 
 fn run_negation(i1: &WcsArray) -> Result<IOValue, IOErr> {
-    let i1_arr = i1.scalar();
-    let out = i1_arr.map(|v| -v);
-    // FIXME: Unit support
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out,
-        Unit::None,
-    ))))
+    let mut out = i1.clone();
+    for v in out.scalar_mut().iter_mut() {
+        *v = -*v;
+    }
+
+    Ok(IOValue::Image(out))
 }
 
 #[cfg(test)]
