@@ -33,12 +33,13 @@ impl OutputWindow {
         output: OutputId,
         window: Window<'ui, '_>,
         node_editor: &mut AflakNodeEditor,
-        error_alerts: &mut Vec<Box<error::Error>>,
         gl_ctx: &F,
         textures: &mut Textures,
-    ) where
+    ) -> Vec<Box<error::Error>>
+    where
         F: glium::backend::Facade,
     {
+        let mut errors = vec![];
         window.menu_bar(true).build(|| {
             let compute_state = node_editor.compute_output(output);
             match compute_state {
@@ -48,17 +49,13 @@ impl OutputWindow {
                 Some(Err(e)) => {
                     ui.text_wrapped(&ImString::new(format!("{}", e)));
                 }
-                Some(Ok(result)) => self.computed_content(
-                    ui,
-                    output,
-                    result,
-                    node_editor,
-                    error_alerts,
-                    gl_ctx,
-                    textures,
-                ),
+                Some(Ok(result)) => {
+                    errors =
+                        self.computed_content(ui, output, result, node_editor, gl_ctx, textures);
+                }
             }
         });
+        errors
     }
 
     fn computed_content<F>(
@@ -67,19 +64,20 @@ impl OutputWindow {
         output: OutputId,
         result: SuccessOut,
         node_editor: &mut AflakNodeEditor,
-        error_alerts: &mut Vec<Box<error::Error>>,
         gl_ctx: &F,
         textures: &mut Textures,
-    ) where
+    ) -> Vec<Box<error::Error>>
+    where
         F: glium::backend::Facade,
     {
+        let mut errors: Vec<Box<error::Error>> = vec![];
         let mut output_saved_success_popup = false;
         ui.menu_bar(|| {
             ui.menu(im_str!("File")).build(|| {
                 if ui.menu_item(im_str!("Save")).build() {
                     if let Err(e) = save_output::save(output, &result) {
                         eprintln!("Error on saving output: '{}'", e);
-                        error_alerts.push(Box::new(e));
+                        errors.push(Box::new(e));
                     } else {
                         output_saved_success_popup = true;
                     }
@@ -281,7 +279,8 @@ impl OutputWindow {
             _ => {
                 ui.text("Unimplemented");
             }
-        }
+        };
+        errors
     }
 }
 

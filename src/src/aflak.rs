@@ -63,15 +63,9 @@ impl Aflak {
                 .window(&window_name)
                 .position(position, ImGuiCond::FirstUseEver)
                 .size(size, ImGuiCond::FirstUseEver);
-            output_window.draw(
-                ui,
-                output,
-                window,
-                &mut self.node_editor,
-                &mut self.error_alerts,
-                gl_ctx,
-                textures,
-            );
+            let new_errors =
+                output_window.draw(ui, output, window, &mut self.node_editor, gl_ctx, textures);
+            self.error_alerts.extend(new_errors);
         }
     }
 
