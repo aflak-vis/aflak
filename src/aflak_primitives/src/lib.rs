@@ -12,12 +12,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-mod export;
 mod fits;
 mod roi;
 mod unit;
 
-pub use export::ExportError;
 pub use roi::ROI;
 pub use unit::{Dimensioned, Unit, WcsArray};
 
