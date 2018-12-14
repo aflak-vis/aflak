@@ -16,7 +16,7 @@ use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
+pub struct NodeEditor<'t, T: 't, E: 't, ED> {
     pub(crate) dst: DST<'t, T, E>,
     addable_nodes: &'t [&'t Transform<T, E>],
     pub(crate) node_states: NodeStates,
@@ -37,7 +37,7 @@ pub struct NodeEditor<'t, T: 't + Clone, E: 't, ED> {
     success_stack: Vec<ImString>,
 }
 
-impl<'t, T: Clone, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
+impl<'t, T, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
     fn default() -> Self {
         Self {
             dst: DST::new(),
@@ -69,7 +69,6 @@ pub enum LinkExtremity {
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone,
     ED: Default,
 {
     pub fn new(addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
@@ -106,7 +105,7 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone + PartialEq + VariantName,
+    T: PartialEq + VariantName,
 {
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
         if let Some(t) = self.dst.get_transform_mut(id) {
@@ -121,10 +120,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
-where
-    T: Clone,
-{
+impl<'t, T, E, ED> NodeEditor<'t, T, E, ED> {
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
@@ -934,7 +930,7 @@ where
 
 impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
 where
-    T: Clone + VariantName,
+    T: VariantName,
 {
     fn delete_selected_nodes(&mut self) {
         let selected_node_ids: Vec<_> = self
