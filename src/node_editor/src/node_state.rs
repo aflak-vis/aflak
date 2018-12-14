@@ -10,6 +10,8 @@ pub struct NodeState {
     pub selected: bool,
     pub pos: Vec2,
     pub size: Vec2,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub input_slot_heights: Vec<f32>,
 }
 
 impl Default for NodeState {
@@ -18,6 +20,7 @@ impl Default for NodeState {
             selected: false,
             pos: Vec2::default(),
             size: Vec2::default(),
+            input_slot_heights: vec![],
         }
     }
 }
@@ -27,17 +30,30 @@ impl NodeState {
         self.pos * font_window_scale
     }
 
+    pub fn set_input_slot_height(&mut self, slot_idx: usize, height: f32) {
+        // Extend array
+        while self.input_slot_heights.len() <= slot_idx {
+            self.input_slot_heights.push(::std::f32::NAN);
+        }
+        self.input_slot_heights[slot_idx] = height;
+    }
+
     pub fn get_input_slot_pos<I: Into<usize>, C: Into<usize>>(
         &self,
         slot_idx: I,
         slot_cnt: C,
         font_window_scale: f32,
     ) -> Vec2 {
-        Vec2::new((
-            self.pos.0 * font_window_scale,
+        let slot_idx = slot_idx.into();
+        // let mut height_offset = 0.0;
+        let height = if let Some(height) = self.input_slot_heights.get(slot_idx) {
+            *height
+        } else {
             self.pos.1 * font_window_scale
-                + self.size.1 * (slot_idx.into() + 1) as f32 / (slot_cnt.into() + 1) as f32,
-        ))
+                + self.size.1 * (slot_idx + 1) as f32 / (slot_cnt.into() + 1) as f32
+        };
+        println!("{} {}", slot_idx, height);
+        Vec2::new((self.pos.0 * font_window_scale, height))
     }
 
     pub fn get_output_slot_pos<I: Into<usize>, C: Into<usize>>(

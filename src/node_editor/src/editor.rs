@@ -869,14 +869,23 @@ where
                 if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
                     for (i, mut default_input) in default_inputs.into_iter().enumerate() {
                         let mut changed = None;
-                        if let Some(val) = default_input.read() {
-                            if let Some(new_value) = constant_editor.editor(ui, &val, i as i32) {
-                                changed = Some(new_value);
+                        ui.group(|| {
+                            if let Some(val) = default_input.read() {
+                                if let Some(new_value) = constant_editor.editor(ui, &val, i as i32)
+                                {
+                                    changed = Some(new_value);
+                                }
+                            } else {
+                                // Fill with dummy line for vertical alignment
+                                ui.text("");
                             }
-                        } else {
-                            // Fill with dummy line for vertical alignment
-                            ui.text("");
-                        }
+                        });
+                        let (_, height) = ui.get_item_rect_size();
+                        let (_, pos_y) = ui.get_cursor_pos();
+                        // println!("{:?} {} {}", id, i, height);
+                        node_states.set_state(id, |state| {
+                            state.set_input_slot_height(i, pos_y - height / 2.0)
+                        });
                         if let Some(new_value) = changed {
                             default_input.write(new_value);
                         }
