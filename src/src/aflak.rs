@@ -52,10 +52,10 @@ impl Aflak {
         F: glium::backend::Facade,
     {
         let outputs = self.node_editor.outputs();
+        let display_size = ui.imgui().display_size();
         for output in outputs {
             let output_window = self.output_windows.entry(output).or_default();
             let window_name = ImString::new(format!("Output #{}", output.id()));
-            let display_size = ui.imgui().display_size();
             let mut window = ui.window(&window_name);
             if let Some(Layout { position, size }) = self
                 .layout_engine
