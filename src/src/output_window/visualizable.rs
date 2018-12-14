@@ -1,6 +1,8 @@
 use std::fmt;
 
 use imgui::{ImString, Ui, Window};
+
+use cake;
 use primitives::fitrs::Fits;
 
 pub trait Visualizable {

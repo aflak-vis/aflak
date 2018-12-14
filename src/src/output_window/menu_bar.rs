@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::time::Instant;
 
-use primitives::fitrs::{Fits, Hdu};
+use glium;
 
 use imgui::{ImTexture, Ui, Window};
 use owning_ref::ArcRef;
@@ -16,7 +16,11 @@ use aflak_plot::{
     AxisTransform, InteractionIterMut, ValueIter,
 };
 use cake::OutputId;
-use primitives::{IOValue, ROI};
+use primitives::{
+    self,
+    fitrs::{Fits, Hdu},
+    IOValue, ROI,
+};
 
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
 
