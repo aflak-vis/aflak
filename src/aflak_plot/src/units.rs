@@ -19,7 +19,7 @@ impl<'a, T> AxisTransform<'a, fn(T) -> T> {
             x
         }
         Self {
-            unit: unit,
+            unit,
             transform: id,
         }
     }
