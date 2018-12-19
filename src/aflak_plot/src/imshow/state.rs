@@ -437,7 +437,7 @@ where
 
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
-                    ui.set_cursor_screen_pos([x, y - CLICKABLE_WIDTH]);
+                    ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
 
                     ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.1]);
                     if ui.is_item_hovered() {
