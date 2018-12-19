@@ -320,7 +320,7 @@ impl MenuBar for primitives::WcsArray {
                         _ => None,
                     }
                 };
-                if let Err(e) = ui.image1d(&self.scalar1(), &unit, transform, state) {
+                if let Err(e) = ui.image1d(&self.scalar1(), &unit, transform.as_ref(), state) {
                     ui.text(format!("Error on drawing plot! {}", e))
                 }
                 update_editor_from_state(

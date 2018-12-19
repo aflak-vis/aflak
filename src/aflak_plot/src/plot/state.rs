@@ -45,7 +45,7 @@ impl State {
         ui: &Ui,
         image: &ArrayBase<D, Ix1>,
         vunit: &str,
-        axis: Option<AxisTransform<F>>,
+        axis: Option<&AxisTransform<F>>,
         pos: P,
         size: S,
     ) -> Result<(), Error>
@@ -75,7 +75,7 @@ impl State {
         // Pre-compute tick size to accurately position and resize the figure
         // to fit everything in the "size" given as input to this function.
         let yaxis = AxisTransform::id(vunit);
-        let ticks = XYTicks::prepare(ui, xlims, ylims, axis.as_ref(), Some(&yaxis));
+        let ticks = XYTicks::prepare(ui, xlims, ylims, axis, Some(&yaxis));
         let x_labels_height = ticks.x_labels_height();
         let y_labels_width = ticks.y_labels_width();
 
@@ -127,7 +127,7 @@ impl State {
             self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
             let point = self.mouse_pos.x as usize;
             if let Some(y) = image.get(point) {
-                let x = axis.as_ref().map(|axis| Measurement {
+                let x = axis.map(|axis| Measurement {
                     v: axis.pix2world(self.mouse_pos.x),
                     unit: axis.unit(),
                 });

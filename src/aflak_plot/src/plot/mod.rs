@@ -17,7 +17,7 @@ pub trait UiImage1d {
         &self,
         image: &ArrayBase<S, Ix1>,
         vunit: &str,
-        axis: Option<AxisTransform<F>>,
+        axis: Option<&AxisTransform<F>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
@@ -30,7 +30,7 @@ impl<'ui> UiImage1d for Ui<'ui> {
         &self,
         image: &ArrayBase<S, Ix1>,
         vunit: &str,
-        axis: Option<AxisTransform<F>>,
+        axis: Option<&AxisTransform<F>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
