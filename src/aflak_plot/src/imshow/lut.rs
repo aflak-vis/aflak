@@ -215,12 +215,12 @@ impl ColorLUT {
 #[derive(Copy, Clone)]
 pub struct StopIter<'a> {
     lut: &'a ColorLUT,
-    i: isize,
+    i: usize,
 }
 
 impl<'a> StopIter<'a> {
     fn new(lut: &'a ColorLUT) -> Self {
-        Self { lut, i: -1 }
+        Self { lut, i: 0 }
     }
 }
 
@@ -228,20 +228,23 @@ impl<'a> Iterator for StopIter<'a> {
     type Item = (f32, [u8; 3]);
     fn next(&mut self) -> Option<Self::Item> {
         let grad = &self.lut.gradient;
-        if self.i == -1 && grad.len() > 0 {
-            self.i += 1;
-            Some((0.0, grad[0].1))
-        } else if self.i == grad.len() as isize && grad.len() > 0 {
-            self.i += 1;
-            Some((1.0, grad[grad.len() - 1].1))
+        if grad.is_empty() {
+            None
         } else {
-            self.lut.gradient.get(self.i as usize).map(|value| {
-                self.i += 1;
-                (
-                    self.lut.lims.0 + (self.lut.lims.1 - self.lut.lims.0) * value.0,
-                    value.1,
-                )
-            })
+            let i = self.i;
+            self.i += 1;
+            if i == 0 {
+                Some((0.0, grad[0].1))
+            } else if i - 1 == grad.len() {
+                Some((1.0, grad[grad.len() - 1].1))
+            } else {
+                self.lut.gradient.get(i - 1).map(|value| {
+                    (
+                        self.lut.lims.0 + (self.lut.lims.1 - self.lut.lims.0) * value.0,
+                        value.1,
+                    )
+                })
+            }
         }
     }
 }
