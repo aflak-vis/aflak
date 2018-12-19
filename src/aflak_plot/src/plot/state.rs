@@ -92,6 +92,9 @@ impl State {
         let p = ui.get_cursor_screen_pos();
 
         ui.invisible_button(im_str!("plot"), size);
+        unsafe {
+            imgui::sys::igSetItemAllowOverlap();
+        }
 
         let draw_list = ui.get_window_draw_list();
 
