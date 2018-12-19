@@ -224,7 +224,7 @@ if value > max, value changes to 0.",
                 }
             ),
             cake_transform!(
-                "Convert to log-scale. Parameter: n-Dimensional image i, a, v_min, v_max
+                "Convert to log-scale. Parameter: image i, a, v_min, v_max
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
@@ -248,7 +248,7 @@ Compute v_min(first), v_max(second)",
             ),
             cake_transform!(
                 "Extract min/max wavelength value of each pixel.
-Parameter: n-Dimensional image i, start, end, is_min (start <= end)
+Parameter: image i, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
 Note: output wavelength values are discrete. indices for start and end start from 0",
@@ -258,7 +258,7 @@ Note: output wavelength values are discrete. indices for start and end start fro
             ),
             cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
-Parameter: n-Dimensional image i (which has wavelength value w_i and flux f_i), start, end
+Parameter: image i (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
 Note: indices for start and end start from 0",
                 extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
@@ -267,7 +267,7 @@ Note: indices for start and end start from 0",
             ),
             cake_transform!(
                 "Create velocity field map
-Parameter: n-Dimensional image (which has wavelength value w_i in each pixel), representative wavelength w_0
+Parameter: image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                 create_velocity_field_map<IOValue, IOErr>(i1: Image, w_0: Float = 0.0) -> Image {
                     let c = 3e5;
