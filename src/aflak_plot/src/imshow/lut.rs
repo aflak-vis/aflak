@@ -174,7 +174,7 @@ impl ColorLUT {
 
     pub fn bounds(&self) -> iter::Zip<StopIter, iter::Skip<StopIter>> {
         let first_color = StopIter::new(self);
-        let next_color = first_color.clone().skip(1);
+        let next_color = first_color.skip(1);
         first_color.zip(next_color)
     }
 
