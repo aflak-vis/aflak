@@ -147,12 +147,12 @@ impl ColorLUT {
                 return if dv == 0.0 {
                     c1
                 } else {
-                    let r1 = r1 as f32;
-                    let r2 = r2 as f32;
-                    let g1 = g1 as f32;
-                    let g2 = g2 as f32;
-                    let b1 = b1 as f32;
-                    let b2 = b2 as f32;
+                    let r1 = f32::from(r1);
+                    let r2 = f32::from(r2);
+                    let g1 = f32::from(g1);
+                    let g2 = f32::from(g2);
+                    let b1 = f32::from(b1);
+                    let b2 = f32::from(b2);
                     let dp = point - v1;
                     let coef = dp / dv;
                     [
