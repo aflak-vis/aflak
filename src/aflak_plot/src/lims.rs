@@ -11,7 +11,7 @@ where
 {
     let min = image
         .iter()
-        .min_by(|&f1, &f2| float_compare_nan_max(f1, f2));
+        .min_by(|&&f1, &&f2| float_compare_nan_max(f1, f2));
     if let Some(min) = min {
         Ok(*min)
     } else {
@@ -26,7 +26,7 @@ where
 {
     let max = image
         .iter()
-        .max_by(|&f1, &f2| float_compare_nan_min(f1, f2));
+        .max_by(|&&f1, &&f2| float_compare_nan_min(f1, f2));
     if let Some(max) = max {
         Ok(*max)
     } else {
@@ -34,8 +34,8 @@ where
     }
 }
 
-fn float_compare_nan_min(f1: &f32, f2: &f32) -> Ordering {
-    PartialOrd::partial_cmp(f1, f2).unwrap_or_else(|| match (f32::is_nan(*f1), f32::is_nan(*f2)) {
+fn float_compare_nan_min(f1: f32, f2: f32) -> Ordering {
+    PartialOrd::partial_cmp(&f1, &f2).unwrap_or_else(|| match (f32::is_nan(f1), f32::is_nan(f2)) {
         (true, true) => Ordering::Equal,
         (true, false) => Ordering::Less,
         (false, true) => Ordering::Greater,
@@ -43,8 +43,8 @@ fn float_compare_nan_min(f1: &f32, f2: &f32) -> Ordering {
     })
 }
 
-fn float_compare_nan_max(f1: &f32, f2: &f32) -> Ordering {
-    PartialOrd::partial_cmp(f1, f2).unwrap_or_else(|| match (f32::is_nan(*f1), f32::is_nan(*f2)) {
+fn float_compare_nan_max(f1: f32, f2: f32) -> Ordering {
+    PartialOrd::partial_cmp(&f1, &f2).unwrap_or_else(|| match (f32::is_nan(f1), f32::is_nan(f2)) {
         (true, true) => Ordering::Equal,
         (true, false) => Ordering::Greater,
         (false, true) => Ordering::Less,
