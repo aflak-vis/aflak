@@ -144,7 +144,7 @@ where
             let lims = self.lut.lims();
 
             // Min triangle
-            let min_color = util::to_u32_color(&self.lut.color_at(lims.0));
+            let min_color = util::to_u32_color(self.lut.color_at(lims.0));
             let x_pos = pos.x + size.x + TRIANGLE_LEFT_PADDING;
             let y_pos = pos.y + size.y * (1.0 - lims.0);
             draw_list
@@ -192,7 +192,7 @@ where
             }
 
             // Max triangle
-            let max_color = util::to_u32_color(&self.lut.color_at(lims.1));
+            let max_color = util::to_u32_color(self.lut.color_at(lims.1));
             let y_pos = pos.y + size.y * (1.0 - lims.1);
             draw_list
                 .add_triangle(
@@ -241,8 +241,8 @@ where
 
         let x_pos = pos.x + 5.0;
         for ((v1, c1), (v2, c2)) in self.lut.bounds() {
-            let bottom_col = util::to_u32_color(&c1);
-            let top_col = util::to_u32_color(&c2);
+            let bottom_col = util::to_u32_color(c1);
+            let top_col = util::to_u32_color(c2);
             let bottom_y_pos = pos.y + size.y * (1.0 - v1);
             let top_y_pos = pos.y + size.y * (1.0 - v2);
             draw_list.add_rect_filled_multicolor(

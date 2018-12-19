@@ -21,7 +21,7 @@ where
     a + (b - a) * t.into()
 }
 
-pub fn to_u32_color(c: &[u8; 3]) -> u32 {
+pub fn to_u32_color(c: [u8; 3]) -> u32 {
     u32::from(c[0]) | (u32::from(c[1]) << 8) | (u32::from(c[2]) << 16) | 0xFF << 24
 }
 
