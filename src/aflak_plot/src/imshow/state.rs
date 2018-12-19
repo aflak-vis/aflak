@@ -8,7 +8,7 @@ use ndarray::ArrayD;
 use super::image;
 use super::interactions::{
     FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter,
-    VerticalLine,
+    VerticalLine, VerticalLineEvent,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -431,40 +431,11 @@ where
                         }
                     });
                 }
-                Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
-                    let x = p.0 + *x_pos / tex_size.0 as f32 * size.0;
-                    let y = p.1;
-
-                    const CLICKABLE_WIDTH: f32 = 5.0;
-
-                    ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
-
-                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.1]);
-                    if ui.is_item_hovered() {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                            *moving = true;
-                        }
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
-                            ui.open_popup(im_str!("edit-vertical-line"))
-                        }
+                Interaction::VerticalLine(line) => {
+                    let event = line.draw(ui, &draw_list, *id, p, size, (0.0, tex_size.0));
+                    if let Some(VerticalLineEvent::Delete) = event {
+                        line_marked_for_deletion = Some(*id);
                     }
-                    if *moving {
-                        *x_pos = util::clamp(self.mouse_pos.0.round(), 0.0, tex_size.0 as f32);
-                    }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
-                        *moving = false;
-                    }
-
-                    draw_list
-                        .add_line([x, y], [x, y + size.1], LINE_COLOR)
-                        .build();
-
-                    ui.popup(im_str!("edit-vertical-line"), || {
-                        if ui.menu_item(im_str!("Delete Line")).build() {
-                            line_marked_for_deletion = Some(*id);
-                        }
-                    });
                 }
                 Interaction::FinedGrainedROI(FinedGrainedROI { id, pixels }) => {
                     let selected = self.roi_input.is_selected(*id);
