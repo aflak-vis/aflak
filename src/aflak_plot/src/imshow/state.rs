@@ -114,10 +114,8 @@ where
 
         ui.set_cursor_screen_pos(pos);
         ui.invisible_button(im_str!("image_bar"), size);
-        if ui.is_item_hovered() {
-            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
-                ui.open_popup(im_str!("swap-lut"))
-            }
+        if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+            ui.open_popup(im_str!("swap-lut"));
         }
         ui.popup(im_str!("swap-lut"), || {
             ui.text("Swap LUT");
