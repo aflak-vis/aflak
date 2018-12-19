@@ -93,7 +93,6 @@ impl VerticalLine {
         P: Into<ImVec2>,
         S: Into<ImVec2>,
     {
-        // println!("{:?}", self);
         const LINE_COLOR: u32 = 0xFFFF_FFFF;
         const LINE_LABEL_LEFT_PADDING: f32 = 10.0;
         const LINE_LABEL_TOP_PADDING: f32 = 10.0;
@@ -113,9 +112,7 @@ impl VerticalLine {
 
         if ui.is_item_hovered() {
             ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
-            println!("{}", ui.imgui().is_mouse_clicked(ImMouseButton::Right));
             if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                println!("CLICK");
                 self.moving = true;
             }
             if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
@@ -126,7 +123,6 @@ impl VerticalLine {
         if self.moving {
             let mouse_pos_x = ui.imgui().mouse_pos().0;
             let x_pos = lims.0 + (mouse_pos_x - pos.x) / size.x * (lims.1 - lims.0);
-            println!("MOUSE:{} TRANS:{}", mouse_pos_x, x_pos);
             self.x_pos = util::clamp(x_pos, lims.0, lims.1);
         }
         if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
