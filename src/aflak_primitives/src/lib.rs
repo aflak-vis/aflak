@@ -894,14 +894,16 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         out
     });
 
-    let ndim = waveimg.ndim();
-    //FIXME: Wrong unit
-    let wrap_with_unit = im.make_slice(
-        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
-        im.array().with_new_value(waveimg),
-    );
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // unit of variable 'out' should be adopted
 
-    Ok(IOValue::Image(wrap_with_unit))
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        waveimg,
+        Unit::None,
+    ))))
 }
 
 fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
@@ -975,14 +977,17 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
     let result = waveimg / flux_sum;
 
-    let ndim = result.ndim();
-    //FIXME: Wrong unit
-    let wrap_with_unit = im.make_slice(
-        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
-        im.array().with_new_value(result),
-    );
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // 'waveimg' must have [flux * wavelength], 'flux_sum' must have [flux]
+    // 'result' = waveimg / flux_sum   must have [wavelength]
 
-    Ok(IOValue::Image(wrap_with_unit))
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
 }
 
 fn run_create_equivalent_width(
@@ -998,6 +1003,11 @@ fn run_create_equivalent_width(
     let result = out.map(|v| if *v > max { 0.0 } else { *v });
 
     // FIXME: Unit support
+    // implementation of &WcsArray / &WcsArray is needed
+    //
+    // in above program...
+    // variable 'fl' is width of on-band, so unit of length should be adopted (e.g. [Ang]).
+
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         result,
         Unit::None,
