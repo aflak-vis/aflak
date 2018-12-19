@@ -22,7 +22,7 @@ where
 }
 
 pub fn to_u32_color(c: &[u8; 3]) -> u32 {
-    (c[0] as u32) << 0 | (c[1] as u32) << 8 | (c[2] as u32) << 16 | 0xFF << 24
+    u32::from(c[0]) | (u32::from(c[1]) << 8) | (u32::from(c[2]) << 16) | 0xFF << 24
 }
 
 pub fn invert_color(c: u32) -> u32 {
