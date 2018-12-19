@@ -289,8 +289,8 @@ where
         ui: &Ui,
         texture_id: ImTexture,
         vunit: &str,
-        xaxis: Option<AxisTransform<FX>>,
-        yaxis: Option<AxisTransform<FY>>,
+        xaxis: Option<&AxisTransform<FX>>,
+        yaxis: Option<&AxisTransform<FY>>,
         max_size: (f32, f32),
     ) -> Result<([(f32, f32); 2], f32), Error>
     where
@@ -304,8 +304,8 @@ where
             ui,
             (0.0, tex_size.0 as f32),
             (0.0, tex_size.1 as f32),
-            xaxis.as_ref(),
-            yaxis.as_ref(),
+            xaxis,
+            yaxis,
         );
         let x_labels_height = ticks.x_labels_height();
         let y_labels_width = ticks.y_labels_width();
@@ -342,11 +342,11 @@ where
             if y < self.image.dim().0 {
                 let index = [self.image.dim().0 - 1 - y, x];
                 if let Some(val) = self.image.get(index) {
-                    let x_measurement = xaxis.as_ref().map(|axis| Measurement {
+                    let x_measurement = xaxis.map(|axis| Measurement {
                         v: axis.pix2world(x as f32),
                         unit: axis.unit(),
                     });
-                    let y_measurement = yaxis.as_ref().map(|axis| Measurement {
+                    let y_measurement = yaxis.map(|axis| Measurement {
                         v: axis.pix2world(y as f32),
                         unit: axis.unit(),
                     });

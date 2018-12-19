@@ -24,7 +24,7 @@ impl<'a, T> AxisTransform<'a, fn(T) -> T> {
         }
     }
 
-    pub fn none() -> Option<Self> {
+    pub fn none() -> Option<&'static Self> {
         None
     }
 }

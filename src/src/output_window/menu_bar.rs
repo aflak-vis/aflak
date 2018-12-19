@@ -384,8 +384,8 @@ impl MenuBar for primitives::WcsArray {
                     ctx.textures,
                     texture_id,
                     unit,
-                    x_transform,
-                    y_transform,
+                    x_transform.as_ref(),
+                    y_transform.as_ref(),
                     state,
                 ) {
                     ui.text(format!("Error on drawing image! {}", e));

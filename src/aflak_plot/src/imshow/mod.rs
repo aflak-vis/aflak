@@ -75,8 +75,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         textures: &mut Textures,
         texture_id: ImTexture,
         vunit: &str,
-        xaxis: Option<AxisTransform<FX>>,
-        yaxis: Option<AxisTransform<FY>>,
+        xaxis: Option<&AxisTransform<FX>>,
+        yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
     ) -> Result<(), Error>
     where
@@ -131,8 +131,8 @@ pub trait UiImage2d {
         textures: &mut Textures,
         texture_id: ImTexture,
         vunit: &str,
-        xaxis: Option<AxisTransform<FX>>,
-        yaxis: Option<AxisTransform<FY>>,
+        xaxis: Option<&AxisTransform<FX>>,
+        yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
     ) -> Result<(), Error>
     where

@@ -44,8 +44,8 @@ fn main() {
                 textures,
                 imgui::ImTexture::from(1),
                 "pixel",
-                Some(AxisTransform::new("X Axis", |x| x)),
-                Some(AxisTransform::new("Y Axis", |y| y)),
+                Some(&AxisTransform::new("X Axis", |x| x)),
+                Some(&AxisTransform::new("Y Axis", |y| y)),
                 &mut state,
             )
             .expect("Image2d failed");
