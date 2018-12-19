@@ -849,6 +849,21 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         )));
     }
 
+    let ndim = image_val.ndim();
+    if ndim < 1 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot compute {}-Dimensional array",
+            ndim
+        )));
+    }
+    let len_of_axis0 = image_val.len_of(Axis(0));
+    if end > len_of_axis0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than length of axis ({} > {})",
+            end, len_of_axis0
+        )));
+    }
+
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
     let dim = slices.dim();
     let size = dim.as_array_view();
@@ -912,6 +927,21 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
         return Err(IOErr::UnexpectedInput(format!(
             "start higher than end ({} >= {})",
             start, end
+        )));
+    }
+
+    let ndim = image_val.ndim();
+    if ndim < 1 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot compute {}-Dimensional array",
+            ndim
+        )));
+    }
+    let len_of_axis0 = image_val.len_of(Axis(0));
+    if end > len_of_axis0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than length of axis ({} > {})",
+            end, len_of_axis0
         )));
     }
 
