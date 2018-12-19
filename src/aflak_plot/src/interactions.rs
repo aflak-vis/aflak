@@ -103,8 +103,8 @@ impl Interactions {
         self.0.insert(new_id, interaction)
     }
 
-    pub(crate) fn remove(&mut self, id: &InteractionId) -> Option<Interaction> {
-        self.0.remove(id)
+    pub(crate) fn remove(&mut self, id: InteractionId) -> Option<Interaction> {
+        self.0.remove(&id)
     }
 
     pub(crate) fn any_moving(&self) -> bool {
@@ -154,7 +154,7 @@ pub struct InteractionId(usize);
 
 impl InteractionId {
     /// Get ImGui unique ID
-    pub fn id(&self) -> i32 {
+    pub fn id(self) -> i32 {
         self.0 as i32
     }
 }

@@ -515,7 +515,7 @@ where
         }
 
         if let Some(line_id) = line_marked_for_deletion {
-            self.interactions.remove(&line_id);
+            self.interactions.remove(line_id);
         }
 
         ticks.draw(&draw_list, p, size);
