@@ -304,8 +304,8 @@ impl ops::Mul<f32> for WcsArray {
 
     fn mul(self, rhs: f32) -> Self::Output {
         WcsArray {
-            meta: self.meta.clone(),
-            array: self.array() * rhs,
+            meta: self.meta,
+            array: self.array * rhs,
         }
     }
 }
@@ -326,8 +326,8 @@ impl ops::Div<f32> for WcsArray {
 
     fn div(self, rhs: f32) -> Self::Output {
         WcsArray {
-            meta: self.meta.clone(),
-            array: self.array() / rhs,
+            meta: self.meta,
+            array: self.array / rhs,
         }
     }
 }
@@ -381,7 +381,7 @@ impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
     fn sub(self, rhs: &'b WcsArray) -> Self::Output {
         WcsArray {
             meta: self.meta.clone(),
-            array: self.array().clone() - rhs.array.clone(),
+            array: &self.array - &rhs.array,
         }
     }
 }
