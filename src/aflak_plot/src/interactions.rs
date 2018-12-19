@@ -142,20 +142,16 @@ impl VerticalLine {
             &format!("{:.0}", self.x_pos),
         );
 
-        let mut delete_me = false;
+        let mut out = None;
         ui.popup(im_str!("edit-vertical-line"), || {
             if ui.menu_item(im_str!("Delete Line")).build() {
-                delete_me = true;
+                out = Some(VerticalLineEvent::Delete);
             }
         });
 
         ui.pop_id();
 
-        if delete_me {
-            Some(VerticalLineEvent::Delete)
-        } else {
-            None
-        }
+        out
     }
 }
 
