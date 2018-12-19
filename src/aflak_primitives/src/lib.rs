@@ -176,7 +176,7 @@ Compute a*u + b*v.",
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
-Note: a and b are 0-based indexing",
+Note: indices for a and b start from 0",
                 integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
@@ -207,7 +207,7 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
-Note: a and b are 0-based indexing",
+Note: indices for a and b start from 0",
                 average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
@@ -224,7 +224,7 @@ if value > max, value changes to 0.",
                 }
             ),
             cake_transform!(
-                "Convert to log-scale. Parameter: 2D image i, a, v_min, v_max
+                "Convert to log-scale. Parameter: n-Dimensional image i, a, v_min, v_max
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
@@ -248,26 +248,26 @@ Compute v_min(first), v_max(second)",
             ),
             cake_transform!(
                 "Extract min/max wavelength value of each pixel.
-Parameter: 2D image i, start, end, is_min (start <= end)
+Parameter: n-Dimensional image i, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
-Note: output wavelength values are discrete. start and end are 0-based indexing",
+Note: output wavelength values are discrete. indices for start and end start from 0",
                 extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
                     vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
                 }
             ),
             cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
-Parameter: 3D image i (which has wavelength value w_i and flux f_i), start, end
+Parameter: n-Dimensional image i (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
-Note: start and end are 0-based indexing",
+Note: indices for start and end start from 0",
                 extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_centroid(i1, *start, *end)]
                 }
             ),
             cake_transform!(
                 "Create velocity field map
-Parameter: 2D image (which has wavelength value w_i in each pixel), representative wavelength w_0
+Parameter: n-Dimensional image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                 create_velocity_field_map<IOValue, IOErr>(i1: Image, w_0: Float = 0.0) -> Image {
                     let c = 3e5;
