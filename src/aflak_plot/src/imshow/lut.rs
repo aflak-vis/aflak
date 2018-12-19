@@ -41,8 +41,8 @@ impl BuiltinLUT {
         VALUES.into_iter()
     }
 
-    pub fn name(&self) -> &'static ImStr {
-        match *self {
+    pub fn name(self) -> &'static ImStr {
+        match self {
             BuiltinLUT::Grey => im_str!("Grey"),
             BuiltinLUT::GreyClip => im_str!("GreyClip"),
             BuiltinLUT::Yellowy => im_str!("Yellowy"),
@@ -53,8 +53,8 @@ impl BuiltinLUT {
         }
     }
 
-    pub fn lut(&self) -> ColorLUT {
-        match *self {
+    pub fn lut(self) -> ColorLUT {
+        match self {
             BuiltinLUT::Grey => ColorLUT::linear(vec![(0.0, [0, 0, 0]), (1.0, [255, 255, 255])]),
             BuiltinLUT::GreyClip => ColorLUT::linear(vec![
                 (0.0, [0, 0, 0]),
