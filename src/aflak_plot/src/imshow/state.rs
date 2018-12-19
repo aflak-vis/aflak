@@ -257,7 +257,7 @@ where
         let mut i = 1.0;
         let text_height = ui.get_text_line_height_with_spacing();
         const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
-        const COLOR: u32 = 0xFFFFFFFF;
+        const COLOR: u32 = 0xFFFF_FFFF;
         const TICK_SIZE: f32 = 3.0;
         const TICK_COUNT: usize = 10;
         const TICK_STEP: f32 = 1.0 / TICK_COUNT as f32;
@@ -393,7 +393,7 @@ where
         let mut line_marked_for_deletion = None;
         for (id, interaction) in self.interactions.iter_mut() {
             ui.push_id(id.id());
-            const LINE_COLOR: u32 = 0xFFFFFFFF;
+            const LINE_COLOR: u32 = 0xFFFF_FFFF;
             match interaction {
                 Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
                     let x = p.0;
@@ -473,8 +473,8 @@ where
 
                     let pixel_size_x = size.0 / tex_size.0 as f32;
                     let pixel_size_y = size.1 / tex_size.1 as f32;
-                    const ROI_COLOR_SELECTED: u32 = 0xA0000000;
-                    const ROI_COLOR_UNSELECTED: u32 = 0x50000000;
+                    const ROI_COLOR_SELECTED: u32 = 0xA000_0000;
+                    const ROI_COLOR_UNSELECTED: u32 = 0x5000_0000;
 
                     let roi_color = if selected {
                         ROI_COLOR_SELECTED
@@ -534,8 +534,8 @@ where
         let vmin = self.image.vmin();
         let vmax = self.image.vmax();
 
-        const FILL_COLOR: u32 = 0xFF999999;
-        const BORDER_COLOR: u32 = 0xFF000000;
+        const FILL_COLOR: u32 = 0xFF99_9999;
+        const BORDER_COLOR: u32 = 0xFF00_0000;
         let hist = self.image.hist();
         if let Some(max_count) = hist.iter().map(|bin| bin.count).max() {
             let draw_list = ui.get_window_draw_list();

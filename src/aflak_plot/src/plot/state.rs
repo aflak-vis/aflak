@@ -94,8 +94,8 @@ impl State {
 
         let draw_list = ui.get_window_draw_list();
 
-        const BG_COLOR: u32 = 0xA0333333;
-        const LINE_COLOR: u32 = 0xFFFFFFFF;
+        const BG_COLOR: u32 = 0xA033_3333;
+        const LINE_COLOR: u32 = 0xFFFF_FFFF;
 
         let bottom_right_corner = [p.0 + size.x, p.1 + size.y];
 
@@ -170,7 +170,7 @@ impl State {
             ui.push_id(id.id());
             match interaction {
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
-                    const LINE_COLOR: u32 = 0xFFFFFFFF;
+                    const LINE_COLOR: u32 = 0xFFFF_FFFF;
                     const LINE_LABEL_LELT_PADDING: f32 = 10.0;
                     const LINE_LABEL_TOP_PADDING: f32 = 10.0;
 

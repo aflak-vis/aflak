@@ -26,5 +26,5 @@ pub fn to_u32_color(c: [u8; 3]) -> u32 {
 }
 
 pub fn invert_color(c: u32) -> u32 {
-    0xFFFFFFFF - c + 0xFF000000
+    0xFFFF_FFFF - c + 0xFF00_0000
 }

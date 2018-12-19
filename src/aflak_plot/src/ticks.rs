@@ -4,7 +4,7 @@ use super::AxisTransform;
 
 const TICK_COUNT: usize = 10;
 
-const COLOR: u32 = 0xFFFFFFFF;
+const COLOR: u32 = 0xFFFF_FFFF;
 const GRID_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 0.16];
 const TICK_SIZE: f32 = 3.0;
 const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
