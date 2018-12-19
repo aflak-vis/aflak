@@ -1,5 +1,9 @@
 use std::collections::{btree_map, BTreeMap};
 
+use imgui::{ImGuiMouseCursor, ImId, ImMouseButton, ImVec2, Ui, WindowDrawList};
+
+use super::util;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
@@ -44,6 +48,7 @@ pub struct HorizontalLine {
 }
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct VerticalLine {
+    /// Current position of vertical line, in the displayed plot's pixel coordinates
     pub x_pos: f32,
     pub moving: bool,
 }
@@ -62,6 +67,10 @@ impl HorizontalLine {
     }
 }
 
+pub enum VerticalLineEvent {
+    Delete,
+}
+
 impl VerticalLine {
     pub fn new(x_pos: f32) -> Self {
         Self {
@@ -69,6 +78,93 @@ impl VerticalLine {
             moving: false,
         }
     }
+
+    pub fn draw<'a, ID, P, S>(
+        &mut self,
+        ui: &Ui,
+        draw_list: &WindowDrawList,
+        id: ID,
+        pos: P,
+        size: S,
+        lims: (f32, f32),
+    ) -> Option<VerticalLineEvent>
+    where
+        ID: Into<ImId<'a>>,
+        P: Into<ImVec2>,
+        S: Into<ImVec2>,
+    {
+        // println!("{:?}", self);
+        const LINE_COLOR: u32 = 0xFFFF_FFFF;
+        const LINE_LABEL_LEFT_PADDING: f32 = 10.0;
+        const LINE_LABEL_TOP_PADDING: f32 = 10.0;
+        const CLICKABLE_WIDTH: f32 = 5.0;
+
+        let pos = pos.into();
+        let size = size.into();
+        // Convert to screen coordinates
+        let x = pos.x + (self.x_pos - lims.0) / (lims.1 - lims.0) * size.x;
+        let y = pos.y;
+
+        ui.push_id(id);
+
+        with_cursor_screen_pos(ui, [x - CLICKABLE_WIDTH, y], || {
+            ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.y]);
+        });
+
+        if ui.is_item_hovered() {
+            ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
+            println!("{}", ui.imgui().is_mouse_clicked(ImMouseButton::Right));
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                println!("CLICK");
+                self.moving = true;
+            }
+            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                ui.open_popup(im_str!("edit-vertical-line"))
+            }
+        }
+
+        if self.moving {
+            let mouse_pos_x = ui.imgui().mouse_pos().0;
+            let x_pos = lims.0 + (mouse_pos_x - pos.x) / size.x * (lims.1 - lims.0);
+            println!("MOUSE:{} TRANS:{}", mouse_pos_x, x_pos);
+            self.x_pos = util::clamp(x_pos, lims.0, lims.1);
+        }
+        if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+            self.moving = false;
+        }
+
+        draw_list
+            .add_line([x, y], [x, y + size.y], LINE_COLOR)
+            .build();
+        draw_list.add_text(
+            [x + LINE_LABEL_LEFT_PADDING, y + LINE_LABEL_TOP_PADDING],
+            LINE_COLOR,
+            &format!("{:.0}", self.x_pos),
+        );
+
+        let mut delete_me = false;
+        ui.popup(im_str!("edit-vertical-line"), || {
+            if ui.menu_item(im_str!("Delete Line")).build() {
+                delete_me = true;
+            }
+        });
+
+        ui.pop_id();
+
+        if delete_me {
+            Some(VerticalLineEvent::Delete)
+        } else {
+            None
+        }
+    }
+}
+
+fn with_cursor_screen_pos<T, P: Into<ImVec2>, F: FnMut() -> T>(ui: &Ui, pos: P, mut f: F) -> T {
+    let previous_cursor_pos = ui.get_cursor_screen_pos();
+    ui.set_cursor_screen_pos(pos);
+    let out = f();
+    ui.set_cursor_screen_pos(previous_cursor_pos);
+    out
 }
 
 impl FinedGrainedROI {
@@ -156,6 +252,11 @@ impl InteractionId {
     /// Get ImGui unique ID
     pub fn id(self) -> i32 {
         self.0 as i32
+    }
+}
+impl From<InteractionId> for ImId<'static> {
+    fn from(id: InteractionId) -> ImId<'static> {
+        ImId::from(id.0 as i32)
     }
 }
 

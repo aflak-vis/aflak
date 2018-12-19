@@ -1,10 +1,11 @@
 use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
 use ndarray::{ArrayBase, Data, Ix1};
 
-use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine};
+use super::interactions::{
+    Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine, VerticalLineEvent,
+};
 use super::lims;
 use super::ticks::XYTicks;
-use super::util;
 use super::AxisTransform;
 use super::Error;
 
@@ -165,63 +166,18 @@ impl State {
 
         let mut line_marked_for_deletion = None;
         // Flag to only allow line to be moved at a time
-        let mut moved_one = false;
         for (id, interaction) in self.interactions.iter_mut() {
-            ui.push_id(id.id());
             match interaction {
-                Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
-                    const LINE_COLOR: u32 = 0xFFFF_FFFF;
-                    const LINE_LABEL_LELT_PADDING: f32 = 10.0;
-                    const LINE_LABEL_TOP_PADDING: f32 = 10.0;
-
-                    let x = p.0 + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size.x;
-                    let y = p.1;
-
-                    const CLICKABLE_WIDTH: f32 = 5.0;
-
-                    let mouse_pos = ui.imgui().mouse_pos();
-                    if ui.is_item_hovered()
-                        && x - CLICKABLE_WIDTH <= mouse_pos.0
-                        && mouse_pos.0 < x + CLICKABLE_WIDTH
-                        && y <= mouse_pos.1
-                        && mouse_pos.1 <= y + size.y
-                    {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                            *moving = true;
-                        }
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
-                            ui.open_popup(im_str!("edit-vertical-line"))
-                        }
+                Interaction::VerticalLine(line) => {
+                    let event = line.draw(ui, &draw_list, *id, p, size, xlims);
+                    if let Some(VerticalLineEvent::Delete) = event {
+                        line_marked_for_deletion = Some(*id);
                     }
-                    if !moved_one && *moving {
-                        moved_one = true;
-                        *x_pos = util::clamp(self.mouse_pos.x.round(), xvlims.0, xvlims.1);
-                    }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
-                        *moving = false;
-                    }
-
-                    draw_list
-                        .add_line([x, y], [x, y + size.y], LINE_COLOR)
-                        .build();
-                    draw_list.add_text(
-                        [x + LINE_LABEL_LELT_PADDING, y + LINE_LABEL_TOP_PADDING],
-                        LINE_COLOR,
-                        &format!("{:.0}", x_pos),
-                    );
-
-                    ui.popup(im_str!("edit-vertical-line"), || {
-                        if ui.menu_item(im_str!("Delete Line")).build() {
-                            line_marked_for_deletion = Some(*id);
-                        }
-                    });
                 }
                 // Unused in plot
                 Interaction::HorizontalLine(_) => {}
                 Interaction::FinedGrainedROI(_) => {}
             }
-            ui.pop_id();
         }
 
         if let Some(line_id) = line_marked_for_deletion {
