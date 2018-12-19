@@ -286,6 +286,22 @@ where
     }
 }
 
+impl<'a, 'b, V, W> ops::Sub<&'b Dimensioned<W>> for &'a Dimensioned<V>
+where
+    &'a V: ops::Sub<&'b W>,
+{
+    type Output = Dimensioned<<&'a V as ops::Sub<&'b W>>::Output>;
+
+    fn sub(self, rhs: &'b Dimensioned<W>) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: &self.value - &rhs.value,
+            unit: self.unit.clone(),
+            homogeneous,
+        }
+    }
+}
+
 impl fmt::Display for Unit {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
