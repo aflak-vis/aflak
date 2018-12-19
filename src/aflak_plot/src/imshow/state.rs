@@ -327,6 +327,8 @@ where
         let p = ui.get_cursor_screen_pos();
 
         ui.image(texture_id, size).build();
+        let is_image_hovered = ui.is_item_hovered();
+
         let abs_mouse_pos = ui.imgui().mouse_pos();
         let mouse_pos = (abs_mouse_pos.0 - p.0, -abs_mouse_pos.1 + p.1 + size.1);
         self.mouse_pos = (
@@ -334,7 +336,7 @@ where
             mouse_pos.1 / size.1 * tex_size.1 as f32,
         );
 
-        if ui.is_item_hovered() {
+        if is_image_hovered {
             let x = self.mouse_pos.0 as usize;
             let y = self.mouse_pos.1 as usize;
             if y < self.image.dim().0 {
@@ -496,7 +498,7 @@ where
                     }
 
                     if selected
-                        && ui.is_item_hovered()
+                        && is_image_hovered
                         && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
                     {
                         let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
