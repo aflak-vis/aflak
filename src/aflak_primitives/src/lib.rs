@@ -173,7 +173,8 @@ Compute a*u + b*v.",
                 "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
-Third output contains (b - a)",
+Third output contains (b - a)
+Note: indices for a and b start from 0",
                 integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
@@ -203,7 +204,8 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 "Average for 3D Image. Parameters: a=start, b=end (a <= b).
 Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
-Third output contains (b - a)",
+Third output contains (b - a)
+Note: indices for a and b start from 0",
                 average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
