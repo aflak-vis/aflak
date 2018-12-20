@@ -744,6 +744,7 @@ where
 {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
+    precheck!(start < end)?;
 
     let image_val = image.scalar();
     let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
@@ -758,12 +759,6 @@ where
         return Err(IOErr::UnexpectedInput(format!(
             "end higher than input image's frame count ({} >= {})",
             end, frame_cnt
-        )));
-    }
-    if start >= end {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start higher than end ({} >= {})",
-            start, end
         )));
     }
 
@@ -810,15 +805,9 @@ fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
+    precheck!(start < end)?;
 
     let image_val = image.scalar();
-
-    if start >= end {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start higher than end ({} >= {})",
-            start, end
-        )));
-    }
 
     let ndim = image_val.ndim();
     if ndim < 1 {
@@ -880,15 +869,9 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
 fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
+    precheck!(start < end)?;
 
     let image_val = image.scalar();
-
-    if start >= end {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start higher than end ({} >= {})",
-            start, end
-        )));
-    }
 
     let ndim = image_val.ndim();
     if ndim < 1 {
