@@ -180,8 +180,8 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Integral for 3D Image. Parameters: a=start, b=end (a <= b).
-Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
+                "Integral for Image. Parameters: a=start, b=end (a <= b).
+Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
@@ -197,24 +197,24 @@ Note: indices for a and b start from 0",
 Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
                 1, 0, 0,
-                ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
-                    if !(off_1 < on && on < off_2) {
+                ratio_from_bands<IOValue, IOErr>(z: Float, z1: Float, z2: Float) -> Float, Float {
+                    if !(z1 < z && z < z2) {
                         use IOErr::UnexpectedInput;
                         let msg = format!(
                             "wrong magnitude correlation ({} < {} < {})",
-                            off_1, on, off_2
+                            z1, z, z2
                         );
                         vec![msg; 2].into_iter().map(|msg| Err(UnexpectedInput(msg))).collect()
                     } else {
-                        let off_ratio_1 = (on - off_1) / (off_2 - off_1);
+                        let off_ratio_1 = (z - z1) / (z2 - z1);
                         let off_ratio_2 = 1.0 - off_ratio_1;
                         vec![Ok(IOValue::Float(off_ratio_2)), Ok(IOValue::Float(off_ratio_1))]
                     }
                 }
             ),
             cake_transform!(
-                "Average for 3D Image. Parameters: a=start, b=end (a <= b).
-Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits image.
+                "Average for Image. Parameters: a=start, b=end (a <= b).
+Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
@@ -227,32 +227,32 @@ Note: indices for a and b start from 0",
             ),
             cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band.
-Parameters i1, i2, onband-width, min, is_emission.
+Parameters i_off, i_on, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
 if value > max, value changes to 0.",
                 0, 1, 0,
-                create_equivalent_width<IOValue, IOErr>(i1: Image, i2: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
-                    vec![run_create_equivalent_width(i1, i2, *fl, *max, *is_emission)]
+                create_equivalent_width<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
+                    vec![run_create_equivalent_width(i_off, i_on, *fl, *max, *is_emission)]
                 }
             ),
             cake_transform!(
-                "Convert to log-scale. Parameter: image i, a, v_min, v_max
+                "Convert to log-scale. Parameter: image, a, v_min, v_max.
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 1, 0, 0,
-                convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
-                    vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
+                convert_to_logscale<IOValue, IOErr>(image: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
+                    vec![run_convert_to_logscale(image, *a, *v_min, *v_max)]
                 }
             ),
             cake_transform!(
-                "Image's min and max value. Parameter: image i.
+                "Image's min and max value. Parameter: image.
 Compute v_min(first), v_max(second)",
                 1, 0, 0,
-                image_min_max<IOValue, IOErr>(i1: Image) -> Float, Float {
+                image_min_max<IOValue, IOErr>(image: Image) -> Float, Float {
                     let mut min = std::f32::MAX;
                     let mut max = std::f32::MIN;
-                    let i1_arr = i1.scalar();
+                    let image_arr = image.scalar();
 
-                    for i in i1_arr {
+                    for i in image_arr {
                         min = min.min(*i);
                         max = max.max(*i);
                     }
@@ -262,23 +262,23 @@ Compute v_min(first), v_max(second)",
             ),
             cake_transform!(
                 "Extract min/max wavelength value of each pixel.
-Parameter: image i, start, end, is_min (start <= end)
+Parameter: image, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
 Note: output wavelength values are discrete. indices for start and end start from 0",
                 0, 1, 0,
-                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
-                    vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
+                extract_argmin_max_wavelength<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
+                    vec![run_argminmax(image, *start, *end, *is_min), run_minmax(image, *start, *end, *is_min)]
                 }
             ),
             cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
-Parameter: image i (which has wavelength value w_i and flux f_i), start, end
+Parameter: image (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
 Note: indices for start and end start from 0",
                 0, 1, 0,
-                extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
-                    vec![run_centroid(i1, *start, *end)]
+                extract_centrobaric_wavelength<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_centroid(image, *start, *end)]
                 }
             ),
             cake_transform!(
@@ -286,10 +286,10 @@ Note: indices for start and end start from 0",
 Parameter: image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                 1, 0, 0,
-                create_velocity_field_map<IOValue, IOErr>(i1: Image, w_0: Float = 0.0) -> Image {
+                create_velocity_field_map<IOValue, IOErr>(image: Image, w_0: Float = 0.0) -> Image {
                     let c = 3e5;
-                    let i1_arr = i1.scalar();
-                    let out = i1_arr.map(|v| c * (*v - w_0) / w_0);
+                    let image_arr = image.scalar();
+                    let out = image_arr.map(|v| c * (*v - w_0) / w_0);
 
                     vec![Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
                         out,
@@ -298,10 +298,10 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                 }
             ),
             cake_transform!(
-                "Negation. Parameter: image i. Compute -i.",
+                "Negation. Parameter: image. Compute -i.",
                 1, 0, 0,
-                negation<IOValue, IOErr>(i1: Image) -> Image {
-                    vec![run_negation(i1)]
+                negation<IOValue, IOErr>(image: Image) -> Image {
+                    vec![run_negation(image)]
                 }
             ),
         ]
@@ -760,7 +760,7 @@ fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
 }
 
-fn reduce_array_slice<F>(im: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
+fn reduce_array_slice<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
@@ -779,7 +779,7 @@ where
     let start = start as usize;
     let end = end as usize;
 
-    let image_val = im.scalar();
+    let image_val = image.scalar();
     let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
         *frame_cnt
     } else {
@@ -805,25 +805,25 @@ where
     let raw = f(&slices);
     let ndim = raw.ndim();
 
-    let wrap_with_unit = im.make_slice(
+    let wrap_with_unit = image.make_slice(
         &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
-        im.array().with_new_value(raw),
+        image.array().with_new_value(raw),
     );
 
     Ok(IOValue::Image(wrap_with_unit))
 }
 
-fn run_integral(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    reduce_array_slice(im, start, end, |slices| slices.sum_axis(Axis(0)))
+fn run_integral(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(image, start, end, |slices| slices.sum_axis(Axis(0)))
 }
 
-fn run_average(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    reduce_array_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
+fn run_average(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(image, start, end, |slices| slices.mean_axis(Axis(0)))
 }
 
-fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
     if !is_min {
-        reduce_array_slice(im, start, end, |slices| {
+        reduce_array_slice(image, start, end, |slices| {
             slices.fold_axis(
                 Axis(0),
                 -std::f32::INFINITY,
@@ -831,7 +831,7 @@ fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOVal
             )
         })
     } else {
-        reduce_array_slice(im, start, end, |slices| {
+        reduce_array_slice(image, start, end, |slices| {
             slices.fold_axis(
                 Axis(0),
                 std::f32::INFINITY,
@@ -841,7 +841,7 @@ fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOVal
     }
 }
 
-fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
             "start must be positive, but got {}",
@@ -855,7 +855,7 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         )));
     }
 
-    let image_val = im.scalar();
+    let image_val = image.scalar();
 
     let start = start as usize;
     let end = end as usize;
@@ -897,13 +897,13 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             if !is_min && slice[&index] > value {
                 value = slice[&index];
-                out = match im.pix2world(2, (k + start) as f32) {
+                out = match image.pix2world(2, (k + start) as f32) {
                     Some(value) => value,
                     None => (k + start) as f32,
                 };
             } else if is_min && slice[&index] < value {
                 value = slice[&index];
-                out = match im.pix2world(2, (k + start) as f32) {
+                out = match image.pix2world(2, (k + start) as f32) {
                     Some(value) => value,
                     None => (k + start) as f32,
                 };
@@ -924,7 +924,7 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
     ))))
 }
 
-fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     if start < 0 {
         return Err(IOErr::UnexpectedInput(format!(
             "start must be positive, but got {}",
@@ -938,7 +938,7 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
         )));
     }
 
-    let image_val = im.scalar();
+    let image_val = image.scalar();
 
     let start = start as usize;
     let end = end as usize;
@@ -984,7 +984,7 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
         let mut out = 0.0;
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             let flux = slice[&index];
-            let wavelength = match im.pix2world(2, (k + start) as f32) {
+            let wavelength = match image.pix2world(2, (k + start) as f32) {
                 Some(value) => value,
                 None => (k + start) as f32,
             };
@@ -1009,15 +1009,15 @@ fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 }
 
 fn run_create_equivalent_width(
-    i1: &WcsArray,
-    i2: &WcsArray,
+    i_off: &WcsArray,
+    i_on: &WcsArray,
     fl: f32,
     max: f32,
     is_emission: bool,
 ) -> Result<IOValue, IOErr> {
-    let i1_arr = i1.scalar();
-    let i2_arr = i2.scalar();
-    let out = (i1_arr - i2_arr) * fl / i1_arr * (if is_emission { -1.0 } else { 1.0 });
+    let i_off_arr = i_off.scalar();
+    let i_on_arr = i_on.scalar();
+    let out = (i_off_arr - i_on_arr) * fl / i_off_arr * (if is_emission { -1.0 } else { 1.0 });
     let result = out.map(|v| if *v > max { 0.0 } else { *v });
 
     // FIXME: Unit support
@@ -1033,12 +1033,12 @@ fn run_create_equivalent_width(
 }
 
 fn run_convert_to_logscale(
-    i1: &WcsArray,
+    image: &WcsArray,
     a: f32,
     v_min: f32,
     v_max: f32,
 ) -> Result<IOValue, IOErr> {
-    let mut out = i1.clone();
+    let mut out = image.clone();
     for v in out.scalar_mut().iter_mut() {
         *v = (*v - v_min) / (v_max - v_min);
         *v = (a * *v + 1.0).ln() / a.ln();
@@ -1047,8 +1047,8 @@ fn run_convert_to_logscale(
     Ok(IOValue::Image(out))
 }
 
-fn run_negation(i1: &WcsArray) -> Result<IOValue, IOErr> {
-    let mut out = i1.clone();
+fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
+    let mut out = image.clone();
     for v in out.scalar_mut().iter_mut() {
         *v = -*v;
     }
