@@ -9,7 +9,7 @@ use variant_name::VariantName;
 
 use super::ConvertibleVariants;
 use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
-use transform::{Algorithm, Transform};
+use transform::{Algorithm, Transform, Version};
 
 /// Trait that defines a function to get a [`Transform`] by its name.
 pub trait NamedAlgorithms<E>: Sized {
@@ -68,14 +68,14 @@ impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
 #[doc(hidden)]
 #[derive(Copy, Clone, Debug, Serialize)]
 pub enum SerialTransform<'t, T: 't> {
-    Function(&'static str),
+    Function(&'static str, u8, u8, u8),
     Constant(&'t T),
 }
 
 #[doc(hidden)]
 #[derive(Clone, Debug, Deserialize)]
 pub enum DeserTransform<T, E> {
-    Function(String),
+    Function(String, u8, u8, u8),
     Constant(T),
     Phantom(PhantomData<fn() -> E>),
 }
@@ -86,7 +86,16 @@ where
 {
     pub fn new<E>(t: &'t Transform<T, E>) -> Self {
         match t.algorithm() {
-            Algorithm::Function { id, .. } => SerialTransform::Function(id.name()),
+            Algorithm::Function {
+                id,
+                version:
+                    Version {
+                        major,
+                        minor,
+                        patch,
+                    },
+                ..
+            } => SerialTransform::Function(id.name(), *major, *minor, *patch),
             Algorithm::Constant(ref c) => SerialTransform::Constant(c),
         }
     }
@@ -98,8 +107,16 @@ where
 {
     pub fn into_transform(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
         match self {
-            DeserTransform::Function(name) => {
+            DeserTransform::Function(name, major, _, _) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
+                    if let Algorithm::Function { version: v, .. } = t.algorithm() {
+                        if v.major != major {
+                            eprintln!(
+                                "Current built-in transform '{}' is of major version {}, but the program was written with the major version {}",
+                                name, v.major, major
+                            );
+                        }
+                    }
                     Ok(Bow::Borrowed(t))
                 } else {
                     Err(ImportError::TransformNotFound(format!(
