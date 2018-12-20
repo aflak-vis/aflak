@@ -19,6 +19,7 @@ pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 pub enum ComputeError<E> {
     UnattachedOutputID(OutputId),
     MissingOutputID(OutputId),
+    MissingNode(TransformIdx),
     ComputeError(String),
     NothingDoneYet,
     InnerComputeError {
@@ -48,6 +49,7 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 write!(f, "Output #{} is not attached to a program", output_id.id())
             }
             MissingOutputID(output_id) => write!(f, "Output #{} is not found", output_id.id()),
+            MissingNode(t_idx) => write!(f, "Node #{} not found", t_idx.id()),
             ComputeError(s) => write!(f, "Compute error! {}", s),
             InnerComputeError {
                 cause,
@@ -122,10 +124,9 @@ where
         let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
             meta
         } else {
-            return Err(Timed::from(Arc::new(ComputeError::ComputeError(format!(
-                "Transform {:?} not found!",
-                output.t_idx
-            )))));
+            return Err(Timed::from(Arc::new(ComputeError::MissingNode(
+                output.t_idx,
+            ))));
         };
 
         let t_idx = output.t_idx;
