@@ -471,6 +471,165 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
     Cursor::new(ron)
 }
 
+pub fn show_velocity_field<P: AsRef<Path>>(path: P) -> Cursor<String> {
+    let path = path.as_ref().to_string_lossy();
+    let ron = format!(
+        r#"
+(
+    dst: (
+        transforms: [
+            ((1), (
+                t: Constant(Path({:?})),
+                input_defaults: [
+                ],
+            )),
+            ((2), (
+                t: Function("open_fits", 1, 0, 0),
+                input_defaults: [
+                    None,
+                ],
+            )),
+            ((3), (
+                t: Function("fits_to_image", 1, 0, 0),
+                input_defaults: [
+                    None,
+                    Some(Integer(0)),
+                    Some(Str("FLUX")),
+                ],
+            )),
+            ((4), (
+                t: Function("extract_argmin_max_wavelength", 0, 1, 0),
+                input_defaults: [
+                    None,
+                    Some(Integer(3135)),
+                    Some(Integer(3155)),
+                    Some(Bool(false)),
+                ],
+            )),
+            ((5), (
+                t: Function("extract_centrobaric_wavelength", 0, 1, 0),
+                input_defaults: [
+                    None,
+                    Some(Integer(3135)),
+                    Some(Integer(3155)),
+                ],
+            )),
+            ((6), (
+                t: Function("create_velocity_field_map", 1, 0, 0),
+                input_defaults: [
+                    None,
+                    Some(Float(6765.6)),
+                ],
+            )),
+            ((7), (
+                t: Function("create_velocity_field_map", 1, 0, 0),
+                input_defaults: [
+                    None,
+                    Some(Float(6765.6)),
+                ],
+            )),
+        ],
+        edges: [
+            ((
+                t_idx: (1),
+                output_i: (0),
+            ), (
+                t_idx: (2),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (2),
+                output_i: (0),
+            ), (
+                t_idx: (3),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (3),
+                output_i: (0),
+            ), (
+                t_idx: (4),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (3),
+                output_i: (0),
+            ), (
+                t_idx: (5),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (4),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (5),
+                output_i: (0),
+            ), (
+                t_idx: (7),
+                input_i: (0),
+            )),
+        ],
+        outputs: [
+            ((1), Some((
+                t_idx: (6),
+                output_i: (0),
+            ))),
+            ((2), Some((
+                t_idx: (7),
+                output_i: (0),
+            ))),
+        ],
+    ),
+    node_states: [
+        (Transform((1)), (
+            pos: (-785, -596),
+            size: (410, 200),
+        )),
+        (Transform((2)), (
+            pos: (-469, -361),
+            size: (72, 46),
+        )),
+        (Transform((3)), (
+            pos: (-425, -298),
+            size: (217, 84),
+        )),
+        (Transform((4)), (
+            pos: (-125.10004, -423.3),
+            size: (212, 102.29999),
+        )),
+        (Transform((5)), (
+            pos: (-128.5, -150.70001),
+            size: (219, 83.70001),
+        )),
+        (Transform((6)), (
+            pos: (207.19995, -401.80002),
+            size: (209.80005, 64.80002),
+        )),
+        (Transform((7)), (
+            pos: (207.59998, -141.79999),
+            size: (209.40002, 64.79999),
+        )),
+        (Output((1)), (
+            pos: (489.90002, -383.1),
+            size: (72, 29),
+        )),
+        (Output((2)), (
+            pos: (480.69995, -123),
+            size: (72, 29),
+        )),
+    ],
+    scrolling: (-788, -596),
+)
+        "#,
+        path
+    );
+    Cursor::new(ron)
+}
+
 pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let path = path.as_ref().to_string_lossy();
     let ron = format!(
