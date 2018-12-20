@@ -39,7 +39,7 @@ where
     /// Returns an error if cycle is created or if output or input does not exist.
     ///
     /// If input is already connector to another output, delete this output.
-    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError<E>>
+    pub fn connect(&mut self, output: Output, input: Input) -> Result<(), DSTError>
     where
         T: ConvertibleVariants,
     {
@@ -158,7 +158,7 @@ where
     /// Attach an output to the graph. Only the attached outputs are lazily evaluated.
     /// Return the unique identifier to the attached output.
     /// Return an error if specified output does not exists in current graph.
-    pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError<E>> {
+    pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
             self.update_output(idx, output);

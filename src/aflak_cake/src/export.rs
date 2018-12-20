@@ -19,7 +19,7 @@ pub trait NamedAlgorithms<E>: Sized {
 
 /// Error type used to represent a failed deserialization into DST.
 #[derive(Debug)]
-pub enum ImportError<E> {
+pub enum ImportError {
     /// An unknown transform name was used.
     TransformNotFound(String),
     /// Default input type does not conform to expectation.
@@ -30,13 +30,10 @@ pub enum ImportError<E> {
         transform_idx: TransformIdx,
     },
     /// The DST cannot be constructed because it is inconsistent.
-    ConstructionError(&'static str, DSTError<E>),
+    ConstructionError(&'static str, DSTError),
 }
 
-impl<E> fmt::Display for ImportError<E>
-where
-    E: fmt::Display,
-{
+impl fmt::Display for ImportError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ImportError::TransformNotFound(ref s) => write!(f, "Transform not found! {}", s),
@@ -59,7 +56,7 @@ where
     }
 }
 
-impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
+impl error::Error for ImportError {
     fn description(&self) -> &'static str {
         "ImportError"
     }
@@ -105,7 +102,7 @@ impl<T, E> DeserTransform<T, E>
 where
     T: NamedAlgorithms<E>,
 {
-    pub fn into_transform(self) -> Result<Bow<'static, Transform<T, E>>, ImportError<E>> {
+    pub fn into_transform(self) -> Result<Bow<'static, Transform<T, E>>, ImportError> {
         match self {
             DeserTransform::Function(name, major, _, _) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
@@ -205,7 +202,7 @@ where
     T: Clone + NamedAlgorithms<E> + VariantName + ConvertibleVariants,
 {
     /// Converts this intermediary representation of a DST into a normal DST.
-    pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError<E>> {
+    pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError> {
         let mut dst = DST::new();
         for (t_idx, meta) in self.transforms {
             let t = meta.t.into_transform()?;

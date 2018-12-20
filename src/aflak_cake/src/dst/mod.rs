@@ -301,28 +301,15 @@ pub struct OutputId(usize);
 
 /// Errors when computing or building a [`DST`].
 #[derive(Debug)]
-pub enum DSTError<E> {
+pub enum DSTError {
     InvalidInput(String),
     InvalidOutput(String),
     DuplicateEdge(String),
     Cycle(String),
     IncompatibleTypes(String),
-    MissingOutputID(String),
-    ComputeError(String),
-    InnerComputeError {
-        cause: E,
-        t_idx: TransformIdx,
-        t_name: &'static str,
-    },
-    NothingDoneYet,
-    ErrorStack {
-        cause: ::std::sync::Arc<DSTError<E>>,
-        t_idx: TransformIdx,
-        t_name: &'static str,
-    },
 }
 
-impl<E: fmt::Display> fmt::Display for DSTError<E> {
+impl fmt::Display for DSTError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use DSTError::*;
 
@@ -332,44 +319,11 @@ impl<E: fmt::Display> fmt::Display for DSTError<E> {
             DuplicateEdge(s) => write!(f, "Duplicated edge! {}", s),
             Cycle(s) => write!(f, "Cannot create cyclic dependency! {}", s),
             IncompatibleTypes(s) => write!(f, "Incompatible types! {}", s),
-            MissingOutputID(s) => write!(f, "Missing output ID! {}", s),
-            ComputeError(s) => write!(f, "Compute error! {}", s),
-            InnerComputeError {
-                cause,
-                t_idx,
-                t_name,
-            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
-            NothingDoneYet => write!(f, "Nothing done yet!"),
-            ErrorStack {
-                cause,
-                t_idx,
-                t_name,
-            } => {
-                // Unwind the stack and print it
-                let mut stack = vec![(cause, t_idx, t_name)];
-                let mut error = cause;
-                while let DSTError::ErrorStack {
-                    cause,
-                    t_idx,
-                    t_name,
-                } = &**error
-                {
-                    stack.push((cause, t_idx, t_name));
-                    error = cause;
-                }
-                if let Some((root_cause, t_idx, t_name)) = stack.pop() {
-                    write!(f, "{}\n    in node #{} {}", root_cause, t_idx.0, t_name)?;
-                }
-                while let Some((_, t_idx, t_name)) = stack.pop() {
-                    write!(f, "\n    in node #{} {}", t_idx.0, t_name)?;
-                }
-                Ok(())
-            }
         }
     }
 }
 
-impl<E: fmt::Display + fmt::Debug> Error for DSTError<E> {
+impl Error for DSTError {
     fn description(&self) -> &str {
         "aflak_cake::DSTError"
     }

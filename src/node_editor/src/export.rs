@@ -107,7 +107,7 @@ where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
 {
-    pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError<E>> {
+    pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError> {
         self.dst = import.dst.into_dst()?;
 
         // Set Ui node states
@@ -136,13 +136,13 @@ where
 }
 
 #[derive(Debug)]
-pub enum ImportError<E> {
-    DSTError(cake::ImportError<E>),
+pub enum ImportError {
+    DSTError(cake::ImportError),
     DeserializationError(de::Error),
     IOError(io::Error),
 }
 
-impl<E: fmt::Display> fmt::Display for ImportError<E> {
+impl fmt::Display for ImportError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ImportError::DSTError(ref e) => write!(f, "Error while building DST! {}", e),
@@ -152,26 +152,26 @@ impl<E: fmt::Display> fmt::Display for ImportError<E> {
     }
 }
 
-impl<E: fmt::Display + fmt::Debug> error::Error for ImportError<E> {
+impl error::Error for ImportError {
     fn description(&self) -> &'static str {
         "ImportError"
     }
 }
 
-impl<E> From<io::Error> for ImportError<E> {
+impl From<io::Error> for ImportError {
     fn from(io_error: io::Error) -> Self {
         ImportError::IOError(io_error)
     }
 }
 
-impl<E> From<de::Error> for ImportError<E> {
+impl From<de::Error> for ImportError {
     fn from(deserial_error: de::Error) -> Self {
         ImportError::DeserializationError(deserial_error)
     }
 }
 
-impl<E> From<cake::ImportError<E>> for ImportError<E> {
-    fn from(e: cake::ImportError<E>) -> Self {
+impl From<cake::ImportError> for ImportError {
+    fn from(e: cake::ImportError) -> Self {
         ImportError::DSTError(e)
     }
 }
@@ -191,7 +191,7 @@ where
         r: R,
         addable_nodes: &'t [&'t Transform<T, E>],
         ed: ED,
-    ) -> Result<Self, ImportError<E>>
+    ) -> Result<Self, ImportError>
     where
         R: io::Read,
     {
@@ -204,7 +204,7 @@ where
         file_path: P,
         addable_nodes: &'t [&'t Transform<T, E>],
         ed: ED,
-    ) -> Result<Self, ImportError<E>>
+    ) -> Result<Self, ImportError>
     where
         P: AsRef<Path>,
     {
@@ -212,13 +212,13 @@ where
         Self::from_export_buf(f, addable_nodes, ed)
     }
 
-    pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError<E>> {
+    pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {
         let deserialized = de::from_reader(r)?;
         self.import(deserialized)?;
         Ok(())
     }
 
-    pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError<E>> {
+    pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError> {
         let f = fs::File::open(file_path)?;
         self.import_from_buf(f)
     }

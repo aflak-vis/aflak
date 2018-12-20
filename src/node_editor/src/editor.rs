@@ -7,7 +7,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, Cache, DSTError, InputSlot, Transform, VariantName, DST};
+use cake::{self, Cache, InputSlot, Transform, VariantName, DST};
 
 use compute::ComputationState;
 use constant_editor::ConstantEditor;
@@ -25,7 +25,7 @@ pub struct NodeEditor<'t, T: 't, E: 't, ED> {
     pub(crate) creating_link: Option<LinkExtremity>,
     pub(crate) new_link: Option<(cake::Output, InputSlot)>,
     pub(crate) output_results: BTreeMap<cake::OutputId, ComputationState<T, E>>,
-    pub(crate) cache: Cache<T, DSTError<E>>,
+    pub(crate) cache: Cache<T, cake::compute::ComputeError<E>>,
     pub show_left_pane: bool,
     left_pane_size: Option<f32>,
     pub show_top_pane: bool,

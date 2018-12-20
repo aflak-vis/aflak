@@ -42,7 +42,7 @@ impl Visualizable for Unimplemented {
     }
 }
 
-impl<E: fmt::Display> Visualizable for cake::DSTError<E> {
+impl<E: fmt::Display> Visualizable for cake::compute::ComputeError<E> {
     fn visualize(&self, ui: &Ui) {
         ui.text_wrapped(&ImString::new(format!("{}", self)));
     }

@@ -1,17 +1,84 @@
+use std::error;
+use std::fmt;
 use std::sync::Arc;
 
 use rayon;
 
 use super::super::ConvertibleVariants;
 use cache::{Cache, CacheRef};
-use dst::{DSTError, Output, OutputId, DST};
+use dst::{Output, OutputId, TransformIdx, DST};
 use future::Task;
 use timed::Timed;
 use variant_name::VariantName;
 
 pub type SuccessOut<T> = Timed<Arc<T>>;
-pub type ErrorOut<E> = Timed<Arc<DSTError<E>>>;
+pub type ErrorOut<E> = Timed<Arc<ComputeError<E>>>;
 pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
+
+#[derive(Debug)]
+pub enum ComputeError<E> {
+    MissingOutputID(String),
+    ComputeError(String),
+    NothingDoneYet,
+    InnerComputeError {
+        cause: E,
+        t_idx: TransformIdx,
+        t_name: &'static str,
+    },
+    ErrorStack {
+        cause: Arc<ComputeError<E>>,
+        t_idx: TransformIdx,
+        t_name: &'static str,
+    },
+}
+
+impl<E: fmt::Display + fmt::Debug> error::Error for ComputeError<E> {
+    fn description(&self) -> &'static str {
+        "aflak_cake::ComputeError"
+    }
+}
+
+impl<E: fmt::Display> fmt::Display for ComputeError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::ComputeError::*;
+
+        match self {
+            MissingOutputID(s) => write!(f, "Missing output ID! {}", s),
+            ComputeError(s) => write!(f, "Compute error! {}", s),
+            InnerComputeError {
+                cause,
+                t_idx,
+                t_name,
+            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
+            NothingDoneYet => write!(f, "Nothing done yet!"),
+            ErrorStack {
+                cause,
+                t_idx,
+                t_name,
+            } => {
+                // Unwind the stack and print it
+                let mut stack = vec![(cause, t_idx, t_name)];
+                let mut error = cause;
+                while let ErrorStack {
+                    cause,
+                    t_idx,
+                    t_name,
+                } = &**error
+                {
+                    stack.push((cause, t_idx, t_name));
+                    error = cause;
+                }
+                if let Some((root_cause, t_idx, t_name)) = stack.pop() {
+                    write!(f, "{}\n    in node #{} {}", root_cause, t_idx.0, t_name)?;
+                }
+                while let Some((_, t_idx, t_name)) = stack.pop() {
+                    write!(f, "\n    in node #{} {}", t_idx.0, t_name)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
 
 impl<T, E> DST<'static, T, E>
 where
@@ -24,7 +91,7 @@ where
     pub fn compute(
         &self,
         output_id: OutputId,
-        cache: &mut Cache<T, DSTError<E>>,
+        cache: &mut Cache<T, ComputeError<E>>,
     ) -> Task<SuccessOut<T>, ErrorOut<E>> {
         let t_indices = self.transforms.keys().cloned();
         cache.init(t_indices);
@@ -36,24 +103,22 @@ where
                 let dst = self.clone();
                 Task::new(move || dst._compute(output, cache_ref))
             } else {
-                Task::errored(Timed::from(Arc::new(DSTError::MissingOutputID(format!(
-                    "Output ID {:?} is not attached!",
-                    output_id
-                )))))
+                Task::errored(Timed::from(Arc::new(ComputeError::MissingOutputID(
+                    format!("Output ID {:?} is not attached!", output_id),
+                ))))
             }
         } else {
-            Task::errored(Timed::from(Arc::new(DSTError::MissingOutputID(format!(
-                "Output ID {:?} not found!",
-                output_id
-            )))))
+            Task::errored(Timed::from(Arc::new(ComputeError::MissingOutputID(
+                format!("Output ID {:?} not found!", output_id),
+            ))))
         }
     }
 
-    fn _compute(&self, output: Output, cache: CacheRef<T, DSTError<E>>) -> NodeResult<T, E> {
+    fn _compute(&self, output: Output, cache: CacheRef<T, ComputeError<E>>) -> NodeResult<T, E> {
         let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
             meta
         } else {
-            return Err(Timed::from(Arc::new(DSTError::ComputeError(format!(
+            return Err(Timed::from(Arc::new(ComputeError::ComputeError(format!(
                 "Transform {:?} not found!",
                 output.t_idx
             )))));
@@ -70,7 +135,7 @@ where
 
             let mut results = Vec::with_capacity(deps.len());
             for _ in 0..(deps.len()) {
-                results.push(Err(Arc::new(DSTError::NothingDoneYet)));
+                results.push(Err(Arc::new(ComputeError::NothingDoneYet)));
             }
             let defaults = meta.defaults().to_vec();
             rayon::scope(|s| {
@@ -83,7 +148,7 @@ where
                         } else if let Some(default) = default {
                             Ok(Arc::new(default))
                         } else {
-                            Err(Arc::new(DSTError::ComputeError(
+                            Err(Arc::new(ComputeError::ComputeError(
                                 "Missing dependency! Cannot compute.".to_owned(),
                             )))
                         }
@@ -98,7 +163,7 @@ where
                 match result {
                     Ok(ok) => op.feed(&**ok),
                     Err(e) => {
-                        let error_stack = DSTError::ErrorStack {
+                        let error_stack = ComputeError::ErrorStack {
                             cause: e.clone(),
                             t_idx,
                             t_name: t.name(),
@@ -110,7 +175,7 @@ where
             let mut out = Vec::with_capacity(output_count);
             for output in op.call() {
                 out.push(output.map(Arc::new).map_err(|e| {
-                    Arc::new(DSTError::InnerComputeError {
+                    Arc::new(ComputeError::InnerComputeError {
                         cause: e,
                         t_idx,
                         t_name: t.name(),
@@ -122,7 +187,7 @@ where
             let timed = Timed::map(result, |mut result| result.remove(index));
             Timed::map_result(timed)
         } else {
-            Err(Timed::from(Arc::new(DSTError::ComputeError(format!(
+            Err(Timed::from(Arc::new(ComputeError::ComputeError(format!(
                 "Cache is undergoing deletion! Cannot compute output {} now",
                 output,
             )))))
