@@ -6,7 +6,7 @@ use rayon;
 
 use super::super::ConvertibleVariants;
 use cache::{Cache, CacheRef};
-use dst::{Output, OutputId, TransformIdx, DST};
+use dst::{Input, Output, OutputId, TransformIdx, DST};
 use future::Task;
 use timed::Timed;
 use variant_name::VariantName;
@@ -20,6 +20,10 @@ pub enum ComputeError<E> {
     UnattachedOutputID(OutputId),
     MissingOutputID(OutputId),
     MissingNode(TransformIdx),
+    MissingDependency {
+        input: Input,
+        t_name: &'static str,
+    },
     UnusableCache(Output),
     ComputeError(String),
     NothingDoneYet,
@@ -51,6 +55,11 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
             }
             MissingOutputID(output_id) => write!(f, "Output #{} is not found", output_id.id()),
             MissingNode(t_idx) => write!(f, "Node #{} not found", t_idx.id()),
+            MissingDependency { input, t_name } => write!(
+                f,
+                "No output attached to {} in '{}', cannot compute",
+                input, t_name
+            ),
             UnusableCache(output) => write!(
                 f,
                 "Cache is unusable as it is undergoing deletion! Cannot compute {} now",
@@ -135,6 +144,7 @@ where
             ))));
         };
 
+        let t = meta.transform();
         let t_idx = output.t_idx;
         let index: usize = output.output_i.into();
         let updated_on = self.updated_on(t_idx);
@@ -150,7 +160,8 @@ where
             }
             let defaults = meta.defaults().to_vec();
             rayon::scope(|s| {
-                for ((result, parent_output), default) in results.iter_mut().zip(deps).zip(defaults)
+                for (i, ((result, parent_output), default)) in
+                    results.iter_mut().zip(deps).zip(defaults).enumerate()
                 {
                     let cache_clone = cache.clone();
                     s.spawn(move |_| {
@@ -159,15 +170,15 @@ where
                         } else if let Some(default) = default {
                             Ok(Arc::new(default))
                         } else {
-                            Err(Arc::new(ComputeError::ComputeError(
-                                "Missing dependency! Cannot compute.".to_owned(),
-                            )))
+                            Err(Arc::new(ComputeError::MissingDependency {
+                                input: Input::new(t_idx, i),
+                                t_name: t.name(),
+                            }))
                         }
                     })
                 }
             });
 
-            let t = meta.transform();
             let output_count = t.outputs().len();
             let mut op = t.start();
             for result in &results {
