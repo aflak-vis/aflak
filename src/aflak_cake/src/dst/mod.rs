@@ -315,6 +315,11 @@ pub enum DSTError<E> {
         t_name: &'static str,
     },
     NothingDoneYet,
+    ErrorStack {
+        cause: ::std::sync::Arc<DSTError<E>>,
+        t_idx: TransformIdx,
+        t_name: &'static str,
+    },
 }
 
 impl<E: fmt::Display> fmt::Display for DSTError<E> {
@@ -335,6 +340,31 @@ impl<E: fmt::Display> fmt::Display for DSTError<E> {
                 t_name,
             } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
             NothingDoneYet => write!(f, "Nothing done yet!"),
+            ErrorStack {
+                cause,
+                t_idx,
+                t_name,
+            } => {
+                // Unwind the stack and print it
+                let mut stack = vec![(cause, t_idx, t_name)];
+                let mut error = cause;
+                while let DSTError::ErrorStack {
+                    cause,
+                    t_idx,
+                    t_name,
+                } = &**error
+                {
+                    stack.push((cause, t_idx, t_name));
+                    error = cause;
+                }
+                if let Some((root_cause, t_idx, t_name)) = stack.pop() {
+                    write!(f, "{}\n    in node #{} {}", root_cause, t_idx.0, t_name)?;
+                }
+                while let Some((_, t_idx, t_name)) = stack.pop() {
+                    write!(f, "\n    in node #{} {}", t_idx.0, t_name)?;
+                }
+                Ok(())
+            }
         }
     }
 }

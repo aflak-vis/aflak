@@ -97,7 +97,14 @@ where
             for result in &results {
                 match result {
                     Ok(ok) => op.feed(&**ok),
-                    Err(e) => return vec![Err((*e).clone()); output_count],
+                    Err(e) => {
+                        let error_stack = DSTError::ErrorStack {
+                            cause: e.clone(),
+                            t_idx,
+                            t_name: t.name(),
+                        };
+                        return vec![Err(Arc::new(error_stack)); output_count];
+                    }
                 }
             }
             let mut out = Vec::with_capacity(output_count);
