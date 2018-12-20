@@ -255,6 +255,15 @@ Note: output wavelength values are discrete. indices for start and end start fro
                 }
             ),
             cake_transform!(
+                "Extract centrobaric wavelength value of each pixel.
+Parameter: image i (which has wavelength value w_i and flux f_i), start, end
+Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
+Note: indices for start and end start from 0",
+                extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_centroid(i1, *start, *end)]
+                }
+            ),
+            cake_transform!(
                 "Create velocity field map
 Parameter: image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
@@ -891,6 +900,90 @@ fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         waveimg,
+        Unit::None,
+    ))))
+}
+
+fn run_centroid(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    if start < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be positive, but got {}",
+            start
+        )));
+    }
+    if end < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be positive, but got {}",
+            end
+        )));
+    }
+
+    let image_val = im.scalar();
+
+    let start = start as usize;
+    let end = end as usize;
+
+    if start >= end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start higher than end ({} >= {})",
+            start, end
+        )));
+    }
+
+    let ndim = image_val.ndim();
+    if ndim < 1 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot compute {}-Dimensional array",
+            ndim
+        )));
+    }
+    let len_of_axis0 = image_val.len_of(Axis(0));
+    if end > len_of_axis0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than length of axis ({} > {})",
+            end, len_of_axis0
+        )));
+    }
+
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+    let new_size_2 = new_size.clone();
+
+    let flux_sum = ArrayD::from_shape_fn(new_size, |index| {
+        let mut out = 0.0;
+        for (_, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            out += flux;
+        }
+        out
+    });
+
+    let waveimg = ArrayD::from_shape_fn(new_size_2, |index| {
+        let mut out = 0.0;
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            let wavelength = match im.pix2world(2, (k + start) as f32) {
+                Some(value) => value,
+                None => (k + start) as f32,
+            };
+            out += flux * wavelength;
+        }
+        out
+    });
+
+    let result = waveimg / flux_sum;
+
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // 'waveimg' must have [flux * wavelength], 'flux_sum' must have [flux]
+    // 'result' = waveimg / flux_sum   must have [wavelength]
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
         Unit::None,
     ))))
 }
