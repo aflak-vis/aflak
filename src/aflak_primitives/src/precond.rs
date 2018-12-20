@@ -78,3 +78,19 @@ macro_rules! is_sliceable {
         })
     };
 }
+
+/// Check that two WcsArray have the same dimensions
+macro_rules! are_same_dim {
+    ($wcs_array1: ident, $wcs_array2: ident) => {{
+        let i1_dim = $wcs_array1.scalar().dim();
+        let i2_dim = $wcs_array2.scalar().dim();
+        if i1_dim == i2_dim {
+            Ok(())
+        } else {
+            Err(IOErr::UnexpectedInput(format!(
+                "Cannot compose images of different dimensions ('{}' has dimension {:?}, while '{}' has dimension {:?})",
+                stringify!($wcs_array1), i1_dim, stringify!($wcs_array2), i2_dim,
+            )))
+        }
+    }};
+}
