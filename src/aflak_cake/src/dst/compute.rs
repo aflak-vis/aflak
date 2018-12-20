@@ -102,11 +102,13 @@ where
             }
             let mut out = Vec::with_capacity(output_count);
             for output in op.call() {
-                out.push(
-                    output
-                        .map(Arc::new)
-                        .map_err(|e| Arc::new(DSTError::InnerComputeError(e))),
-                );
+                out.push(output.map(Arc::new).map_err(|e| {
+                    Arc::new(DSTError::InnerComputeError {
+                        cause: e,
+                        t_idx,
+                        t_name: t.name(),
+                    })
+                }));
             }
             out
         }) {
