@@ -300,6 +300,12 @@ impl MenuBar for primitives::WcsArray {
         use primitives::ndarray::Dimension;
         let ui = &ctx.ui;
         match self.scalar().dim().ndim() {
+            0 => {
+                let arr = self.array();
+                let val = arr.scalar()[[]];
+                let unit = arr.unit().repr();
+                ui.text(format!("{} {}", val, unit));
+            }
             1 => {
                 let state = &mut ctx.window.image1d_state;
                 update_state_from_editor(
@@ -407,6 +413,7 @@ impl MenuBar for primitives::WcsArray {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         let arr = self.scalar();
+        // TODO: 0-dim arrays are incorrectly exported for the time being
         Fits::create(
             path,
             Hdu::new(
