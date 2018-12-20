@@ -17,7 +17,8 @@ pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 
 #[derive(Debug)]
 pub enum ComputeError<E> {
-    MissingOutputID(String),
+    UnattachedOutputID(OutputId),
+    MissingOutputID(OutputId),
     ComputeError(String),
     NothingDoneYet,
     InnerComputeError {
@@ -43,7 +44,10 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
         use self::ComputeError::*;
 
         match self {
-            MissingOutputID(s) => write!(f, "Missing output ID! {}", s),
+            UnattachedOutputID(output_id) => {
+                write!(f, "Output #{} is not attached to a program", output_id.id())
+            }
+            MissingOutputID(output_id) => write!(f, "Output #{} is not found", output_id.id()),
             ComputeError(s) => write!(f, "Compute error! {}", s),
             InnerComputeError {
                 cause,
@@ -103,13 +107,13 @@ where
                 let dst = self.clone();
                 Task::new(move || dst._compute(output, cache_ref))
             } else {
-                Task::errored(Timed::from(Arc::new(ComputeError::MissingOutputID(
-                    format!("Output ID {:?} is not attached!", output_id),
+                Task::errored(Timed::from(Arc::new(ComputeError::UnattachedOutputID(
+                    output_id,
                 ))))
             }
         } else {
             Task::errored(Timed::from(Arc::new(ComputeError::MissingOutputID(
-                format!("Output ID {:?} not found!", output_id),
+                output_id,
             ))))
         }
     }
