@@ -309,7 +309,11 @@ pub enum DSTError<E> {
     IncompatibleTypes(String),
     MissingOutputID(String),
     ComputeError(String),
-    InnerComputeError(E),
+    InnerComputeError {
+        cause: E,
+        t_idx: TransformIdx,
+        t_name: &'static str,
+    },
     NothingDoneYet,
 }
 
@@ -325,7 +329,11 @@ impl<E: fmt::Display> fmt::Display for DSTError<E> {
             IncompatibleTypes(s) => write!(f, "Incompatible types! {}", s),
             MissingOutputID(s) => write!(f, "Missing output ID! {}", s),
             ComputeError(s) => write!(f, "Compute error! {}", s),
-            InnerComputeError(e) => e.fmt(f),
+            InnerComputeError {
+                cause,
+                t_idx,
+                t_name,
+            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
             NothingDoneYet => write!(f, "Nothing done yet!"),
         }
     }
