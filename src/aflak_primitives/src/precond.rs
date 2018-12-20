@@ -31,4 +31,11 @@ macro_rules! precheck {
             )))
         }
     };
+    ($cond: expr, $($arg:tt)*) => {
+        if $cond {
+            Ok(())
+        } else {
+            Err($crate::IOErr::UnexpectedInput(format!($($arg)*)))
+        }
+    };
 }
