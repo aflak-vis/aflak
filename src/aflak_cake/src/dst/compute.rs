@@ -20,6 +20,7 @@ pub enum ComputeError<E> {
     UnattachedOutputID(OutputId),
     MissingOutputID(OutputId),
     MissingNode(TransformIdx),
+    UnusableCache(Output),
     ComputeError(String),
     NothingDoneYet,
     InnerComputeError {
@@ -50,6 +51,11 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
             }
             MissingOutputID(output_id) => write!(f, "Output #{} is not found", output_id.id()),
             MissingNode(t_idx) => write!(f, "Node #{} not found", t_idx.id()),
+            UnusableCache(output) => write!(
+                f,
+                "Cache is unusable as it is undergoing deletion! Cannot compute {} now",
+                output
+            ),
             ComputeError(s) => write!(f, "Compute error! {}", s),
             InnerComputeError {
                 cause,
@@ -192,10 +198,7 @@ where
             let timed = Timed::map(result, |mut result| result.remove(index));
             Timed::map_result(timed)
         } else {
-            Err(Timed::from(Arc::new(ComputeError::ComputeError(format!(
-                "Cache is undergoing deletion! Cannot compute output {} now",
-                output,
-            )))))
+            Err(Timed::from(Arc::new(ComputeError::UnusableCache(output))))
         }
     }
 }
