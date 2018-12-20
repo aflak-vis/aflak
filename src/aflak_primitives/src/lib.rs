@@ -13,6 +13,8 @@ extern crate serde;
 extern crate serde_derive;
 
 mod fits;
+#[macro_use]
+mod precond;
 mod roi;
 mod unit;
 
@@ -387,15 +389,10 @@ fn run_fits_to_image(
     hdu_idx: i64,
     extension: &str,
 ) -> Result<IOValue, IOErr> {
+    let hdu_idx = try_into_unsigned!(hdu_idx)?;
     let primary_hdu = fits
         .get_by_name(extension)
-        .or_else(|| {
-            if hdu_idx < 0 {
-                None
-            } else {
-                fits.get(hdu_idx as usize)
-            }
-        })
+        .or_else(|| fits.get(hdu_idx))
         .ok_or_else(|| {
             let hdu_name = if hdu_idx == 0 {
                 "Primary HDU".to_owned()
@@ -417,14 +414,7 @@ fn run_fits_to_image(
 }
 
 fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, IOErr> {
-    if frame_idx < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "slice_one_frame: frame index must be positive, got {}",
-            frame_idx
-        )));
-    }
-
-    let frame_idx = frame_idx as usize;
+    let frame_idx = try_into_unsigned!(frame_idx)?;
 
     let image_val = input_img.scalar();
 
@@ -654,21 +644,9 @@ fn run_make_plane3d(
     count2: i64,
 ) -> Result<IOValue, IOErr> {
     let (&[x0, y0, z0], &[dx1, dy1, dz1], &[dx2, dy2, dz2]) = (p0, dir1, dir2);
-    if count1 <= 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "count1 must be strictly positive. Got {}",
-            count1
-        )));
-    }
-    if count2 <= 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "count2 must be strictly positive. Got {}",
-            count2
-        )));
-    }
+    let count1 = try_into_unsigned!(count1)?;
+    let count2 = try_into_unsigned!(count2)?;
 
-    let count1 = count1 as usize;
-    let count2 = count2 as usize;
     let map = Array2::from_shape_fn((count2, count1), |(j, i)| {
         let i = i as f32;
         let j = j as f32;
@@ -764,20 +742,8 @@ fn reduce_array_slice<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Result
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
-    if start < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start must be positive, but got {}",
-            start
-        )));
-    }
-    if end < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end must be positive, but got {}",
-            end
-        )));
-    }
-    let start = start as usize;
-    let end = end as usize;
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
 
     let image_val = image.scalar();
     let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
@@ -842,23 +808,10 @@ fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 }
 
 fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
-    if start < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start must be positive, but got {}",
-            start
-        )));
-    }
-    if end < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end must be positive, but got {}",
-            end
-        )));
-    }
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
 
     let image_val = image.scalar();
-
-    let start = start as usize;
-    let end = end as usize;
 
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
@@ -925,23 +878,10 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
 }
 
 fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
-    if start < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "start must be positive, but got {}",
-            start
-        )));
-    }
-    if end < 0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end must be positive, but got {}",
-            end
-        )));
-    }
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
 
     let image_val = image.scalar();
-
-    let start = start as usize;
-    let end = end as usize;
 
     if start >= end {
         return Err(IOErr::UnexpectedInput(format!(
