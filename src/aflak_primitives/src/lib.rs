@@ -415,27 +415,13 @@ fn run_fits_to_image(
 
 fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, IOErr> {
     let frame_idx = try_into_unsigned!(frame_idx)?;
+    is_sliceable!(input_img, frame_idx)?;
 
     let image_val = input_img.scalar();
-
-    let dim = image_val.dim();
-    let ndim = dim.ndim();
-    let frame_cnt = if let Some(frame_cnt) = dim.as_array_view().first() {
-        *frame_cnt
-    } else {
-        return Err(IOErr::UnexpectedInput("Empty array".to_owned()));
-    };
-    if frame_idx >= frame_cnt {
-        return Err(IOErr::UnexpectedInput(format!(
-            "slice_one_frame: frame index higher than input image's frame count ({} >= {})",
-            frame_idx, frame_cnt
-        )));
-    }
-
     let out = image_val.index_axis(Axis(0), frame_idx);
 
     let wrap_with_unit = input_img.make_slice(
-        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        &(0..out.ndim()).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
         input_img.array().with_new_value(out.to_owned()),
     );
 
@@ -744,23 +730,9 @@ where
 {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
-    precheck!(start < end)?;
+    is_sliceable!(image, start, end)?;
 
     let image_val = image.scalar();
-    let frame_cnt = if let Some(frame_cnt) = image_val.dim().as_array_view().first() {
-        *frame_cnt
-    } else {
-        return Err(IOErr::UnexpectedInput(format!(
-            "Empty array! Cannot reduce."
-        )));
-    };
-
-    if end >= frame_cnt {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end higher than input image's frame count ({} >= {})",
-            end, frame_cnt
-        )));
-    }
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
     let raw = f(&slices);
@@ -805,18 +777,9 @@ fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
 fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
-    precheck!(start < end)?;
+    is_sliceable!(image, start, end)?;
 
     let image_val = image.scalar();
-
-    precheck!(image_val.ndim() > 0, "'im' is a 0-dimensional array")?;
-    let len_of_axis0 = image_val.len_of(Axis(0));
-    if end > len_of_axis0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end higher than length of axis ({} > {})",
-            end, len_of_axis0
-        )));
-    }
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
     let dim = slices.dim();
@@ -863,18 +826,9 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
 fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
-    precheck!(start < end)?;
+    is_sliceable!(image, start, end)?;
 
     let image_val = image.scalar();
-
-    precheck!(image_val.ndim() > 0, "'im' is a 0-dimensional array")?;
-    let len_of_axis0 = image_val.len_of(Axis(0));
-    if end > len_of_axis0 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "end higher than length of axis ({} > {})",
-            end, len_of_axis0
-        )));
-    }
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
     let dim = slices.dim();
