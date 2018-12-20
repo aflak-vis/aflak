@@ -780,6 +780,11 @@ fn run_create_equivalent_width(
     let result = out.map(|v| if *v > max { 0.0 } else { *v });
 
     // FIXME: Unit support
+    // implementation of &WcsArray / &WcsArray is needed
+    //
+    // in above program...
+    // variable 'fl' is width of on-band, so unit of length should be adopted (e.g. [Ang]).
+
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         result,
         Unit::None,
