@@ -809,13 +809,7 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
 
     let image_val = image.scalar();
 
-    let ndim = image_val.ndim();
-    if ndim < 1 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "Cannot compute {}-Dimensional array",
-            ndim
-        )));
-    }
+    precheck!(image_val.ndim() > 0, "'im' is a 0-dimensional array")?;
     let len_of_axis0 = image_val.len_of(Axis(0));
     if end > len_of_axis0 {
         return Err(IOErr::UnexpectedInput(format!(
@@ -873,13 +867,7 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
 
     let image_val = image.scalar();
 
-    let ndim = image_val.ndim();
-    if ndim < 1 {
-        return Err(IOErr::UnexpectedInput(format!(
-            "Cannot compute {}-Dimensional array",
-            ndim
-        )));
-    }
+    precheck!(image_val.ndim() > 0, "'im' is a 0-dimensional array")?;
     let len_of_axis0 = image_val.len_of(Axis(0));
     if end > len_of_axis0 {
         return Err(IOErr::UnexpectedInput(format!(
