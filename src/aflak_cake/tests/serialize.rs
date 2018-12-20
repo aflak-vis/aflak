@@ -21,7 +21,7 @@ fn test_plus1() {
     let plus1transform = get_plus1_transform();
 
     let s = to_string(&SerialTransform::new(&plus1transform)).unwrap();
-    assert_eq!("Function(\"plus1\")", s);
+    assert_eq!("Function(\"plus1\",1,0,0,)", s);
 
     let plus1_deser: DeserTransform<AlgoIO, E> = from_str(&s).unwrap();
     let plus1transform_back = plus1_deser.into_transform().unwrap();

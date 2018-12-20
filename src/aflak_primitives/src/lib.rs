@@ -98,24 +98,28 @@ lazy_static! {
         vec![
             cake_transform!(
                 "Open FITS file from a Path.",
+                1, 0, 0,
                 open_fits<IOValue, IOErr>(path: Path) -> Fits {
                     vec![run_open_fits(path)]
                 }
             ),
             cake_transform!(
                 "Extract dataset from FITS file.",
+                1, 0, 0,
                 fits_to_image<IOValue, IOErr>(fits: Fits, hdu_idx: Integer = 0, extension: Str = "".to_owned()) -> Image {
                     vec![run_fits_to_image(fits, *hdu_idx, extension)]
                 }
             ),
             cake_transform!(
                 "Slice one frame of a n-dimensional dataset turning it into an (n-1)-dimensional dataset.",
+                1, 0, 0,
                 slice_one_frame<IOValue, IOErr>(image: Image, frame: Integer = 0) -> Image {
                     vec![run_slice_one_frame(image, *frame)]
                 }
             ),
             cake_transform!(
                 "Slice an arbitrary plane through a 3D dataset and return the slice.",
+                0, 1, 0,
                 slice_3d_to_2d<IOValue, IOErr>(image: Image, map: Map2dTo3dCoords) -> Image {
                     vec![run_slice_3d_to_2d(image, map)]
                 }
@@ -134,12 +138,14 @@ With the above parameters, a 2D mesh with the points as below:
   y + i * d1_y + j * d2_y,
   z + i * d1_z + j * d2_z )
 for 0 <= i < n and 0 <= j < m",
+                1, 0, 0,
                 make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 0.0, 1.0], dir2: Float3 = [0.0, 1.0, 0.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
                     vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
                 }
             ),
             cake_transform!(
                 "Extract waveform from image with the provided region of interest.",
+                1, 0, 0,
                 extract_wave<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
                     vec![run_extract_wave(image, roi)]
                 }
@@ -147,11 +153,13 @@ for 0 <= i < n and 0 <= j < m",
             cake_transform!("Replace all values above or below a threshold in a image with NaN.
 Takes two parameters: a threshold and a bool.
 If bool value is checked, then replaces the values above the threshold with NaN, else replace the values below the threshold with NaN.",
+                1, 0, 0,
                 clip_image<IOValue, IOErr>(image: Image, threshold: Float = 0.0, above: Bool = false) -> Image {
                     vec![run_clip(image, *threshold, *above)]
                 }
             ),
             cake_transform!("Replace all NaN values in image with the provided value.",
+                1, 0, 0,
                 replace_nan_image<IOValue, IOErr>(image: Image, placeholder: Float = 0.0) -> Image {
                     vec![run_replace_nan_image(image, *placeholder)]
                 }
@@ -159,12 +167,14 @@ If bool value is checked, then replaces the values above the threshold with NaN,
             cake_transform!(
                 "Compose 2 vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
+                1, 0, 0,
                 linear_composition<IOValue, IOErr>(u: Image, v: Image, a: Float = 1.0, b: Float = 1.0) -> Image {
                     vec![run_linear_composition(u, v, *a, *b)]
                 }
             ),
             cake_transform!(
                 "Make a Float3 from 3 float values.",
+                1, 0, 0,
                 make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
                     vec![run_make_float3(*f1, *f2, *f3)]
                 }
@@ -175,6 +185,7 @@ Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of 3D-fits image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
+                1, 0, 0,
                 integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
@@ -185,6 +196,7 @@ Note: indices for a and b start from 0",
                 "Ratio from bands' center wavelength.
 Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
+                1, 0, 0,
                 ratio_from_bands<IOValue, IOErr>(on: Float, off_1: Float, off_2: Float) -> Float, Float {
                     if !(off_1 < on && on < off_2) {
                         use IOErr::UnexpectedInput;
@@ -206,6 +218,7 @@ Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of 3D-fits im
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
+                1, 0, 0,
                 average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
                     let width = *end as f32 - *start as f32;
@@ -217,6 +230,7 @@ Note: indices for a and b start from 0",
 Parameters i1, i2, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
 if value > max, value changes to 0.",
+                0, 1, 0,
                 create_equivalent_width<IOValue, IOErr>(i1: Image, i2: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
                     vec![run_create_equivalent_width(i1, i2, *fl, *max, *is_emission)]
                 }
@@ -224,6 +238,7 @@ if value > max, value changes to 0.",
             cake_transform!(
                 "Convert to log-scale. Parameter: image i, a, v_min, v_max
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
+                1, 0, 0,
                 convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
                 }
@@ -231,6 +246,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             cake_transform!(
                 "Image's min and max value. Parameter: image i.
 Compute v_min(first), v_max(second)",
+                1, 0, 0,
                 image_min_max<IOValue, IOErr>(i1: Image) -> Float, Float {
                     let mut min = std::f32::MAX;
                     let mut max = std::f32::MIN;
@@ -250,6 +266,7 @@ Parameter: image i, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
 Note: output wavelength values are discrete. indices for start and end start from 0",
+                0, 1, 0,
                 extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
                     vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
                 }
@@ -259,6 +276,7 @@ Note: output wavelength values are discrete. indices for start and end start fro
 Parameter: image i (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
 Note: indices for start and end start from 0",
+                0, 1, 0,
                 extract_centrobaric_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_centroid(i1, *start, *end)]
                 }
@@ -267,6 +285,7 @@ Note: indices for start and end start from 0",
                 "Create velocity field map
 Parameter: image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
+                1, 0, 0,
                 create_velocity_field_map<IOValue, IOErr>(i1: Image, w_0: Float = 0.0) -> Image {
                     let c = 3e5;
                     let i1_arr = i1.scalar();
@@ -280,6 +299,7 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
             ),
             cake_transform!(
                 "Negation. Parameter: image i. Compute -i.",
+                1, 0, 0,
                 negation<IOValue, IOErr>(i1: Image) -> Image {
                     vec![run_negation(i1)]
                 }

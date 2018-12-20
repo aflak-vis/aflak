@@ -34,6 +34,8 @@ pub enum Algorithm<T, E> {
         f: PlainFunction<T, E>,
         /// Transform id
         id: FnTransformId,
+        /// Version of the transform
+        version: Version,
         description: &'static str,
         /// Inputs of the transformation, may include a default value
         inputs: Vec<TransformInputSlot<T>>,
@@ -43,6 +45,14 @@ pub enum Algorithm<T, E> {
     /// Use this variant for algorithms with no input. Such algorithm will
     /// always return this constant.
     Constant(T),
+}
+
+/// Semantic version
+#[derive(Copy, Clone)]
+pub struct Version {
+    pub major: u8,
+    pub minor: u8,
+    pub patch: u8,
 }
 
 #[derive(Clone)]
@@ -81,12 +91,14 @@ where
             Function {
                 f,
                 id,
+                version,
                 description,
                 ref inputs,
                 ref outputs,
             } => Function {
                 f,
                 id,
+                version,
                 description,
                 inputs: inputs.clone(),
                 outputs: outputs.clone(),

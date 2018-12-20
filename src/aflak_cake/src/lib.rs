@@ -137,9 +137,9 @@ macro_rules! cake_fn {
 /// }
 ///
 /// pub enum E {}
-///
-/// let plus_one_trans = cake_transform!(
-///     "Long description of the transform",
+///                                       //   _______ MAJOR/MINOR/PATCH version numbers
+/// let plus_one_trans = cake_transform!( //  /  /  /
+///     "Long description of the transform", 1, 0, 0,
 /// // key identifying transformation   Input arguments with default value (optional)
 /// //   \  In/Out types /- Error type  /        _ Output type(s)
 /// //    \       /     / /------------/        /
@@ -151,12 +151,17 @@ macro_rules! cake_fn {
 /// ```
 #[macro_export]
 macro_rules! cake_transform {
-    ($description: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
+    ($description: expr, $major: expr, $minor: expr, $patch: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
 
         $crate::Transform::from_algorithm($crate::Algorithm::Function {
                 f: $fn_name,
                 id: $crate::FnTransformId(stringify!($fn_name)),
+                version: $crate::Version {
+                    major: $major,
+                    minor: $minor,
+                    patch: $patch
+                },
                 description: $description,
                 inputs: vec![$(
                     $crate::TransformInputSlot {
