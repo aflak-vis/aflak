@@ -8,11 +8,9 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
 (
     dst: (
         transforms: [
-            ((6), (
-                t: Function("slice_3d_to_2d"),
+            ((1), (
+                t: Constant(Path({:?})),
                 input_defaults: [
-                    None,
-                    None,
                 ],
             )),
             ((2), (
@@ -29,6 +27,20 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Str("FLUX")),
                 ],
             )),
+            ((4), (
+                t: Function("extract_wave"),
+                input_defaults: [
+                    None,
+                    Some(Roi(All)),
+                ],
+            )),
+            ((6), (
+                t: Function("slice_3d_to_2d"),
+                input_defaults: [
+                    None,
+                    None,
+                ],
+            )),
             ((7), (
                 t: Function("make_plane3d"),
                 input_defaults: [
@@ -39,27 +51,8 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Integer(70)),
                 ],
             )),
-            ((4), (
-                t: Function("extract_wave"),
-                input_defaults: [
-                    None,
-                    Some(Roi(All)),
-                ],
-            )),
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
         ],
         edges: [
-            ((
-                t_idx: (7),
-                output_i: (0),
-            ), (
-                t_idx: (6),
-                input_i: (1),
-            )),
             ((
                 t_idx: (1),
                 output_i: (0),
@@ -88,14 +81,21 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 t_idx: (6),
                 input_i: (0),
             )),
+            ((
+                t_idx: (7),
+                output_i: (0),
+            ), (
+                t_idx: (6),
+                input_i: (1),
+            )),
         ],
         outputs: [
-            ((2), Some((
-                t_idx: (6),
-                output_i: (0),
-            ))),
             ((1), Some((
                 t_idx: (4),
+                output_i: (0),
+            ))),
+            ((2), Some((
+                t_idx: (6),
                 output_i: (0),
             ))),
         ],
