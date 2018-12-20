@@ -222,7 +222,7 @@ if value > max, value changes to 0.",
                 }
             ),
             cake_transform!(
-                "Convert to log-scale. Parameter: 2D image i, a, v_min, v_max
+                "Convert to log-scale. Parameter: image i, a, v_min, v_max
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 convert_to_logscale<IOValue, IOErr>(i1: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(i1, *a, *v_min, *v_max)]
