@@ -478,6 +478,32 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
 (
     dst: (
         transforms: [
+            ((1), (
+                t: Constant(Path({:?})),
+                input_defaults: [
+                ],
+            )),
+            ((2), (
+                t: Function("open_fits"),
+                input_defaults: [
+                    None,
+                ],
+            )),
+            ((3), (
+                t: Function("fits_to_image"),
+                input_defaults: [
+                    None,
+                    Some(Integer(0)),
+                    Some(Str("")),
+                ],
+            )),
+            ((4), (
+                t: Function("extract_wave"),
+                input_defaults: [
+                    None,
+                    Some(Roi(All)),
+                ],
+            )),
             ((6), (
                 t: Function("slice_one_frame"),
                 input_defaults: [
@@ -500,32 +526,6 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Float(0)),
                 ],
             )),
-            ((4), (
-                t: Function("extract_wave"),
-                input_defaults: [
-                    None,
-                    Some(Roi(All)),
-                ],
-            )),
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image"),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                    Some(Str("")),
-                ],
-            )),
-            ((2), (
-                t: Function("open_fits"),
-                input_defaults: [
-                    None,
-                ],
-            )),
         ],
         edges: [
             ((
@@ -533,6 +533,20 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 output_i: (0),
             ), (
                 t_idx: (2),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (2),
+                output_i: (0),
+            ), (
+                t_idx: (3),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (3),
+                output_i: (0),
+            ), (
+                t_idx: (8),
                 input_i: (0),
             )),
             ((
@@ -547,20 +561,6 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 output_i: (0),
             ), (
                 t_idx: (9),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (8),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
                 input_i: (0),
             )),
             ((
