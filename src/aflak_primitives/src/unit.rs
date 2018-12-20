@@ -208,6 +208,36 @@ where
     }
 }
 
+impl<V, W> ops::Div<W> for Dimensioned<V>
+where
+    V: ops::Div<W>,
+{
+    type Output = Dimensioned<<V as ops::Div<W>>::Output>;
+
+    fn div(self, rhs: W) -> Self::Output {
+        Dimensioned {
+            value: self.value / rhs,
+            unit: self.unit,
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
+impl<'a, V, W> ops::Div<W> for &'a Dimensioned<V>
+where
+    &'a V: ops::Div<W>,
+{
+    type Output = Dimensioned<<&'a V as ops::Div<W>>::Output>;
+
+    fn div(self, rhs: W) -> Self::Output {
+        Dimensioned {
+            value: &self.value / rhs,
+            unit: self.unit.clone(),
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
 impl<V, W> ops::Add<Dimensioned<W>> for Dimensioned<V>
 where
     V: ops::Add<W>,
@@ -219,6 +249,54 @@ where
         Dimensioned {
             value: self.value + rhs.value,
             unit: self.unit,
+            homogeneous,
+        }
+    }
+}
+
+impl<V, W> ops::Sub<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Sub<W>,
+{
+    type Output = Dimensioned<<V as ops::Sub<W>>::Output>;
+
+    fn sub(self, rhs: Dimensioned<W>) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: self.value - rhs.value,
+            unit: self.unit,
+            homogeneous,
+        }
+    }
+}
+
+impl<'a, V, W> ops::Sub<Dimensioned<W>> for &'a Dimensioned<V>
+where
+    &'a V: ops::Sub<W>,
+{
+    type Output = Dimensioned<<&'a V as ops::Sub<W>>::Output>;
+
+    fn sub(self, rhs: Dimensioned<W>) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: &self.value - rhs.value,
+            unit: self.unit.clone(),
+            homogeneous,
+        }
+    }
+}
+
+impl<'a, 'b, V, W> ops::Sub<&'b Dimensioned<W>> for &'a Dimensioned<V>
+where
+    &'a V: ops::Sub<&'b W>,
+{
+    type Output = Dimensioned<<&'a V as ops::Sub<&'b W>>::Output>;
+
+    fn sub(self, rhs: &'b Dimensioned<W>) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: &self.value - &rhs.value,
+            unit: self.unit.clone(),
             homogeneous,
         }
     }
@@ -237,6 +315,17 @@ impl fmt::Display for Unit {
     }
 }
 
+impl ops::Mul<f32> for WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        WcsArray {
+            meta: self.meta,
+            array: self.array * rhs,
+        }
+    }
+}
+
 impl<'a> ops::Mul<f32> for &'a WcsArray {
     type Output = WcsArray;
 
@@ -244,6 +333,28 @@ impl<'a> ops::Mul<f32> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: self.array() * rhs,
+        }
+    }
+}
+
+impl ops::Div<f32> for WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        WcsArray {
+            meta: self.meta,
+            array: self.array / rhs,
+        }
+    }
+}
+
+impl<'a> ops::Div<f32> for &'a WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        WcsArray {
+            meta: self.meta.clone(),
+            array: self.array() / rhs,
         }
     }
 }
@@ -260,6 +371,33 @@ impl ops::Add for WcsArray {
         WcsArray {
             meta,
             array: self.array + rhs.array,
+        }
+    }
+}
+
+impl ops::Sub for WcsArray {
+    type Output = WcsArray;
+
+    fn sub(self, rhs: WcsArray) -> Self::Output {
+        let meta = if self.meta == rhs.meta {
+            self.meta
+        } else {
+            None
+        };
+        WcsArray {
+            meta,
+            array: self.array - rhs.array,
+        }
+    }
+}
+
+impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
+    type Output = WcsArray;
+
+    fn sub(self, rhs: &'b WcsArray) -> Self::Output {
+        WcsArray {
+            meta: self.meta.clone(),
+            array: &self.array - &rhs.array,
         }
     }
 }
