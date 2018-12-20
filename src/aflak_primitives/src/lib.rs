@@ -245,6 +245,16 @@ Compute v_min(first), v_max(second)",
                 }
             ),
             cake_transform!(
+                "Extract min/max wavelength value of each pixel.
+Parameter: image i, start, end, is_min (start <= end)
+Output argmax/argmin map of flux; wavelength
+Second output contains max/min flux map
+Note: output wavelength values are discrete. indices for start and end start from 0",
+                extract_argmin_max_wavelength<IOValue, IOErr>(i1: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
+                    vec![run_argminmax(i1, *start, *end, *is_min), run_minmax(i1, *start, *end, *is_min)]
+                }
+            ),
+            cake_transform!(
                 "Negation. Parameter: image i. Compute -i.",
                 negation<IOValue, IOErr>(i1: Image) -> Image {
                     vec![run_negation(i1)]
@@ -765,6 +775,109 @@ fn run_integral(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
 
 fn run_average(im: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     reduce_array_slice(im, start, end, |slices| slices.mean_axis(Axis(0)))
+}
+
+fn run_minmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    if !is_min {
+        reduce_array_slice(im, start, end, |slices| {
+            slices.fold_axis(
+                Axis(0),
+                -std::f32::INFINITY,
+                |x, y| if x > y { *x } else { *y },
+            )
+        })
+    } else {
+        reduce_array_slice(im, start, end, |slices| {
+            slices.fold_axis(
+                Axis(0),
+                std::f32::INFINITY,
+                |x, y| if x < y { *x } else { *y },
+            )
+        })
+    }
+}
+
+fn run_argminmax(im: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    if start < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start must be positive, but got {}",
+            start
+        )));
+    }
+    if end < 0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end must be positive, but got {}",
+            end
+        )));
+    }
+
+    let image_val = im.scalar();
+
+    let start = start as usize;
+    let end = end as usize;
+
+    if start >= end {
+        return Err(IOErr::UnexpectedInput(format!(
+            "start higher than end ({} >= {})",
+            start, end
+        )));
+    }
+
+    let ndim = image_val.ndim();
+    if ndim < 1 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot compute {}-Dimensional array",
+            ndim
+        )));
+    }
+    let len_of_axis0 = image_val.len_of(Axis(0));
+    if end > len_of_axis0 {
+        return Err(IOErr::UnexpectedInput(format!(
+            "end higher than length of axis ({} > {})",
+            end, len_of_axis0
+        )));
+    }
+
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+
+    let waveimg = ArrayD::from_shape_fn(new_size, |index| {
+        let mut value = if !is_min {
+            -std::f32::INFINITY
+        } else {
+            std::f32::INFINITY
+        };
+        let mut out = 0.0;
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            if !is_min && slice[&index] > value {
+                value = slice[&index];
+                out = match im.pix2world(2, (k + start) as f32) {
+                    Some(value) => value,
+                    None => (k + start) as f32,
+                };
+            } else if is_min && slice[&index] < value {
+                value = slice[&index];
+                out = match im.pix2world(2, (k + start) as f32) {
+                    Some(value) => value,
+                    None => (k + start) as f32,
+                };
+            }
+        }
+        out
+    });
+
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // unit of variable 'out' should be adopted
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        waveimg,
+        Unit::None,
+    ))))
 }
 
 fn run_create_equivalent_width(
