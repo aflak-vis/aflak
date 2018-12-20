@@ -25,7 +25,6 @@ pub enum ComputeError<E> {
         t_name: &'static str,
     },
     UnusableCache(Output),
-    ComputeError(String),
     NothingDoneYet,
     InnerComputeError {
         cause: E,
@@ -65,7 +64,6 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 "Cache is unusable as it is undergoing deletion! Cannot compute {} now",
                 output
             ),
-            ComputeError(s) => write!(f, "Compute error! {}", s),
             InnerComputeError {
                 cause,
                 t_idx,
