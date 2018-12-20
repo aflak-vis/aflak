@@ -1,6 +1,11 @@
 use clap::{App, Arg};
 
-pub const TEMPLATES: &[&str] = &["waveform", "equivalent_width", "fits_cleaning"];
+pub const TEMPLATES: &[&str] = &[
+    "waveform",
+    "equivalent_width",
+    "fits_cleaning",
+    "velocity_field",
+];
 
 pub fn build_cli() -> App<'static, 'static> {
     App::new(env!("CARGO_PKG_NAME"))
