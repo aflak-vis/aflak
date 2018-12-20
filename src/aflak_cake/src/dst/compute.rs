@@ -26,7 +26,7 @@ pub enum ComputeError<E> {
     },
     UnusableCache(Output),
     NothingDoneYet,
-    InnerComputeError {
+    RuntimeError {
         cause: E,
         t_idx: TransformIdx,
         t_name: &'static str,
@@ -64,7 +64,7 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 "Cache is unusable as it is undergoing deletion! Cannot compute {} now",
                 output
             ),
-            InnerComputeError {
+            RuntimeError {
                 cause,
                 t_idx,
                 t_name,
@@ -195,7 +195,7 @@ where
             let mut out = Vec::with_capacity(output_count);
             for output in op.call() {
                 out.push(output.map(Arc::new).map_err(|e| {
-                    Arc::new(ComputeError::InnerComputeError {
+                    Arc::new(ComputeError::RuntimeError {
                         cause: e,
                         t_idx,
                         t_name: t.name(),
