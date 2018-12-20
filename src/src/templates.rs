@@ -14,13 +14,13 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((2), (
-                t: Function("open_fits"),
+                t: Function("open_fits", 1, 0, 0),
                 input_defaults: [
                     None,
                 ],
             )),
             ((3), (
-                t: Function("fits_to_image"),
+                t: Function("fits_to_image", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(0)),
@@ -28,21 +28,21 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((4), (
-                t: Function("extract_wave"),
+                t: Function("extract_wave", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Roi(All)),
                 ],
             )),
             ((6), (
-                t: Function("slice_3d_to_2d"),
+                t: Function("slice_3d_to_2d", 0, 1, 0),
                 input_defaults: [
                     None,
                     None,
                 ],
             )),
             ((7), (
-                t: Function("make_plane3d"),
+                t: Function("make_plane3d", 1, 0, 0),
                 input_defaults: [
                     Some(Float3((100, 0, 0))),
                     Some(Float3((0, 0, 1))),
@@ -168,13 +168,13 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((2), (
-                t: Function("open_fits"),
+                t: Function("open_fits", 1, 0, 0),
                 input_defaults: [
                     None,
                 ],
             )),
             ((3), (
-                t: Function("fits_to_image"),
+                t: Function("fits_to_image", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(0)),
@@ -182,7 +182,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((19), (
-                t: Function("average"),
+                t: Function("average", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(3134)),
@@ -190,7 +190,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((20), (
-                t: Function("average"),
+                t: Function("average", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(3099)),
@@ -198,7 +198,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((21), (
-                t: Function("average"),
+                t: Function("average", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(3174)),
@@ -206,7 +206,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((22), (
-                t: Function("linear_composition"),
+                t: Function("linear_composition", 1, 0, 0),
                 input_defaults: [
                     None,
                     None,
@@ -215,7 +215,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((23), (
-                t: Function("create_equivalent_width"),
+                t: Function("create_equivalent_width", 0, 1, 0),
                 input_defaults: [
                     None,
                     None,
@@ -225,7 +225,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((24), (
-                t: Function("ratio_from_bands"),
+                t: Function("ratio_from_bands", 1, 0, 0),
                 input_defaults: [
                     None,
                     None,
@@ -233,13 +233,13 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((25), (
-                t: Function("image_min_max"),
+                t: Function("image_min_max", 0, 1, 0),
                 input_defaults: [
                     None,
                 ],
             )),
             ((26), (
-                t: Function("convert_to_logscale"),
+                t: Function("convert_to_logscale", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Float(1000)),
@@ -484,13 +484,13 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((2), (
-                t: Function("open_fits"),
+                t: Function("open_fits", 1, 0, 0),
                 input_defaults: [
                     None,
                 ],
             )),
             ((3), (
-                t: Function("fits_to_image"),
+                t: Function("fits_to_image", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(0)),
@@ -498,21 +498,21 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((4), (
-                t: Function("extract_wave"),
+                t: Function("extract_wave", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Roi(All)),
                 ],
             )),
             ((6), (
-                t: Function("slice_one_frame"),
+                t: Function("slice_one_frame", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Integer(0)),
                 ],
             )),
             ((8), (
-                t: Function("clip_image"),
+                t: Function("clip_image", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Float(0)),
@@ -520,7 +520,7 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((9), (
-                t: Function("replace_nan_image"),
+                t: Function("replace_nan_image", 1, 0, 0),
                 input_defaults: [
                     None,
                     Some(Float(0)),
