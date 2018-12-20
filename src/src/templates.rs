@@ -233,7 +233,7 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ],
             )),
             ((25), (
-                t: Function("image_min_max", 0, 1, 0),
+                t: Function("image_min_max", 1, 0, 0),
                 input_defaults: [
                     None,
                 ],
