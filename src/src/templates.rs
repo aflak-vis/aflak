@@ -162,18 +162,9 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
 (
     dst: (
         transforms: [
-            ((21), (
-                t: Function("average"),
+            ((1), (
+                t: Constant(Path({:?})),
                 input_defaults: [
-                    None,
-                    Some(Integer(3174)),
-                    Some(Integer(3194)),
-                ],
-            )),
-            ((25), (
-                t: Function("image_min_max"),
-                input_defaults: [
-                    None,
                 ],
             )),
             ((2), (
@@ -182,13 +173,12 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                 ],
             )),
-            ((26), (
-                t: Function("convert_to_logscale"),
+            ((3), (
+                t: Function("fits_to_image"),
                 input_defaults: [
                     None,
-                    Some(Float(1000)),
-                    None,
-                    None,
+                    Some(Integer(0)),
+                    Some(Str("FLUX")),
                 ],
             )),
             ((19), (
@@ -197,6 +187,31 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                     Some(Integer(3134)),
                     Some(Integer(3154)),
+                ],
+            )),
+            ((20), (
+                t: Function("average"),
+                input_defaults: [
+                    None,
+                    Some(Integer(3099)),
+                    Some(Integer(3119)),
+                ],
+            )),
+            ((21), (
+                t: Function("average"),
+                input_defaults: [
+                    None,
+                    Some(Integer(3174)),
+                    Some(Integer(3194)),
+                ],
+            )),
+            ((22), (
+                t: Function("linear_composition"),
+                input_defaults: [
+                    None,
+                    None,
+                    Some(Float(0.533333)),
+                    Some(Float(0.467)),
                 ],
             )),
             ((23), (
@@ -217,80 +232,23 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     None,
                 ],
             )),
-            ((22), (
-                t: Function("linear_composition"),
+            ((25), (
+                t: Function("image_min_max"),
                 input_defaults: [
                     None,
-                    None,
-                    Some(Float(0.533333)),
-                    Some(Float(0.467)),
                 ],
             )),
-            ((20), (
-                t: Function("average"),
+            ((26), (
+                t: Function("convert_to_logscale"),
                 input_defaults: [
                     None,
-                    Some(Integer(3099)),
-                    Some(Integer(3119)),
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image"),
-                input_defaults: [
+                    Some(Float(1000)),
                     None,
-                    Some(Integer(0)),
-                    Some(Str("FLUX")),
-                ],
-            )),
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
+                    None,
                 ],
             )),
         ],
         edges: [
-            ((
-                t_idx: (21),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (24),
-                output_i: (1),
-            ), (
-                t_idx: (22),
-                input_i: (3),
-            )),
-            ((
-                t_idx: (25),
-                output_i: (0),
-            ), (
-                t_idx: (26),
-                input_i: (2),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (20),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (25),
-                output_i: (1),
-            ), (
-                t_idx: (26),
-                input_i: (3),
-            )),
             ((
                 t_idx: (1),
                 output_i: (0),
@@ -299,46 +257,11 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 input_i: (0),
             )),
             ((
-                t_idx: (20),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (19),
+                t_idx: (2),
                 output_i: (0),
             ), (
-                t_idx: (23),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (22),
-                output_i: (0),
-            ), (
-                t_idx: (23),
+                t_idx: (3),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (19),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (21),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (2),
-            )),
-            ((
-                t_idx: (24),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (2),
             )),
             ((
                 t_idx: (3),
@@ -359,6 +282,55 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 output_i: (0),
             ), (
                 t_idx: (21),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (19),
+                output_i: (0),
+            ), (
+                t_idx: (23),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (19),
+                output_i: (1),
+            ), (
+                t_idx: (24),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (20),
+                output_i: (0),
+            ), (
+                t_idx: (22),
+                input_i: (0),
+            )),
+            ((
+                t_idx: (20),
+                output_i: (1),
+            ), (
+                t_idx: (24),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (21),
+                output_i: (0),
+            ), (
+                t_idx: (22),
+                input_i: (1),
+            )),
+            ((
+                t_idx: (21),
+                output_i: (1),
+            ), (
+                t_idx: (24),
+                input_i: (2),
+            )),
+            ((
+                t_idx: (22),
+                output_i: (0),
+            ), (
+                t_idx: (23),
                 input_i: (0),
             )),
             ((
@@ -374,6 +346,34 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
             ), (
                 t_idx: (26),
                 input_i: (0),
+            )),
+            ((
+                t_idx: (24),
+                output_i: (0),
+            ), (
+                t_idx: (22),
+                input_i: (2),
+            )),
+            ((
+                t_idx: (24),
+                output_i: (1),
+            ), (
+                t_idx: (22),
+                input_i: (3),
+            )),
+            ((
+                t_idx: (25),
+                output_i: (0),
+            ), (
+                t_idx: (26),
+                input_i: (2),
+            )),
+            ((
+                t_idx: (25),
+                output_i: (1),
+            ), (
+                t_idx: (26),
+                input_i: (3),
             )),
         ],
         outputs: [
