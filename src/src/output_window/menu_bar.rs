@@ -327,9 +327,10 @@ impl MenuBar for primitives::WcsArray {
                 let transform = if ctx.window.show_pixels {
                     None
                 } else {
-                    match (self.cunits(), self.wcs()) {
-                        (Some(units), Some(wcs)) => {
-                            Some(AxisTransform::new("", units[0].repr(), move |t| {
+                    match (self.axes(), self.wcs()) {
+                        (Some(axes), Some(wcs)) => {
+                            let axis = &axes[0];
+                            Some(AxisTransform::new(axis.name(), axis.unit(), move |t| {
                                 wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
                             }))
                         }
@@ -356,18 +357,24 @@ impl MenuBar for primitives::WcsArray {
                 let (x_transform, y_transform) = if ctx.window.show_pixels {
                     (None, None)
                 } else {
-                    match (self.cunits(), self.wcs()) {
-                        (Some(units), Some(wcs)) => (
-                            Some(AxisTransform::new("", units[0].repr(), move |t| {
-                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                            })),
-                            Some(AxisTransform::new("", units[1].repr(), {
-                                let max_height =
-                                    (self.scalar().dim().as_array_view().first().unwrap() - 1)
-                                        as f32;
-                                move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
-                            })),
-                        ),
+                    match (self.axes(), self.wcs()) {
+                        (Some(axes), Some(wcs)) => {
+                            let axis0 = &axes[0];
+                            let axis1 = &axes[1];
+                            (
+                                Some({
+                                    AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
+                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                    })
+                                }),
+                                Some(AxisTransform::new(axis0.name(), axis1.unit(), {
+                                    let max_height =
+                                        (self.scalar().dim().as_array_view().first().unwrap() - 1)
+                                            as f32;
+                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                })),
+                            )
+                        }
                         _ => (None, None),
                     }
                 };

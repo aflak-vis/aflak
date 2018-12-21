@@ -11,6 +11,12 @@ pub enum Unit {
     Custom(String),
 }
 
+impl Default for Unit {
+    fn default() -> Self {
+        Unit::None
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dimensioned<V> {
     value: V,
@@ -30,14 +36,42 @@ struct MetaWcsArray {
     #[serde(skip_deserializing)]
     // TODO: Handle serialization for WCS
     wcs: WCS,
-    cunits: [Unit; 4],
+    axes: [Axis; 4],
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Axis {
+    name: Option<String>,
+    unit: Unit,
+}
+
+impl Axis {
+    fn new(name: Option<String>, unit: Unit) -> Self {
+        Self { name, unit }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_ref().map(String::as_ref).unwrap_or("")
+    }
+
+    pub fn unit(&self) -> &str {
+        self.unit.repr()
+    }
 }
 
 fn read_unit(hdu: &Hdu, key: &str) -> Unit {
-    if let Some(HeaderValue::CharacterString(unit)) = hdu.value(key) {
-        Unit::Custom(unit.to_owned())
+    if let Some(unit) = read_string(hdu, key) {
+        Unit::Custom(unit)
     } else {
         Unit::None
+    }
+}
+
+fn read_string(hdu: &Hdu, key: &str) -> Option<String> {
+    if let Some(HeaderValue::CharacterString(string)) = hdu.value(key) {
+        Some(string.to_owned())
+    } else {
+        None
     }
 }
 
@@ -59,11 +93,20 @@ impl WcsArray {
         let cunit2 = read_unit(hdu, "CUNIT2");
         let cunit3 = read_unit(hdu, "CUNIT3");
         let cunit4 = read_unit(hdu, "CUNIT4");
+        let ctype1 = read_string(hdu, "CTYPE1");
+        let ctype2 = read_string(hdu, "CTYPE2");
+        let ctype3 = read_string(hdu, "CTYPE3");
+        let ctype4 = read_string(hdu, "CTYPE4");
         let wcs = WCS::new(hdu);
         Ok(Self {
             meta: Some(MetaWcsArray {
                 wcs,
-                cunits: [cunit1, cunit2, cunit3, cunit4],
+                axes: [
+                    Axis::new(ctype1, cunit1),
+                    Axis::new(ctype2, cunit2),
+                    Axis::new(ctype3, cunit3),
+                    Axis::new(ctype4, cunit4),
+                ],
             }),
             array: vunit.new(image),
         })
@@ -103,8 +146,8 @@ impl WcsArray {
         &self.array
     }
 
-    pub fn cunits(&self) -> Option<&[Unit]> {
-        self.meta.as_ref().map(|meta| meta.cunits.as_ref())
+    pub fn axes(&self) -> Option<&[Axis]> {
+        self.meta.as_ref().map(|meta| meta.axes.as_ref())
     }
 
     pub fn wcs(&self) -> Option<&WCS> {
@@ -122,11 +165,16 @@ impl WcsArray {
             for (i, start, end) in indices {
                 wcs = wcs.transform(*i, *start, *end);
             }
-            let mut cunits = [Unit::None, Unit::None, Unit::None, Unit::None];
+            let mut axes = [
+                Axis::default(),
+                Axis::default(),
+                Axis::default(),
+                Axis::default(),
+            ];
             for (i, _, _) in indices {
-                cunits[*i] = meta.cunits[*i].clone();
+                axes[*i] = meta.axes[*i].clone();
             }
-            MetaWcsArray { wcs, cunits }
+            MetaWcsArray { wcs, axes }
         });
         WcsArray {
             meta: new_meta,
