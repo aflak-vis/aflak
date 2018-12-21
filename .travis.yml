@@ -35,7 +35,7 @@ after_success:
   - cargo build --release
 
 addons:
-  artifacts: true
+  artifacts:
     paths:
       - target/release/aflak
     debug: true
