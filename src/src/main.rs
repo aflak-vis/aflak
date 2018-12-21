@@ -38,9 +38,7 @@ const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 fn main() -> support::Result<()> {
     env::set_var("WINIT_HIDPI_FACTOR", "1");
 
-    let transformations_ref = Box::leak(Box::new(
-        primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>(),
-    ));
+    let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
     let transformations = transformations_ref.as_slice();
 
     let matches = cli::build_cli().version(version()).get_matches();
@@ -57,11 +55,11 @@ fn main() -> support::Result<()> {
         }
     };
 
-    let node_editor = match NodeEditor::from_export_buf(import_data, transformations) {
+    let node_editor = match NodeEditor::from_export_buf(import_data) {
         Ok(editor) => editor,
         Err(e) => {
             eprintln!("Import failed! Initialize empty node editor.\n{}", e);
-            NodeEditor::new(transformations)
+            NodeEditor::default()
         }
     };
 
@@ -75,7 +73,7 @@ fn main() -> support::Result<()> {
         ..Default::default()
     };
     support::run(config, |ui, gl_ctx, textures| {
-        aflak.node_editor(ui);
+        aflak.node_editor(ui, transformations);
         aflak.output_windows(ui, gl_ctx, textures);
         aflak.show_errors(ui);
         true

@@ -817,48 +817,35 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
 
 #[cfg(test)]
 mod test {
-    use node_editor::NodeEditor;
-    use primitives;
+    use aflak::AflakNodeEditor;
 
     use super::{show_equivalent_width, show_fits_cleaning, show_frame_and_wave};
 
     #[test]
     fn import_frame_and_wave() {
-        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
-        let transformations = Box::leak(transformations_ref);
-
         let buf = show_frame_and_wave("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations);
+        let editor = AflakNodeEditor::from_export_buf(buf);
         assert!(editor.is_ok());
     }
 
     #[test]
     fn import_equivalent_width() {
-        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
-        let transformations = Box::leak(transformations_ref);
-
         let buf = show_equivalent_width("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations);
+        let editor = AflakNodeEditor::from_export_buf(buf);
         assert!(editor.is_ok());
     }
 
     #[test]
     fn import_with_windows_style_paths() {
-        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
-        let transformations = Box::leak(transformations_ref);
-
         let buf = show_equivalent_width(r"C:\path\to\fits\file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations);
+        let editor = AflakNodeEditor::from_export_buf(buf);
         assert!(editor.is_ok());
     }
 
     #[test]
     fn import_fits_cleaning() {
-        let transformations_ref = Box::new(primitives::TRANSFORMATIONS.iter().collect::<Vec<_>>());
-        let transformations = Box::leak(transformations_ref);
-
         let buf = show_fits_cleaning("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations);
+        let editor = AflakNodeEditor::from_export_buf(buf);
         assert!(editor.is_ok());
     }
 

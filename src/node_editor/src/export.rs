@@ -5,11 +5,11 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform, VariantName};
+use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantName};
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use editor::{AllTransforms, NodeEditor};
+use editor::NodeEditor;
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
@@ -186,24 +186,21 @@ where
         + for<'de> Deserialize<'de>,
     E: 'static,
 {
-    pub fn from_export_buf<R>(r: R, addable_nodes: AllTransforms<T, E>) -> Result<Self, ImportError>
+    pub fn from_export_buf<R>(r: R) -> Result<Self, ImportError>
     where
         R: io::Read,
     {
-        let mut editor = Self::new(addable_nodes);
+        let mut editor = Self::default();
         editor.import_from_buf(r)?;
         Ok(editor)
     }
 
-    pub fn from_ron_file<P>(
-        file_path: P,
-        addable_nodes: &'static [&'static Transform<T, E>],
-    ) -> Result<Self, ImportError>
+    pub fn from_ron_file<P>(file_path: P) -> Result<Self, ImportError>
     where
         P: AsRef<Path>,
     {
         let f = fs::File::open(file_path)?;
-        Self::from_export_buf(f, addable_nodes)
+        Self::from_export_buf(f)
     }
 
     pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {

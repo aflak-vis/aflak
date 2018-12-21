@@ -16,11 +16,8 @@ use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub type AllTransforms<T, E> = &'static [&'static Transform<T, E>];
-
 pub struct NodeEditor<T: 'static, E: 'static> {
     pub(crate) dst: DST<'static, T, E>,
-    addable_nodes: AllTransforms<T, E>,
     pub(crate) node_states: NodeStates,
     pub(crate) active_node: Option<cake::NodeId>,
     pub(crate) drag_node: Option<cake::NodeId>,
@@ -42,7 +39,6 @@ impl<T, E> Default for NodeEditor<T, E> {
     fn default() -> Self {
         Self {
             dst: DST::new(),
-            addable_nodes: &[],
             node_states: NodeStates::new(),
             active_node: None,
             drag_node: None,
@@ -68,17 +64,9 @@ pub enum LinkExtremity {
 }
 
 impl<T, E> NodeEditor<T, E> {
-    pub fn new(addable_nodes: AllTransforms<T, E>) -> Self {
-        Self {
-            addable_nodes,
-            ..Default::default()
-        }
-    }
-
-    pub fn from_dst(dst: DST<'static, T, E>, addable_nodes: AllTransforms<T, E>) -> Self {
+    pub fn from_dst(dst: DST<'static, T, E>) -> Self {
         Self {
             dst,
-            addable_nodes,
             ..Default::default()
         }
     }
@@ -144,8 +132,12 @@ where
         + for<'de> Deserialize<'de>,
     E: 'static + Error,
 {
-    pub fn render<ED>(&mut self, ui: &Ui, constant_editor: &ED)
-    where
+    pub fn render<ED>(
+        &mut self,
+        ui: &Ui,
+        addable_nodes: &[&'static Transform<T, E>],
+        constant_editor: &ED,
+    ) where
         ED: ConstantEditor<T>,
     {
         for idx in self.dst.node_ids() {
@@ -164,7 +156,7 @@ where
         if self.show_left_pane {
             self.render_left_pane(ui);
         }
-        self.render_graph_node(ui, constant_editor);
+        self.render_graph_node(ui, addable_nodes, constant_editor);
 
         // Render error popup
         if !self.error_stack.is_empty() {
@@ -318,8 +310,12 @@ where
         }
     }
 
-    fn render_graph_node<ED>(&mut self, ui: &Ui, constant_editor: &ED)
-    where
+    fn render_graph_node<ED>(
+        &mut self,
+        ui: &Ui,
+        addable_nodes: &[&'static Transform<T, E>],
+        constant_editor: &ED,
+    ) where
         ED: ConstantEditor<T>,
     {
         const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
@@ -392,14 +388,18 @@ where
                         .show_scrollbar_with_mouse(false)
                         .build(|| {
                             // TODO: Manage scaling (and font-scaling)
-                            self.render_graph_canvas(ui, constant_editor);
+                            self.render_graph_canvas(ui, addable_nodes, constant_editor);
                         });
                 });
             });
     }
 
-    fn render_graph_canvas<ED>(&mut self, ui: &Ui, constant_editor: &ED)
-    where
+    fn render_graph_canvas<ED>(
+        &mut self,
+        ui: &Ui,
+        addable_nodes: &[&'static Transform<T, E>],
+        constant_editor: &ED,
+    ) where
         ED: ConstantEditor<T>,
     {
         const NODE_SLOT_RADIUS: f32 = 6.0 * CURRENT_FONT_WINDOW_SCALE;
@@ -801,7 +801,7 @@ where
         ui.popup(im_str!("add-new-node"), || {
             ui.text("Add node");
             ui.separator();
-            for (i, node) in self.addable_nodes.iter().enumerate() {
+            for (i, node) in addable_nodes.iter().enumerate() {
                 ui.push_id(i as i32);
                 if ui.menu_item(&ImString::new(node.name())).build() {
                     self.dst.add_transform(node);

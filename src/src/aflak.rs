@@ -5,7 +5,7 @@ use glium;
 use imgui::{ImGuiCond, ImMouseButton, ImString, Ui};
 
 use aflak_plot::imshow::Textures;
-use cake::OutputId;
+use cake::{OutputId, Transform};
 use node_editor::NodeEditor;
 use primitives::{IOErr, IOValue};
 
@@ -32,14 +32,15 @@ impl Aflak {
         }
     }
 
-    pub fn node_editor(&mut self, ui: &Ui) {
+    pub fn node_editor(&mut self, ui: &Ui, addable_nodes: &[&'static Transform<IOValue, IOErr>]) {
         let display_size = ui.imgui().display_size();
         let Layout { position, size } = self.layout_engine.default_editor_layout(display_size);
         ui.window(im_str!("Node editor"))
             .position(position, ImGuiCond::FirstUseEver)
             .size(size, ImGuiCond::FirstUseEver)
             .build(|| {
-                self.node_editor.render(ui, &MyConstantEditor);
+                self.node_editor
+                    .render(ui, addable_nodes, &MyConstantEditor);
             });
     }
 
