@@ -82,8 +82,8 @@ impl XTicks {
             })
             .collect();
         let axis_label = {
-            let unit = axis.map(|axis| axis.unit()).unwrap_or("");
-            let label = ImString::new(unit);
+            let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
+            let label = ImString::new(label);
             let text_size = ui.calc_text_size(&label, false, -1.0);
             (label, text_size)
         };
@@ -154,8 +154,8 @@ impl YTicks {
             })
             .collect();
         let axis_label = {
-            let unit = axis.map(|axis| axis.unit()).unwrap_or("");
-            let label = ImString::new(unit);
+            let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
+            let label = ImString::new(label);
             let text_size = ui.calc_text_size(&label, false, -1.0);
             (label, text_size)
         };

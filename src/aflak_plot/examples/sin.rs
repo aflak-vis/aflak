@@ -27,7 +27,8 @@ fn main() -> Result<(), support::Error> {
             ui.image1d(
                 &sin,
                 "sin(x)",
-                Some(&AxisTransform::new("x (rad)", |x| x / MAX)),
+                "m",
+                Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
                 &mut state,
             )
             .expect("Image1d failed");

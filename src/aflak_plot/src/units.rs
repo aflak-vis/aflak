@@ -1,24 +1,43 @@
 pub struct AxisTransform<'a, F> {
+    label: &'a str,
     unit: &'a str,
     transform: F,
 }
 
 impl<'a, F> AxisTransform<'a, F> {
-    pub fn new(unit: &'a str, transform: F) -> Self {
-        Self { unit, transform }
+    pub fn new(label: &'a str, unit: &'a str, transform: F) -> Self {
+        Self {
+            label,
+            unit,
+            transform,
+        }
+    }
+
+    pub fn label(&self) -> &str {
+        &self.unit
     }
 
     pub fn unit(&self) -> &str {
         &self.unit
     }
+
+    pub fn name(&self) -> String {
+        match (self.label, self.unit) {
+            ("", "") => String::new(),
+            (label, "") => label.to_owned(),
+            ("", unit) => unit.to_owned(),
+            (label, unit) => format!("{} ({})", label, unit),
+        }
+    }
 }
 
 impl<'a, T> AxisTransform<'a, fn(T) -> T> {
-    pub fn id(unit: &'a str) -> Self {
+    pub fn id(label: &'a str, unit: &'a str) -> Self {
         fn id<T>(x: T) -> T {
             x
         }
         Self {
+            label,
             unit,
             transform: id,
         }

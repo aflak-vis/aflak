@@ -329,14 +329,14 @@ impl MenuBar for primitives::WcsArray {
                 } else {
                     match (self.cunits(), self.wcs()) {
                         (Some(units), Some(wcs)) => {
-                            Some(AxisTransform::new(units[0].repr(), move |t| {
+                            Some(AxisTransform::new("", units[0].repr(), move |t| {
                                 wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
                             }))
                         }
                         _ => None,
                     }
                 };
-                if let Err(e) = ui.image1d(&self.scalar1(), &unit, transform.as_ref(), state) {
+                if let Err(e) = ui.image1d(&self.scalar1(), "", unit, transform.as_ref(), state) {
                     ui.text(format!("Error on drawing plot! {}", e))
                 }
                 update_editor_from_state(
@@ -358,10 +358,10 @@ impl MenuBar for primitives::WcsArray {
                 } else {
                     match (self.cunits(), self.wcs()) {
                         (Some(units), Some(wcs)) => (
-                            Some(AxisTransform::new(units[0].repr(), move |t| {
+                            Some(AxisTransform::new("", units[0].repr(), move |t| {
                                 wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
                             })),
-                            Some(AxisTransform::new(units[1].repr(), {
+                            Some(AxisTransform::new("", units[1].repr(), {
                                 let max_height =
                                     (self.scalar().dim().as_array_view().first().unwrap() - 1)
                                         as f32;

@@ -44,6 +44,7 @@ impl State {
         &mut self,
         ui: &Ui,
         image: &ArrayBase<D, Ix1>,
+        vtype: &str,
         vunit: &str,
         axis: Option<&AxisTransform<F>>,
         pos: P,
@@ -74,7 +75,7 @@ impl State {
 
         // Pre-compute tick size to accurately position and resize the figure
         // to fit everything in the "size" given as input to this function.
-        let yaxis = AxisTransform::id(vunit);
+        let yaxis = AxisTransform::id(vtype, vunit);
         let ticks = XYTicks::prepare(ui, xlims, ylims, axis, Some(&yaxis));
         let x_labels_height = ticks.x_labels_height();
         let y_labels_width = ticks.y_labels_width();

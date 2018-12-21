@@ -47,8 +47,8 @@ fn main() {
                 textures,
                 texture_id,
                 "exp(sin(x)^2 + cos(y)^2)",
-                Some(&AxisTransform::new("X Axis", |x| x)),
-                Some(&AxisTransform::new("Y Axis", |y| y)),
+                Some(&AxisTransform::new("X Axis", "m", |x| x)),
+                Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                 &mut state,
             )
             .expect("Image2d failed");
