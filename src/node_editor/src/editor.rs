@@ -242,14 +242,13 @@ where
                         match node {
                             cake::Node::Transform(t) => {
                                 ui.text_wrapped(&ImString::new(format!(
-                                    "#{} {}:\n{}",
-                                    node_id.id(),
-                                    t.name(),
+                                    "{}:\n{}",
+                                    node.name(&node_id),
                                     t.description()
                                 )));
                             }
                             cake::Node::Output(_) => {
-                                ui.text(format!("#{} Output", -node_id.id()));
+                                ui.text(format!("{}", node.name(&node_id)));
                             }
                         }
                     }
