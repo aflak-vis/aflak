@@ -290,9 +290,14 @@ impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
         match self.scalar().ndim() {
             1 | 2 => {
+                let has_wcs_data = self.wcs().is_some();
                 ui.menu_item(im_str!("Show pixels"))
+                    .enabled(has_wcs_data)
                     .selected(&mut window.show_pixels)
                     .build();
+                if !has_wcs_data && ui.is_item_hovered() {
+                    ui.tooltip_text("Data has no WCS metadata attached.");
+                }
             }
             _ => {}
         }
