@@ -5,7 +5,7 @@ use std::sync::{
 use std::thread;
 use std::time::Instant;
 
-use dst::TransformIdx;
+use dst::{Output, TransformIdx};
 use timed::Timed;
 
 use chashmap::CHashMap;
@@ -89,6 +89,17 @@ impl<T, E> Cache<T, E> {
             in_use: Arc::new(AtomicUsize::new(0)),
             scheduled_for_destruction: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Get currently cached value for given Input.
+    /// The value may or may not have expired.
+    pub fn get(&self, output: &Output) -> Option<Result<Arc<T>, Arc<E>>> {
+        if let Some(some_cache_box) = self.cache.get(&output.t_idx) {
+            if let Some(ref cache_box) = *some_cache_box {
+                return cache_box.values.get(output.index()).cloned();
+            }
+        }
+        None
     }
 
     pub(crate) fn get_ref(&self) -> CacheRef<T, E> {

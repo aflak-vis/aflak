@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 use std::sync::Arc;
 
+use boow::Bow;
 use rayon;
 
 use super::super::ConvertibleVariants;
@@ -208,6 +209,34 @@ where
             Timed::map_result(timed)
         } else {
             Err(Timed::from(Arc::new(ComputeError::UnusableCache(output))))
+        }
+    }
+
+    /// Update default input values with the current value in the cache
+    pub fn update_defaults_from_cache(&mut self, cache: &Cache<T, ComputeError<E>>) {
+        // Iterator over inputs with a default value AND connected somewhere
+        for (output, input_list) in self.edges.iter() {
+            if let Some(Ok(result)) = cache.get(output) {
+                for input in &input_list.inputs {
+                    if let Some(meta) = self.transforms.get_mut(&input.t_idx) {
+                        if let Some(Some(default)) = meta.input_defaults.get_mut(input.index()) {
+                            let expected_type = default.variant_name();
+                            let incoming_type = result.variant_name();
+                            if let Some(converted) =
+                                T::convert(incoming_type, expected_type, &*result)
+                            {
+                                // Do not update updated_on, as default value not used
+                                // for computing, only showing
+                                // If updated_on was updated, computation would never stop!
+                                *default = match converted {
+                                    Bow::Borrowed(v) => v.clone(),
+                                    Bow::Owned(v) => v,
+                                };
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

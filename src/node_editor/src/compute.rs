@@ -19,7 +19,7 @@ where
 {
     /// Compute output's result asynchonously.
     pub fn compute_output(&mut self, id: cake::OutputId) -> Option<NodeResult<T, E>> {
-        let dst = &self.dst;
+        let dst = &mut self.dst;
         let cache = &mut self.cache;
         let state = self
             .output_results
@@ -43,6 +43,7 @@ where
                     state.task = dst.compute(id, cache);
                 }
             };
+            dst.update_defaults_from_cache(cache);
         }
         if state.counter == WRAP - 1 {
             state.counter = 0;
