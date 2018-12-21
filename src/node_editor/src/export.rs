@@ -9,7 +9,7 @@ use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform,
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use editor::{NodeEditor, AllTransforms};
+use editor::{AllTransforms, NodeEditor};
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
@@ -25,7 +25,7 @@ impl<'e, T> SerialEditor<'e, T>
 where
     T: Clone + VariantName,
 {
-    fn new<E, ED>(editor: &'e NodeEditor<T, E, ED>) -> Self {
+    fn new<E>(editor: &'e NodeEditor<T, E>) -> Self {
         Self {
             dst: SerialDST::new(&editor.dst),
             node_states: editor.node_states.iter().collect(),
@@ -42,7 +42,7 @@ pub struct DeserEditor<T, E> {
     scrolling: Vec2,
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: Clone + VariantName,
 {
@@ -84,7 +84,7 @@ impl From<ser::Error> for ExportError {
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: Clone + Serialize + VariantName,
 {
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<T, E, ED>
+impl<'t, T, E> NodeEditor<T, E>
 where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
@@ -176,7 +176,7 @@ impl From<cake::ImportError> for ImportError {
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: 'static
         + Clone
@@ -185,17 +185,12 @@ where
         + cake::ConvertibleVariants
         + for<'de> Deserialize<'de>,
     E: 'static,
-    ED: Default,
 {
-    pub fn from_export_buf<R>(
-        r: R,
-        addable_nodes: AllTransforms<T, E>,
-        ed: ED,
-    ) -> Result<Self, ImportError>
+    pub fn from_export_buf<R>(r: R, addable_nodes: AllTransforms<T, E>) -> Result<Self, ImportError>
     where
         R: io::Read,
     {
-        let mut editor = Self::new(addable_nodes, ed);
+        let mut editor = Self::new(addable_nodes);
         editor.import_from_buf(r)?;
         Ok(editor)
     }
@@ -203,13 +198,12 @@ where
     pub fn from_ron_file<P>(
         file_path: P,
         addable_nodes: &'static [&'static Transform<T, E>],
-        ed: ED,
     ) -> Result<Self, ImportError>
     where
         P: AsRef<Path>,
     {
         let f = fs::File::open(file_path)?;
-        Self::from_export_buf(f, addable_nodes, ed)
+        Self::from_export_buf(f, addable_nodes)
     }
 
     pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {

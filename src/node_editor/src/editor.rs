@@ -18,7 +18,7 @@ use vec2::Vec2;
 
 pub type AllTransforms<T, E> = &'static [&'static Transform<T, E>];
 
-pub struct NodeEditor<T: 'static, E: 'static, ED> {
+pub struct NodeEditor<T: 'static, E: 'static> {
     pub(crate) dst: DST<'static, T, E>,
     addable_nodes: AllTransforms<T, E>,
     pub(crate) node_states: NodeStates,
@@ -34,12 +34,11 @@ pub struct NodeEditor<T: 'static, E: 'static, ED> {
     pub show_connection_names: bool,
     pub(crate) scrolling: Scrolling,
     pub show_grid: bool,
-    constant_editor: ED,
     error_stack: Vec<Box<Error>>,
     success_stack: Vec<ImString>,
 }
 
-impl<T, E, ED: Default> Default for NodeEditor<T, E, ED> {
+impl<T, E> Default for NodeEditor<T, E> {
     fn default() -> Self {
         Self {
             dst: DST::new(),
@@ -57,7 +56,6 @@ impl<T, E, ED: Default> Default for NodeEditor<T, E, ED> {
             show_connection_names: true,
             scrolling: Default::default(),
             show_grid: true,
-            constant_editor: ED::default(),
             error_stack: vec![],
             success_stack: vec![],
         }
@@ -69,23 +67,18 @@ pub enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
-where
-    ED: Default,
-{
-    pub fn new(addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
+impl<T, E> NodeEditor<T, E> {
+    pub fn new(addable_nodes: AllTransforms<T, E>) -> Self {
         Self {
             addable_nodes,
-            constant_editor: ed,
             ..Default::default()
         }
     }
 
-    pub fn from_dst(dst: DST<'static, T, E>, addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
+    pub fn from_dst(dst: DST<'static, T, E>, addable_nodes: AllTransforms<T, E>) -> Self {
         Self {
             dst,
             addable_nodes,
-            constant_editor: ed,
             ..Default::default()
         }
     }
@@ -96,7 +89,7 @@ where
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: Clone + cake::VariantName,
 {
@@ -105,7 +98,7 @@ where
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: PartialEq + VariantName,
 {
@@ -122,7 +115,7 @@ where
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED> {
+impl<T, E> NodeEditor<T, E> {
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
@@ -138,7 +131,7 @@ const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: 'static
         + Clone
@@ -149,10 +142,12 @@ where
         + cake::ConvertibleVariants
         + Serialize
         + for<'de> Deserialize<'de>,
-    ED: ConstantEditor<T>,
     E: 'static + Error,
 {
-    pub fn render(&mut self, ui: &Ui) {
+    pub fn render<ED>(&mut self, ui: &Ui, constant_editor: &ED)
+    where
+        ED: ConstantEditor<T>,
+    {
         for idx in self.dst.node_ids() {
             // Initialization of node states
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
@@ -169,7 +164,7 @@ where
         if self.show_left_pane {
             self.render_left_pane(ui);
         }
-        self.render_graph_node(ui);
+        self.render_graph_node(ui, constant_editor);
 
         // Render error popup
         if !self.error_stack.is_empty() {
@@ -323,7 +318,10 @@ where
         }
     }
 
-    fn render_graph_node(&mut self, ui: &Ui) {
+    fn render_graph_node<ED>(&mut self, ui: &Ui, constant_editor: &ED)
+    where
+        ED: ConstantEditor<T>,
+    {
         const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
 
         ui.child_frame(im_str!("GraphNodeChildWindow"), (0.0, 0.0))
@@ -394,13 +392,16 @@ where
                         .show_scrollbar_with_mouse(false)
                         .build(|| {
                             // TODO: Manage scaling (and font-scaling)
-                            self.render_graph_canvas(ui);
+                            self.render_graph_canvas(ui, constant_editor);
                         });
                 });
             });
     }
 
-    fn render_graph_canvas(&mut self, ui: &Ui) {
+    fn render_graph_canvas<ED>(&mut self, ui: &Ui, constant_editor: &ED)
+    where
+        ED: ConstantEditor<T>,
+    {
         const NODE_SLOT_RADIUS: f32 = 6.0 * CURRENT_FONT_WINDOW_SCALE;
         const NODE_CLICK_BOX_RADIUS: f32 = 1.3 * NODE_SLOT_RADIUS;
         const NODE_CLICK_BOX_RADIUS_SQUARED: f32 = NODE_CLICK_BOX_RADIUS * NODE_CLICK_BOX_RADIUS;
@@ -490,7 +491,7 @@ where
                         .node_states
                         .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
-                    self.draw_node_inside(ui, &draw_list, &idx); // ...
+                    self.draw_node_inside(ui, &draw_list, &idx, constant_editor);
 
                     let node = self.dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
@@ -822,14 +823,21 @@ where
         });
     }
 
-    fn draw_node_inside(&mut self, ui: &Ui, draw_list: &WindowDrawList, id: &cake::NodeId) {
+    fn draw_node_inside<ED>(
+        &mut self,
+        ui: &Ui,
+        draw_list: &WindowDrawList,
+        id: &cake::NodeId,
+        constant_editor: &ED,
+    ) where
+        ED: ConstantEditor<T>,
+    {
         let node_name = {
             let node = self.dst.get_node(id).unwrap();
             ImString::new(node.name(id))
         };
         let node_states = &mut self.node_states;
         let dst = &mut self.dst;
-        let constant_editor = &self.constant_editor;
         let mut title_bar_height = 0.0;
         let p = ui.get_cursor_screen_pos();
 
@@ -930,7 +938,7 @@ where
     }
 }
 
-impl<T, E, ED> NodeEditor<T, E, ED>
+impl<T, E> NodeEditor<T, E>
 where
     T: VariantName,
 {

@@ -13,7 +13,7 @@ use constant_editor::MyConstantEditor;
 use layout::{Layout, LayoutEngine};
 use output_window::OutputWindow;
 
-pub type AflakNodeEditor = NodeEditor<IOValue, IOErr, MyConstantEditor>;
+pub type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 pub struct Aflak {
     node_editor: AflakNodeEditor,
@@ -39,7 +39,7 @@ impl Aflak {
             .position(position, ImGuiCond::FirstUseEver)
             .size(size, ImGuiCond::FirstUseEver)
             .build(|| {
-                self.node_editor.render(ui);
+                self.node_editor.render(ui, &MyConstantEditor);
             });
     }
 

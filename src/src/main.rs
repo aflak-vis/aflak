@@ -32,7 +32,6 @@ use imgui::ImString;
 use node_editor::NodeEditor;
 
 use aflak::Aflak;
-use constant_editor::MyConstantEditor;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
@@ -58,14 +57,13 @@ fn main() -> support::Result<()> {
         }
     };
 
-    let node_editor =
-        match NodeEditor::from_export_buf(import_data, transformations, MyConstantEditor) {
-            Ok(editor) => editor,
-            Err(e) => {
-                eprintln!("Import failed! Initialize empty node editor.\n{}", e);
-                NodeEditor::new(transformations, MyConstantEditor)
-            }
-        };
+    let node_editor = match NodeEditor::from_export_buf(import_data, transformations) {
+        Ok(editor) => editor,
+        Err(e) => {
+            eprintln!("Import failed! Initialize empty node editor.\n{}", e);
+            NodeEditor::new(transformations)
+        }
+    };
 
     let mut aflak = Aflak::init(node_editor);
 

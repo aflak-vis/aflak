@@ -821,7 +821,6 @@ mod test {
     use primitives;
 
     use super::{show_equivalent_width, show_fits_cleaning, show_frame_and_wave};
-    use constant_editor::MyConstantEditor;
 
     #[test]
     fn import_frame_and_wave() {
@@ -829,7 +828,7 @@ mod test {
         let transformations = Box::leak(transformations_ref);
 
         let buf = show_frame_and_wave("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditor::from_export_buf(buf, transformations);
         assert!(editor.is_ok());
     }
 
@@ -839,7 +838,7 @@ mod test {
         let transformations = Box::leak(transformations_ref);
 
         let buf = show_equivalent_width("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditor::from_export_buf(buf, transformations);
         assert!(editor.is_ok());
     }
 
@@ -849,7 +848,7 @@ mod test {
         let transformations = Box::leak(transformations_ref);
 
         let buf = show_equivalent_width(r"C:\path\to\fits\file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditor::from_export_buf(buf, transformations);
         assert!(editor.is_ok());
     }
 
@@ -859,7 +858,7 @@ mod test {
         let transformations = Box::leak(transformations_ref);
 
         let buf = show_fits_cleaning("file.fits");
-        let editor = NodeEditor::from_export_buf(buf, transformations, MyConstantEditor);
+        let editor = NodeEditor::from_export_buf(buf, transformations);
         assert!(editor.is_ok());
     }
 
