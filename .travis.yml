@@ -32,7 +32,10 @@ jobs:
         - cargo fmt --all -- --check
 
 after_success:
+  - echo '[profile.release]' >> Cargo.toml
+  - echo 'lto = true' >> Cargo.toml
   - cargo build --release
+  - strip target/release/aflak
 
 addons:
   artifacts:
