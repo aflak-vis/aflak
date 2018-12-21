@@ -16,9 +16,11 @@ use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-pub struct NodeEditor<'t, T: 't, E: 't, ED> {
-    pub(crate) dst: DST<'t, T, E>,
-    addable_nodes: &'t [&'t Transform<T, E>],
+pub type AllTransforms<T, E> = &'static [&'static Transform<T, E>];
+
+pub struct NodeEditor<T: 'static, E: 'static, ED> {
+    pub(crate) dst: DST<'static, T, E>,
+    addable_nodes: AllTransforms<T, E>,
     pub(crate) node_states: NodeStates,
     pub(crate) active_node: Option<cake::NodeId>,
     pub(crate) drag_node: Option<cake::NodeId>,
@@ -37,7 +39,7 @@ pub struct NodeEditor<'t, T: 't, E: 't, ED> {
     success_stack: Vec<ImString>,
 }
 
-impl<'t, T, E, ED: Default> Default for NodeEditor<'t, T, E, ED> {
+impl<T, E, ED: Default> Default for NodeEditor<T, E, ED> {
     fn default() -> Self {
         Self {
             dst: DST::new(),
@@ -67,11 +69,11 @@ pub enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     ED: Default,
 {
-    pub fn new(addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
+    pub fn new(addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
         Self {
             addable_nodes,
             constant_editor: ed,
@@ -79,7 +81,7 @@ where
         }
     }
 
-    pub fn from_dst(dst: DST<'t, T, E>, addable_nodes: &'t [&'t Transform<T, E>], ed: ED) -> Self {
+    pub fn from_dst(dst: DST<'static, T, E>, addable_nodes: AllTransforms<T, E>, ed: ED) -> Self {
         Self {
             dst,
             addable_nodes,
@@ -94,7 +96,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: Clone + cake::VariantName,
 {
@@ -103,7 +105,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: PartialEq + VariantName,
 {
@@ -120,7 +122,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED> {
+impl<T, E, ED> NodeEditor<T, E, ED> {
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
@@ -136,7 +138,7 @@ const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: 'static
         + Clone
@@ -928,7 +930,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: VariantName,
 {

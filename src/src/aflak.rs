@@ -13,7 +13,7 @@ use constant_editor::MyConstantEditor;
 use layout::{Layout, LayoutEngine};
 use output_window::OutputWindow;
 
-pub type AflakNodeEditor = NodeEditor<'static, IOValue, IOErr, MyConstantEditor>;
+pub type AflakNodeEditor = NodeEditor<IOValue, IOErr, MyConstantEditor>;
 
 pub struct Aflak {
     node_editor: AflakNodeEditor,

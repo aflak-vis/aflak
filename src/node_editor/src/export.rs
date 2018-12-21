@@ -9,7 +9,7 @@ use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, Transform,
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use editor::NodeEditor;
+use editor::{NodeEditor, AllTransforms};
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
@@ -42,7 +42,7 @@ pub struct DeserEditor<T, E> {
     scrolling: Vec2,
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: Clone + VariantName,
 {
@@ -84,7 +84,7 @@ impl From<ser::Error> for ExportError {
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: Clone + Serialize + VariantName,
 {
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<'t, T, E, ED> NodeEditor<T, E, ED>
 where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
@@ -176,7 +176,7 @@ impl From<cake::ImportError> for ImportError {
     }
 }
 
-impl<'t, T, E, ED> NodeEditor<'t, T, E, ED>
+impl<T, E, ED> NodeEditor<T, E, ED>
 where
     T: 'static
         + Clone
@@ -189,7 +189,7 @@ where
 {
     pub fn from_export_buf<R>(
         r: R,
-        addable_nodes: &'t [&'t Transform<T, E>],
+        addable_nodes: AllTransforms<T, E>,
         ed: ED,
     ) -> Result<Self, ImportError>
     where
@@ -202,7 +202,7 @@ where
 
     pub fn from_ron_file<P>(
         file_path: P,
-        addable_nodes: &'t [&'t Transform<T, E>],
+        addable_nodes: &'static [&'static Transform<T, E>],
         ed: ED,
     ) -> Result<Self, ImportError>
     where
