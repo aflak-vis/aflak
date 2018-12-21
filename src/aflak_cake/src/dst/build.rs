@@ -276,10 +276,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// provided in the graph, Some(Output) otherwise.
     ///
     /// Return [`None`] if [`TransformIdx`] does not exist.
-    pub(crate) fn outputs_attached_to_transform(
-        &self,
-        idx: TransformIdx,
-    ) -> Option<Vec<Option<Output>>> {
+    pub fn outputs_attached_to_transform(&self, idx: TransformIdx) -> Option<Vec<Option<Output>>> {
         self.get_transform(idx).map(|t| {
             let len = t.input_types().len();
             (0..len)

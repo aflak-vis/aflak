@@ -862,7 +862,7 @@ where
                 if let Some(t) = dst.get_transform_mut(t_idx) {
                     let mut changed = None;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                        if let Some(new_value) = constant_editor.editor(ui, &constant, 0) {
+                        if let Some(new_value) = constant_editor.editor(ui, &constant, 0, false) {
                             changed = Some(new_value);
                         }
                     }
@@ -870,11 +870,17 @@ where
                         t.set_constant(c);
                     }
                 }
+                let outputs = dst.outputs_attached_to_transform(t_idx).unwrap();
                 if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
-                    for (i, mut default_input) in default_inputs.into_iter().enumerate() {
+                    for (i, (mut default_input, some_output)) in
+                        default_inputs.into_iter().zip(outputs).enumerate()
+                    {
+                        let read_only = some_output.is_some();
                         let mut changed = None;
                         if let Some(val) = default_input.read() {
-                            if let Some(new_value) = constant_editor.editor(ui, &val, i as i32) {
+                            if let Some(new_value) =
+                                constant_editor.editor(ui, &val, i as i32, read_only)
+                            {
                                 changed = Some(new_value);
                             }
                         } else {

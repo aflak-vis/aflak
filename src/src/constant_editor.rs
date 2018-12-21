@@ -8,7 +8,7 @@ use imgui::{ImId, ImString, Ui};
 pub struct MyConstantEditor;
 
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
-    fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I) -> Option<IOValue>
+    fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I, read_only: bool) -> Option<IOValue>
     where
         I: Into<ImId<'a>>,
     {
@@ -18,7 +18,10 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             IOValue::Str(ref string) => {
                 let mut out = ImString::with_capacity(1024);
                 out.push_str(string);
-                let changed = ui.input_text(im_str!("String value"), &mut out).build();
+                let changed = ui
+                    .input_text(im_str!("String value"), &mut out)
+                    .read_only(read_only)
+                    .build();
                 if changed {
                     Some(IOValue::Str(out.to_str().to_owned()))
                 } else {
@@ -32,7 +35,10 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 
                 if MIN <= *int && *int <= MAX {
                     let mut out = *int as i32;
-                    let changed = ui.input_int(im_str!("Int value"), &mut out).build();
+                    let changed = ui
+                        .input_int(im_str!("Int value"), &mut out)
+                        .read_only(read_only)
+                        .build();
                     if changed {
                         Some(IOValue::Integer(i64::from(out)))
                     } else {
@@ -48,7 +54,11 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             }
             IOValue::Float(ref float) => {
                 let mut f = *float;
-                if ui.input_float(im_str!("Float value"), &mut f).build() {
+                if ui
+                    .input_float(im_str!("Float value"), &mut f)
+                    .read_only(read_only)
+                    .build()
+                {
                     Some(IOValue::Float(f))
                 } else {
                     None
@@ -56,7 +66,11 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             }
             IOValue::Float2(ref floats) => {
                 let mut f2 = *floats;
-                if ui.input_float2(im_str!("2 floats value"), &mut f2).build() {
+                if ui
+                    .input_float2(im_str!("2 floats value"), &mut f2)
+                    .read_only(read_only)
+                    .build()
+                {
                     Some(IOValue::Float2(f2))
                 } else {
                     None
@@ -64,7 +78,11 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             }
             IOValue::Float3(ref floats) => {
                 let mut f3 = *floats;
-                if ui.input_float3(im_str!("3 floats value"), &mut f3).build() {
+                if ui
+                    .input_float3(im_str!("3 floats value"), &mut f3)
+                    .read_only(read_only)
+                    .build()
+                {
                     Some(IOValue::Float3(f3))
                 } else {
                     None
@@ -80,22 +98,26 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             }
             IOValue::Path(ref file) => {
                 ui.text(file.to_str().unwrap_or("Unrepresentable path"));
-                let size = ui.get_item_rect_size();
+                if read_only {
+                    None
+                } else {
+                    let size = ui.get_item_rect_size();
 
-                let mut ret = Ok(None);
-                ui.child_frame(im_str!("edit"), (size.0.max(400.0), 150.0))
-                    .scrollbar_horizontal(true)
-                    .build(|| {
-                        ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit"]);
-                    });
-                if let Ok(Some(new_file)) = ret {
-                    if *file != new_file {
-                        Some(IOValue::Path(new_file))
+                    let mut ret = Ok(None);
+                    ui.child_frame(im_str!("edit"), (size.0.max(400.0), 150.0))
+                        .scrollbar_horizontal(true)
+                        .build(|| {
+                            ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit"]);
+                        });
+                    if let Ok(Some(new_file)) = ret {
+                        if *file != new_file {
+                            Some(IOValue::Path(new_file))
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
-                } else {
-                    None
                 }
             }
             IOValue::Roi(ref roi) => {
