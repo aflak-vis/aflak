@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use dst::{Output, OutputId, TransformIdx};
 use transform::{Transform, TypeId};
 use variant_name::VariantName;
@@ -38,17 +36,20 @@ where
 
 impl<'a, T: VariantName, E> Node<'a, T, E> {
     /// Get node's name.
-    pub fn name(&'a self, id: &NodeId) -> Cow<'static, str> {
-        match *self {
-            Node::Transform(t) => Cow::Borrowed(t.name()),
-            Node::Output(_) => {
-                if let NodeId::Output(output_id) = id {
-                    let OutputId(id) = output_id;
-                    Cow::Owned(format!("Output #{}", id))
-                } else {
-                    panic!("Expected id to be output")
-                }
+    pub fn name(&self, id: &NodeId) -> String {
+        match (self, id) {
+            (Node::Transform(t), NodeId::Transform(t_idx)) => {
+                format!("#{} {}", t_idx.id(), t.name())
             }
+            (Node::Output(_), NodeId::Output(output_id)) => format!("Output #{}", output_id.id()),
+            (Node::Transform(_), node_id) => panic!(
+                "Node and NodeId do not agree on their types. Got a Node::Transform with Id {:?}.",
+                node_id
+            ),
+            (Node::Output(ouput_id), node_id) => panic!(
+                "Node and NodeId do not agree on their types. Got Node::Output({:?}) with Id {:?}.",
+                ouput_id, node_id
+            ),
         }
     }
 
