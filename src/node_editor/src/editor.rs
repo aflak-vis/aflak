@@ -831,9 +831,19 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        let node_name = {
+        let (node_name, description) = {
             let node = self.dst.get_node(id).unwrap();
-            ImString::new(node.name(id))
+            (
+                ImString::new(node.name(id)),
+                ImString::new(match node {
+                    cake::Node::Transform(t) => t.description(),
+                    cake::Node::Output(_) => format!(
+                        "Visualize that data that flows into this node\nin the window '{}'",
+                        node.name(id),
+                    )
+                    .into(),
+                }),
+            )
         };
         let node_states = &mut self.node_states;
         let dst = &mut self.dst;
@@ -846,16 +856,7 @@ where
                 ui.text(&node_name);
                 title_bar_height = ui.get_item_rect_size().1;
                 if ui.is_item_hovered() {
-                    ui.tooltip(|| {
-                        ui.text(format!(
-                            "Node #{}: {:?}",
-                            match id {
-                                cake::NodeId::Output(_) => -id.id(),
-                                cake::NodeId::Transform(_) => id.id(),
-                            },
-                            &node_name
-                        ))
-                    });
+                    ui.tooltip(|| ui.text(description));
                 }
             });
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
