@@ -819,7 +819,9 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
 mod test {
     use aflak::AflakNodeEditor;
 
-    use super::{show_equivalent_width, show_fits_cleaning, show_frame_and_wave};
+    use super::{
+        show_equivalent_width, show_fits_cleaning, show_frame_and_wave, show_velocity_field,
+    };
 
     #[test]
     fn import_frame_and_wave() {
@@ -849,4 +851,10 @@ mod test {
         assert!(editor.is_ok());
     }
 
+    #[test]
+    fn import_velocity_field() {
+        let buf = show_velocity_field("file.fits");
+        let editor = AflakNodeEditor::from_export_buf(buf);
+        assert!(editor.is_ok());
+    }
 }
