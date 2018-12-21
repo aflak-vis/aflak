@@ -30,3 +30,9 @@ jobs:
         - cargo fmt --version
       script:
         - cargo fmt --all -- --check
+
+addons:
+  artifacts: true
+    paths:
+      - target/release/aflak
+    debug: true
