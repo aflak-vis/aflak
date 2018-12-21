@@ -31,6 +31,9 @@ jobs:
       script:
         - cargo fmt --all -- --check
 
+after_success:
+  - cargo build --release
+
 addons:
   artifacts: true
     paths:
