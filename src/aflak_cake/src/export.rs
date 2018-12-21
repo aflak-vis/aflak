@@ -151,32 +151,20 @@ where
     /// Create a serializable representaion of the DST given as argument.
     pub fn new<E>(dst: &'d DST<T, E>) -> Self {
         Self {
-            transforms: {
-                let mut ts: Vec<_> = dst
-                    .meta_transforms_iter()
-                    .map(|(t_idx, meta)| {
-                        (
-                            t_idx,
-                            SerialMetaTransform {
-                                t: SerialTransform::new(meta.transform()),
-                                input_defaults: meta.defaults().to_vec(),
-                            },
-                        )
-                    })
-                    .collect();
-                ts.sort_by_key(|&(t_idx, _)| t_idx);
-                ts
-            },
-            edges: {
-                let mut edges: Vec<_> = dst.edges_iter().collect();
-                edges.sort();
-                edges
-            },
-            outputs: {
-                let mut outputs: Vec<_> = dst.outputs_iter().collect();
-                outputs.sort_by_key(|&(o, _)| o);
-                outputs
-            },
+            transforms: dst
+                .meta_transforms_iter()
+                .map(|(t_idx, meta)| {
+                    (
+                        t_idx,
+                        SerialMetaTransform {
+                            t: SerialTransform::new(meta.transform()),
+                            input_defaults: meta.defaults().to_vec(),
+                        },
+                    )
+                })
+                .collect(),
+            edges: dst.edges_iter().collect(),
+            outputs: dst.outputs_iter().collect(),
         }
     }
 }
