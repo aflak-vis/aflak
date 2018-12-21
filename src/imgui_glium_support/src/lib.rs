@@ -1,8 +1,10 @@
+extern crate clipboard;
 extern crate glium;
 
 extern crate imgui;
 extern crate imgui_glium_renderer;
 
+mod clipboard_support;
 mod glutin_support;
 
 use std::error;
@@ -118,6 +120,9 @@ where
     let mut renderer = Renderer::init(&mut imgui, &display)?;
 
     glutin_support::configure_keys(&mut imgui);
+    if let Err(e) = clipboard_support::setup(&mut imgui) {
+        eprintln!("Failed to set up clipboard: {}", e);
+    }
 
     let mut last_frame = Instant::now();
     let mut quit = false;
