@@ -373,10 +373,8 @@ where
                         ));
                     });
                 }
-                const GRAPH_STYLE_VAR: [StyleVar; 2] = [
-                    StyleVar::FramePadding(ImVec2 { x: 1.0, y: 1.0 }),
-                    StyleVar::WindowPadding(ImVec2 { x: 0.0, y: 0.0 }),
-                ];
+                const GRAPH_STYLE_VAR: [StyleVar; 1] =
+                    [StyleVar::FramePadding(ImVec2 { x: 1.0, y: 1.0 })];
                 const GRAPH_STYLE_COLOR: [(ImGuiCol, (f32, f32, f32, f32)); 1] =
                     [(ImGuiCol::ChildBg, (0.24, 0.24, 0.27, 0.78))];
                 ui.with_style_and_color_vars(&GRAPH_STYLE_VAR, &GRAPH_STYLE_COLOR, || {
