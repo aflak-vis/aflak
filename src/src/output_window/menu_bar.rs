@@ -423,11 +423,14 @@ impl MenuBar for primitives::WcsArray {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         let arr = self.scalar();
-        // TODO: 0-dim arrays are incorrectly exported for the time being
+        // 0-dim ndarrays contain a single scalar value, however they should be
+        // treated as a 1-dimensional data array of length 1 when embedded as
+        // FITS file.
+        let shape = if arr.ndim() == 0 { &[1] } else { arr.shape() };
         Fits::create(
             path,
             Hdu::new(
-                arr.shape(),
+                shape,
                 arr.as_slice()
                     .expect("Could not get slice out of array")
                     .to_owned(),
