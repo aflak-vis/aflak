@@ -288,9 +288,14 @@ impl MenuBar for Path {
 
 impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
-        ui.menu_item(im_str!("Show pixels"))
-            .selected(&mut window.show_pixels)
-            .build();
+        match self.scalar().ndim() {
+            1 | 2 => {
+                ui.menu_item(im_str!("Show pixels"))
+                    .selected(&mut window.show_pixels)
+                    .build();
+            }
+            _ => {}
+        }
     }
 
     fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
