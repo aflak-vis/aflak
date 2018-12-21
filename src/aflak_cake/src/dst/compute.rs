@@ -214,7 +214,7 @@ where
 
     /// Update default input values with the current value in the cache
     pub fn update_defaults_from_cache(&mut self, cache: &Cache<T, ComputeError<E>>) {
-        // Iterator over inputs with a default value AND connected somewhere
+        // Iterate over inputs with a default value AND connected to an input
         for (output, input_list) in self.edges.iter() {
             if let Some(Ok(result)) = cache.get(output) {
                 for input in &input_list.inputs {
