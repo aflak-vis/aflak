@@ -1,4 +1,4 @@
-use std::collections::hash_map;
+use std::collections::btree_map;
 use std::slice;
 
 use dst::node::{Node, NodeId};
@@ -12,7 +12,9 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         TransformIterator::new(self.transforms.iter())
     }
 
-    pub(crate) fn meta_transforms_iter(&self) -> hash_map::Iter<TransformIdx, MetaTransform<T, E>> {
+    pub(crate) fn meta_transforms_iter(
+        &self,
+    ) -> btree_map::Iter<TransformIdx, MetaTransform<T, E>> {
         self.transforms.iter()
     }
 
@@ -26,7 +28,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Iterator over outputs.
-    pub fn outputs_iter(&self) -> hash_map::Iter<OutputId, Option<Output>> {
+    pub fn outputs_iter(&self) -> btree_map::Iter<OutputId, Option<Output>> {
         self.outputs.iter()
     }
 
@@ -108,13 +110,13 @@ where
 }
 
 pub struct EdgeIterator<'a> {
-    edges: hash_map::Iter<'a, Output, InputList>,
+    edges: btree_map::Iter<'a, Output, InputList>,
     output: Option<&'a Output>,
     inputs: slice::Iter<'a, Input>,
 }
 
 impl<'a> EdgeIterator<'a> {
-    fn new(edges: hash_map::Iter<'a, Output, InputList>) -> Self {
+    fn new(edges: btree_map::Iter<'a, Output, InputList>) -> Self {
         const NO_INPUT: [Input; 0] = [];
         Self {
             edges,
@@ -140,10 +142,10 @@ impl<'a> Iterator for EdgeIterator<'a> {
 }
 
 pub struct TransformIterator<'a, T: 'a, E: 'a> {
-    iter: hash_map::Iter<'a, TransformIdx, MetaTransform<'a, T, E>>,
+    iter: btree_map::Iter<'a, TransformIdx, MetaTransform<'a, T, E>>,
 }
 impl<'a, T, E> TransformIterator<'a, T, E> {
-    fn new(iter: hash_map::Iter<'a, TransformIdx, MetaTransform<T, E>>) -> Self {
+    fn new(iter: btree_map::Iter<'a, TransformIdx, MetaTransform<T, E>>) -> Self {
         Self { iter }
     }
 }
@@ -160,7 +162,7 @@ impl<'a, T, E> Iterator for TransformIterator<'a, T, E> {
 /// Iterate over a tuple ([`NodeId`], [`Node`]).
 pub struct NodeIter<'a, T: 'a, E: 'a> {
     transforms: TransformIterator<'a, T, E>,
-    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
+    outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
 }
 
 /// Iterate over nodes.
@@ -185,11 +187,14 @@ impl<'a, T, E> Iterator for NodeIter<'a, T, E> {
 /// input slot of an output node.
 pub struct LinkIter<'a> {
     edges: EdgeIterator<'a>,
-    outputs: hash_map::Iter<'a, OutputId, Option<Output>>,
+    outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
 }
 
 impl<'a> LinkIter<'a> {
-    fn new(edges: EdgeIterator<'a>, outputs: hash_map::Iter<'a, OutputId, Option<Output>>) -> Self {
+    fn new(
+        edges: EdgeIterator<'a>,
+        outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
+    ) -> Self {
         Self { edges, outputs }
     }
 }

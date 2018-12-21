@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::hash::Hash;
+use std::collections::BTreeMap;
 use std::slice;
 
 use boow::Bow;
@@ -224,9 +223,9 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Make a new empty [`DST`].
     pub fn new() -> Self {
         Self {
-            transforms: HashMap::new(),
-            edges: HashMap::new(),
-            outputs: HashMap::new(),
+            transforms: BTreeMap::new(),
+            edges: BTreeMap::new(),
+            outputs: BTreeMap::new(),
         }
     }
 
@@ -345,7 +344,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     pub fn detach_output<O>(&mut self, output_id: &O)
     where
         OutputId: Borrow<O>,
-        O: Hash + Eq,
+        O: Ord,
     {
         if let Some(output) = self.outputs.get_mut(output_id) {
             *output = None;
@@ -356,7 +355,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     pub fn remove_output<O>(&mut self, output_id: &O)
     where
         OutputId: Borrow<O>,
-        O: Hash + Eq,
+        O: Ord,
     {
         self.outputs.remove(output_id);
     }

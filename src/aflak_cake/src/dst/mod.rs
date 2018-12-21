@@ -1,6 +1,6 @@
 use boow::Bow;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 use std::time::Instant;
@@ -28,9 +28,9 @@ pub use self::node::{Node, NodeId};
 /// node is identified by a [`TransformIdx`].
 #[derive(Debug)]
 pub struct DST<'t, T: 't, E: 't> {
-    transforms: HashMap<TransformIdx, MetaTransform<'t, T, E>>,
-    edges: HashMap<Output, InputList>,
-    outputs: HashMap<OutputId, Option<Output>>,
+    transforms: BTreeMap<TransformIdx, MetaTransform<'t, T, E>>,
+    edges: BTreeMap<Output, InputList>,
+    outputs: BTreeMap<OutputId, Option<Output>>,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>
