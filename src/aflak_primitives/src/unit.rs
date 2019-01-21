@@ -84,7 +84,7 @@ impl WcsArray {
             FitsData::IntegersI32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
             FitsData::IntegersU32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
             FitsData::Characters(_) => {
-                return Err(FitsArrayReadError::UnsupportedData("Characters"))
+                return Err(FitsArrayReadError::UnsupportedData("Characters"));
             }
         };
 
