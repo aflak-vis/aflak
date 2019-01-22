@@ -78,8 +78,8 @@ macro_rules! is_sliceable {
     ($wcs_array: ident, $frame_idx: ident) => {
         has_gt_0_dim!($wcs_array).and_then(|frame_cnt| {
             precheck!(
-                $frame_idx <= frame_cnt,
-                "'{}' greater or equal to the input image '{}''s frame count (expected {} <= {})",
+                $frame_idx < frame_cnt,
+                "'{}' greater or equal to the input image '{}''s frame count (expected {} < {})",
                 stringify!($frame_idx), stringify!($wcs_array), $frame_idx, frame_cnt
             )
         })
@@ -88,8 +88,8 @@ macro_rules! is_sliceable {
         has_gt_0_dim!($wcs_array).and_then(|frame_cnt| {
             precheck!($start < $end).and_then(|_| {
                 precheck!(
-                    $end <= frame_cnt,
-                    "'{}' greater or equal to the input image '{}''s frame count (expected {} <= {})",
+                    $end < frame_cnt,
+                    "'{}' greater or equal to the input image '{}''s frame count (expected {} < {})",
                     stringify!($end), stringify!($wcs_array), $end, frame_cnt
                 )
             })
