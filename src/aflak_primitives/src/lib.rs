@@ -27,7 +27,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, Ix3, Slice};
+use ndarray::{Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, Slice};
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
@@ -649,24 +649,15 @@ fn run_make_plane3d(
 }
 
 fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+
     let image_val = image.scalar();
 
-    let image3 =
-        match image_val.view().into_dimensionality::<Ix3>() {
-            Ok(image3) => image3,
-            Err(e) => return Err(IOErr::ShapeError(
-                e,
-                format!(
-                    "run_extract_wave: Expected an image of dimension 3 as input but got an image of dimension {}",
-                    image_val.ndim()
-                ),
-            )),
-        };
-
-    let mut wave = Vec::with_capacity(image3.len());
-    for i in 0..image3.dim().0 {
+    let wave_size = *image_val.dim().as_array_view().first().unwrap();
+    let mut wave = Vec::with_capacity(wave_size);
+    for i in 0..wave_size {
         let mut res = 0.0;
-        for (_, val) in roi.filter(image3.slice(s![i, .., ..])) {
+        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
