@@ -55,6 +55,24 @@ macro_rules! has_gt_0_dim {
     };
 }
 
+/// Check that a WcsArray has more than $dim dimensions.
+macro_rules! dim_is {
+    ($wcs_array: ident, $dim: expr) => {{
+        let expected_dim = $dim;
+        let got_dim = $wcs_array.scalar().ndim();
+        if got_dim == expected_dim {
+            Ok(())
+        } else {
+            Err($crate::IOErr::UnexpectedInput(format!(
+                "'{}' is a {}-dimensional image, while dimension {} was expected",
+                stringify!($wcs_array),
+                got_dim,
+                expected_dim
+            )))
+        }
+    }};
+}
+
 /// Check that a WcsArray is sliceable from indices 'start' to 'end'.
 macro_rules! is_sliceable {
     ($wcs_array: ident, $frame_idx: ident) => {

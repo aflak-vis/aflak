@@ -430,6 +430,8 @@ fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, 
 
 /// Slice a 3D image through an arbitrary 2D plane
 fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
+    dim_is!(input_img, 3)?;
+
     use std::f32::EPSILON;
 
     #[derive(Debug)]
