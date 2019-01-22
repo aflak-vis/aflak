@@ -429,8 +429,8 @@ fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, 
 }
 
 /// Slice a 3D image through an arbitrary 2D plane
-fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
-    dim_is!(input_img, 3)?;
+fn run_slice_3d_to_2d(image: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
 
     use std::f32::EPSILON;
 
@@ -596,7 +596,8 @@ fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IO
     let mut out = Vec::with_capacity(map.len());
     for &[x, y, z] in map {
         // Interpolate to nearest
-        let input_img = input_img.scalar();
+        let input_img = image.scalar();
+
         let out_val = *input_img
             .get([x as usize, y as usize, z as usize])
             .ok_or_else(|| {
@@ -610,10 +611,10 @@ fn run_slice_3d_to_2d(input_img: &WcsArray, map: &Array2<[f32; 3]>) -> Result<IO
     Array2::from_shape_vec(map.dim(), out)
         .map(|array| {
             let array = array.into_dyn();
-            let array = input_img.array().with_new_value(array);
+            let array = image.array().with_new_value(array);
             let params = MapReverseParams::new(map);
             let array = if let Some(axes) = params.sliced_axes() {
-                input_img.make_slice(&axes, array)
+                image.make_slice(&axes, array)
             } else {
                 WcsArray::from_array(array)
             };
