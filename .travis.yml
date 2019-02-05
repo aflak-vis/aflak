@@ -13,7 +13,7 @@ cache: cargo
 
 matrix:
   allow_failures:
-    - rust: beta
+    - os: windows
 
 before_install:
   - cd src
