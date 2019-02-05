@@ -69,3 +69,29 @@ git push origin name-of-your-bugfix-or-feature
 
 If you need some code review or feedback while you're developing the code just
 make the pull request.
+
+
+# Software structure (for the developer)
+
+aflak's entry point is in `aflak/src/src/main.rs`.
+
+This repo has several crates each with a specific and defined objective.
+Each of the crates is documented. Please refer to their respective doc using `cargo doc --open`.
+
+- **aflak_cake** (*Computational mAKE*): Manage node graph and computational tasks (back-end).
+
+Example for opening **aflak_cake**'s doc:
+
+```sh
+cd aflak/src/aflak_cake
+# Open the doc
+cargo doc --open
+```
+
+- **aflak_plot**: Visualization library built on *imgui* for *aflak*.
+- **aflak_primitives**: Define transformation types and primitives for use in
+astrophysics. All built-in nodes are defined in this crate.
+Documentation about the list of node can be found
+[in the wiki](https://github.com/aflak-vis/aflak/wiki/%E3%83%8E%E3%83%BC%E3%83%89%E4%B8%80%E8%A6%A7)
+(in Japanese):
+- **node_editor**: Node editor built on *aflak_cake* and *imgui*.
