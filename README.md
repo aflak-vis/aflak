@@ -100,7 +100,3 @@ astrophysics.
 cd aflak/src
 cargo test --all
 ```
-
-## TODO
-
-- Zooming in node editor
