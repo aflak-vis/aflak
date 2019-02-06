@@ -88,6 +88,7 @@ impl<T, E> NodeEditor<T, E>
 where
     T: Clone + Serialize + VariantName,
 {
+    /// Serialize node editor to writer as .ron format.
     pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
         let serializable = self.export();
         let serialized = ser::to_string_pretty(&serializable, Default::default())?;
@@ -96,6 +97,7 @@ where
         Ok(())
     }
 
+    /// Serialize node editor to .ron file.
     pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
         let mut f = fs::File::create(file_path)?;
         self.export_to_buf(&mut f)
@@ -186,6 +188,7 @@ where
         + for<'de> Deserialize<'de>,
     E: 'static,
 {
+    /// Deserialize a buffer in .ron format and make a node editor.
     pub fn from_export_buf<R>(r: R) -> Result<Self, ImportError>
     where
         R: io::Read,
@@ -195,6 +198,7 @@ where
         Ok(editor)
     }
 
+    /// Deserialize a .ron file and make a node editor.
     pub fn from_ron_file<P>(file_path: P) -> Result<Self, ImportError>
     where
         P: AsRef<Path>,
@@ -203,12 +207,14 @@ where
         Self::from_export_buf(f)
     }
 
+    /// Replace the node editor with the content of the buffer in .ron format.
     pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {
         let deserialized = de::from_reader(r)?;
         self.import(deserialized)?;
         Ok(())
     }
 
+    /// Replace the node editor with the content of the .ron file.
     pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError> {
         let f = fs::File::open(file_path)?;
         self.import_from_buf(f)

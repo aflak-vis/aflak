@@ -16,6 +16,7 @@ use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
 
+/// The node editor instance.
 pub struct NodeEditor<T: 'static, E: 'static> {
     pub(crate) dst: DST<'static, T, E>,
     pub(crate) node_states: NodeStates,
@@ -64,6 +65,7 @@ pub enum LinkExtremity {
 }
 
 impl<T, E> NodeEditor<T, E> {
+    /// Make a node editor containg the provided `DST`.
     pub fn from_dst(dst: DST<'static, T, E>) -> Self {
         Self {
             dst,
@@ -81,6 +83,9 @@ impl<T, E> NodeEditor<T, E>
 where
     T: Clone + cake::VariantName,
 {
+    /// Add a constant node containing the value `t`.
+    ///
+    /// Return the ID if the new node.
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
         self.dst.add_owned_transform(Transform::new_constant(t))
     }
@@ -90,6 +95,8 @@ impl<T, E> NodeEditor<T, E>
 where
     T: PartialEq + VariantName,
 {
+    /// Update the constant value of constant node with given `id` with given
+    /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
         if let Some(t) = self.dst.get_transform_mut(id) {
             let mut new_value = false;
@@ -104,6 +111,7 @@ where
 }
 
 impl<T, E> NodeEditor<T, E> {
+    /// Get reference to value of contant node identified by `id`.
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
             if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
@@ -132,6 +140,7 @@ where
         + for<'de> Deserialize<'de>,
     E: 'static + Error,
 {
+    /// Draw the full node editor on the current window.
     pub fn render<ED>(
         &mut self,
         ui: &Ui,
@@ -198,6 +207,7 @@ where
         self.scrolling.tick();
     }
 
+    /// Get all the outputs defined in the node editor.
     pub fn outputs(&self) -> Vec<cake::OutputId> {
         self.dst
             .outputs_iter()

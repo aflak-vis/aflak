@@ -1,3 +1,7 @@
+//! A node editor library built on top of `aflak_cake` and `imgui`.
+//!
+//! For development you will want to check the
+//! [NodeEditor](struct.NodeEditor.html) struct.
 extern crate aflak_cake as cake;
 #[macro_use]
 extern crate imgui;
