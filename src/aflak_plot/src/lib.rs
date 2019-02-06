@@ -24,5 +24,5 @@ mod units;
 mod util;
 
 pub use err::Error;
-pub use interactions::{InteractionId, InteractionIterMut, Value, ValueIter};
+pub use interactions::{Interaction, InteractionId, InteractionIterMut, Value, ValueIter};
 pub use units::AxisTransform;

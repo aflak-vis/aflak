@@ -1,5 +1,9 @@
 use std::collections::{btree_map, BTreeMap};
 
+/// A value of an interaction with the UI.
+///
+/// For example, a vertical line would have a value corresponding to its
+/// *x*-coordinates with the variant `Value::Integer`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
@@ -30,6 +34,7 @@ impl From<[f32; 3]> for Value {
     }
 }
 
+/// Possible interactions with UI.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Interaction {
     HorizontalLine(HorizontalLine),
@@ -149,6 +154,10 @@ impl Interaction {
     }
 }
 
+/// ID identifying an interaction on a UI.
+///
+/// For example, drawing a vertical line or selecting a ROI are types of
+/// interaction.
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct InteractionId(usize);
 
@@ -159,9 +168,11 @@ impl InteractionId {
     }
 }
 
+/// Iterator over of the current values of each of interactions of the UI.
 #[derive(Clone, Debug)]
 pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 
+/// Iterator over the `Interaction`s of a UI.
 #[derive(Debug)]
 pub struct InteractionIterMut<'a>(btree_map::IterMut<'a, InteractionId, Interaction>);
 
