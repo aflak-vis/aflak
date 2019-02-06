@@ -5,9 +5,15 @@ use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
 
 use fits::{FitsArrayReadError, FitsDataToArray};
 
+/// A unit of measurement.
+///
+/// Would like to extend this type to include SI units or frequent units in
+/// astrophysics.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Unit {
+    /// Unit is unknown
     None,
+    /// Custom unit represented with a string
     Custom(String),
 }
 
@@ -17,6 +23,25 @@ impl Default for Unit {
     }
 }
 
+/// Container for a value with a dimension (i.e. a unit).
+///
+/// This container implements common operations and keep track of the unit
+/// of the resulting value. Unit information is guaranteed to be correct as
+/// long as the inner flag `homogeneous` is true.
+///
+/// # Examples
+///
+/// ```rust
+/// extern crate aflak_primitives as primitives;
+/// use primitives::{Dimensioned, Unit};
+///
+/// let meter = Unit::Custom("m".to_owned());
+/// let val1 = Dimensioned::new(1, meter.clone());
+/// let val2 = Dimensioned::new(2, meter.clone());
+/// let sum = val1 + val2;
+/// assert!(*sum.scalar() == 3);
+/// assert!(sum.unit() == &meter);
+/// ```
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dimensioned<V> {
     value: V,
@@ -24,6 +49,12 @@ pub struct Dimensioned<V> {
     homogeneous: bool,
 }
 
+/// A *n*-dimensional array of floating point values along with meta-data for
+/// units and world-coordinates transfer.
+///
+/// This is the main data structure used by `aflak_primitives` to represent
+/// multi-dimensional astrophysical data.
+///
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WcsArray {
     meta: Option<MetaWcsArray>,
@@ -76,6 +107,7 @@ fn read_string(hdu: &Hdu, key: &str) -> Option<String> {
 }
 
 impl WcsArray {
+    /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
         let data = hdu.read_data();
         let image = match *data {
@@ -112,6 +144,9 @@ impl WcsArray {
         })
     }
 
+    /// Convert position `pixel` (in pixel coordinates starting from 0) at axis
+    /// number `axis` to world coordinates. Return `None` if necessary metadata
+    /// is missing.
     pub fn pix2world(&self, axis: usize, pixel: f32) -> Option<f32> {
         self.meta.as_ref().map(|meta| {
             let mut input = [0.0; 4];
@@ -120,28 +155,39 @@ impl WcsArray {
         })
     }
 
+    /// Make a new array missing all metadata about axes and world coordinates.
     pub fn from_array(array: Dimensioned<ArrayD<f32>>) -> Self {
         Self { meta: None, array }
     }
 
+    /// Get reference to contained *n*-dimensional array.
     pub fn scalar(&self) -> &ArrayD<f32> {
         self.array.scalar()
     }
 
+    /// Get mutable reference to contained *n*-dimensional array.
     pub fn scalar_mut(&mut self) -> &mut ArrayD<f32> {
         self.array.scalar_mut()
     }
 
+    /// Get view to contained 1-dimensional array.
+    ///
+    /// Panic if contained array is not 1-dimensional.
     pub fn scalar1(&self) -> ArrayView1<f32> {
         let i = self.array.scalar();
         i.slice(s![..])
     }
 
+    /// Get view to contained 2-dimensional array.
+    ///
+    /// Panic if contained array is not 2-dimensional.
     pub fn scalar2(&self) -> ArrayView2<f32> {
         let i = self.array.scalar();
         i.slice(s![.., ..])
     }
 
+    /// Get reference to contained *n*-dimensional array, with the unit of the
+    /// values contained in the array attached.
     pub fn array(&self) -> &Dimensioned<ArrayD<f32>> {
         &self.array
     }
@@ -154,6 +200,14 @@ impl WcsArray {
         self.meta.as_ref().map(|meta| &meta.wcs)
     }
 
+    /// Make a slice along the specific `indices` in the array.
+    ///
+    /// Create a new `WcsArray` containing the provided `array`.
+    /// The objective is to have correct metadata for the new `array`. The
+    /// new metadata is computed from `indices` and the previous metadata.
+    ///
+    /// TODO: This method is hard to understand, and is potentional buggy
+    /// write-only code.
     pub(crate) fn make_slice(
         &self,
         indices: &[(usize, f32, f32)],
@@ -201,22 +255,28 @@ impl Unit {
 }
 
 impl<V> Dimensioned<V> {
+    /// Make a new dimensioned value with given unit.
     pub fn new(value: V, unit: Unit) -> Self {
         unit.new(value)
     }
 
+    /// Get reference to contained scalar value (without unit).
     pub fn scalar(&self) -> &V {
         &self.value
     }
 
+    /// Get mutable reference to contained scalar value (without unit).
     pub fn scalar_mut(&mut self) -> &mut V {
         &mut self.value
     }
 
+    /// Get unit.
     pub fn unit(&self) -> &Unit {
         &self.unit
     }
 
+    /// Make a new dimensioned value with the same unit containing the passed
+    /// value.
     pub fn with_new_value<W>(&self, value: W) -> Dimensioned<W> {
         Dimensioned {
             value,
