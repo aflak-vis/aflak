@@ -1,6 +1,10 @@
 //! # aflak - Computational mAKE
 //!
 //! A crate to manage a graph of interdependent functions.
+//!
+//! To define a new transformation (i.e. a node in a node graph), for example for
+//! an existing project (i.e. aflak), please see the
+//! [cake_transform!](macro.cake_transform.html) macro.
 extern crate chashmap;
 extern crate futures;
 extern crate rayon;
