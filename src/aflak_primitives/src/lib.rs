@@ -1,3 +1,19 @@
+//! This is the crate containing the definitions of the transformations and
+//! data types used in aflak for the astrophysical domain.
+//!
+//! The crate implements all the required traits for `aflak_cake` to kicks in
+//! astrophysical computation.
+//!
+//! You will want first to check [IOValue](enum.IOValue.html). This is the
+//! enumeration that defines all the types used as inputs and outputs of
+//! astrophysical transformations.
+//!
+//! If the output of a transformation should return an error, the
+//! [IOErr](enum.IOErr.html) should be used.
+//!
+//! To add a new transformation, add a new `Transform<IOValue, IOErr>` item to
+//! the [TRANSFORMATIONS](struct.TRANSFORMATIONS.html) struct defined using
+//! the lazy_static crate.
 #[macro_use]
 extern crate lazy_static;
 extern crate variant_name;
@@ -30,6 +46,9 @@ use std::sync::Arc;
 use ndarray::{Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, Slice};
 use variant_name::VariantName;
 
+/// Value used for I/O in astronomical transforms.
+///
+/// If new use cases arise, please add a new variant to this enumeration.
 #[derive(Clone, Debug, VariantName, Serialize, Deserialize)]
 pub enum IOValue {
     Integer(i64),
@@ -66,6 +85,9 @@ impl PartialEq for IOValue {
     }
 }
 
+/// Error value used for I/O in astronomical transforms.
+///
+/// If new use cases arise, please add a new variant to this enumeration.
 #[derive(Debug)]
 pub enum IOErr {
     IoError(io::Error, String),
@@ -93,9 +115,11 @@ impl Error for IOErr {
     }
 }
 
+/// Represent the successful result of an astrophysical computation.
 pub type SuccessOut = cake::compute::SuccessOut<IOValue>;
 
 lazy_static! {
+    /// The exhaustive list of all staticly loaded astrophysical transforms.
     pub static ref TRANSFORMATIONS: Vec<cake::Transform<IOValue, IOErr>> = {
         vec![
             cake_transform!(
