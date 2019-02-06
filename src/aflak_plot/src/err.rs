@@ -2,6 +2,7 @@ use std::{error, fmt};
 
 use glium;
 
+/// A rendering error.
 #[derive(Debug)]
 pub enum Error {
     Msg(&'static str),
