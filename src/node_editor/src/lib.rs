@@ -20,6 +20,5 @@ mod node_state;
 mod scrolling;
 mod vec2;
 
-pub use compute::ComputationState;
 pub use constant_editor::ConstantEditor;
 pub use editor::NodeEditor;
