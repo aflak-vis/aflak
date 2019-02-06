@@ -1,3 +1,4 @@
+//! Data types for computational results.
 use std::error;
 use std::fmt;
 use std::sync::Arc;
@@ -12,29 +13,52 @@ use future::Task;
 use timed::Timed;
 use variant_name::VariantName;
 
+/// The successful result of a computation.
+///
+/// This is what the `DST::compute` method returns in case of success.
 pub type SuccessOut<T> = Timed<Arc<T>>;
+
+/// An computational error wrapped with `Timed` and a reference-counted pointer.
+///
+/// This is what the `DST::compute` method returns in case of error.
 pub type ErrorOut<E> = Timed<Arc<ComputeError<E>>>;
+
+/// The result of a computation.
+///
+/// This is what the `DST::compute` method returns.
 pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 
+/// Represent a computational error.
 #[derive(Debug)]
 pub enum ComputeError<E> {
     UnattachedOutputID(OutputId),
     MissingOutputID(OutputId),
     MissingNode(TransformIdx),
+    /// The output of a node should be attached to `input`, making the
+    /// computation impossible.
     MissingDependency {
         input: Input,
         t_name: &'static str,
     },
     UnusableCache(Output),
     NothingDoneYet,
+    /// Represent an error during computing, caused by user-defined
+    /// transformations. This is usually caused by an unexpected input causing
+    /// the calculation to abort.
     RuntimeError {
         cause: E,
+        /// Where the error occurred.
         t_idx: TransformIdx,
+        /// Name of function where error occurred.
         t_name: &'static str,
     },
+    /// Represent an error that occurred previously in the stack. This error is
+    /// used to rewind the stack and display clean error messages.
     ErrorStack {
         cause: Arc<ComputeError<E>>,
+        /// Where the stack is.
         t_idx: TransformIdx,
+        /// Name of function where the stack is.
         t_name: &'static str,
     },
 }

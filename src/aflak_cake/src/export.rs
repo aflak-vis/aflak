@@ -1,3 +1,4 @@
+//! Structures for serialization and deserialization of node graph.
 use std::error;
 use std::fmt;
 use std::marker::PhantomData;
