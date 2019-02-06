@@ -34,21 +34,11 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                     Some(Roi(All)),
                 ],
             )),
-            ((6), (
-                t: Function("slice_3d_to_2d", 0, 1, 0),
+            ((5), (
+                t: Function("slice_one_frame", 1, 0, 0),
                 input_defaults: [
                     None,
-                    None,
-                ],
-            )),
-            ((7), (
-                t: Function("make_plane3d", 1, 0, 0),
-                input_defaults: [
-                    Some(Float3((100, 0, 0))),
-                    Some(Float3((0, 0, 1))),
-                    Some(Float3((0, 1, 0))),
-                    Some(Integer(70)),
-                    Some(Integer(70)),
+                    Some(Integer(100)),
                 ],
             )),
         ],
@@ -78,15 +68,8 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 t_idx: (3),
                 output_i: (0),
             ), (
-                t_idx: (6),
+                t_idx: (5),
                 input_i: (0),
-            )),
-            ((
-                t_idx: (7),
-                output_i: (0),
-            ), (
-                t_idx: (6),
-                input_i: (1),
             )),
         ],
         outputs: [
@@ -95,56 +78,39 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 output_i: (0),
             ))),
             ((2), Some((
-                t_idx: (6),
+                t_idx: (5),
                 output_i: (0),
             ))),
         ],
     ),
     node_states: [
         (Transform((1)), (
-            selected: false,
             pos: (-785, -596),
-            size: (217, 47.5),
+            size: (471, 200),
         )),
         (Transform((2)), (
-            selected: false,
-            pos: (-300, -323),
-            size: (72, 45.5),
+            pos: (-238, -417),
+            size: (93, 46),
         )),
         (Transform((3)), (
-            selected: false,
             pos: (-147, -362),
-            size: (121, 45.5),
+            size: (217, 84),
         )),
         (Transform((4)), (
-            selected: false,
             pos: (113, -391),
-            size: (93, 45.5),
+            size: (114, 63),
         )),
         (Transform((5)), (
-            selected: false,
-            pos: (51, -334),
-            size: (44, 28.5),
-        )),
-        (Transform((6)), (
-            selected: false,
-            pos: (-48, -241),
-            size: (107, 62.5),
-        )),
-        (Transform((7)), (
-            selected: true,
-            pos: (-408, -187),
-            size: (231, 123.5),
+            pos: (88, -252),
+            size: (196, 65),
         )),
         (Output((1)), (
-            selected: false,
             pos: (314, -426),
-            size: (135, 28.5),
+            size: (72, 29),
         )),
         (Output((2)), (
-            selected: false,
-            pos: (247, -233),
-            size: (135, 28.5),
+            pos: (392, -271),
+            size: (72, 29),
         )),
     ],
     scrolling: (-818, -667),
