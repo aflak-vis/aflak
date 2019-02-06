@@ -1,3 +1,4 @@
+//! Draw 2D images.
 mod hist;
 mod image;
 mod lut;
@@ -18,11 +19,14 @@ use util;
 
 use super::AxisTransform;
 
+/// A handle to an OpenGL 2D texture.
 pub type Textures = imgui::Textures<Texture2d>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
-    /// Show image given as input. `name` is used as an ID to register the
-    /// provided image as an OpenGL texture in [`Ui`].
+    /// Show image given as input.
+    ///
+    /// The mutable reference `state` contains the current state of the user
+    /// interaction with the window.
     ///
     /// # Example
     ///
@@ -123,7 +127,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     }
 }
 
-/// Implementation of a UI to visualize a 2D image with ImGui and OpenGL
+/// Implementation of a UI to visualize a 2D image with ImGui and OpenGL.
 pub trait UiImage2d {
     fn image2d<F, FX, FY, I>(
         &self,

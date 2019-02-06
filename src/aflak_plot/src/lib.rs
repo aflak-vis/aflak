@@ -1,3 +1,11 @@
+//! Plotting library for aflak.
+//!
+//! Please see the examples in the repository of this crate to get an idea of
+//! how it is used.
+//!
+//! Basically, this crate defines and implements two traits on imgui's `Ui`
+//! objet. These are [UiImage1d](plot/trait.UiImage1d.html) and
+//! [UiImage2d](imshow/trait.UiImage2d.html).
 extern crate glium;
 #[macro_use]
 extern crate imgui;

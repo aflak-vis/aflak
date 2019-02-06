@@ -1,3 +1,4 @@
+//! Draw plots.
 mod state;
 
 use imgui::Ui;
@@ -12,6 +13,7 @@ use super::Error;
 
 pub use self::state::State;
 
+/// Implementation of a UI to visualize a 1D image with ImGui using a plot.
 pub trait UiImage1d {
     fn image1d<S, F>(
         &self,
@@ -27,6 +29,10 @@ pub trait UiImage1d {
 }
 
 impl<'ui> UiImage1d for Ui<'ui> {
+    /// Draw a plot in the remaining space of the window.
+    ///
+    /// The mutable reference `state` contains the current state of the user
+    /// interaction with the window.
     fn image1d<S, F>(
         &self,
         image: &ArrayBase<S, Ix1>,

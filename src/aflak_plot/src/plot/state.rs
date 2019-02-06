@@ -8,6 +8,7 @@ use super::util;
 use super::AxisTransform;
 use super::Error;
 
+/// Current state of a plot UI.
 #[derive(Debug)]
 pub struct State {
     offset: ImVec2,
