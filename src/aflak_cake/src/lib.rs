@@ -51,15 +51,28 @@ pub trait EditableVariants: VariantName {
     }
 }
 
+/// Represent how the variant with the name defined in `from` can be converted
+/// to another variant whose name is defined in `into`.
 pub struct ConvertibleVariant<T> {
+    /// Variant name that can be converted
     pub from: &'static str,
+    /// Target variant name
     pub into: &'static str,
+    /// Conversion function. Cannot fail.
     pub f: fn(&T) -> T,
 }
 
+/// Trait implemented to define conversions between different variants.
+///
+/// To implement this trait, please define a conversation table from and into
+/// the different variants of an enumeration.
 pub trait ConvertibleVariants: VariantName + Sized + 'static {
+    /// Definition of conversions. This table is user-defined and must be
+    /// implemented.
     const CONVERTION_TABLE: &'static [ConvertibleVariant<Self>];
 
+    /// Convert variant `from` into variant `into`. Return `None` if `from`
+    /// cannot be converted into `into`.
     fn convert<'a>(
         from: &'static str,
         into: &'static str,
@@ -78,6 +91,7 @@ pub trait ConvertibleVariants: VariantName + Sized + 'static {
         }
     }
 
+    /// Check whether variant `from` can be converted into variant `into`.
     fn convertible(from: &'static str, into: &'static str) -> bool {
         if from == into {
             true
