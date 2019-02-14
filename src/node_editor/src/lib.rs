@@ -116,6 +116,7 @@ impl<T, E> NodeEditor<T, E> {
         use event::RenderEvent::*;
         let dst = &mut self.layout.dst;
         let errors = &mut self.layout.error_stack;
+        let successes = &mut self.layout.success_stack;
         match ev {
             Connect(output, input_slot) => match input_slot {
                 cake::InputSlot::Transform(input) => {
@@ -158,6 +159,7 @@ impl<T, E> NodeEditor<T, E> {
                 dst.remove_node(&node_id);
             }
             Error(e) => errors.push(e),
+            Success(msg) => successes.push(msg),
         }
     }
 }

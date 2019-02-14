@@ -34,7 +34,7 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     pub(crate) scrolling: Scrolling,
     show_grid: bool,
     pub(crate) error_stack: Vec<Box<Error>>,
-    success_stack: Vec<ImString>,
+    pub(crate) success_stack: Vec<ImString>,
 
     // Used at runtime to aggregate events
     events: Vec<RenderEvent<T, E>>,
@@ -358,10 +358,10 @@ where
                                 self.events.push(RenderEvent::Error(Box::new(e)));
                             } else {
                                 ui.open_popup(im_str!("export-success"));
-                                self.success_stack.push(ImString::new(format!(
+                                self.events.push(RenderEvent::Success(ImString::new(format!(
                                     "Editor content was exported with success to '{}'!",
                                     EDITOR_EXPORT_FILE
-                                )));
+                                ))));
                             }
                         }
                         if ui.is_item_hovered() {

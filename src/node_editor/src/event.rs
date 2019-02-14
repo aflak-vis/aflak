@@ -2,6 +2,8 @@ use std::error;
 
 use cake::{InputSlot, NodeId, Output, Transform, TransformIdx};
 
+use imgui::ImString;
+
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
     AddTransform(&'static Transform<T, E>),
@@ -15,4 +17,5 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     },
     RemoveNode(NodeId),
     Error(Box<error::Error>),
+    Success(ImString),
 }
