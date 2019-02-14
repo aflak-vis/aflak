@@ -42,15 +42,6 @@ pub struct DeserEditor<T, E> {
     scrolling: Vec2,
 }
 
-impl<T, E> NodeEditor<T, E>
-where
-    T: Clone + VariantName,
-{
-    pub fn export(&self) -> SerialEditor<T> {
-        SerialEditor::new(self)
-    }
-}
-
 #[derive(Debug)]
 pub enum ExportError {
     SerializationError(ser::Error),
@@ -90,7 +81,7 @@ where
 {
     /// Serialize node editor to writer as .ron format.
     pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
-        let serializable = self.export();
+        let serializable = SerialEditor::new(self);
         let serialized = ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
         w.flush()?;
@@ -196,15 +187,6 @@ where
         let mut editor = Self::default();
         editor.import_from_buf(r)?;
         Ok(editor)
-    }
-
-    /// Deserialize a .ron file and make a node editor.
-    pub fn from_ron_file<P>(file_path: P) -> Result<Self, ImportError>
-    where
-        P: AsRef<Path>,
-    {
-        let f = fs::File::open(file_path)?;
-        Self::from_export_buf(f)
     }
 
     /// Replace the node editor with the content of the buffer in .ron format.

@@ -64,21 +64,6 @@ pub enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<T, E> NodeEditor<T, E> {
-    /// Make a node editor containg the provided `DST`.
-    pub fn from_dst(dst: DST<'static, T, E>) -> Self {
-        Self {
-            dst,
-            ..Default::default()
-        }
-    }
-
-    pub fn with_left_pane(mut self, show_left_pane: bool) -> Self {
-        self.show_left_pane = show_left_pane;
-        self
-    }
-}
-
 impl<T, E> NodeEditor<T, E>
 where
     T: Clone + cake::VariantName,
