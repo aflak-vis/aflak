@@ -80,7 +80,7 @@ where
     T: Clone + Serialize + VariantName,
 {
     /// Serialize node editor to writer as .ron format.
-    pub fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
+    fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
         let serializable = SerialEditor::new(self);
         let serialized = ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
@@ -89,7 +89,7 @@ where
     }
 
     /// Serialize node editor to .ron file.
-    pub fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
+    pub(crate) fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
         let mut f = fs::File::create(file_path)?;
         self.export_to_buf(&mut f)
     }
@@ -100,7 +100,7 @@ where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
 {
-    pub fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError> {
+    fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError> {
         self.dst = import.dst.into_dst()?;
 
         // Set Ui node states
@@ -190,14 +190,17 @@ where
     }
 
     /// Replace the node editor with the content of the buffer in .ron format.
-    pub fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {
+    fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {
         let deserialized = de::from_reader(r)?;
         self.import(deserialized)?;
         Ok(())
     }
 
     /// Replace the node editor with the content of the .ron file.
-    pub fn import_from_file<P: AsRef<Path>>(&mut self, file_path: P) -> Result<(), ImportError> {
+    pub(crate) fn import_from_file<P: AsRef<Path>>(
+        &mut self,
+        file_path: P,
+    ) -> Result<(), ImportError> {
         let f = fs::File::open(file_path)?;
         self.import_from_buf(f)
     }
