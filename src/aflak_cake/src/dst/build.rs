@@ -245,7 +245,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Get a reference to a transform's default inputs from its
     /// [`TransformIdx`].
     /// Return [`None`] if the target transform does not exist.
-    pub fn get_default_inputs(&mut self, idx: TransformIdx) -> Option<&[Option<T>]> {
+    pub fn get_default_inputs(&self, idx: TransformIdx) -> Option<&[Option<T>]> {
         self.transforms.get(&idx).map(|t| t.defaults())
     }
 
