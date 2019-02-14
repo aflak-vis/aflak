@@ -11,6 +11,7 @@ use cake::{self, Cache, InputSlot, Transform, VariantName, DST};
 
 use compute::ComputationState;
 use constant_editor::ConstantEditor;
+use event::RenderEvent;
 use id_stack::GetId;
 use node_state::NodeStates;
 use scrolling::Scrolling;
@@ -32,8 +33,11 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     show_connection_names: bool,
     pub(crate) scrolling: Scrolling,
     show_grid: bool,
-    error_stack: Vec<Box<Error>>,
+    pub(crate) error_stack: Vec<Box<Error>>,
     success_stack: Vec<ImString>,
+
+    // Used at runtime to aggregate events
+    events: Vec<RenderEvent<T, E>>,
 }
 
 impl<T, E> Default for NodeEditorLayout<T, E> {
@@ -55,6 +59,8 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             show_grid: true,
             error_stack: vec![],
             success_stack: vec![],
+
+            events: vec![],
         }
     }
 }
@@ -131,9 +137,12 @@ where
         ui: &Ui,
         addable_nodes: &[&'static Transform<T, E>],
         constant_editor: &ED,
-    ) where
+    ) -> Vec<RenderEvent<T, E>>
+    where
         ED: ConstantEditor<T>,
     {
+        self.events = vec![];
+
         for idx in self.dst.node_ids() {
             // Initialization of node states
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
@@ -190,6 +199,8 @@ where
             }
         }
         self.scrolling.tick();
+
+        ::std::mem::replace(&mut self.events, vec![])
     }
 
     /// Get all the outputs defined in the node editor.
@@ -779,15 +790,7 @@ where
             })
         });
         if let Some((output, input_slot)) = self.new_link {
-            match input_slot {
-                InputSlot::Transform(input) => {
-                    if let Err(e) = self.dst.connect(output, input) {
-                        eprintln!("{:?}", e);
-                        self.error_stack.push(Box::new(e));
-                    }
-                }
-                InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
-            }
+            self.events.push(RenderEvent::Connect(output, input_slot));
             self.new_link = None;
         }
         ui.popup(im_str!("add-new-node"), || {
@@ -796,20 +799,19 @@ where
             for (i, node) in addable_nodes.iter().enumerate() {
                 ui.push_id(i as i32);
                 if ui.menu_item(&ImString::new(node.name())).build() {
-                    self.dst.add_transform(node);
+                    self.events.push(RenderEvent::AddTransform(node));
                 }
                 ui.pop_id();
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
-                self.dst.create_output();
+                self.events.push(RenderEvent::CreateOutput);
             }
             ui.separator();
             for constant_type in T::editable_variants() {
                 let item_name = ImString::new(format!("Input node: {}", constant_type));
                 if ui.menu_item(&item_name).build() {
-                    let constant = Transform::new_constant(T::default_for(constant_type));
-                    self.dst.add_owned_transform(constant);
+                    self.events.push(RenderEvent::AddConstant(constant_type));
                 }
             }
         });
@@ -839,7 +841,8 @@ where
             )
         };
         let node_states = &mut self.node_states;
-        let dst = &mut self.dst;
+        let dst = &self.dst;
+        let events = &mut self.events;
         let mut title_bar_height = 0.0;
         let p = ui.get_cursor_screen_pos();
 
@@ -854,7 +857,7 @@ where
             });
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
             if let cake::NodeId::Transform(t_idx) = *id {
-                if let Some(t) = dst.get_transform_mut(t_idx) {
+                if let Some(t) = dst.get_transform(t_idx) {
                     let mut changed = None;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
                         if let Some(new_value) = constant_editor.editor(ui, &constant, 0, false) {
@@ -862,17 +865,17 @@ where
                         }
                     }
                     if let Some(c) = changed {
-                        t.set_constant(c);
+                        events.push(RenderEvent::SetConstant(t_idx, Box::new(c)));
                     }
                 }
                 let outputs = dst.outputs_attached_to_transform(t_idx).unwrap();
-                if let Some(default_inputs) = dst.get_default_inputs_mut(t_idx) {
+                if let Some(default_inputs) = dst.get_default_inputs(t_idx) {
                     for (i, (mut default_input, some_output)) in
                         default_inputs.into_iter().zip(outputs).enumerate()
                     {
                         let read_only = some_output.is_some();
                         let mut changed = None;
-                        if let Some(val) = default_input.read() {
+                        if let Some(val) = default_input {
                             if let Some(new_value) =
                                 constant_editor.editor(ui, &val, i as i32, read_only)
                             {
@@ -883,7 +886,11 @@ where
                             ui.text("");
                         }
                         if let Some(new_value) = changed {
-                            default_input.write(new_value);
+                            events.push(RenderEvent::WriteDefaultInput {
+                                t_idx,
+                                input_index: i,
+                                val: Box::new(new_value),
+                            })
                         }
                     }
                 }
@@ -949,7 +956,7 @@ where
             .map(|(id, _)| *id)
             .collect();
         for node_id in selected_node_ids {
-            self.dst.remove_node(&node_id);
+            self.events.push(RenderEvent::RemoveNode(node_id));
             self.node_states.remove_node(&node_id);
             if self.active_node == Some(node_id) {
                 self.active_node.take();

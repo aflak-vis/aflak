@@ -13,6 +13,7 @@ extern crate serde_derive;
 
 mod compute;
 mod constant_editor;
+mod event;
 mod export;
 mod id_stack;
 mod layout;
@@ -95,7 +96,12 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        self.layout.render(ui, addable_nodes, constant_editor)
+        let events = self.layout.render(ui, addable_nodes, constant_editor);
+        for event in events {
+            if let Err(e) = event.execute(&mut self.layout.dst) {
+                self.layout.error_stack.push(e);
+            }
+        }
     }
 
     /// Get all the outputs defined in the node editor.
