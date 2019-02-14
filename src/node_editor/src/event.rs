@@ -18,4 +18,5 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     RemoveNode(NodeId),
     Error(Box<error::Error>),
     Success(ImString),
+    Import,
 }

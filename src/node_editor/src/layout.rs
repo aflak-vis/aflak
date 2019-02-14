@@ -308,10 +308,7 @@ where
                         ui.text(im_str!("Scroll with Ctrl+LMB or Alt+LMB."));
                         ui.same_line(ui.get_window_size().0 - 240.0);
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
-                            if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
-                                eprintln!("Error on import! {}", e);
-                                self.events.push(RenderEvent::Error(Box::new(e)));
-                            }
+                            self.events.push(RenderEvent::Import);
                         }
                         if ui.is_item_hovered() {
                             ui.tooltip(|| {

@@ -149,34 +149,41 @@ where
 impl<T, E> NodeEditor<T, E> {
     pub fn apply_event(&mut self, ev: event::RenderEvent<T, E>)
     where
-        T: Clone + cake::DefaultFor + cake::VariantName + cake::ConvertibleVariants,
+        T: Clone
+            + cake::ConvertibleVariants
+            + cake::DefaultFor
+            + cake::NamedAlgorithms<E>
+            + cake::VariantName
+            + for<'de> serde::Deserialize<'de>,
     {
+        const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
         use event::RenderEvent::*;
-        let dst = &mut self.layout.dst;
         let errors = &mut self.error_stack;
         let successes = &mut self.success_stack;
         match ev {
             Connect(output, input_slot) => match input_slot {
                 cake::InputSlot::Transform(input) => {
-                    if let Err(e) = dst.connect(output, input) {
+                    if let Err(e) = self.layout.dst.connect(output, input) {
                         eprintln!("{:?}", e);
                         errors.push(Box::new(e));
                     }
                 }
-                cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+                cake::InputSlot::Output(output_id) => {
+                    self.layout.dst.update_output(output_id, output)
+                }
             },
             AddTransform(t) => {
-                dst.add_transform(t);
+                self.layout.dst.add_transform(t);
             }
             CreateOutput => {
-                dst.create_output();
+                self.layout.dst.create_output();
             }
             AddConstant(constant_type) => {
                 let constant = cake::Transform::new_constant(T::default_for(constant_type));
-                dst.add_owned_transform(constant);
+                self.layout.dst.add_owned_transform(constant);
             }
             SetConstant(t_idx, val) => {
-                if let Some(t) = dst.get_transform_mut(t_idx) {
+                if let Some(t) = self.layout.dst.get_transform_mut(t_idx) {
                     t.set_constant(*val);
                 } else {
                     eprintln!("Transform {:?} was not found.", t_idx);
@@ -187,17 +194,23 @@ impl<T, E> NodeEditor<T, E> {
                 input_index,
                 val,
             } => {
-                if let Some(mut inputs) = dst.get_default_inputs_mut(t_idx) {
+                if let Some(mut inputs) = self.layout.dst.get_default_inputs_mut(t_idx) {
                     inputs.write(input_index, *val);
                 } else {
                     eprintln!("Transform {:?} was not found.", t_idx);
                 }
             }
             RemoveNode(node_id) => {
-                dst.remove_node(&node_id);
+                self.layout.dst.remove_node(&node_id);
             }
             Error(e) => errors.push(e),
             Success(msg) => successes.push(msg),
+            Import => {
+                if let Err(e) = self.layout.import_from_file(EDITOR_EXPORT_FILE) {
+                    eprintln!("Error on import! {}", e);
+                    errors.push(Box::new(e));
+                }
+            }
         }
     }
 }
