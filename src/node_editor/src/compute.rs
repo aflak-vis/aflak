@@ -4,7 +4,7 @@ use cake::{
     Async, Future, Task,
 };
 
-use layout::NodeEditor;
+use layout::NodeEditorLayout;
 
 pub struct ComputationState<T, E> {
     previous_result: Option<NodeResult<T, E>>,
@@ -12,7 +12,7 @@ pub struct ComputationState<T, E> {
     counter: u8,
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: Clone + cake::VariantName + cake::ConvertibleVariants + Send + Sync,
     E: Send + Sync,

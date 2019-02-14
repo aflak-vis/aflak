@@ -17,7 +17,7 @@ use scrolling::Scrolling;
 use vec2::Vec2;
 
 /// The node editor instance.
-pub struct NodeEditor<T: 'static, E: 'static> {
+pub struct NodeEditorLayout<T: 'static, E: 'static> {
     pub(crate) dst: DST<'static, T, E>,
     pub(crate) node_states: NodeStates,
     pub(crate) active_node: Option<cake::NodeId>,
@@ -36,9 +36,9 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     success_stack: Vec<ImString>,
 }
 
-impl<T, E> Default for NodeEditor<T, E> {
+impl<T, E> Default for NodeEditorLayout<T, E> {
     fn default() -> Self {
-        Self {
+        NodeEditorLayout {
             dst: DST::new(),
             node_states: NodeStates::new(),
             active_node: None,
@@ -64,7 +64,7 @@ pub enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: Clone + cake::VariantName,
 {
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: PartialEq + VariantName,
 {
@@ -95,7 +95,7 @@ where
     }
 }
 
-impl<T, E> NodeEditor<T, E> {
+impl<T, E> NodeEditorLayout<T, E> {
     /// Get reference to value of contant node identified by `id`.
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
         self.dst.get_transform(id).and_then(|t| {
@@ -112,7 +112,7 @@ const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: 'static
         + Clone
@@ -937,7 +937,7 @@ where
     }
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: VariantName,
 {

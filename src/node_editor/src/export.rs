@@ -9,7 +9,7 @@ use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantNam
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use layout::NodeEditor;
+use layout::NodeEditorLayout;
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;
@@ -25,7 +25,7 @@ impl<'e, T> SerialEditor<'e, T>
 where
     T: Clone + VariantName,
 {
-    fn new<E>(editor: &'e NodeEditor<T, E>) -> Self {
+    fn new<E>(editor: &'e NodeEditorLayout<T, E>) -> Self {
         Self {
             dst: SerialDST::new(&editor.dst),
             node_states: editor.node_states.iter().collect(),
@@ -75,7 +75,7 @@ impl From<ser::Error> for ExportError {
     }
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: Clone + Serialize + VariantName,
 {
@@ -95,7 +95,7 @@ where
     }
 }
 
-impl<'t, T, E> NodeEditor<T, E>
+impl<'t, T, E> NodeEditorLayout<T, E>
 where
     T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
     E: 'static,
@@ -169,7 +169,7 @@ impl From<cake::ImportError> for ImportError {
     }
 }
 
-impl<T, E> NodeEditor<T, E>
+impl<T, E> NodeEditorLayout<T, E>
 where
     T: 'static
         + Clone
