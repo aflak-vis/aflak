@@ -33,8 +33,6 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     show_connection_names: bool,
     pub(crate) scrolling: Scrolling,
     show_grid: bool,
-    pub(crate) error_stack: Vec<Box<Error>>,
-    pub(crate) success_stack: Vec<ImString>,
 
     // Used at runtime to aggregate events
     events: Vec<RenderEvent<T, E>>,
@@ -57,8 +55,6 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             show_connection_names: true,
             scrolling: Default::default(),
             show_grid: true,
-            error_stack: vec![],
-            success_stack: vec![],
 
             events: vec![],
         }
@@ -160,35 +156,6 @@ where
             self.render_left_pane(ui);
         }
         self.render_graph_node(ui, addable_nodes, constant_editor);
-
-        // Render error popup
-        if !self.error_stack.is_empty() {
-            ui.open_popup(im_str!("Error!"));
-        }
-        ui.popup_modal(im_str!("Error!")).build(|| {
-            ui.with_text_wrap_pos(400.0, || {
-                let e = &self.error_stack[self.error_stack.len() - 1];
-                ui.text_wrapped(&ImString::new(format!("{}", e)));
-            });
-            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                self.error_stack.pop();
-                ui.close_current_popup();
-            }
-        });
-        // Render success popup
-        if self.error_stack.is_empty() && !self.success_stack.is_empty() {
-            ui.open_popup(im_str!("Success!"));
-        }
-        ui.popup_modal(im_str!("Success!")).build(|| {
-            {
-                let msg = &self.success_stack[self.success_stack.len() - 1];
-                ui.text(msg);
-            }
-            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
-                self.success_stack.pop();
-                ui.close_current_popup();
-            }
-        });
 
         if ui.is_window_focused() && !ui.want_capture_keyboard() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);

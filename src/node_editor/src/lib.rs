@@ -23,11 +23,15 @@ mod vec2;
 
 use std::{error, io};
 
+use imgui::ImString;
+
 pub use constant_editor::ConstantEditor;
 pub use layout::NodeEditorLayout;
 
 pub struct NodeEditor<T: 'static, E: 'static> {
     layout: NodeEditorLayout<T, E>,
+    error_stack: Vec<Box<error::Error>>,
+    success_stack: Vec<ImString>,
 }
 
 impl<T, E> NodeEditor<T, E>
@@ -100,11 +104,45 @@ where
         for event in events {
             self.apply_event(event);
         }
+
+        self.render_error_popup(ui);
+        self.render_success_popup(ui);
     }
 
     /// Get all the outputs defined in the node editor.
     pub fn outputs(&self) -> Vec<cake::OutputId> {
         self.layout.outputs()
+    }
+
+    fn render_error_popup(&mut self, ui: &imgui::Ui) {
+        if !self.error_stack.is_empty() {
+            ui.open_popup(im_str!("Error!"));
+        }
+        ui.popup_modal(im_str!("Error!")).build(|| {
+            ui.with_text_wrap_pos(400.0, || {
+                let e = &self.error_stack[self.error_stack.len() - 1];
+                ui.text_wrapped(&ImString::new(format!("{}", e)));
+            });
+            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(imgui::ImMouseButton::Left) {
+                self.error_stack.pop();
+                ui.close_current_popup();
+            }
+        });
+    }
+    fn render_success_popup(&mut self, ui: &imgui::Ui) {
+        if self.error_stack.is_empty() && !self.success_stack.is_empty() {
+            ui.open_popup(im_str!("Success!"));
+        }
+        ui.popup_modal(im_str!("Success!")).build(|| {
+            {
+                let msg = &self.success_stack[self.success_stack.len() - 1];
+                ui.text(msg);
+            }
+            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(imgui::ImMouseButton::Left) {
+                self.success_stack.pop();
+                ui.close_current_popup();
+            }
+        });
     }
 }
 
@@ -115,8 +153,8 @@ impl<T, E> NodeEditor<T, E> {
     {
         use event::RenderEvent::*;
         let dst = &mut self.layout.dst;
-        let errors = &mut self.layout.error_stack;
-        let successes = &mut self.layout.success_stack;
+        let errors = &mut self.error_stack;
+        let successes = &mut self.success_stack;
         match ev {
             Connect(output, input_slot) => match input_slot {
                 cake::InputSlot::Transform(input) => {
@@ -179,7 +217,10 @@ where
     where
         R: io::Read,
     {
-        NodeEditorLayout::from_export_buf(r).map(|layout| NodeEditor { layout })
+        NodeEditorLayout::from_export_buf(r).map(|layout| NodeEditor {
+            layout,
+            ..Default::default()
+        })
     }
 }
 
@@ -187,6 +228,8 @@ impl<T, E> Default for NodeEditor<T, E> {
     fn default() -> Self {
         NodeEditor {
             layout: Default::default(),
+            error_stack: vec![],
+            success_stack: vec![],
         }
     }
 }
