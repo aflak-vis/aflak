@@ -343,7 +343,7 @@ where
                         if ui.button(im_str!("Import"), (0.0, 0.0)) {
                             if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
                                 eprintln!("Error on import! {}", e);
-                                self.error_stack.push(Box::new(e));
+                                self.events.push(RenderEvent::Error(Box::new(e)));
                             }
                         }
                         if ui.is_item_hovered() {
@@ -355,7 +355,7 @@ where
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
                             if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
                                 eprintln!("Error on export! {}", e);
-                                self.error_stack.push(Box::new(e));
+                                self.events.push(RenderEvent::Error(Box::new(e)));
                             } else {
                                 ui.open_popup(im_str!("export-success"));
                                 self.success_stack.push(ImString::new(format!(

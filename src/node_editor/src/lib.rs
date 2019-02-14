@@ -98,15 +98,67 @@ where
     {
         let events = self.layout.render(ui, addable_nodes, constant_editor);
         for event in events {
-            if let Err(e) = event.execute(&mut self.layout.dst) {
-                self.layout.error_stack.push(e);
-            }
+            self.apply_event(event);
         }
     }
 
     /// Get all the outputs defined in the node editor.
     pub fn outputs(&self) -> Vec<cake::OutputId> {
         self.layout.outputs()
+    }
+}
+
+impl<T, E> NodeEditor<T, E> {
+    pub fn apply_event(&mut self, ev: event::RenderEvent<T, E>)
+    where
+        T: Clone + cake::DefaultFor + cake::VariantName + cake::ConvertibleVariants,
+    {
+        use event::RenderEvent::*;
+        let dst = &mut self.layout.dst;
+        let errors = &mut self.layout.error_stack;
+        match ev {
+            Connect(output, input_slot) => match input_slot {
+                cake::InputSlot::Transform(input) => {
+                    if let Err(e) = dst.connect(output, input) {
+                        eprintln!("{:?}", e);
+                        errors.push(Box::new(e));
+                    }
+                }
+                cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+            },
+            AddTransform(t) => {
+                dst.add_transform(t);
+            }
+            CreateOutput => {
+                dst.create_output();
+            }
+            AddConstant(constant_type) => {
+                let constant = cake::Transform::new_constant(T::default_for(constant_type));
+                dst.add_owned_transform(constant);
+            }
+            SetConstant(t_idx, val) => {
+                if let Some(t) = dst.get_transform_mut(t_idx) {
+                    t.set_constant(*val);
+                } else {
+                    eprintln!("Transform {:?} was not found.", t_idx);
+                }
+            }
+            WriteDefaultInput {
+                t_idx,
+                input_index,
+                val,
+            } => {
+                if let Some(mut inputs) = dst.get_default_inputs_mut(t_idx) {
+                    inputs.write(input_index, *val);
+                } else {
+                    eprintln!("Transform {:?} was not found.", t_idx);
+                }
+            }
+            RemoveNode(node_id) => {
+                dst.remove_node(&node_id);
+            }
+            Error(e) => errors.push(e),
+        }
     }
 }
 
