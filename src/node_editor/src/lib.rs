@@ -154,6 +154,7 @@ impl<T, E> NodeEditor<T, E> {
             + cake::DefaultFor
             + cake::NamedAlgorithms<E>
             + cake::VariantName
+            + serde::Serialize
             + for<'de> serde::Deserialize<'de>,
     {
         const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
@@ -209,6 +210,17 @@ impl<T, E> NodeEditor<T, E> {
                 if let Err(e) = self.layout.import_from_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on import! {}", e);
                     errors.push(Box::new(e));
+                }
+            }
+            Export => {
+                if let Err(e) = self.layout.export_to_file(EDITOR_EXPORT_FILE) {
+                    eprintln!("Error on export! {}", e);
+                    errors.push(Box::new(e));
+                } else {
+                    successes.push(ImString::new(format!(
+                        "Editor content was exported with success to '{}'!",
+                        EDITOR_EXPORT_FILE
+                    )));
                 }
             }
         }

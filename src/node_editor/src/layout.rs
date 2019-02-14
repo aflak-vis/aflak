@@ -317,16 +317,7 @@ where
                         }
                         ui.same_line(ui.get_window_size().0 - 180.0);
                         if ui.button(im_str!("Export"), (0.0, 0.0)) {
-                            if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
-                                eprintln!("Error on export! {}", e);
-                                self.events.push(RenderEvent::Error(Box::new(e)));
-                            } else {
-                                ui.open_popup(im_str!("export-success"));
-                                self.events.push(RenderEvent::Success(ImString::new(format!(
-                                    "Editor content was exported with success to '{}'!",
-                                    EDITOR_EXPORT_FILE
-                                ))));
-                            }
+                            self.events.push(RenderEvent::Export);
                         }
                         if ui.is_item_hovered() {
                             ui.tooltip(|| {

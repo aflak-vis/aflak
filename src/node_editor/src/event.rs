@@ -19,4 +19,5 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     Error(Box<error::Error>),
     Success(ImString),
     Import,
+    Export,
 }
