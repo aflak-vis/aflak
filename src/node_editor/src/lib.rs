@@ -13,12 +13,12 @@ extern crate serde_derive;
 
 mod compute;
 mod constant_editor;
-mod editor;
 mod export;
 mod id_stack;
+mod layout;
 mod node_state;
 mod scrolling;
 mod vec2;
 
 pub use constant_editor::ConstantEditor;
-pub use editor::NodeEditor;
+pub use layout::NodeEditor;

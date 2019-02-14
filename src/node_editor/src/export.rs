@@ -9,7 +9,7 @@ use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantNam
 use ron::{de, ser};
 use serde::{Deserialize, Serialize};
 
-use editor::NodeEditor;
+use layout::NodeEditor;
 use node_state::{NodeState, NodeStates};
 use scrolling::Scrolling;
 use vec2::Vec2;

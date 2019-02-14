@@ -4,7 +4,7 @@ use cake::{
     Async, Future, Task,
 };
 
-use editor::NodeEditor;
+use layout::NodeEditor;
 
 pub struct ComputationState<T, E> {
     previous_result: Option<NodeResult<T, E>>,
