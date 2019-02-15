@@ -159,14 +159,12 @@ impl<T, E> NodeEditor<T, E> {
     {
         const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
         use event::RenderEvent::*;
-        let errors = &mut self.error_stack;
-        let successes = &mut self.success_stack;
         match ev {
             Connect(output, input_slot) => match input_slot {
                 cake::InputSlot::Transform(input) => {
                     if let Err(e) = self.layout.dst.connect(output, input) {
                         eprintln!("{:?}", e);
-                        errors.push(Box::new(e));
+                        self.error_stack.push(Box::new(e));
                     }
                 }
                 cake::InputSlot::Output(output_id) => {
@@ -204,20 +202,20 @@ impl<T, E> NodeEditor<T, E> {
             RemoveNode(node_id) => {
                 self.layout.dst.remove_node(&node_id);
             }
-            Error(e) => errors.push(e),
-            Success(msg) => successes.push(msg),
+            Error(e) => self.error_stack.push(e),
+            Success(msg) => self.success_stack.push(msg),
             Import => {
                 if let Err(e) = self.layout.import_from_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on import! {}", e);
-                    errors.push(Box::new(e));
+                    self.error_stack.push(Box::new(e));
                 }
             }
             Export => {
                 if let Err(e) = self.layout.export_to_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on export! {}", e);
-                    errors.push(Box::new(e));
+                    self.error_stack.push(Box::new(e));
                 } else {
-                    successes.push(ImString::new(format!(
+                    self.success_stack.push(ImString::new(format!(
                         "Editor content was exported with success to '{}'!",
                         EDITOR_EXPORT_FILE
                     )));
