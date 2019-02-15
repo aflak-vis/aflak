@@ -156,58 +156,6 @@ impl<'a, 't, T, E> InputDefaultsMut<'a, 't, T, E> {
     }
 }
 
-pub struct InputDefaultMut<'a, 't: 'a, T: 'a + 't, E: 'a + 't> {
-    t: *mut MetaTransform<'t, T, E>,
-    index: usize,
-    phantom: ::std::marker::PhantomData<&'a MetaTransform<'t, T, E>>,
-}
-
-impl<'a, 't, T, E> InputDefaultMut<'a, 't, T, E> {
-    pub fn write(&mut self, value: T) {
-        unsafe {
-            *(*self.t).input_defaults.get_unchecked_mut(self.index) = Some(value);
-            (*self.t).updated_on = Instant::now();
-        }
-    }
-
-    pub fn read(&self) -> Option<&T> {
-        unsafe { (*self.t).input_defaults.get_unchecked(self.index).as_ref() }
-    }
-}
-
-pub struct InputDefaultsMutIter<'a, 't: 'a, T: 'a + 't, E: 'a + 't> {
-    t: &'a mut MetaTransform<'t, T, E>,
-    index: usize,
-}
-
-impl<'a, 't, T, E> IntoIterator for InputDefaultsMut<'a, 't, T, E> {
-    type Item = InputDefaultMut<'a, 't, T, E>;
-    type IntoIter = InputDefaultsMutIter<'a, 't, T, E>;
-    fn into_iter(self) -> Self::IntoIter {
-        InputDefaultsMutIter {
-            t: self.t,
-            index: 0,
-        }
-    }
-}
-
-impl<'a, 't: 'a, T, E> Iterator for InputDefaultsMutIter<'a, 't, T, E> {
-    type Item = InputDefaultMut<'a, 't, T, E>;
-    fn next(&mut self) -> Option<InputDefaultMut<'a, 't, T, E>> {
-        if self.index < self.t.input_defaults.len() {
-            let index = self.index;
-            self.index += 1;
-            Some(InputDefaultMut {
-                t: self.t,
-                index,
-                phantom: ::std::marker::PhantomData,
-            })
-        } else {
-            None
-        }
-    }
-}
-
 /// Tuple of a transformation and the default input values set up for it
 pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<T, E>>, Vec<Option<T>>);
 

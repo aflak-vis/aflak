@@ -25,9 +25,8 @@ mod transform;
 pub use boow::Bow;
 pub use cache::Cache;
 pub use dst::{
-    compute, DSTError, Input, InputDefaultMut, InputDefaultsMut, InputDefaultsMutIter, InputSlot,
-    LinkIter, MetaTransform, Node, NodeId, NodeIter, Output, OutputId, TransformAndDefaults,
-    TransformIdx, DST,
+    compute, DSTError, Input, InputDefaultsMut, InputSlot, LinkIter, MetaTransform, Node, NodeId,
+    NodeIter, Output, OutputId, TransformAndDefaults, TransformIdx, DST,
 };
 pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
 pub use future::Task;
