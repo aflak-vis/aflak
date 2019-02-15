@@ -30,6 +30,8 @@ pub use layout::NodeEditorLayout;
 
 pub struct NodeEditor<T: 'static, E: 'static> {
     dst: cake::DST<'static, T, E>,
+    output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
+    cache: cake::Cache<T, cake::compute::ComputeError<E>>,
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<error::Error>>,
     success_stack: Vec<ImString>,
@@ -52,9 +54,8 @@ where
         id: cake::OutputId,
     ) -> Option<cake::compute::NodeResult<T, E>> {
         let dst = &mut self.dst;
-        let cache = &mut self.layout.cache;
+        let cache = &mut self.cache;
         let state = self
-            .layout
             .output_results
             .entry(id)
             .or_insert_with(|| ComputationState {
@@ -371,8 +372,8 @@ where
         self.layout.scrolling = scrolling::Scrolling::new(deserialized.scrolling);
 
         // Reset cache
-        self.layout.output_results = collections::BTreeMap::new();
-        self.layout.cache = cake::Cache::new();
+        self.output_results = collections::BTreeMap::new();
+        self.cache = cake::Cache::new();
 
         Ok(())
     }
@@ -405,6 +406,8 @@ impl<T, E> Default for NodeEditor<T, E> {
     fn default() -> Self {
         NodeEditor {
             dst: Default::default(),
+            output_results: collections::BTreeMap::new(),
+            cache: cake::Cache::new(),
             layout: Default::default(),
             error_stack: vec![],
             success_stack: vec![],

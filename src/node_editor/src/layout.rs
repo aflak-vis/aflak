@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::error::Error;
 
 use imgui::{
@@ -7,9 +6,8 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, Cache, InputSlot, Transform, VariantName, DST};
+use cake::{self, InputSlot, Transform, VariantName, DST};
 
-use super::ComputationState;
 use constant_editor::ConstantEditor;
 use event::RenderEvent;
 use id_stack::GetId;
@@ -24,8 +22,6 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     pub(crate) drag_node: Option<cake::NodeId>,
     pub(crate) creating_link: Option<LinkExtremity>,
     pub(crate) new_link: Option<(cake::Output, InputSlot)>,
-    pub(crate) output_results: BTreeMap<cake::OutputId, ComputationState<T, E>>,
-    pub(crate) cache: Cache<T, cake::compute::ComputeError<E>>,
     show_left_pane: bool,
     left_pane_size: Option<f32>,
     show_top_pane: bool,
@@ -45,8 +41,6 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             drag_node: None,
             creating_link: None,
             new_link: None,
-            output_results: BTreeMap::new(),
-            cache: Cache::new(),
             show_left_pane: true,
             left_pane_size: None,
             show_top_pane: true,
