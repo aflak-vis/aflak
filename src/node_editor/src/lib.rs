@@ -11,7 +11,6 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-mod compute;
 mod constant_editor;
 mod event;
 mod export;
@@ -23,15 +22,23 @@ mod vec2;
 
 use std::{collections, error, fs, io, path};
 
+use cake::Future;
 use imgui::ImString;
 
 pub use constant_editor::ConstantEditor;
 pub use layout::NodeEditorLayout;
 
 pub struct NodeEditor<T: 'static, E: 'static> {
+    dst: cake::DST<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<error::Error>>,
     success_stack: Vec<ImString>,
+}
+
+struct ComputationState<T, E> {
+    previous_result: Option<cake::compute::NodeResult<T, E>>,
+    task: cake::Task<cake::compute::SuccessOut<T>, cake::compute::ErrorOut<E>>,
+    counter: u8,
 }
 
 impl<T, E> NodeEditor<T, E>
@@ -44,7 +51,39 @@ where
         &mut self,
         id: cake::OutputId,
     ) -> Option<cake::compute::NodeResult<T, E>> {
-        self.layout.compute_output(id)
+        let dst = &mut self.dst;
+        let cache = &mut self.layout.cache;
+        let state = self
+            .layout
+            .output_results
+            .entry(id)
+            .or_insert_with(|| ComputationState {
+                previous_result: None,
+                task: dst.compute(id, cache),
+                counter: 1,
+            });
+
+        const WRAP: u8 = 5;
+        if state.counter % WRAP == 0 {
+            match state.task.poll() {
+                Ok(cake::Async::Ready(t)) => {
+                    state.previous_result = Some(Ok(t));
+                    state.task = dst.compute(id, cache);
+                }
+                Ok(cake::Async::NotReady) => (),
+                Err(e) => {
+                    state.previous_result = Some(Err(e));
+                    state.task = dst.compute(id, cache);
+                }
+            };
+            dst.update_defaults_from_cache(cache);
+        }
+        if state.counter == WRAP - 1 {
+            state.counter = 0;
+        } else {
+            state.counter += 1;
+        }
+        state.previous_result.clone()
     }
 }
 
@@ -56,7 +95,8 @@ where
     ///
     /// Return the ID if the new node.
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
-        self.layout.create_constant_node(t)
+        self.dst
+            .add_owned_transform(cake::Transform::new_constant(t))
     }
 }
 
@@ -67,14 +107,28 @@ where
     /// Update the constant value of constant node with given `id` with given
     /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        self.layout.update_constant_node(id, val)
+        if let Some(t) = self.dst.get_transform_mut(id) {
+            let mut new_value = false;
+            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                new_value = *constant != val;
+            }
+            if new_value {
+                t.set_constant(val);
+            }
+        }
     }
 }
 
 impl<T, E> NodeEditor<T, E> {
     /// Get reference to value of contant node identified by `id`.
     pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
-        self.layout.constant_node_value(id)
+        self.dst.get_transform(id).and_then(|t| {
+            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                Some(constant)
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -100,7 +154,9 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        let events = self.layout.render(ui, addable_nodes, constant_editor);
+        let events = self
+            .layout
+            .render(ui, &self.dst, addable_nodes, constant_editor);
         for event in events {
             self.apply_event(event);
         }
@@ -111,7 +167,11 @@ where
 
     /// Get all the outputs defined in the node editor.
     pub fn outputs(&self) -> Vec<cake::OutputId> {
-        self.layout.outputs()
+        self.dst
+            .outputs_iter()
+            .filter(|(_, some_output)| some_output.is_some())
+            .map(|(id, _)| *id)
+            .collect()
     }
 
     fn render_error_popup(&mut self, ui: &imgui::Ui) {
@@ -162,27 +222,25 @@ impl<T, E> NodeEditor<T, E> {
         match ev {
             Connect(output, input_slot) => match input_slot {
                 cake::InputSlot::Transform(input) => {
-                    if let Err(e) = self.layout.dst.connect(output, input) {
+                    if let Err(e) = self.dst.connect(output, input) {
                         eprintln!("{:?}", e);
                         self.error_stack.push(Box::new(e));
                     }
                 }
-                cake::InputSlot::Output(output_id) => {
-                    self.layout.dst.update_output(output_id, output)
-                }
+                cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
             },
             AddTransform(t) => {
-                self.layout.dst.add_transform(t);
+                self.dst.add_transform(t);
             }
             CreateOutput => {
-                self.layout.dst.create_output();
+                self.dst.create_output();
             }
             AddConstant(constant_type) => {
                 let constant = cake::Transform::new_constant(T::default_for(constant_type));
-                self.layout.dst.add_owned_transform(constant);
+                self.dst.add_owned_transform(constant);
             }
             SetConstant(t_idx, val) => {
-                if let Some(t) = self.layout.dst.get_transform_mut(t_idx) {
+                if let Some(t) = self.dst.get_transform_mut(t_idx) {
                     t.set_constant(*val);
                 } else {
                     eprintln!("Transform {:?} was not found.", t_idx);
@@ -193,14 +251,14 @@ impl<T, E> NodeEditor<T, E> {
                 input_index,
                 val,
             } => {
-                if let Some(mut inputs) = self.layout.dst.get_default_inputs_mut(t_idx) {
+                if let Some(mut inputs) = self.dst.get_default_inputs_mut(t_idx) {
                     inputs.write(input_index, *val);
                 } else {
                     eprintln!("Transform {:?} was not found.", t_idx);
                 }
             }
             RemoveNode(node_id) => {
-                self.layout.dst.remove_node(&node_id);
+                self.dst.remove_node(&node_id);
             }
             Error(e) => self.error_stack.push(e),
             Success(msg) => self.success_stack.push(msg),
@@ -259,7 +317,7 @@ where
 {
     fn new<E>(editor: &'e NodeEditor<T, E>) -> Self {
         Self {
-            dst: cake::SerialDST::new(&editor.layout.dst),
+            dst: cake::SerialDST::new(&editor.dst),
             node_states: editor.layout.node_states.iter().collect(),
             scrolling: editor.layout.scrolling.get_current(),
         }
@@ -292,7 +350,7 @@ where
 
     fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), export::ImportError> {
         let deserialized: DeserEditor<T, E> = ron::de::from_reader(r)?;
-        self.layout.dst = deserialized.dst.into_dst()?;
+        self.dst = deserialized.dst.into_dst()?;
 
         // Set Ui node states
         self.layout.node_states = {
@@ -346,6 +404,7 @@ where
 impl<T, E> Default for NodeEditor<T, E> {
     fn default() -> Self {
         NodeEditor {
+            dst: Default::default(),
             layout: Default::default(),
             error_stack: vec![],
             success_stack: vec![],

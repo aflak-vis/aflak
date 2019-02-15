@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use cake::{self, Cache, InputSlot, Transform, VariantName, DST};
 
-use compute::ComputationState;
+use super::ComputationState;
 use constant_editor::ConstantEditor;
 use event::RenderEvent;
 use id_stack::GetId;
@@ -19,7 +19,6 @@ use vec2::Vec2;
 
 /// The node editor instance.
 pub struct NodeEditorLayout<T: 'static, E: 'static> {
-    pub(crate) dst: DST<'static, T, E>,
     pub(crate) node_states: NodeStates,
     pub(crate) active_node: Option<cake::NodeId>,
     pub(crate) drag_node: Option<cake::NodeId>,
@@ -41,7 +40,6 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
 impl<T, E> Default for NodeEditorLayout<T, E> {
     fn default() -> Self {
         NodeEditorLayout {
-            dst: DST::new(),
             node_states: NodeStates::new(),
             active_node: None,
             drag_node: None,
@@ -66,50 +64,6 @@ pub enum LinkExtremity {
     Input(InputSlot),
 }
 
-impl<T, E> NodeEditorLayout<T, E>
-where
-    T: Clone + cake::VariantName,
-{
-    /// Add a constant node containing the value `t`.
-    ///
-    /// Return the ID if the new node.
-    pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
-        self.dst.add_owned_transform(Transform::new_constant(t))
-    }
-}
-
-impl<T, E> NodeEditorLayout<T, E>
-where
-    T: PartialEq + VariantName,
-{
-    /// Update the constant value of constant node with given `id` with given
-    /// value `val`.
-    pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        if let Some(t) = self.dst.get_transform_mut(id) {
-            let mut new_value = false;
-            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant != val;
-            }
-            if new_value {
-                t.set_constant(val);
-            }
-        }
-    }
-}
-
-impl<T, E> NodeEditorLayout<T, E> {
-    /// Get reference to value of contant node identified by `id`.
-    pub fn constant_node_value(&self, id: cake::TransformIdx) -> Option<&T> {
-        self.dst.get_transform(id).and_then(|t| {
-            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                Some(constant)
-            } else {
-                None
-            }
-        })
-    }
-}
-
 const NODE_FRAME_COLOR: [f32; 3] = [0.39, 0.39, 0.39];
 const NODE_WINDOW_PADDING: Vec2 = Vec2(5.0, 5.0);
 const CURRENT_FONT_WINDOW_SCALE: f32 = 1.0;
@@ -131,6 +85,7 @@ where
     pub fn render<ED>(
         &mut self,
         ui: &Ui,
+        dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
         constant_editor: &ED,
     ) -> Vec<RenderEvent<T, E>>
@@ -139,7 +94,7 @@ where
     {
         self.events = vec![];
 
-        for idx in self.dst.node_ids() {
+        for idx in dst.node_ids() {
             // Initialization of node states
             let win_pos: Vec2 = ui.get_cursor_screen_pos().into();
             let scroll = self.scrolling.get_current();
@@ -153,9 +108,9 @@ where
             self.node_states.init_node(&idx, clue);
         }
         if self.show_left_pane {
-            self.render_left_pane(ui);
+            self.render_left_pane(ui, dst);
         }
-        self.render_graph_node(ui, addable_nodes, constant_editor);
+        self.render_graph_node(ui, dst, addable_nodes, constant_editor);
 
         if ui.is_window_focused() && !ui.want_capture_keyboard() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
@@ -170,16 +125,7 @@ where
         ::std::mem::replace(&mut self.events, vec![])
     }
 
-    /// Get all the outputs defined in the node editor.
-    pub fn outputs(&self) -> Vec<cake::OutputId> {
-        self.dst
-            .outputs_iter()
-            .filter(|(_, some_output)| some_output.is_some())
-            .map(|(id, _)| *id)
-            .collect()
-    }
-
-    fn render_left_pane(&mut self, ui: &Ui) {
+    fn render_left_pane(&mut self, ui: &Ui, dst: &DST<'static, T, E>) {
         const LEFT_PANE_DEFAULT_RELATIVE_WIDTH: f32 = 0.2;
         let window_size = Vec2::new(ui.get_window_size());
         let pane_width = *self
@@ -196,7 +142,7 @@ where
                     .build()
                 {
                     ui.separator();
-                    self.show_node_list(ui);
+                    self.show_node_list(ui, dst);
                 }
                 ui.separator();
                 if let Some(node_id) = self.active_node {
@@ -208,10 +154,7 @@ where
                         .build()
                     {
                         ui.separator();
-                        let node = self
-                            .dst
-                            .get_node(&node_id)
-                            .expect("Failed to get active node");
+                        let node = dst.get_node(&node_id).expect("Failed to get active node");
                         match node {
                             cake::Node::Transform(t) => {
                                 ui.text_wrapped(&ImString::new(format!(
@@ -261,10 +204,10 @@ where
         ui.same_line(0.0);
     }
 
-    fn show_node_list(&mut self, ui: &Ui) {
+    fn show_node_list(&mut self, ui: &Ui, dst: &DST<'static, T, E>) {
         const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
 
-        for (idx, node) in self.dst.nodes_iter() {
+        for (idx, node) in dst.nodes_iter() {
             ui.push_id(idx.id());
             let selected = self.node_states.get_state(&idx, |state| state.selected);
             let name = ImString::new(node.name(&idx));
@@ -285,6 +228,7 @@ where
     fn render_graph_node<ED>(
         &mut self,
         ui: &Ui,
+        dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
         constant_editor: &ED,
     ) where
@@ -346,7 +290,7 @@ where
                         .show_scrollbar_with_mouse(false)
                         .build(|| {
                             // TODO: Manage scaling (and font-scaling)
-                            self.render_graph_canvas(ui, addable_nodes, constant_editor);
+                            self.render_graph_canvas(ui, dst, addable_nodes, constant_editor);
                         });
                 });
             });
@@ -355,6 +299,7 @@ where
     fn render_graph_canvas<ED>(
         &mut self,
         ui: &Ui,
+        dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
         constant_editor: &ED,
     ) where
@@ -435,7 +380,7 @@ where
                 let link_line_width = LINK_LINE_WIDTH * CURRENT_FONT_WINDOW_SCALE;
                 // NODE LINK CULLING?
 
-                for idx in self.dst.node_ids() {
+                for idx in dst.node_ids() {
                     let node_pos = self
                         .node_states
                         .get_state(&idx, |state| state.get_pos(CURRENT_FONT_WINDOW_SCALE));
@@ -449,9 +394,9 @@ where
                         .node_states
                         .get_state(&idx, |state| node_rect_min + state.size);
                     ui.set_cursor_screen_pos(node_rect_min + NODE_WINDOW_PADDING);
-                    self.draw_node_inside(ui, &draw_list, &idx, constant_editor);
+                    self.draw_node_inside(ui, dst, &draw_list, &idx, constant_editor);
 
-                    let node = self.dst.get_node(&idx).unwrap();
+                    let node = dst.get_node(&idx).unwrap();
                     let node_states = &mut self.node_states;
                     let item_rect_size = Vec2::new(ui.get_item_rect_size());
                     node_states.set_state(&idx, |state| {
@@ -614,12 +559,8 @@ where
                     if ui.imgui().is_mouse_dragging(ImMouseButton::Left) {
                         let (p1, cp1, cp2, p2) = match *creating_link {
                             LinkExtremity::Output(output) => {
-                                let output_node_count = self
-                                    .dst
-                                    .get_transform(output.t_idx)
-                                    .unwrap()
-                                    .outputs()
-                                    .len();
+                                let output_node_count =
+                                    dst.get_transform(output.t_idx).unwrap().outputs().len();
                                 let output_node_state = self
                                     .node_states
                                     .get(&cake::NodeId::Transform(output.t_idx))
@@ -638,8 +579,7 @@ where
                             LinkExtremity::Input(input_slot) => {
                                 let connector_pos = match input_slot {
                                     InputSlot::Transform(input) => {
-                                        let input_node_count = self
-                                            .dst
+                                        let input_node_count = dst
                                             .get_transform(input.t_idx)
                                             .unwrap()
                                             .input_types()
@@ -685,15 +625,11 @@ where
 
                 // Display links
                 channels.set_current(0);
-                for (output, input_slot) in self.dst.links_iter() {
+                for (output, input_slot) in dst.links_iter() {
                     let connector_in_pos = match input_slot {
                         cake::InputSlot::Transform(input) => {
-                            let input_node_count = self
-                                .dst
-                                .get_transform(input.t_idx)
-                                .unwrap()
-                                .input_types()
-                                .len();
+                            let input_node_count =
+                                dst.get_transform(input.t_idx).unwrap().input_types().len();
                             let input_node_state = self
                                 .node_states
                                 .get(&cake::NodeId::Transform(input.t_idx))
@@ -717,12 +653,8 @@ where
                         }
                     };
                     let p1 = offset + connector_in_pos;
-                    let output_node_count = self
-                        .dst
-                        .get_transform(output.t_idx)
-                        .unwrap()
-                        .outputs()
-                        .len();
+                    let output_node_count =
+                        dst.get_transform(output.t_idx).unwrap().outputs().len();
                     let output_node_state = self
                         .node_states
                         .get(&cake::NodeId::Transform(output.t_idx))
@@ -775,6 +707,7 @@ where
     fn draw_node_inside<ED>(
         &mut self,
         ui: &Ui,
+        dst: &DST<'static, T, E>,
         draw_list: &WindowDrawList,
         id: &cake::NodeId,
         constant_editor: &ED,
@@ -782,7 +715,7 @@ where
         ED: ConstantEditor<T>,
     {
         let (node_name, description) = {
-            let node = self.dst.get_node(id).unwrap();
+            let node = dst.get_node(id).unwrap();
             (
                 ImString::new(node.name(id)),
                 ImString::new(match node {
@@ -796,7 +729,6 @@ where
             )
         };
         let node_states = &mut self.node_states;
-        let dst = &self.dst;
         let events = &mut self.events;
         let mut title_bar_height = 0.0;
         let p = ui.get_cursor_screen_pos();
