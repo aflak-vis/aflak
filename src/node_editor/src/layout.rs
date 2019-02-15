@@ -17,16 +17,16 @@ use vec2::Vec2;
 
 /// The node editor instance.
 pub struct NodeEditorLayout<T: 'static, E: 'static> {
-    pub(crate) node_states: NodeStates,
-    pub(crate) active_node: Option<cake::NodeId>,
-    pub(crate) drag_node: Option<cake::NodeId>,
-    pub(crate) creating_link: Option<LinkExtremity>,
-    pub(crate) new_link: Option<(cake::Output, InputSlot)>,
+    node_states: NodeStates,
+    active_node: Option<cake::NodeId>,
+    drag_node: Option<cake::NodeId>,
+    creating_link: Option<LinkExtremity>,
+    new_link: Option<(cake::Output, InputSlot)>,
     show_left_pane: bool,
     left_pane_size: Option<f32>,
     show_top_pane: bool,
     show_connection_names: bool,
-    pub(crate) scrolling: Scrolling,
+    scrolling: Scrolling,
     show_grid: bool,
 
     // Used at runtime to aggregate events
@@ -843,5 +843,28 @@ where
                 self.active_node.take();
             }
         }
+    }
+}
+
+impl<T, E> NodeEditorLayout<T, E> {
+    pub fn scrolling(&self) -> &Scrolling {
+        &self.scrolling
+    }
+
+    pub fn node_states(&self) -> &NodeStates {
+        &self.node_states
+    }
+
+    pub fn import(&mut self, node_states: NodeStates, scrolling: Scrolling) {
+        // Set UI node states
+        self.node_states = node_states;
+        // Set scrolling offset
+        self.scrolling = scrolling;
+
+        // Reset all temporary values
+        self.active_node = None;
+        self.drag_node = None;
+        self.creating_link = None;
+        self.new_link = None;
     }
 }

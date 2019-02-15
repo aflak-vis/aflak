@@ -319,8 +319,8 @@ where
     fn new<E>(editor: &'e NodeEditor<T, E>) -> Self {
         Self {
             dst: cake::SerialDST::new(&editor.dst),
-            node_states: editor.layout.node_states.iter().collect(),
-            scrolling: editor.layout.scrolling.get_current(),
+            node_states: editor.layout.node_states().iter().collect(),
+            scrolling: editor.layout.scrolling().get_current(),
         }
     }
 }
@@ -353,23 +353,15 @@ where
         let deserialized: DeserEditor<T, E> = ron::de::from_reader(r)?;
         self.dst = deserialized.dst.into_dst()?;
 
-        // Set Ui node states
-        self.layout.node_states = {
+        let node_states = {
             let mut node_states = node_state::NodeStates::new();
             for (node_id, state) in deserialized.node_states {
                 node_states.insert(node_id, state);
             }
             node_states
         };
-
-        // Reset all temporary values
-        self.layout.active_node = None;
-        self.layout.drag_node = None;
-        self.layout.creating_link = None;
-        self.layout.new_link = None;
-
-        // Set scrolling offset
-        self.layout.scrolling = scrolling::Scrolling::new(deserialized.scrolling);
+        let scrolling = scrolling::Scrolling::new(deserialized.scrolling);
+        self.layout.import(node_states, scrolling);
 
         // Reset cache
         self.output_results = collections::BTreeMap::new();
