@@ -26,8 +26,9 @@ use cake::Future;
 use imgui::ImString;
 
 pub use constant_editor::ConstantEditor;
-pub use layout::NodeEditorLayout;
+use layout::NodeEditorLayout;
 
+/// The node editor instance.
 pub struct NodeEditor<T: 'static, E: 'static> {
     dst: cake::DST<'static, T, E>,
     output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
@@ -208,7 +209,7 @@ where
 }
 
 impl<T, E> NodeEditor<T, E> {
-    pub fn apply_event(&mut self, ev: event::RenderEvent<T, E>)
+    fn apply_event(&mut self, ev: event::RenderEvent<T, E>)
     where
         T: Clone
             + cake::ConvertibleVariants
@@ -261,8 +262,6 @@ impl<T, E> NodeEditor<T, E> {
             RemoveNode(node_id) => {
                 self.dst.remove_node(&node_id);
             }
-            Error(e) => self.error_stack.push(e),
-            Success(msg) => self.success_stack.push(msg),
             Import => {
                 if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on import! {}", e);
@@ -306,7 +305,7 @@ where
 }
 
 #[derive(Serialize)]
-pub struct SerialEditor<'e, T: 'e> {
+struct SerialEditor<'e, T: 'e> {
     dst: cake::SerialDST<'e, T>,
     node_states: Vec<(&'e cake::NodeId, &'e node_state::NodeState)>,
     scrolling: vec2::Vec2,

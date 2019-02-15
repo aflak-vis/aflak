@@ -15,7 +15,6 @@ use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
 
-/// The node editor instance.
 pub struct NodeEditorLayout<T: 'static, E: 'static> {
     node_states: NodeStates,
     active_node: Option<cake::NodeId>,
