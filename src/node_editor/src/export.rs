@@ -1,17 +1,15 @@
-use std::collections::BTreeMap;
 use std::error;
 use std::fmt;
 use std::fs;
 use std::io;
 use std::path::Path;
 
-use cake::{self, Cache, DeserDST, NamedAlgorithms, NodeId, SerialDST, VariantName};
+use cake::{self, NodeId, SerialDST, VariantName};
 use ron::{de, ser};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use layout::NodeEditorLayout;
-use node_state::{NodeState, NodeStates};
-use scrolling::Scrolling;
+use node_state::NodeState;
 use vec2::Vec2;
 
 #[derive(Serialize)]
@@ -32,14 +30,6 @@ where
             scrolling: editor.scrolling.get_current(),
         }
     }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(bound(deserialize = "T: Deserialize<'de>"))]
-pub struct DeserEditor<T, E> {
-    dst: DeserDST<T, E>,
-    node_states: Vec<(NodeId, NodeState)>,
-    scrolling: Vec2,
 }
 
 #[derive(Debug)]
@@ -95,39 +85,6 @@ where
     }
 }
 
-impl<'t, T, E> NodeEditorLayout<T, E>
-where
-    T: 'static + Clone + NamedAlgorithms<E> + VariantName + cake::ConvertibleVariants,
-    E: 'static,
-{
-    fn import(&mut self, import: DeserEditor<T, E>) -> Result<(), cake::ImportError> {
-        self.dst = import.dst.into_dst()?;
-
-        // Set Ui node states
-        self.node_states = {
-            let mut node_states = NodeStates::new();
-            for (node_id, state) in import.node_states {
-                node_states.insert(node_id, state);
-            }
-            node_states
-        };
-
-        // Reset all temporary values
-        self.active_node = None;
-        self.drag_node = None;
-        self.creating_link = None;
-        self.new_link = None;
-
-        // Set scrolling offset
-        self.scrolling = Scrolling::new(import.scrolling);
-
-        // Reset cache
-        self.output_results = BTreeMap::new();
-        self.cache = Cache::new();
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 pub enum ImportError {
     DSTError(cake::ImportError),
@@ -166,42 +123,5 @@ impl From<de::Error> for ImportError {
 impl From<cake::ImportError> for ImportError {
     fn from(e: cake::ImportError) -> Self {
         ImportError::DSTError(e)
-    }
-}
-
-impl<T, E> NodeEditorLayout<T, E>
-where
-    T: 'static
-        + Clone
-        + NamedAlgorithms<E>
-        + VariantName
-        + cake::ConvertibleVariants
-        + for<'de> Deserialize<'de>,
-    E: 'static,
-{
-    /// Deserialize a buffer in .ron format and make a node editor.
-    pub fn from_export_buf<R>(r: R) -> Result<Self, ImportError>
-    where
-        R: io::Read,
-    {
-        let mut editor = Self::default();
-        editor.import_from_buf(r)?;
-        Ok(editor)
-    }
-
-    /// Replace the node editor with the content of the buffer in .ron format.
-    fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), ImportError> {
-        let deserialized = de::from_reader(r)?;
-        self.import(deserialized)?;
-        Ok(())
-    }
-
-    /// Replace the node editor with the content of the .ron file.
-    pub(crate) fn import_from_file<P: AsRef<Path>>(
-        &mut self,
-        file_path: P,
-    ) -> Result<(), ImportError> {
-        let f = fs::File::open(file_path)?;
-        self.import_from_buf(f)
     }
 }

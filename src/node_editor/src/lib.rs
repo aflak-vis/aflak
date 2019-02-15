@@ -21,7 +21,7 @@ mod node_state;
 mod scrolling;
 mod vec2;
 
-use std::{error, io};
+use std::{collections, error, fs, io, path};
 
 use imgui::ImString;
 
@@ -205,7 +205,7 @@ impl<T, E> NodeEditor<T, E> {
             Error(e) => self.error_stack.push(e),
             Success(msg) => self.success_stack.push(msg),
             Import => {
-                if let Err(e) = self.layout.import_from_file(EDITOR_EXPORT_FILE) {
+                if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on import! {}", e);
                     self.error_stack.push(Box::new(e));
                 }
@@ -240,10 +240,63 @@ where
     where
         R: io::Read,
     {
-        NodeEditorLayout::from_export_buf(r).map(|layout| NodeEditor {
-            layout,
-            ..Default::default()
-        })
+        let mut editor = Self::default();
+        editor.import_from_buf(r)?;
+        Ok(editor)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(bound(deserialize = "T: serde::Deserialize<'de>"))]
+struct DeserEditor<T, E> {
+    dst: cake::DeserDST<T, E>,
+    node_states: Vec<(cake::NodeId, node_state::NodeState)>,
+    scrolling: vec2::Vec2,
+}
+
+impl<T, E> NodeEditor<T, E>
+where
+    T: Clone
+        + cake::NamedAlgorithms<E>
+        + cake::VariantName
+        + cake::ConvertibleVariants
+        + for<'de> serde::Deserialize<'de>,
+{
+    fn import_from_file<P: AsRef<path::Path>>(
+        &mut self,
+        file_path: P,
+    ) -> Result<(), export::ImportError> {
+        let f = fs::File::open(file_path)?;
+        self.import_from_buf(f)
+    }
+
+    fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), export::ImportError> {
+        let deserialized: DeserEditor<T, E> = ron::de::from_reader(r)?;
+        self.layout.dst = deserialized.dst.into_dst()?;
+
+        // Set Ui node states
+        self.layout.node_states = {
+            let mut node_states = node_state::NodeStates::new();
+            for (node_id, state) in deserialized.node_states {
+                node_states.insert(node_id, state);
+            }
+            node_states
+        };
+
+        // Reset all temporary values
+        self.layout.active_node = None;
+        self.layout.drag_node = None;
+        self.layout.creating_link = None;
+        self.layout.new_link = None;
+
+        // Set scrolling offset
+        self.layout.scrolling = scrolling::Scrolling::new(deserialized.scrolling);
+
+        // Reset cache
+        self.layout.output_results = collections::BTreeMap::new();
+        self.layout.cache = cake::Cache::new();
+
+        Ok(())
     }
 }
 
