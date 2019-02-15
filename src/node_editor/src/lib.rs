@@ -211,7 +211,7 @@ impl<T, E> NodeEditor<T, E> {
                 }
             }
             Export => {
-                if let Err(e) = self.layout.export_to_file(EDITOR_EXPORT_FILE) {
+                if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
                     eprintln!("Error on export! {}", e);
                     self.error_stack.push(Box::new(e));
                 } else {
@@ -243,6 +243,26 @@ where
         let mut editor = Self::default();
         editor.import_from_buf(r)?;
         Ok(editor)
+    }
+}
+
+#[derive(Serialize)]
+pub struct SerialEditor<'e, T: 'e> {
+    dst: cake::SerialDST<'e, T>,
+    node_states: Vec<(&'e cake::NodeId, &'e node_state::NodeState)>,
+    scrolling: vec2::Vec2,
+}
+
+impl<'e, T> SerialEditor<'e, T>
+where
+    T: Clone + cake::VariantName,
+{
+    fn new<E>(editor: &'e NodeEditor<T, E>) -> Self {
+        Self {
+            dst: cake::SerialDST::new(&editor.layout.dst),
+            node_states: editor.layout.node_states.iter().collect(),
+            scrolling: editor.layout.scrolling.get_current(),
+        }
     }
 }
 
@@ -297,6 +317,29 @@ where
         self.layout.cache = cake::Cache::new();
 
         Ok(())
+    }
+}
+
+impl<T, E> NodeEditor<T, E>
+where
+    T: Clone + serde::Serialize + cake::VariantName,
+{
+    /// Serialize node editor to writer as .ron format.
+    fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), export::ExportError> {
+        let serializable = SerialEditor::new(self);
+        let serialized = ron::ser::to_string_pretty(&serializable, Default::default())?;
+        w.write_all(serialized.as_bytes())?;
+        w.flush()?;
+        Ok(())
+    }
+
+    /// Serialize node editor to .ron file.
+    fn export_to_file<P: AsRef<path::Path>>(
+        &self,
+        file_path: P,
+    ) -> Result<(), export::ExportError> {
+        let mut f = fs::File::create(file_path)?;
+        self.export_to_buf(&mut f)
     }
 }
 

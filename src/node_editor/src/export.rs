@@ -1,36 +1,9 @@
 use std::error;
 use std::fmt;
-use std::fs;
 use std::io;
-use std::path::Path;
 
-use cake::{self, NodeId, SerialDST, VariantName};
+use cake;
 use ron::{de, ser};
-use serde::Serialize;
-
-use layout::NodeEditorLayout;
-use node_state::NodeState;
-use vec2::Vec2;
-
-#[derive(Serialize)]
-pub struct SerialEditor<'e, T: 'e> {
-    dst: SerialDST<'e, T>,
-    node_states: Vec<(&'e NodeId, &'e NodeState)>,
-    scrolling: Vec2,
-}
-
-impl<'e, T> SerialEditor<'e, T>
-where
-    T: Clone + VariantName,
-{
-    fn new<E>(editor: &'e NodeEditorLayout<T, E>) -> Self {
-        Self {
-            dst: SerialDST::new(&editor.dst),
-            node_states: editor.node_states.iter().collect(),
-            scrolling: editor.scrolling.get_current(),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum ExportError {
@@ -62,26 +35,6 @@ impl From<io::Error> for ExportError {
 impl From<ser::Error> for ExportError {
     fn from(serial_error: ser::Error) -> Self {
         ExportError::SerializationError(serial_error)
-    }
-}
-
-impl<T, E> NodeEditorLayout<T, E>
-where
-    T: Clone + Serialize + VariantName,
-{
-    /// Serialize node editor to writer as .ron format.
-    fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), ExportError> {
-        let serializable = SerialEditor::new(self);
-        let serialized = ser::to_string_pretty(&serializable, Default::default())?;
-        w.write_all(serialized.as_bytes())?;
-        w.flush()?;
-        Ok(())
-    }
-
-    /// Serialize node editor to .ron file.
-    pub(crate) fn export_to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<(), ExportError> {
-        let mut f = fs::File::create(file_path)?;
-        self.export_to_buf(&mut f)
     }
 }
 
