@@ -250,10 +250,10 @@ where
         self.outputs()[output_i]
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> Cow<'static, str> {
         match self.algorithm {
-            Algorithm::Function { id, .. } => id.name(),
-            Algorithm::Constant(ref t) => t.variant_name(),
+            Algorithm::Function { id, .. } => Cow::Borrowed(id.name()),
+            Algorithm::Constant(ref t) => Cow::Borrowed(t.variant_name()),
         }
     }
 

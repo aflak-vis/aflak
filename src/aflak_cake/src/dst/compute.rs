@@ -1,4 +1,5 @@
 //! Data types for computational results.
+use std::borrow::Cow;
 use std::error;
 use std::fmt;
 use std::sync::Arc;
@@ -38,7 +39,7 @@ pub enum ComputeError<E> {
     /// computation impossible.
     MissingDependency {
         input: Input,
-        t_name: &'static str,
+        t_name: Cow<'static, str>,
     },
     UnusableCache(Output),
     NothingDoneYet,
@@ -50,7 +51,7 @@ pub enum ComputeError<E> {
         /// Where the error occurred.
         t_idx: TransformIdx,
         /// Name of function where error occurred.
-        t_name: &'static str,
+        t_name: Cow<'static, str>,
     },
     /// Represent an error that occurred previously in the stack. This error is
     /// used to rewind the stack and display clean error messages.
@@ -59,7 +60,7 @@ pub enum ComputeError<E> {
         /// Where the stack is.
         t_idx: TransformIdx,
         /// Name of function where the stack is.
-        t_name: &'static str,
+        t_name: Cow<'static, str>,
     },
 }
 

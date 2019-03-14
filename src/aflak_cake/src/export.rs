@@ -1,4 +1,5 @@
 //! Structures for serialization and deserialization of node graph.
+use std::borrow::Cow;
 use std::error;
 use std::fmt;
 
@@ -26,7 +27,7 @@ pub enum ImportError {
     UnexpectedDefaultInputType {
         expected: &'static str,
         got: &'static str,
-        transform_name: &'static str,
+        transform_name: Cow<'static, str>,
         transform_idx: TransformIdx,
     },
     /// The DST cannot be constructed because it is inconsistent.
@@ -40,7 +41,7 @@ impl fmt::Display for ImportError {
             ImportError::UnexpectedDefaultInputType {
                 expected,
                 got,
-                transform_name,
+                ref transform_name,
                 transform_idx,
             } => {
                 write!(
