@@ -10,6 +10,7 @@ use variant_name::VariantName;
 
 use super::ConvertibleVariants;
 use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
+use macros::MacroManager;
 use transform::{Algorithm, Transform, Version};
 
 /// Trait that defines a function to get a [`Transform`] by its name.
@@ -32,6 +33,8 @@ pub enum ImportError {
     },
     /// The DST cannot be constructed because it is inconsistent.
     ConstructionError(&'static str, DSTError),
+    /// Macro with the given ID not found.
+    MacroNotFound(usize),
 }
 
 impl fmt::Display for ImportError {
@@ -53,6 +56,7 @@ impl fmt::Display for ImportError {
             ImportError::ConstructionError(s, ref e) => {
                 write!(f, "Construction error! {} Caused by {}", s, e)
             }
+            ImportError::MacroNotFound(id) => write!(f, "Macro with id {} not found", id),
         }
     }
 }
@@ -76,6 +80,7 @@ pub enum SerialTransform<'t, T: 't> {
 pub enum DeserTransform<T> {
     Function(String, u8, u8, u8),
     Constant(T),
+    Macro(usize),
 }
 
 impl<'t, T> SerialTransform<'t, T>
@@ -101,7 +106,10 @@ where
 }
 
 impl<T> DeserTransform<T> {
-    pub fn into_transform<E>(self) -> Result<Bow<'static, Transform<T, E>>, ImportError>
+    pub fn into_transform<E>(
+        self,
+        macro_manager: &MacroManager,
+    ) -> Result<Bow<'static, Transform<T, E>>, ImportError>
     where
         T: NamedAlgorithms<E>,
     {
@@ -125,6 +133,10 @@ impl<T> DeserTransform<T> {
                 }
             }
             DeserTransform::Constant(c) => Ok(Bow::Owned(Transform::new_constant(c))),
+            DeserTransform::Macro(id) => macro_manager
+                .get_macro(id)
+                .map(|handle| Bow::Owned(Transform::from_macro(handle.clone())))
+                .ok_or_else(|| ImportError::MacroNotFound(id)),
         }
     }
 }
@@ -191,13 +203,16 @@ where
     T: Clone + VariantName + ConvertibleVariants,
 {
     /// Converts this intermediary representation of a DST into a normal DST.
-    pub fn into_dst<E>(self) -> Result<DST<'static, T, E>, ImportError>
+    pub fn into_dst<E>(
+        self,
+        macro_manager: &MacroManager,
+    ) -> Result<DST<'static, T, E>, ImportError>
     where
         T: NamedAlgorithms<E>,
     {
         let mut dst = DST::new();
         for (t_idx, meta) in self.transforms {
-            let t = meta.t.into_transform()?;
+            let t = meta.t.into_transform(macro_manager)?;
             let orig_defaults = t.defaults();
             let mut input_defaults = Vec::with_capacity(orig_defaults.len());
             let mut orig_defaults_iter = orig_defaults.into_iter();
@@ -271,7 +286,11 @@ where
     where
         D: Deserializer<'de>,
     {
-        DeserDST::deserialize(deserializer)
-            .and_then(|deser_dst| deser_dst.into_dst().map_err(de::Error::custom))
+        let empty_manager = MacroManager::new();
+        DeserDST::deserialize(deserializer).and_then(|deser_dst| {
+            deser_dst
+                .into_dst(&empty_manager)
+                .map_err(de::Error::custom)
+        })
     }
 }
