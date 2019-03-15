@@ -19,6 +19,7 @@ mod cache;
 mod dst;
 pub mod export;
 mod future;
+pub mod macros;
 mod timed;
 mod transform;
 
