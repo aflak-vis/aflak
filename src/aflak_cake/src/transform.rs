@@ -288,18 +288,27 @@ where
     }
 }
 
+#[derive(Debug)]
+pub enum CallError<E> {
+    FunctionError(E),
+}
+
 impl<'a, 'i, T, E> TransformCaller<'a, 'i, T, E>
 where
     T: Clone,
 {
     /// Compute the transformation with the provided arguments
-    pub fn call(mut self) -> TransformResult<Result<T, E>> {
+    pub fn call(mut self) -> TransformResult<Result<T, CallError<E>>> {
         if self.expected_input_types.next().is_some() {
             panic!("Missing input arguments!");
         } else {
             TransformResult {
                 output: match self.algorithm {
-                    Algorithm::Function { f, .. } => f(self.input).into_iter(),
+                    Algorithm::Function { f, .. } => f(self.input)
+                        .into_iter()
+                        .map(|r| r.map_err(CallError::FunctionError))
+                        .collect::<Vec<_>>()
+                        .into_iter(),
                     Algorithm::Constant(c) => vec![Ok(c.clone())].into_iter(),
                 },
             }

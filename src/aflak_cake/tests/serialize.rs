@@ -30,7 +30,7 @@ fn test_plus1() {
     let mut caller = plus1transform_back.start();
     caller.feed(&AlgoIO::Integer(1));
     let mut ret = caller.call();
-    assert_eq!(ret.next(), Some(Ok(AlgoIO::Integer(2))));
+    assert_eq!(ret.next().unwrap().unwrap(), AlgoIO::Integer(2));
 
     let const1 = get_get1_transform();
 
@@ -42,5 +42,5 @@ fn test_plus1() {
     // Check that const1_back behaves as const1
     let caller = const1_back.start();
     let mut ret = caller.call();
-    assert_eq!(ret.next(), Some(Ok(AlgoIO::Integer(1))));
+    assert_eq!(ret.next().unwrap().unwrap(), AlgoIO::Integer(1));
 }

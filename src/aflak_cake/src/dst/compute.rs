@@ -12,6 +12,7 @@ use cache::{Cache, CacheRef};
 use dst::{Input, Output, OutputId, TransformIdx, DST};
 use future::Task;
 use timed::Timed;
+use transform::CallError;
 use variant_name::VariantName;
 
 /// The successful result of a computation.
@@ -221,10 +222,12 @@ where
             let mut out = Vec::with_capacity(output_count);
             for output in op.call() {
                 out.push(output.map(Arc::new).map_err(|e| {
-                    Arc::new(ComputeError::RuntimeError {
-                        cause: e,
-                        t_idx,
-                        t_name: t.name(),
+                    Arc::new(match e {
+                        CallError::FunctionError(e) => ComputeError::RuntimeError {
+                            cause: e,
+                            t_idx,
+                            t_name: t.name(),
+                        },
                     })
                 }));
             }
