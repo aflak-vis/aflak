@@ -182,6 +182,16 @@ impl<T, E> Transform<T, E> {
         }
     }
 
+    /// Create and return a new empty macro
+    pub fn new_empty_macro() -> Self {
+        Self {
+            updated_on: Instant::now(),
+            algorithm: Algorithm::Macro {
+                handle: MacroHandle,
+            },
+        }
+    }
+
     /// Set this transformation to the given constant value.
     pub fn set_constant(&mut self, t: T) {
         self.updated_on = Instant::now();

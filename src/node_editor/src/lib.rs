@@ -279,6 +279,10 @@ impl<T, E> NodeEditor<T, E> {
                     )));
                 }
             }
+            AddNewMacro => {
+                self.dst
+                    .add_owned_transform(cake::Transform::new_empty_macro());
+            }
         }
     }
 }

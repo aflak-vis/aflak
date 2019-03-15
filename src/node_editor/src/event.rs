@@ -14,4 +14,5 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     RemoveNode(NodeId),
     Import,
     Export,
+    AddNewMacro,
 }
