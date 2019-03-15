@@ -326,8 +326,8 @@ where
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: serde::Deserialize<'de>"))]
-struct DeserEditor<T, E> {
-    dst: cake::DeserDST<T, E>,
+struct DeserEditor<T> {
+    dst: cake::DeserDST<T>,
     node_states: Vec<(cake::NodeId, node_state::NodeState)>,
     scrolling: vec2::Vec2,
 }
@@ -349,7 +349,7 @@ where
     }
 
     fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), export::ImportError> {
-        let deserialized: DeserEditor<T, E> = ron::de::from_reader(r)?;
+        let deserialized: DeserEditor<T> = ron::de::from_reader(r)?;
         self.dst = deserialized.dst.into_dst()?;
 
         let node_states = {

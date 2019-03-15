@@ -1,7 +1,6 @@
 //! Structures for serialization and deserialization of node graph.
 use std::error;
 use std::fmt;
-use std::marker::PhantomData;
 
 use boow::Bow;
 use serde::de::{self, Deserialize, Deserializer};
@@ -72,10 +71,9 @@ pub enum SerialTransform<'t, T: 't> {
 
 #[doc(hidden)]
 #[derive(Clone, Debug, Deserialize)]
-pub enum DeserTransform<T, E> {
+pub enum DeserTransform<T> {
     Function(String, u8, u8, u8),
     Constant(T),
-    Phantom(PhantomData<fn() -> E>),
 }
 
 impl<'t, T> SerialTransform<'t, T>
@@ -99,11 +97,11 @@ where
     }
 }
 
-impl<T, E> DeserTransform<T, E>
-where
-    T: NamedAlgorithms<E>,
-{
-    pub fn into_transform(self) -> Result<Bow<'static, Transform<T, E>>, ImportError> {
+impl<T> DeserTransform<T> {
+    pub fn into_transform<E>(self) -> Result<Bow<'static, Transform<T, E>>, ImportError>
+    where
+        T: NamedAlgorithms<E>,
+    {
         match self {
             DeserTransform::Function(name, major, _, _) => {
                 if let Some(t) = NamedAlgorithms::get_transform(&name) {
@@ -124,7 +122,6 @@ where
                 }
             }
             DeserTransform::Constant(c) => Ok(Bow::Owned(Transform::new_constant(c))),
-            _ => panic!("PhantomData should not be used!"),
         }
     }
 }
@@ -173,25 +170,28 @@ where
 /// A representation of a DST for deserialization.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
-pub struct DeserDST<T, E> {
-    transforms: Vec<(TransformIdx, DeserMetaTransform<T, E>)>,
+pub struct DeserDST<T> {
+    transforms: Vec<(TransformIdx, DeserMetaTransform<T>)>,
     edges: Vec<(Output, Input)>,
     outputs: Vec<(OutputId, Option<Output>)>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
-struct DeserMetaTransform<T, E> {
-    t: DeserTransform<T, E>,
+struct DeserMetaTransform<T> {
+    t: DeserTransform<T>,
     input_defaults: Vec<Option<T>>,
 }
 
-impl<T, E> DeserDST<T, E>
+impl<T> DeserDST<T>
 where
-    T: Clone + NamedAlgorithms<E> + VariantName + ConvertibleVariants,
+    T: Clone + VariantName + ConvertibleVariants,
 {
     /// Converts this intermediary representation of a DST into a normal DST.
-    pub fn into_dst(self) -> Result<DST<'static, T, E>, ImportError> {
+    pub fn into_dst<E>(self) -> Result<DST<'static, T, E>, ImportError>
+    where
+        T: NamedAlgorithms<E>,
+    {
         let mut dst = DST::new();
         for (t_idx, meta) in self.transforms {
             let t = meta.t.into_transform()?;
