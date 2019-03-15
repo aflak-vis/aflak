@@ -684,6 +684,10 @@ where
                 ui.pop_id();
             }
             ui.separator();
+            if ui.menu_item(im_str!("Macro")).build() {
+                self.events.push(RenderEvent::AddNewMacro);
+            }
+            ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {
                 self.events.push(RenderEvent::CreateOutput);
             }
