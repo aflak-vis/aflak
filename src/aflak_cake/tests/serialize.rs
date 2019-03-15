@@ -13,18 +13,20 @@ mod support;
 use support::*;
 
 use aflak_cake::export::{DeserTransform, SerialTransform};
+use aflak_cake::macros::MacroManager;
 use ron::de::from_str;
 use ron::ser::to_string;
 
 #[test]
 fn test_plus1() {
+    let macro_manager = MacroManager::new();
     let plus1transform = get_plus1_transform();
 
     let s = to_string(&SerialTransform::new(&plus1transform)).unwrap();
     assert_eq!("Function(\"plus1\",1,0,0,)", s);
 
     let plus1_deser: DeserTransform<AlgoIO> = from_str(&s).unwrap();
-    let plus1transform_back = plus1_deser.into_transform().unwrap();
+    let plus1transform_back = plus1_deser.into_transform(&macro_manager).unwrap();
 
     // Check that plus1transform_back behaves as plus1transform
     let mut caller = plus1transform_back.start();
@@ -38,7 +40,7 @@ fn test_plus1() {
     assert_eq!("Constant(Integer(1))", s);
 
     let const1_deser: DeserTransform<AlgoIO> = from_str(&s).unwrap();
-    let const1_back = const1_deser.into_transform().unwrap();
+    let const1_back = const1_deser.into_transform(&macro_manager).unwrap();
     // Check that const1_back behaves as const1
     let caller = const1_back.start();
     let mut ret = caller.call();

@@ -33,6 +33,7 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     dst: cake::DST<'static, T, E>,
     output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
     cache: cake::Cache<T, cake::compute::ComputeError<E>>,
+    macros: cake::macros::MacroManager,
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<error::Error>>,
     success_stack: Vec<ImString>,
@@ -280,8 +281,9 @@ impl<T, E> NodeEditor<T, E> {
                 }
             }
             AddNewMacro => {
-                self.dst
-                    .add_owned_transform(cake::Transform::new_empty_macro());
+                self.dst.add_owned_transform(cake::Transform::from_macro(
+                    self.macros.create_macro().clone(),
+                ));
             }
         }
     }
@@ -310,6 +312,7 @@ where
 
 #[derive(Serialize)]
 struct SerialEditor<'e, T: 'e> {
+    macros: cake::macros::SerdeMacroManager,
     dst: cake::SerialDST<'e, T>,
     node_states: Vec<(&'e cake::NodeId, &'e node_state::NodeState)>,
     scrolling: vec2::Vec2,
@@ -324,6 +327,7 @@ where
             dst: cake::SerialDST::new(&editor.dst),
             node_states: editor.layout.node_states().iter().collect(),
             scrolling: editor.layout.scrolling().get_current(),
+            macros: editor.macros.to_serializable(),
         }
     }
 }
@@ -331,6 +335,7 @@ where
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: serde::Deserialize<'de>"))]
 struct DeserEditor<T> {
+    macros: cake::macros::SerdeMacroManager,
     dst: cake::DeserDST<T>,
     node_states: Vec<(cake::NodeId, node_state::NodeState)>,
     scrolling: vec2::Vec2,
@@ -354,7 +359,8 @@ where
 
     fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), export::ImportError> {
         let deserialized: DeserEditor<T> = ron::de::from_reader(r)?;
-        self.dst = deserialized.dst.into_dst()?;
+        self.macros.from_deserializable(deserialized.macros);
+        self.dst = deserialized.dst.into_dst(&self.macros)?;
 
         let node_states = {
             let mut node_states = node_state::NodeStates::new();
@@ -403,6 +409,7 @@ impl<T, E> Default for NodeEditor<T, E> {
             dst: Default::default(),
             output_results: collections::BTreeMap::new(),
             cache: cake::Cache::new(),
+            macros: cake::macros::MacroManager::new(),
             layout: Default::default(),
             error_stack: vec![],
             success_stack: vec![],

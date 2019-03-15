@@ -6,6 +6,10 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
+    macros: (
+        macros: [
+        ],
+    ),
     dst: (
         transforms: [
             ((1), (
@@ -126,6 +130,10 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
+    macros: (
+        macros: [
+        ],
+    ),
     dst: (
         transforms: [
             ((1), (
@@ -442,6 +450,10 @@ pub fn show_velocity_field<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
+    macros: (
+        macros: [
+        ],
+    ),
     dst: (
         transforms: [
             ((1), (
@@ -601,6 +613,10 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
+    macros: (
+        macros: [
+        ],
+    ),
     dst: (
         transforms: [
             ((1), (

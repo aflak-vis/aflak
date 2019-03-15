@@ -182,13 +182,11 @@ impl<T, E> Transform<T, E> {
         }
     }
 
-    /// Create and return a new empty macro
-    pub fn new_empty_macro() -> Self {
+    /// Create a transformation from a macro
+    pub fn from_macro(handle: MacroHandle) -> Self {
         Self {
             updated_on: Instant::now(),
-            algorithm: Algorithm::Macro {
-                handle: MacroHandle,
-            },
+            algorithm: Algorithm::Macro { handle },
         }
     }
 
