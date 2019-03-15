@@ -68,6 +68,7 @@ impl error::Error for ImportError {
 pub enum SerialTransform<'t, T: 't> {
     Function(&'static str, u8, u8, u8),
     Constant(&'t T),
+    Macro(usize),
 }
 
 #[doc(hidden)]
@@ -94,6 +95,7 @@ where
                 ..
             } => SerialTransform::Function(id.name(), *major, *minor, *patch),
             Algorithm::Constant(ref c) => SerialTransform::Constant(c),
+            Algorithm::Macro { ref handle } => SerialTransform::Macro(handle.id()),
         }
     }
 }

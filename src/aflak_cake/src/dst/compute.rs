@@ -228,6 +228,11 @@ where
                             t_idx,
                             t_name: t.name(),
                         },
+                        CallError::MacroEvalError(e) => ComputeError::ErrorStack {
+                            cause: e,
+                            t_idx,
+                            t_name: t.name(),
+                        },
                     })
                 }));
             }

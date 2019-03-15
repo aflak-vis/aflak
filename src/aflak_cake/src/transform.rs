@@ -1,11 +1,14 @@
 use std::borrow::Cow;
 use std::fmt;
+use std::sync::Arc;
 use std::time::Instant;
 use std::vec;
 
 use boow::Bow;
 
 use super::ConvertibleVariants;
+use compute::ComputeError;
+use macros::MacroHandle;
 use variant_name::VariantName;
 
 /// Static string that identifies a transformation.
@@ -45,6 +48,9 @@ pub enum Algorithm<T, E> {
     /// Use this variant for algorithms with no input. Such algorithm will
     /// always return this constant.
     Constant(T),
+    Macro {
+        handle: MacroHandle,
+    },
 }
 
 /// Semantic version
@@ -77,6 +83,7 @@ impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
                 write!(f, "Function({:?} at {:p})", id.name(), fun)
             }
             Algorithm::Constant(ref vec) => write!(f, "Constant({:?})", vec),
+            Algorithm::Macro { ref handle } => write!(f, "Macro({:?})", handle.name()),
         }
     }
 }
@@ -104,6 +111,9 @@ where
                 outputs: outputs.clone(),
             },
             Constant(ref t) => Constant(t.clone()),
+            Macro { ref handle } => Macro {
+                handle: handle.clone(),
+            },
         }
     }
 }
@@ -184,6 +194,7 @@ impl<T, E> Transform<T, E> {
                 inputs.iter().map(|input| input.type_id).collect()
             }
             Algorithm::Constant(_) => vec![],
+            Algorithm::Macro { ref handle } => handle.input_types(),
         }
     }
 
@@ -191,6 +202,7 @@ impl<T, E> Transform<T, E> {
         match self.algorithm {
             Algorithm::Function { ref inputs, .. } => Bow::Borrowed(inputs),
             Algorithm::Constant(_) => Bow::Owned(vec![]),
+            Algorithm::Macro { ref handle } => Bow::Owned(handle.inputs()),
         }
     }
 
@@ -225,6 +237,7 @@ where
                 .map(|input| input.default.as_ref().cloned())
                 .collect(),
             Algorithm::Constant(_) => vec![],
+            Algorithm::Macro { ref handle } => handle.defaults(),
         }
     }
 }
@@ -237,6 +250,7 @@ where
         match self.algorithm {
             Algorithm::Function { ref outputs, .. } => outputs.to_vec(),
             Algorithm::Constant(ref t) => vec![TypeId(t.variant_name())],
+            Algorithm::Macro { ref handle } => handle.outputs(),
         }
     }
 
@@ -254,6 +268,7 @@ where
         match self.algorithm {
             Algorithm::Function { id, .. } => Cow::Borrowed(id.name()),
             Algorithm::Constant(ref t) => Cow::Borrowed(t.variant_name()),
+            Algorithm::Macro { ref handle } => Cow::Owned(handle.name()),
         }
     }
 
@@ -262,6 +277,9 @@ where
             Algorithm::Function { description, .. } => Cow::Borrowed(description),
             Algorithm::Constant(ref t) => {
                 Cow::Owned(format!("Constant variable of type '{}'", t.variant_name()))
+            }
+            Algorithm::Macro { ref handle } => {
+                Cow::Owned(format!("Macro with name '{}'", handle.name()))
             }
         }
     }
@@ -291,6 +309,7 @@ where
 #[derive(Debug)]
 pub enum CallError<E> {
     FunctionError(E),
+    MacroEvalError(Arc<ComputeError<E>>),
 }
 
 impl<'a, 'i, T, E> TransformCaller<'a, 'i, T, E>
@@ -310,6 +329,12 @@ where
                         .collect::<Vec<_>>()
                         .into_iter(),
                     Algorithm::Constant(c) => vec![Ok(c.clone())].into_iter(),
+                    Algorithm::Macro { ref handle } => handle
+                        .call(self.input)
+                        .into_iter()
+                        .map(|e| e.map_err(CallError::MacroEvalError))
+                        .collect::<Vec<_>>()
+                        .into_iter(),
                 },
             }
         }
