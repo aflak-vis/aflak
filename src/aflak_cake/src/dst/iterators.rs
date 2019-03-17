@@ -45,7 +45,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         self.nodes_iter().map(|(id, _)| id).collect()
     }
 
-    pub(crate) fn _dependencies(&'t self, output: Output) -> DependencyIter<'t, T, E> {
+    pub(crate) fn _dependencies(&self, output: Output) -> DependencyIter<'_, 't, T, E> {
         DependencyIter {
             dst: self,
             stack: vec![output],
@@ -56,8 +56,8 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
 
 /// Make a post-order tree traversal to look for deepest dependencies first.
 /// Return the dependencies one at a time
-pub struct DependencyIter<'t, T: 't, E: 't> {
-    dst: &'t DST<'t, T, E>,
+pub struct DependencyIter<'a, 't: 'a, T: 't, E: 't> {
+    dst: &'a DST<'t, T, E>,
     stack: Vec<Output>,
     completed_stack: Vec<Dependency>,
 }
@@ -72,7 +72,7 @@ impl Dependency {
     }
 }
 
-impl<'t, T: 't, E> Iterator for DependencyIter<'t, T, E>
+impl<'a, 't, T: 't, E> Iterator for DependencyIter<'a, 't, T, E>
 where
     T: VariantName,
 {
