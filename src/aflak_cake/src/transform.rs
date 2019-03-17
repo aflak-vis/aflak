@@ -30,7 +30,7 @@ impl FnTransformId {
 }
 
 /// Algorithm that defines the transformation
-pub enum Algorithm<T, E> {
+pub enum Algorithm<'t, T: 't, E: 't> {
     /// A rust function with a vector of input variables as argument.
     /// Returns a vector of [`Result`], one result for each output.
     Function {
@@ -49,7 +49,7 @@ pub enum Algorithm<T, E> {
     /// always return this constant.
     Constant(T),
     Macro {
-        handle: MacroHandle,
+        handle: MacroHandle<'t, T, E>,
     },
 }
 
@@ -76,7 +76,7 @@ impl<T> TransformInputSlot<T> {
 
 type PlainFunction<T, E> = fn(Vec<Bow<'_, T>>) -> Vec<Result<T, E>>;
 
-impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
+impl<'t, T: fmt::Debug, E> fmt::Debug for Algorithm<'t, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Algorithm::Function { f: ref fun, id, .. } => {
@@ -88,7 +88,7 @@ impl<T: fmt::Debug, E> fmt::Debug for Algorithm<T, E> {
     }
 }
 
-impl<T, E> Clone for Algorithm<T, E>
+impl<'t, T, E> Clone for Algorithm<'t, T, E>
 where
     T: Clone,
 {
@@ -120,13 +120,13 @@ where
 
 /// A transformation defined by an [`Algorithm`], with a determined number of
 /// inputs and outputs.
-pub struct Transform<T, E> {
+pub struct Transform<'t, T: 't, E: 't> {
     updated_on: Instant,
     /// Algorithm defining the transformation
-    algorithm: Algorithm<T, E>,
+    algorithm: Algorithm<'t, T, E>,
 }
 
-impl<T: fmt::Debug, E> fmt::Debug for Transform<T, E> {
+impl<'t, T: fmt::Debug, E> fmt::Debug for Transform<'t, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -136,7 +136,7 @@ impl<T: fmt::Debug, E> fmt::Debug for Transform<T, E> {
     }
 }
 
-impl<T, E> Clone for Transform<T, E>
+impl<'t, T, E> Clone for Transform<'t, T, E>
 where
     T: Clone,
 {
@@ -148,11 +148,11 @@ where
     }
 }
 
-impl<T, E> Transform<T, E> {
+impl<'t, T, E> Transform<'t, T, E> {
     pub fn updated_on(&self) -> Instant {
         self.updated_on
     }
-    pub fn algorithm(&self) -> &Algorithm<T, E> {
+    pub fn algorithm(&self) -> &Algorithm<'t, T, E> {
         &self.algorithm
     }
 }
@@ -160,14 +160,14 @@ impl<T, E> Transform<T, E> {
 /// Result of [`Transform::start`].
 ///
 /// Stores the state of the transformation just before it is called.
-pub struct TransformCaller<'a, 'i, T: 'a + 'i, E: 'a> {
+pub struct TransformCaller<'a, 't: 'a, 'i, T: 't + 'i, E: 't> {
     expected_input_types: vec::IntoIter<TypeId>,
-    algorithm: &'a Algorithm<T, E>,
+    algorithm: &'a Algorithm<'t, T, E>,
     input: Vec<Bow<'i, T>>,
 }
 
-impl<T, E> Transform<T, E> {
-    pub fn from_algorithm(algorithm: Algorithm<T, E>) -> Self {
+impl<'t, T, E> Transform<'t, T, E> {
+    pub fn from_algorithm(algorithm: Algorithm<'t, T, E>) -> Self {
         Self {
             updated_on: Instant::now(),
             algorithm,
@@ -183,7 +183,7 @@ impl<T, E> Transform<T, E> {
     }
 
     /// Create a transformation from a macro
-    pub fn from_macro(handle: MacroHandle) -> Self {
+    pub fn from_macro(handle: MacroHandle<'t, T, E>) -> Self {
         Self {
             updated_on: Instant::now(),
             algorithm: Algorithm::Macro { handle },
@@ -215,7 +215,7 @@ impl<T, E> Transform<T, E> {
     }
 
     /// Ready the transformation to be called.
-    pub fn start(&self) -> TransformCaller<T, E> {
+    pub fn start(&self) -> TransformCaller<'_, 't, 'static, T, E> {
         TransformCaller {
             expected_input_types: self.input_types().into_iter(),
             algorithm: &self.algorithm,
@@ -234,7 +234,7 @@ impl<T, E> Transform<T, E> {
     }
 }
 
-impl<T, E> Transform<T, E>
+impl<'t, T, E> Transform<'t, T, E>
 where
     T: Clone,
 {
@@ -250,7 +250,7 @@ where
     }
 }
 
-impl<T, E> Transform<T, E>
+impl<'t, T, E> Transform<'t, T, E>
 where
     T: VariantName,
 {
@@ -293,7 +293,7 @@ where
     }
 }
 
-impl<'a, 'i, T, E> TransformCaller<'a, 'i, T, E>
+impl<'a, 't, 'i, T, E> TransformCaller<'a, 't, 'i, T, E>
 where
     T: VariantName + ConvertibleVariants,
 {
@@ -320,7 +320,7 @@ pub enum CallError<E> {
     MacroEvalError(Arc<ComputeError<E>>),
 }
 
-impl<'a, 'i, T, E> TransformCaller<'a, 'i, T, E>
+impl<'a, 't, 'i, T, E> TransformCaller<'a, 't, 'i, T, E>
 where
     T: Clone,
 {

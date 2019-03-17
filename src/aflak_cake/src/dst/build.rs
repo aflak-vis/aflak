@@ -203,16 +203,16 @@ where
     T: Clone,
 {
     /// Add a borrowed transform and return its identifier [`TransformIdx`].
-    pub fn add_transform(&mut self, t: &'t Transform<T, E>) -> TransformIdx {
+    pub fn add_transform(&mut self, t: &'t Transform<'t, T, E>) -> TransformIdx {
         self.add_transform_impl(Bow::Borrowed(t))
     }
 
     /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transform<T, E>) -> TransformIdx {
+    pub fn add_owned_transform(&mut self, t: Transform<'t, T, E>) -> TransformIdx {
         self.add_transform_impl(Bow::Owned(t))
     }
 
-    fn add_transform_impl(&mut self, t: Bow<'t, Transform<T, E>>) -> TransformIdx {
+    fn add_transform_impl(&mut self, t: Bow<'t, Transform<'t, T, E>>) -> TransformIdx {
         let idx = self.new_transform_idx();
         self.transforms.insert(idx, MetaTransform::new(t));
         idx
@@ -230,13 +230,13 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Get a transform from its [`TransformIdx`].
-    pub fn get_transform(&self, idx: TransformIdx) -> Option<&Transform<T, E>> {
+    pub fn get_transform(&self, idx: TransformIdx) -> Option<&Transform<'t, T, E>> {
         self.transforms.get(&idx).map(|t| t.transform())
     }
 
     /// Get a transform mutably from its [`TransformIdx`].
     /// Return `None` if the target transform is not owned.
-    pub fn get_transform_mut(&mut self, idx: TransformIdx) -> Option<&mut Transform<T, E>> {
+    pub fn get_transform_mut(&mut self, idx: TransformIdx) -> Option<&mut Transform<'t, T, E>> {
         self.transforms
             .get_mut(&idx)
             .and_then(|t| t.transform_mut())
@@ -260,7 +260,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Get a node from its [`NodeId`].
-    pub fn get_node(&self, idx: &NodeId) -> Option<Node<T, E>> {
+    pub fn get_node(&self, idx: &NodeId) -> Option<Node<'_, 't, T, E>> {
         match *idx {
             NodeId::Transform(t_idx) => self.get_transform(t_idx).map(Node::Transform),
             NodeId::Output(ref output_id) => self
@@ -308,7 +308,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     pub(crate) fn add_transform_with_idx(
         &mut self,
         idx: TransformIdx,
-        t: Bow<'t, Transform<T, E>>,
+        t: Bow<'t, Transform<'t, T, E>>,
         input_defaults: Vec<Option<T>>,
     ) {
         self.transforms

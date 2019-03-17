@@ -75,7 +75,7 @@ where
 /// example.
 #[derive(Debug)]
 pub struct MetaTransform<'t, T: 't, E: 't> {
-    t: Bow<'t, Transform<T, E>>,
+    t: Bow<'t, Transform<'t, T, E>>,
     input_defaults: Vec<Option<T>>,
     updated_on: Instant,
 }
@@ -97,7 +97,7 @@ impl<'t, T, E> MetaTransform<'t, T, E>
 where
     T: Clone,
 {
-    pub fn new(t: Bow<'t, Transform<T, E>>) -> Self {
+    pub fn new(t: Bow<'t, Transform<'t, T, E>>) -> Self {
         let input_defaults = t.defaults();
         Self {
             t,
@@ -108,7 +108,10 @@ where
 }
 
 impl<'t, T, E> MetaTransform<'t, T, E> {
-    pub fn new_with_defaults(t: Bow<'t, Transform<T, E>>, input_defaults: Vec<Option<T>>) -> Self {
+    pub fn new_with_defaults(
+        t: Bow<'t, Transform<'t, T, E>>,
+        input_defaults: Vec<Option<T>>,
+    ) -> Self {
         Self {
             t,
             input_defaults,
@@ -116,7 +119,7 @@ impl<'t, T, E> MetaTransform<'t, T, E> {
         }
     }
 
-    pub fn transform(&self) -> &Transform<T, E> {
+    pub fn transform(&self) -> &Transform<'t, T, E> {
         self.t.as_ref()
     }
 
@@ -124,7 +127,7 @@ impl<'t, T, E> MetaTransform<'t, T, E> {
         &self.input_defaults
     }
 
-    pub fn transform_mut(&mut self) -> Option<&mut Transform<T, E>> {
+    pub fn transform_mut(&mut self) -> Option<&mut Transform<'t, T, E>> {
         self.t.borrow_mut()
     }
 
@@ -157,7 +160,7 @@ impl<'a, 't, T, E> InputDefaultsMut<'a, 't, T, E> {
 }
 
 /// Tuple of a transformation and the default input values set up for it
-pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<T, E>>, Vec<Option<T>>);
+pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<'t, T, E>>, Vec<Option<T>>);
 
 /// Uniquely identify an ouput of a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

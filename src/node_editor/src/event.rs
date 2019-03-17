@@ -2,7 +2,7 @@ use cake::{InputSlot, NodeId, Output, Transform, TransformIdx};
 
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
-    AddTransform(&'static Transform<T, E>),
+    AddTransform(&'static Transform<'static, T, E>),
     CreateOutput,
     AddConstant(&'static str),
     SetConstant(TransformIdx, Box<T>),

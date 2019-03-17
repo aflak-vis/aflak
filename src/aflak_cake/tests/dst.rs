@@ -18,13 +18,13 @@ use futures::{future::Future, Async};
 use ron::de;
 use ron::ser;
 
-fn get_all_transforms() -> [Transform<AlgoIO, E>; 5] {
+fn get_all_transforms() -> [&'static Transform<'static, AlgoIO, E>; 5] {
     [
-        get_plus1_transform(),
-        get_minus1_transform(),
-        get_get1_transform(),
-        get_get_image_transform(),
-        get_divide_by_10_transform(),
+        Box::leak(Box::new(get_plus1_transform())),
+        Box::leak(Box::new(get_minus1_transform())),
+        Box::leak(Box::new(get_get1_transform())),
+        Box::leak(Box::new(get_get_image_transform())),
+        Box::leak(Box::new(get_divide_by_10_transform())),
     ]
 }
 

@@ -120,7 +120,7 @@ pub type SuccessOut = cake::compute::SuccessOut<IOValue>;
 
 lazy_static! {
     /// The exhaustive list of all staticly loaded astrophysical transforms.
-    pub static ref TRANSFORMATIONS: Vec<cake::Transform<IOValue, IOErr>> = {
+    pub static ref TRANSFORMATIONS: Vec<cake::Transform<'static, IOValue, IOErr>> = {
         vec![
             cake_transform!(
                 "Open FITS file from a Path.",
@@ -335,7 +335,7 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
 }
 
 impl cake::NamedAlgorithms<IOErr> for IOValue {
-    fn get_transform(s: &str) -> Option<&'static cake::Transform<IOValue, IOErr>> {
+    fn get_transform(s: &str) -> Option<&'static cake::Transform<'static, IOValue, IOErr>> {
         for t in TRANSFORMATIONS.iter() {
             if t.name() == s {
                 return Some(t);

@@ -16,7 +16,7 @@ use transform::{Algorithm, Transform, Version};
 /// Trait that defines a function to get a [`Transform`] by its name.
 pub trait NamedAlgorithms<E>: Sized {
     /// Get a transform by name.
-    fn get_transform(s: &str) -> Option<&'static Transform<Self, E>>;
+    fn get_transform(s: &str) -> Option<&'static Transform<'static, Self, E>>;
 }
 
 /// Error type used to represent a failed deserialization into DST.
@@ -108,8 +108,8 @@ where
 impl<T> DeserTransform<T> {
     pub fn into_transform<E>(
         self,
-        macro_manager: &MacroManager,
-    ) -> Result<Bow<'static, Transform<T, E>>, ImportError>
+        macro_manager: &MacroManager<'static, T, E>,
+    ) -> Result<Bow<'static, Transform<'static, T, E>>, ImportError>
     where
         T: NamedAlgorithms<E>,
     {
@@ -205,7 +205,7 @@ where
     /// Converts this intermediary representation of a DST into a normal DST.
     pub fn into_dst<E>(
         self,
-        macro_manager: &MacroManager,
+        macro_manager: &MacroManager<'static, T, E>,
     ) -> Result<DST<'static, T, E>, ImportError>
     where
         T: NamedAlgorithms<E>,
