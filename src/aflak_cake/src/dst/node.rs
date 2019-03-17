@@ -14,14 +14,14 @@ pub enum NodeId {
 
 /// Represents a [`Node`], which is either a [`Transform`] or some
 /// [`Output`].
-pub enum Node<'a, T: 'a, E: 'a> {
-    Transform(&'a Transform<T, E>),
+pub enum Node<'a, 't: 'a, T: 't, E: 't> {
+    Transform(&'a Transform<'t, T, E>),
     /// [`Output`] is `None` when there is an [`OutputId`] not connected to any
     /// [`Output`].
     Output(Option<&'a Output>),
 }
 
-impl<'a, T, E> Node<'a, T, E>
+impl<'a, 't, T, E> Node<'a, 't, T, E>
 where
     T: Clone + VariantName,
 {
@@ -34,7 +34,7 @@ where
     }
 }
 
-impl<'a, T: VariantName, E> Node<'a, T, E> {
+impl<'a, 't, T: VariantName, E> Node<'a, 't, T, E> {
     /// Get node's name.
     pub fn name(&self, id: &NodeId) -> String {
         match (self, id) {

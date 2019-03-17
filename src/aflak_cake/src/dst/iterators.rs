@@ -8,13 +8,13 @@ use transform::Transform;
 use variant_name::VariantName;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E> {
-    pub(crate) fn transforms_iter(&self) -> TransformIterator<T, E> {
+    pub(crate) fn transforms_iter(&self) -> TransformIterator<'_, 't, T, E> {
         TransformIterator::new(self.transforms.iter())
     }
 
     pub(crate) fn meta_transforms_iter(
         &self,
-    ) -> btree_map::Iter<TransformIdx, MetaTransform<T, E>> {
+    ) -> btree_map::Iter<TransformIdx, MetaTransform<'t, T, E>> {
         self.transforms.iter()
     }
 
@@ -33,7 +33,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Iterator over nodes.
-    pub fn nodes_iter(&self) -> NodeIter<T, E> {
+    pub fn nodes_iter(&self) -> NodeIter<'_, 't, T, E> {
         NodeIter {
             transforms: self.transforms_iter(),
             outputs: self.outputs_iter(),
@@ -141,17 +141,17 @@ impl<'a> Iterator for EdgeIterator<'a> {
     }
 }
 
-pub struct TransformIterator<'a, T: 'a, E: 'a> {
-    iter: btree_map::Iter<'a, TransformIdx, MetaTransform<'a, T, E>>,
+pub struct TransformIterator<'a, 't: 'a, T: 't, E: 't> {
+    iter: btree_map::Iter<'a, TransformIdx, MetaTransform<'t, T, E>>,
 }
-impl<'a, T, E> TransformIterator<'a, T, E> {
-    fn new(iter: btree_map::Iter<'a, TransformIdx, MetaTransform<T, E>>) -> Self {
+impl<'a, 't, T, E> TransformIterator<'a, 't, T, E> {
+    fn new(iter: btree_map::Iter<'a, TransformIdx, MetaTransform<'t, T, E>>) -> Self {
         Self { iter }
     }
 }
 
-impl<'a, T, E> Iterator for TransformIterator<'a, T, E> {
-    type Item = (&'a TransformIdx, &'a Transform<T, E>);
+impl<'a, 't, T, E> Iterator for TransformIterator<'a, 't, T, E> {
+    type Item = (&'a TransformIdx, &'a Transform<'t, T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(idx, t)| (idx, t.transform()))
     }
@@ -160,14 +160,14 @@ impl<'a, T, E> Iterator for TransformIterator<'a, T, E> {
 /// Iterator over nodes.
 ///
 /// Iterate over a tuple ([`NodeId`], [`Node`]).
-pub struct NodeIter<'a, T: 'a, E: 'a> {
-    transforms: TransformIterator<'a, T, E>,
+pub struct NodeIter<'a, 't: 'a, T: 't, E: 't> {
+    transforms: TransformIterator<'a, 't, T, E>,
     outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
 }
 
 /// Iterate over nodes.
-impl<'a, T, E> Iterator for NodeIter<'a, T, E> {
-    type Item = (NodeId, Node<'a, T, E>);
+impl<'a, 't, T, E> Iterator for NodeIter<'a, 't, T, E> {
+    type Item = (NodeId, Node<'a, 't, T, E>);
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((id, t)) = self.transforms.next() {
             Some((NodeId::Transform(*id), Node::Transform(t)))
