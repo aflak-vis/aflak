@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
-use std::marker::PhantomData;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 use boow::Bow;
 
-use super::{TransformInputSlot, TypeId};
+use super::{ConvertibleVariants, TransformInputSlot, TypeId, VariantName, DST};
 use compute::ComputeError;
+use export::{DeserDST, ImportError, NamedAlgorithms};
 
 pub struct MacroHandle<'t, T: 't, E: 't> {
     inner: Arc<RwLock<Macro<'t, T, E>>>,
@@ -19,17 +19,19 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct Macro<'t, T: 't, E: 't> {
     id: usize,
-    _mark: PhantomData<(&'t PhantomData<T>, E)>,
+    dst: DST<'t, T, E>,
 }
 
-impl<'t, T, E> Clone for Macro<'t, T, E> {
+impl<'t, T, E> Clone for Macro<'t, T, E>
+where
+    T: Clone,
+{
     fn clone(&self) -> Self {
         Self {
             id: self.id,
-            _mark: PhantomData,
+            dst: self.dst.clone(),
         }
     }
 }
@@ -64,7 +66,10 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         vec![]
     }
 
-    pub fn get_macro(&self) -> Macro<'t, T, E> {
+    pub fn get_macro(&self) -> Macro<'t, T, E>
+    where
+        T: Clone,
+    {
         self.read().clone()
     }
 
@@ -97,71 +102,107 @@ impl<'t, T, E> MacroManager<'t, T, E> {
             MacroHandle {
                 inner: Arc::new(RwLock::new(Macro {
                     id: self.cnt,
-                    _mark: PhantomData,
+                    dst: DST::new(),
                 })),
             },
         );
         self.macros.get(&self.cnt).unwrap()
     }
 
-    pub fn to_serializable(&self) -> SerdeMacroManager {
+    pub fn to_serializable(&self) -> SerdeMacroManager<T>
+    where
+        T: Clone + VariantName,
+    {
         SerdeMacroManager::from(self)
     }
+}
 
-    pub fn from_deserializable(&mut self, deser: SerdeMacroManager) {
-        *self = Self::from(deser);
+impl<T, E> MacroManager<'static, T, E> {
+    pub fn from_deserializable(&mut self, deser: SerdeMacroManager<T>) -> Result<(), ImportError>
+    where
+        T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
+    {
+        deser
+            .into_macro_manager(&MacroManager::new())
+            .map(|new_manager| {
+                *self = new_manager;
+            })
     }
 }
 
-impl<'t, T, E> From<SerdeMacroManager> for MacroManager<'t, T, E> {
-    fn from(deser: SerdeMacroManager) -> MacroManager<'t, T, E> {
-        let cnt = deser.macros.iter().map(|macr| macr.id).max().unwrap_or(0);
-        let mut macros = BTreeMap::new();
-        for macr in deser.macros {
-            macros.insert(
-                macr.id,
-                MacroHandle {
-                    inner: Arc::new(RwLock::new(Macro::from(macr))),
-                },
-            );
-        }
-        MacroManager { cnt, macros }
-    }
-}
-
-impl<'a, 't, T, E> From<&'a MacroManager<'t, T, E>> for SerdeMacroManager {
-    fn from(manager: &'a MacroManager<'t, T, E>) -> SerdeMacroManager {
-        SerdeMacroManager {
+impl<'a, 't, T, E> From<&'a MacroManager<'t, T, E>> for SerdeMacroManager<T>
+where
+    T: Clone + VariantName,
+{
+    fn from(manager: &'a MacroManager<'t, T, E>) -> Self {
+        Self {
             macros: manager
                 .macros
                 .values()
-                .map(|handle| SerdeMacro::from(handle.get_macro()))
+                .map(|handle| SerdeMacro::from(&*handle.read()))
                 .collect(),
         }
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct SerdeMacro {
+struct SerdeMacro<T> {
     id: usize,
+    dst: DeserDST<T>,
 }
 
-impl<'t, T, E> From<Macro<'t, T, E>> for SerdeMacro {
-    fn from(macr: Macro<'t, T, E>) -> Self {
-        Self { id: macr.id }
-    }
-}
-
-impl<'t, T, E> From<SerdeMacro> for Macro<'t, T, E> {
-    fn from(macr: SerdeMacro) -> Self {
+impl<'t, 'd, T, E> From<&'d Macro<'t, T, E>> for SerdeMacro<T>
+where
+    T: Clone + VariantName,
+{
+    fn from(macr: &'d Macro<'t, T, E>) -> Self {
         Self {
             id: macr.id,
-            _mark: PhantomData,
+            dst: DeserDST::from_dst(&macr.dst),
         }
     }
 }
 
+impl<T> SerdeMacro<T> {
+    fn into_macro<E>(
+        self,
+        macro_manager: &MacroManager<'static, T, E>,
+    ) -> Result<Macro<'static, T, E>, ImportError>
+    where
+        T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
+    {
+        // TODO: Deal with nested macros
+        let id = self.id;
+        self.dst
+            .into_dst(macro_manager)
+            .map(move |dst| Macro { id, dst })
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SerdeMacroManager {
-    macros: Vec<SerdeMacro>,
+pub struct SerdeMacroManager<T> {
+    macros: Vec<SerdeMacro<T>>,
+}
+
+impl<T> SerdeMacroManager<T> {
+    fn into_macro_manager<E>(
+        self,
+        macro_manager: &MacroManager<'static, T, E>,
+    ) -> Result<MacroManager<'static, T, E>, ImportError>
+    where
+        T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
+    {
+        let cnt = self.macros.iter().map(|macr| macr.id).max().unwrap_or(0);
+        let mut macros = BTreeMap::new();
+        for macr in self.macros {
+            let macr = macr.into_macro(macro_manager)?;
+            macros.insert(
+                macr.id,
+                MacroHandle {
+                    inner: Arc::new(RwLock::new(macr)),
+                },
+            );
+        }
+        Ok(MacroManager { cnt, macros })
+    }
 }

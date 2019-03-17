@@ -76,7 +76,7 @@ pub enum SerialTransform<'t, T: 't> {
 }
 
 #[doc(hidden)]
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum DeserTransform<T> {
     Function(String, u8, u8, u8),
     Constant(T),
@@ -106,6 +106,26 @@ where
 }
 
 impl<T> DeserTransform<T> {
+    pub fn from_transform<'t, E>(t: &Transform<'t, T, E>) -> Self
+    where
+        T: Clone,
+    {
+        match t.algorithm() {
+            Algorithm::Function {
+                id,
+                version:
+                    Version {
+                        major,
+                        minor,
+                        patch,
+                    },
+                ..
+            } => DeserTransform::Function(id.name().to_owned(), *major, *minor, *patch),
+            Algorithm::Constant(ref c) => DeserTransform::Constant(c.clone()),
+            Algorithm::Macro { ref handle } => DeserTransform::Macro(handle.id()),
+        }
+    }
+
     pub fn into_transform<E>(
         self,
         macro_manager: &MacroManager<'static, T, E>,
@@ -183,7 +203,7 @@ where
 }
 
 /// A representation of a DST for deserialization.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
 pub struct DeserDST<T> {
     transforms: Vec<(TransformIdx, DeserMetaTransform<T>)>,
@@ -191,11 +211,41 @@ pub struct DeserDST<T> {
     outputs: Vec<(OutputId, Option<Output>)>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(bound(deserialize = "T: Deserialize<'de>"))]
 struct DeserMetaTransform<T> {
     t: DeserTransform<T>,
     input_defaults: Vec<Option<T>>,
+}
+
+impl<T> DeserDST<T> {
+    pub fn from_dst<'t, E>(dst: &DST<'t, T, E>) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            transforms: dst
+                .meta_transforms_iter()
+                .map(|(t_idx, meta)| {
+                    (
+                        *t_idx,
+                        DeserMetaTransform {
+                            t: DeserTransform::from_transform(meta.transform()),
+                            input_defaults: meta.defaults().to_vec(),
+                        },
+                    )
+                })
+                .collect(),
+            edges: dst
+                .edges_iter()
+                .map(|(output, input)| (*output, *input))
+                .collect(),
+            outputs: dst
+                .outputs_iter()
+                .map(|(ouput_id, some_output)| (*ouput_id, *some_output))
+                .collect(),
+        }
+    }
 }
 
 impl<T> DeserDST<T>

@@ -312,7 +312,7 @@ where
 
 #[derive(Serialize)]
 struct SerialEditor<'e, T: 'e> {
-    macros: cake::macros::SerdeMacroManager,
+    macros: cake::macros::SerdeMacroManager<T>,
     dst: cake::SerialDST<'e, T>,
     node_states: Vec<(&'e cake::NodeId, &'e node_state::NodeState)>,
     scrolling: vec2::Vec2,
@@ -335,7 +335,7 @@ where
 #[derive(Clone, Debug, Deserialize)]
 #[serde(bound(deserialize = "T: serde::Deserialize<'de>"))]
 struct DeserEditor<T> {
-    macros: cake::macros::SerdeMacroManager,
+    macros: cake::macros::SerdeMacroManager<T>,
     dst: cake::DeserDST<T>,
     node_states: Vec<(cake::NodeId, node_state::NodeState)>,
     scrolling: vec2::Vec2,
@@ -359,7 +359,7 @@ where
 
     fn import_from_buf<R: io::Read>(&mut self, r: R) -> Result<(), export::ImportError> {
         let deserialized: DeserEditor<T> = ron::de::from_reader(r)?;
-        self.macros.from_deserializable(deserialized.macros);
+        self.macros.from_deserializable(deserialized.macros)?;
         self.dst = deserialized.dst.into_dst(&self.macros)?;
 
         let node_states = {
