@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 use boow::Bow;
 
@@ -57,7 +57,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     }
 
     pub fn id(&self) -> usize {
-        self.inner.read().unwrap().id
+        self.read().id
     }
 
     pub fn call(&self, _args: Vec<Bow<'_, T>>) -> Vec<Result<T, Arc<ComputeError<E>>>> {
@@ -65,7 +65,11 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     }
 
     pub fn get_macro(&self) -> Macro<'t, T, E> {
-        self.inner.read().unwrap().clone()
+        self.read().clone()
+    }
+
+    pub fn read(&self) -> RwLockReadGuard<'_, Macro<'t, T, E>> {
+        self.inner.read().unwrap()
     }
 }
 
