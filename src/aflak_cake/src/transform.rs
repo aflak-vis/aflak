@@ -118,6 +118,16 @@ where
     }
 }
 
+impl<'t, T, E> Algorithm<'t, T, E> {
+    pub fn updated_on(&self) -> Option<Instant> {
+        if let Algorithm::Macro { handle } = self {
+            Some(handle.updated_on())
+        } else {
+            None
+        }
+    }
+}
+
 /// A transformation defined by an [`Algorithm`], with a determined number of
 /// inputs and outputs.
 pub struct Transform<'t, T: 't, E: 't> {
@@ -150,7 +160,11 @@ where
 
 impl<'t, T, E> Transform<'t, T, E> {
     pub fn updated_on(&self) -> Instant {
-        self.updated_on
+        if let Some(algo_updated_on) = self.algorithm.updated_on() {
+            self.updated_on.max(algo_updated_on)
+        } else {
+            self.updated_on
+        }
     }
     pub fn algorithm(&self) -> &Algorithm<'t, T, E> {
         &self.algorithm
