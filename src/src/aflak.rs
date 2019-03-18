@@ -42,6 +42,8 @@ impl Aflak {
                 self.node_editor
                     .render(ui, addable_nodes, &MyConstantEditor);
             });
+        self.node_editor
+            .inner_editors_render(ui, addable_nodes, &MyConstantEditor);
     }
 
     pub fn output_windows<F>(&mut self, ui: &Ui, gl_ctx: &F, textures: &mut Textures)
