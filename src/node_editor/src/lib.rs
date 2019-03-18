@@ -26,6 +26,7 @@ use cake::Future;
 use imgui::ImString;
 
 pub use constant_editor::ConstantEditor;
+use event::ApplyRenderEvent;
 use layout::NodeEditorLayout;
 
 /// The node editor instance.
@@ -209,84 +210,80 @@ where
     }
 }
 
-impl<T, E> NodeEditor<T, E> {
-    fn apply_event(&mut self, ev: event::RenderEvent<T, E>)
-    where
-        T: Clone
-            + cake::ConvertibleVariants
-            + cake::DefaultFor
-            + cake::NamedAlgorithms<E>
-            + cake::VariantName
-            + serde::Serialize
-            + for<'de> serde::Deserialize<'de>,
-    {
-        const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
-        use event::RenderEvent::*;
-        match ev {
-            Connect(output, input_slot) => match input_slot {
-                cake::InputSlot::Transform(input) => {
-                    if let Err(e) = self.dst.connect(output, input) {
-                        eprintln!("{:?}", e);
-                        self.error_stack.push(Box::new(e));
-                    }
-                }
-                cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
-            },
-            AddTransform(t) => {
-                self.dst.add_transform(t);
-            }
-            CreateOutput => {
-                self.dst.create_output();
-            }
-            AddConstant(constant_type) => {
-                let constant = cake::Transform::new_constant(T::default_for(constant_type));
-                self.dst.add_owned_transform(constant);
-            }
-            SetConstant(t_idx, val) => {
-                if let Some(t) = self.dst.get_transform_mut(t_idx) {
-                    t.set_constant(*val);
-                } else {
-                    eprintln!("Transform {:?} was not found.", t_idx);
-                }
-            }
-            WriteDefaultInput {
-                t_idx,
-                input_index,
-                val,
-            } => {
-                if let Some(mut inputs) = self.dst.get_default_inputs_mut(t_idx) {
-                    inputs.write(input_index, *val);
-                } else {
-                    eprintln!("Transform {:?} was not found.", t_idx);
-                }
-            }
-            RemoveNode(node_id) => {
-                self.dst.remove_node(&node_id);
-            }
-            Import => {
-                if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
-                    eprintln!("Error on import! {}", e);
+const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
+
+impl<T, E> ApplyRenderEvent<T, E> for NodeEditor<T, E>
+where
+    T: Clone
+        + cake::ConvertibleVariants
+        + cake::DefaultFor
+        + cake::NamedAlgorithms<E>
+        + cake::VariantName
+        + serde::Serialize
+        + for<'de> serde::Deserialize<'de>,
+{
+    fn connect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+        match input_slot {
+            cake::InputSlot::Transform(input) => {
+                if let Err(e) = self.dst.connect(output, input) {
+                    eprintln!("{:?}", e);
                     self.error_stack.push(Box::new(e));
                 }
             }
-            Export => {
-                if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
-                    eprintln!("Error on export! {}", e);
-                    self.error_stack.push(Box::new(e));
-                } else {
-                    self.success_stack.push(ImString::new(format!(
-                        "Editor content was exported with success to '{}'!",
-                        EDITOR_EXPORT_FILE
-                    )));
-                }
-            }
-            AddNewMacro => {
-                self.dst.add_owned_transform(cake::Transform::from_macro(
-                    self.macros.create_macro().clone(),
-                ));
-            }
-            EditNode(node_id) => println!("Unimplemented event: EditNode({:?})", node_id),
+            cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
         }
+    }
+    fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
+        self.dst.add_transform(t);
+    }
+    fn create_output(&mut self) {
+        self.dst.create_output();
+    }
+    fn add_constant(&mut self, constant_type: &'static str) {
+        let constant = cake::Transform::new_constant(T::default_for(constant_type));
+        self.dst.add_owned_transform(constant);
+    }
+    fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
+        if let Some(t) = self.dst.get_transform_mut(t_idx) {
+            t.set_constant(*c);
+        } else {
+            eprintln!("Transform {:?} was not found.", t_idx);
+        }
+    }
+    fn write_default_input(&mut self, t_idx: cake::TransformIdx, input_index: usize, val: Box<T>) {
+        if let Some(mut inputs) = self.dst.get_default_inputs_mut(t_idx) {
+            inputs.write(input_index, *val);
+        } else {
+            eprintln!("Transform {:?} was not found.", t_idx);
+        }
+    }
+    fn remove_node(&mut self, node_id: cake::NodeId) {
+        self.dst.remove_node(&node_id);
+    }
+    fn import(&mut self) {
+        if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
+            eprintln!("Error on import! {}", e);
+            self.error_stack.push(Box::new(e));
+        }
+    }
+    fn export(&mut self) {
+        if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
+            eprintln!("Error on export! {}", e);
+            self.error_stack.push(Box::new(e));
+        } else {
+            self.success_stack.push(ImString::new(format!(
+                "Editor content was exported with success to '{}'!",
+                EDITOR_EXPORT_FILE
+            )));
+        }
+    }
+    fn add_new_macro(&mut self) {
+        self.dst.add_owned_transform(cake::Transform::from_macro(
+            self.macros.create_macro().clone(),
+        ));
+    }
+    fn edit_node(&mut self, node_id: cake::NodeId) {
+        eprintln!("Unimplemented event: EditNode({:?})", node_id)
     }
 }
 

@@ -44,3 +44,38 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
         }
     }
 }
+
+pub trait ApplyRenderEvent<T, E> {
+    fn apply_event(&mut self, ev: RenderEvent<T, E>) {
+        use event::RenderEvent::*;
+        match ev {
+            Connect(output, input_slot) => self.connect(output, input_slot),
+            AddTransform(t) => self.add_transform(t),
+            CreateOutput => self.create_output(),
+            AddConstant(constant_type) => self.add_constant(constant_type),
+            SetConstant(t_idx, val) => self.set_constant(t_idx, val),
+            WriteDefaultInput {
+                t_idx,
+                input_index,
+                val,
+            } => self.write_default_input(t_idx, input_index, val),
+            RemoveNode(node_id) => self.remove_node(node_id),
+            Import => self.import(),
+            Export => self.export(),
+            AddNewMacro => self.add_new_macro(),
+            EditNode(node_id) => self.edit_node(node_id),
+        }
+    }
+
+    fn connect(&mut self, output: Output, input_slot: InputSlot);
+    fn add_transform(&mut self, t: &'static Transform<'static, T, E>);
+    fn create_output(&mut self);
+    fn add_constant(&mut self, constant_type: &'static str);
+    fn set_constant(&mut self, t_idx: TransformIdx, c: Box<T>);
+    fn write_default_input(&mut self, t_idx: TransformIdx, input_index: usize, val: Box<T>);
+    fn remove_node(&mut self, node_id: NodeId);
+    fn import(&mut self);
+    fn export(&mut self);
+    fn add_new_macro(&mut self);
+    fn edit_node(&mut self, node: NodeId);
+}
