@@ -17,6 +17,7 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     Import,
     Export,
     AddNewMacro,
+    EditNode(NodeId),
 }
 
 impl<T, E> fmt::Debug for RenderEvent<T, E> {
@@ -39,6 +40,7 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             Import => write!(f, "Import"),
             Export => write!(f, "Export"),
             AddNewMacro => write!(f, "AddNewMacro"),
+            EditNode(node_id) => write!(f, "EditNode({:?})", node_id),
         }
     }
 }

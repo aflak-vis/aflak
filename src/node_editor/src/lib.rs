@@ -285,6 +285,7 @@ impl<T, E> NodeEditor<T, E> {
                     self.macros.create_macro().clone(),
                 ));
             }
+            EditNode(node_id) => println!("Unimplemented event: EditNode({:?})", node_id),
         }
     }
 }

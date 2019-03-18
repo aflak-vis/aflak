@@ -817,6 +817,13 @@ where
                 self.drag_node = None;
             }
         }
+
+        if ui.is_item_hovered()
+            && !ui.is_item_active()
+            && ui.imgui().is_mouse_double_clicked(ImMouseButton::Left)
+        {
+            events.push(RenderEvent::EditNode(*id));
+        }
     }
 }
 
