@@ -1,5 +1,7 @@
 use std::collections::btree_map;
+use std::ops;
 use std::slice;
+use std::vec;
 
 use dst::node::{Node, NodeId};
 use dst::MetaTransform;
@@ -214,5 +216,108 @@ impl<'a> Iterator for LinkIter<'a> {
         } else {
             None
         }
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E>
+where
+    T: Clone,
+{
+    pub(crate) fn unattached_input_slots(&self) -> impl Iterator<Item = InputSlot> + '_ {
+        let output_ids = self.unattached_output_ids().map(InputSlot::Output);
+        let inputs = self
+            .unattached_inputs()
+            .into_iter()
+            .map(InputSlot::Transform);
+        output_ids.chain(inputs)
+    }
+
+    fn unattached_output_ids(&self) -> impl Iterator<Item = OutputId> + '_ {
+        self.outputs
+            .iter()
+            .filter(|(_, some_output)| some_output.is_none())
+            .map(|(output_id, _)| *output_id)
+    }
+
+    fn unattached_inputs(&self) -> Vec<Input> {
+        self.transform_inputs()
+            .filter(|input| {
+                for (_, input_list) in &self.edges {
+                    if input_list.contains(input) {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect()
+    }
+
+    fn transform_inputs(&self) -> impl Iterator<Item = Input> + '_ {
+        TransformInputIterator::new(self)
+    }
+}
+
+struct TransformInputIterator {
+    inner: vec::IntoIter<(TransformIdx, usize)>,
+    cursor: Option<TransformInputCursor>,
+}
+
+struct TransformInputCursor {
+    t_idx: TransformIdx,
+    inputs: ops::Range<usize>,
+}
+
+impl TransformInputCursor {
+    fn next(&mut self) -> Option<Input> {
+        self.inputs
+            .next()
+            .map(|index| Input::new(self.t_idx, index))
+    }
+}
+
+impl TransformInputIterator {
+    fn new<T, E>(dst: &DST<'_, T, E>) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            inner: dst
+                .transforms
+                .iter()
+                .map(|(t_idx, meta)| (*t_idx, meta.transform().inputs().len()))
+                .collect::<Vec<_>>()
+                .into_iter(),
+            cursor: None,
+        }
+    }
+}
+
+impl Iterator for TransformInputIterator {
+    type Item = Input;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cursor.is_none() {
+            if let Some((t_idx, len)) = self.inner.next() {
+                self.cursor = Some(TransformInputCursor {
+                    t_idx,
+                    inputs: 0..len,
+                });
+            } else {
+                return None;
+            }
+        }
+
+        let mut exhausted = false;
+        if let Some(ref mut cursor) = &mut self.cursor {
+            if let Some(input) = cursor.next() {
+                return Some(input);
+            } else {
+                exhausted = true;
+            }
+        }
+
+        if exhausted {
+            self.cursor = None;
+        }
+        self.next()
     }
 }

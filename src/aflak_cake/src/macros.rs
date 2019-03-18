@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use boow::Bow;
 
-use super::{ConvertibleVariants, TransformInputSlot, TypeId, VariantName, DST};
+use super::{ConvertibleVariants, InputSlot, TransformInputSlot, TypeId, VariantName, DST};
 use compute::ComputeError;
 use export::{DeserDST, ImportError, NamedAlgorithms};
 
@@ -23,8 +23,16 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
 
 pub struct Macro<'t, T: 't, E: 't> {
     id: usize,
+    inputs: Vec<MacroInput<T>>,
     dst: DST<'t, T, E>,
     updated_on: Instant,
+}
+
+#[derive(Clone)]
+struct MacroInput<T> {
+    slot: InputSlot,
+    type_id: Option<TypeId>,
+    default: Option<T>,
 }
 
 impl<'t, T, E> Clone for Macro<'t, T, E>
@@ -34,6 +42,7 @@ where
     fn clone(&self) -> Self {
         Self {
             id: self.id,
+            inputs: self.inputs.clone(),
             dst: self.dst.clone(),
             updated_on: self.updated_on,
         }
@@ -47,19 +56,25 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     }
 
     pub fn input_types(&self) -> Vec<TypeId> {
-        vec![]
+        self.read().input_types()
     }
 
     pub fn outputs(&self) -> Vec<TypeId> {
         vec![]
     }
 
-    pub fn inputs(&self) -> Vec<TransformInputSlot<T>> {
-        vec![]
+    pub fn inputs(&self) -> Vec<TransformInputSlot<T>>
+    where
+        T: Clone,
+    {
+        self.read().inputs()
     }
 
-    pub fn defaults(&self) -> Vec<Option<T>> {
-        vec![]
+    pub fn defaults(&self) -> Vec<Option<T>>
+    where
+        T: Clone,
+    {
+        self.read().defaults()
     }
 
     pub fn id(&self) -> usize {
@@ -81,7 +96,10 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.inner.read().unwrap()
     }
 
-    pub fn write(&self) -> MacroMut<'_, 't, T, E> {
+    pub fn write(&self) -> MacroMut<'_, 't, T, E>
+    where
+        T: Clone,
+    {
         MacroMut {
             inner: self.inner.write().unwrap(),
             changed: false,
@@ -101,29 +119,90 @@ impl<'t, T, E> Macro<'t, T, E> {
     pub fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
         &mut self.dst
     }
+
+    fn input_types(&self) -> Vec<TypeId> {
+        self.inputs
+            .iter()
+            .map(|input| input.type_id.unwrap_or(TypeId("No type")))
+            .collect()
+    }
+
+    fn inputs(&self) -> Vec<TransformInputSlot<T>>
+    where
+        T: Clone,
+    {
+        self.inputs
+            .iter()
+            .map(|input| TransformInputSlot {
+                // TODO
+                type_id: input.type_id.unwrap_or(TypeId("No type")),
+                default: input.default.clone(),
+                name: "Macro input",
+            })
+            .collect()
+    }
+
+    fn defaults(&self) -> Vec<Option<T>>
+    where
+        T: Clone,
+    {
+        self.inputs
+            .iter()
+            .map(|input| &input.default)
+            .cloned()
+            .collect()
+    }
+
+    fn find_default_inputs(dst: &DST<'t, T, E>) -> Vec<MacroInput<T>>
+    where
+        T: Clone,
+    {
+        let mut inputs = vec![];
+        for input_slot in dst.unattached_input_slots() {
+            let input = match input_slot {
+                InputSlot::Output(_) => MacroInput {
+                    slot: input_slot,
+                    type_id: None,
+                    default: None,
+                },
+                InputSlot::Transform(input) => {
+                    let t = dst.get_transform(input.t_idx).expect("Get transform");
+                    let t_input = &t.inputs()[input.index()];
+                    MacroInput {
+                        slot: input_slot,
+                        type_id: Some(t_input.type_id),
+                        default: t_input.default.clone(),
+                    }
+                }
+            };
+            inputs.push(input);
+        }
+        inputs
+    }
 }
 
-pub struct MacroMut<'a, 't: 'a, T: 't, E: 't> {
+pub struct MacroMut<'a, 't: 'a, T: 't + Clone, E: 't> {
     inner: RwLockWriteGuard<'a, Macro<'t, T, E>>,
     changed: bool,
 }
 
-impl<'a, 't, T, E> Drop for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone, E> Drop for MacroMut<'a, 't, T, E> {
     fn drop(&mut self) {
         if self.changed {
             self.inner.updated_on = Instant::now();
+            self.inner.inputs = Macro::find_default_inputs(&self.inner.dst);
         }
     }
 }
 
-impl<'a, 't, T, E> ops::Deref for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone, E> ops::Deref for MacroMut<'a, 't, T, E> {
     type Target = Macro<'t, T, E>;
     fn deref(&self) -> &Self::Target {
         self.inner.deref()
     }
 }
 
-impl<'a, 't, T, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.changed = true;
         self.inner.deref_mut()
@@ -147,14 +226,19 @@ impl<'t, T, E> MacroManager<'t, T, E> {
         }
     }
 
-    pub fn create_macro(&mut self) -> &MacroHandle<'t, T, E> {
+    pub fn create_macro(&mut self) -> &MacroHandle<'t, T, E>
+    where
+        T: Clone,
+    {
         self.cnt += 1;
+        let dst = DST::new();
         self.macros.insert(
             self.cnt,
             MacroHandle {
                 inner: Arc::new(RwLock::new(Macro {
                     id: self.cnt,
-                    dst: DST::new(),
+                    inputs: Macro::find_default_inputs(&dst),
+                    dst,
                     updated_on: Instant::now(),
                 })),
             },
@@ -201,7 +285,15 @@ where
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerdeMacro<T> {
     id: usize,
+    inputs: Vec<SerdeMacroInput<T>>,
     dst: DeserDST<T>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct SerdeMacroInput<T> {
+    slot: InputSlot,
+    type_id: Option<String>,
+    default: Option<T>,
 }
 
 impl<'t, 'd, T, E> From<&'d Macro<'t, T, E>> for SerdeMacro<T>
@@ -211,6 +303,7 @@ where
     fn from(macr: &'d Macro<'t, T, E>) -> Self {
         Self {
             id: macr.id,
+            inputs: macr.inputs.iter().map(SerdeMacroInput::from).collect(),
             dst: DeserDST::from_dst(&macr.dst),
         }
     }
@@ -226,8 +319,13 @@ impl<T> SerdeMacro<T> {
     {
         // TODO: Deal with nested macros
         let id = self.id;
+        let mut inputs = Vec::with_capacity(self.inputs.len());
+        for input in self.inputs {
+            inputs.push(input.into_macro_input()?);
+        }
         self.dst.into_dst(macro_manager).map(move |dst| Macro {
             id,
+            inputs,
             dst,
             updated_on: Instant::now(),
         })
@@ -259,5 +357,43 @@ impl<T> SerdeMacroManager<T> {
             );
         }
         Ok(MacroManager { cnt, macros })
+    }
+}
+
+impl<T> SerdeMacroInput<T>
+where
+    T: VariantName,
+{
+    fn into_macro_input(self) -> Result<MacroInput<T>, ImportError> {
+        let type_id = if let Some(variant_name) = self.type_id {
+            let some_type_id = T::variant_names()
+                .iter()
+                .find(|name| **name == variant_name);
+            if let Some(type_id) = some_type_id {
+                Some(TypeId(type_id))
+            } else {
+                return Err(ImportError::UnexpectedType(variant_name));
+            }
+        } else {
+            None
+        };
+        Ok(MacroInput {
+            slot: self.slot,
+            type_id,
+            default: self.default,
+        })
+    }
+}
+
+impl<'a, T> From<&'a MacroInput<T>> for SerdeMacroInput<T>
+where
+    T: Clone,
+{
+    fn from(input: &'a MacroInput<T>) -> Self {
+        Self {
+            slot: input.slot,
+            type_id: input.type_id.map(|type_id| type_id.name().to_owned()),
+            default: input.default.clone(),
+        }
     }
 }
