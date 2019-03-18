@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::time::Instant;
 
 use boow::Bow;
 
@@ -22,6 +23,7 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
 pub struct Macro<'t, T: 't, E: 't> {
     id: usize,
     dst: DST<'t, T, E>,
+    updated_on: Instant,
 }
 
 impl<'t, T, E> Clone for Macro<'t, T, E>
@@ -32,6 +34,7 @@ where
         Self {
             id: self.id,
             dst: self.dst.clone(),
+            updated_on: self.updated_on,
         }
     }
 }
@@ -76,6 +79,10 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     pub fn read(&self) -> RwLockReadGuard<'_, Macro<'t, T, E>> {
         self.inner.read().unwrap()
     }
+
+    pub fn updated_on(&self) -> Instant {
+        self.read().updated_on
+    }
 }
 
 pub struct MacroManager<'t, T: 't, E: 't> {
@@ -103,6 +110,7 @@ impl<'t, T, E> MacroManager<'t, T, E> {
                 inner: Arc::new(RwLock::new(Macro {
                     id: self.cnt,
                     dst: DST::new(),
+                    updated_on: Instant::now(),
                 })),
             },
         );
@@ -173,9 +181,11 @@ impl<T> SerdeMacro<T> {
     {
         // TODO: Deal with nested macros
         let id = self.id;
-        self.dst
-            .into_dst(macro_manager)
-            .map(move |dst| Macro { id, dst })
+        self.dst.into_dst(macro_manager).map(move |dst| Macro {
+            id,
+            dst,
+            updated_on: Instant::now(),
+        })
     }
 }
 
