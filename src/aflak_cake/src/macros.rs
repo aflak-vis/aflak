@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::ops;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Instant;
 
 use boow::Bow;
@@ -80,8 +81,52 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.inner.read().unwrap()
     }
 
+    pub fn write(&self) -> MacroMut<'_, 't, T, E> {
+        MacroMut {
+            inner: self.inner.write().unwrap(),
+            changed: false,
+        }
+    }
+
     pub fn updated_on(&self) -> Instant {
         self.read().updated_on
+    }
+}
+
+impl<'t, T, E> Macro<'t, T, E> {
+    pub fn dst(&self) -> &DST<'t, T, E> {
+        &self.dst
+    }
+
+    pub fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
+        &mut self.dst
+    }
+}
+
+pub struct MacroMut<'a, 't, T, E> {
+    inner: RwLockWriteGuard<'a, Macro<'t, T, E>>,
+    changed: bool,
+}
+
+impl<'a, 't, T, E> Drop for MacroMut<'a, 't, T, E> {
+    fn drop(&mut self) {
+        if self.changed {
+            self.inner.updated_on = Instant::now();
+        }
+    }
+}
+
+impl<'a, 't, T, E> ops::Deref for MacroMut<'a, 't, T, E> {
+    type Target = Macro<'t, T, E>;
+    fn deref(&self) -> &Self::Target {
+        self.inner.deref()
+    }
+}
+
+impl<'a, 't, T, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.changed = true;
+        self.inner.deref_mut()
     }
 }
 
