@@ -103,7 +103,7 @@ impl<'t, T, E> Macro<'t, T, E> {
     }
 }
 
-pub struct MacroMut<'a, 't, T, E> {
+pub struct MacroMut<'a, 't: 'a, T: 't, E: 't> {
     inner: RwLockWriteGuard<'a, Macro<'t, T, E>>,
     changed: bool,
 }

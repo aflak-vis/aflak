@@ -38,6 +38,22 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<error::Error>>,
     success_stack: Vec<ImString>,
+
+    nodes_edit: Vec<InnerNodeEditor<T, E>>,
+}
+
+struct InnerNodeEditor<T: 'static, E: 'static> {
+    handle: cake::macros::MacroHandle<'static, T, E>,
+    layout: NodeEditorLayout<T, E>,
+}
+
+impl<T, E> InnerNodeEditor<T, E> {
+    fn new(handle: &cake::macros::MacroHandle<'static, T, E>) -> Self {
+        Self {
+            handle: handle.clone(),
+            layout: Default::default(),
+        }
+    }
 }
 
 struct ComputationState<T, E> {
@@ -208,6 +224,35 @@ where
             }
         });
     }
+
+    pub fn inner_editors_render<ED>(
+        &mut self,
+        ui: &imgui::Ui,
+        addable_nodes: &[&'static cake::Transform<T, E>],
+        constant_editor: &ED,
+    ) where
+        ED: ConstantEditor<T>,
+    {
+        for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
+            ui.window(&imgui::ImString::new(format!(
+                "Macro editor: '{}'###{}",
+                node_edit.handle.name(),
+                i,
+            )))
+            .build(|| {
+                let events = {
+                    let lock = node_edit.handle.read();
+                    let dst = lock.dst();
+                    node_edit
+                        .layout
+                        .render(ui, dst, addable_nodes, constant_editor)
+                };
+                for event in events {
+                    node_edit.apply_event(event);
+                }
+            })
+        }
+    }
 }
 
 const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
@@ -281,6 +326,74 @@ where
         self.dst.add_owned_transform(cake::Transform::from_macro(
             self.macros.create_macro().clone(),
         ));
+    }
+    fn edit_node(&mut self, node_id: cake::NodeId) {
+        if let cake::NodeId::Transform(t_idx) = node_id {
+            if let Some(t) = self.dst.get_transform(t_idx) {
+                if let cake::Algorithm::Macro { handle } = t.algorithm() {
+                    self.nodes_edit.push(InnerNodeEditor::new(handle))
+                }
+            }
+        }
+    }
+}
+
+impl<T, E> ApplyRenderEvent<T, E> for InnerNodeEditor<T, E>
+where
+    T: Clone + cake::ConvertibleVariants + cake::DefaultFor,
+{
+    fn connect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        match input_slot {
+            cake::InputSlot::Transform(input) => {
+                if let Err(e) = dst.connect(output, input) {
+                    eprintln!("Cannot connect in macro: {:?}", e);
+                    // TODO: Error stack
+                }
+            }
+            cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+        }
+    }
+    fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
+        self.handle.write().dst_mut().add_transform(t);
+    }
+    fn create_output(&mut self) {
+        self.handle.write().dst_mut().create_output();
+    }
+    fn add_constant(&mut self, constant_type: &'static str) {
+        let constant = cake::Transform::new_constant(T::default_for(constant_type));
+        self.handle.write().dst_mut().add_owned_transform(constant);
+    }
+    fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        if let Some(t) = dst.get_transform_mut(t_idx) {
+            t.set_constant(*c);
+        } else {
+            eprintln!("Transform {:?} was not found in macro.", t_idx,);
+        }
+    }
+    fn write_default_input(&mut self, t_idx: cake::TransformIdx, input_index: usize, val: Box<T>) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        if let Some(mut inputs) = dst.get_default_inputs_mut(t_idx) {
+            inputs.write(input_index, *val);
+        } else {
+            eprintln!("Transform {:?} was not found.", t_idx);
+        }
+    }
+    fn remove_node(&mut self, node_id: cake::NodeId) {
+        self.handle.write().dst_mut().remove_node(&node_id);
+    }
+    fn import(&mut self) {
+        eprintln!("Import unsupported in MacroEditor!");
+    }
+    fn export(&mut self) {
+        eprintln!("Export unsupported in MacroEditor!");
+    }
+    fn add_new_macro(&mut self) {
+        eprintln!("Nested macro not supported!");
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         eprintln!("Unimplemented event: EditNode({:?})", node_id)
@@ -374,6 +487,9 @@ where
         self.output_results = collections::BTreeMap::new();
         self.cache = cake::Cache::new();
 
+        // Close macro editing windows
+        self.nodes_edit = vec![];
+
         Ok(())
     }
 }
@@ -411,6 +527,7 @@ impl<T, E> Default for NodeEditor<T, E> {
             layout: Default::default(),
             error_stack: vec![],
             success_stack: vec![],
+            nodes_edit: vec![],
         }
     }
 }
