@@ -220,7 +220,10 @@ impl<'t, T, E> Transform<'t, T, E> {
         }
     }
 
-    pub fn inputs(&self) -> Bow<'_, Vec<TransformInputSlot<T>>> {
+    pub fn inputs(&self) -> Bow<'_, Vec<TransformInputSlot<T>>>
+    where
+        T: Clone,
+    {
         match self.algorithm {
             Algorithm::Function { ref inputs, .. } => Bow::Borrowed(inputs),
             Algorithm::Constant(_) => Bow::Owned(vec![]),
