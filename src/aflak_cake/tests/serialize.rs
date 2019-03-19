@@ -30,7 +30,7 @@ fn test_plus1() {
 
     // Check that plus1transform_back behaves as plus1transform
     let mut caller = plus1transform_back.start();
-    caller.feed(&AlgoIO::Integer(1));
+    caller.feed(&AlgoIO::Integer(1)).unwrap();
     let mut ret = caller.call();
     assert_eq!(ret.next().unwrap().unwrap(), AlgoIO::Integer(2));
 

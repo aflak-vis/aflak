@@ -16,7 +16,7 @@ fn test_plus1() {
     let plus1transform = get_plus1_transform();
 
     let mut caller = plus1transform.start();
-    caller.feed(&AlgoIO::Integer(1));
+    caller.feed(&AlgoIO::Integer(1)).unwrap();
     let mut ret = caller.call();
     assert_eq!(ret.next().unwrap().unwrap(), AlgoIO::Integer(2));
 }
@@ -27,7 +27,7 @@ fn test_autoconversions() {
 
     let one = AlgoIO::Integer(1);
     let mut caller = divide_by_10.start();
-    caller.feed(&one);
+    caller.feed(&one).unwrap();
     let mut ret = caller.call();
     assert_eq!(ret.next().unwrap().unwrap(), AlgoIO::Float(0.1));
 }
