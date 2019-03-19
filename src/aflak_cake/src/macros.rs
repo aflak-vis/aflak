@@ -49,8 +49,8 @@ where
     }
 }
 
-/// TODO
 impl<'t, T, E> MacroHandle<'t, T, E> {
+    /// TODO
     pub fn name(&self) -> String {
         "Macro".to_owned()
     }
@@ -84,6 +84,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().id
     }
 
+    /// TODO
     pub fn call(&self, _args: Vec<Bow<'_, T>>) -> Vec<Result<T, Arc<ComputeError<E>>>> {
         vec![]
     }
