@@ -738,14 +738,10 @@ where
             ui.dummy((0.0, NODE_WINDOW_PADDING.1 / 2.0));
             if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform(t_idx) {
-                    let mut changed = None;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
                         if let Some(new_value) = constant_editor.editor(ui, &constant, 0, false) {
-                            changed = Some(new_value);
+                            events.push(RenderEvent::SetConstant(t_idx, Box::new(new_value)));
                         }
-                    }
-                    if let Some(c) = changed {
-                        events.push(RenderEvent::SetConstant(t_idx, Box::new(c)));
                     }
                 }
                 let outputs = dst.outputs_attached_to_transform(t_idx).unwrap();
@@ -754,23 +750,19 @@ where
                         default_inputs.into_iter().zip(outputs).enumerate()
                     {
                         let read_only = some_output.is_some();
-                        let mut changed = None;
                         if let Some(val) = default_input {
                             if let Some(new_value) =
                                 constant_editor.editor(ui, &val, i as i32, read_only)
                             {
-                                changed = Some(new_value);
+                                events.push(RenderEvent::WriteDefaultInput {
+                                    t_idx,
+                                    input_index: i,
+                                    val: Box::new(new_value),
+                                })
                             }
                         } else {
                             // Fill with dummy line for vertical alignment
                             ui.text("");
-                        }
-                        if let Some(new_value) = changed {
-                            events.push(RenderEvent::WriteDefaultInput {
-                                t_idx,
-                                input_index: i,
-                                val: Box::new(new_value),
-                            })
                         }
                     }
                 }
