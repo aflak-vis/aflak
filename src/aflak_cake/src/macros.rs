@@ -59,8 +59,11 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().input_types()
     }
 
-    pub fn outputs(&self) -> Vec<TypeId> {
-        vec![]
+    pub fn outputs(&self) -> Vec<TypeId>
+    where
+        T: VariantName,
+    {
+        self.read().outputs()
     }
 
     pub fn inputs(&self) -> Vec<TransformInputSlot<T>>
@@ -138,6 +141,23 @@ impl<'t, T, E> Macro<'t, T, E> {
                 type_id: input.type_id.unwrap_or(TypeId("No type")),
                 default: input.default.clone(),
                 name: "Macro input",
+            })
+            .collect()
+    }
+
+    fn outputs(&self) -> Vec<TypeId>
+    where
+        T: VariantName,
+    {
+        self.dst
+            .outputs_iter()
+            .map(|(_, some_output)| {
+                if let Some(output) = some_output {
+                    let t = self.dst.get_transform(output.t_idx).unwrap();
+                    t.outputs()[output.index()]
+                } else {
+                    TypeId("No type")
+                }
             })
             .collect()
     }
