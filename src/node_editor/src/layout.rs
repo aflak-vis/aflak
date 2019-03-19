@@ -714,7 +714,7 @@ where
                 ImString::new(match node {
                     cake::Node::Transform(t) => t.description(),
                     cake::Node::Output(_) => format!(
-                        "Visualize that data that flows into this node\nin the window '{}'",
+                        "Visualize the data that flows into this node\nin the window '{}'",
                         node.name(id),
                     )
                     .into(),
