@@ -339,7 +339,7 @@ pub enum CallError<E> {
 
 impl<'a, 't, 'i, T, E> TransformCaller<'a, 't, 'i, T, E>
 where
-    T: Clone,
+    T: Clone + VariantName + ConvertibleVariants,
 {
     /// Compute the transformation with the provided arguments
     pub fn call(mut self) -> TransformResult<Result<T, CallError<E>>> {

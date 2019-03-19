@@ -1,5 +1,6 @@
 //! Data types for computational results.
 use std::borrow::Cow;
+use std::collections;
 use std::error;
 use std::fmt;
 use std::sync::Arc;
@@ -35,6 +36,7 @@ pub type NodeResult<T, E> = Result<SuccessOut<T>, ErrorOut<E>>;
 pub enum ComputeError<E> {
     UnattachedOutputID(OutputId),
     MissingOutputID(OutputId),
+    MissingOutput(Output),
     MissingNode(TransformIdx),
     /// The output of a node should be attached to `input`, making the
     /// computation impossible.
@@ -80,6 +82,7 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 write!(f, "Output #{} is not attached to a program", output_id.id())
             }
             MissingOutputID(output_id) => write!(f, "Output #{} is not found", output_id.id()),
+            MissingOutput(output) => write!(f, "Output {} is not found", output),
             MissingNode(t_idx) => write!(f, "Node #{} not found", t_idx.id()),
             MissingDependency { input, t_name } => write!(
                 f,
@@ -271,5 +274,114 @@ where
                 }
             }
         }
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E>
+where
+    T: Clone + VariantName + ConvertibleVariants,
+{
+    pub fn compute_sync(
+        &self,
+        output_id: OutputId,
+        cache: &mut collections::HashMap<Output, Result<T, Arc<ComputeError<E>>>>,
+    ) -> Result<T, Arc<ComputeError<E>>> {
+        if let Some(some_output) = self.outputs.get(&output_id) {
+            if let Some(output) = some_output {
+                self._compute_sync(*output, cache)
+            } else {
+                Err(Arc::new(ComputeError::UnattachedOutputID(output_id)))
+            }
+        } else {
+            Err(Arc::new(ComputeError::MissingOutputID(output_id)))
+        }
+    }
+
+    pub fn _compute_sync(
+        &self,
+        output: Output,
+        cache: &mut collections::HashMap<Output, Result<T, Arc<ComputeError<E>>>>,
+    ) -> Result<T, Arc<ComputeError<E>>> {
+        if let Some(cached_result) = cache.get(&output) {
+            return (*cached_result).clone();
+        }
+
+        let meta = if let Some(meta) = self.transforms.get(&output.t_idx) {
+            meta
+        } else {
+            return Err(Arc::new(ComputeError::MissingNode(output.t_idx)));
+        };
+        let t = meta.transform();
+        let t_idx = output.t_idx;
+        let index: usize = output.output_i.into();
+
+        let deps = self
+            .outputs_attached_to_transform(t_idx)
+            .expect("Transform not found");
+        let mut results = Vec::with_capacity(deps.len());
+        for _ in 0..(deps.len()) {
+            results.push(Err(Arc::new(ComputeError::NothingDoneYet)));
+        }
+        let defaults = meta.defaults().to_vec();
+
+        for (i, ((result, parent_output), default)) in
+            results.iter_mut().zip(deps).zip(defaults).enumerate()
+        {
+            *result = if let Some(output) = parent_output {
+                self._compute_sync(output, cache)
+            } else if let Some(default) = default {
+                Ok(default)
+            } else {
+                Err(Arc::new(ComputeError::MissingDependency {
+                    input: Input::new(t_idx, i),
+                    t_name: t.name(),
+                }))
+            };
+        }
+
+        let mut op = t.start();
+        for result in &results {
+            match result {
+                Ok(ok) => op.feed(ok),
+                Err(e) => {
+                    let error_stack = ComputeError::ErrorStack {
+                        cause: e.clone(),
+                        t_idx,
+                        t_name: t.name(),
+                    };
+                    return Err(Arc::new(error_stack));
+                }
+            }
+        }
+
+        let out = if let Some(out) = op.call().into_iter().nth(index) {
+            out.map_err(|e| {
+                Arc::new(match e {
+                    CallError::FunctionError(e) => ComputeError::RuntimeError {
+                        cause: e,
+                        t_idx,
+                        t_name: t.name(),
+                    },
+                    CallError::MacroEvalError(e) => ComputeError::ErrorStack {
+                        cause: e,
+                        t_idx,
+                        t_name: t.name(),
+                    },
+                })
+            })
+        } else {
+            return Err(Arc::new(ComputeError::MissingOutput(output)));
+        };
+
+        // If output is connected to several input, save value to cache
+        if let Some(mut inputs) = self.inputs_attached_to(&output) {
+            let first = inputs.next();
+            let second = inputs.next();
+            if let (Some(_), Some(_)) = (first, second) {
+                cache.insert(output, out.clone());
+            }
+        }
+
+        out
     }
 }
