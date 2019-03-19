@@ -25,6 +25,7 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
 
 pub struct Macro<'t, T: 't, E: 't> {
     id: usize,
+    name: String,
     inputs: Vec<MacroInput<T>>,
     dst: DST<'t, T, E>,
     updated_on: Instant,
@@ -44,6 +45,7 @@ where
     fn clone(&self) -> Self {
         Self {
             id: self.id,
+            name: self.name.clone(),
             inputs: self.inputs.clone(),
             dst: self.dst.clone(),
             updated_on: self.updated_on,
@@ -52,9 +54,8 @@ where
 }
 
 impl<'t, T, E> MacroHandle<'t, T, E> {
-    /// TODO
     pub fn name(&self) -> String {
-        "Macro".to_owned()
+        self.read().name.clone()
     }
 
     pub fn input_types(&self) -> Vec<TypeId> {
@@ -288,6 +289,7 @@ impl<'t, T, E> MacroManager<'t, T, E> {
             MacroHandle {
                 inner: Arc::new(RwLock::new(Macro {
                     id: self.cnt,
+                    name: format!("New macro #{}", self.cnt),
                     inputs: Macro::find_default_inputs(&dst),
                     dst,
                     updated_on: Instant::now(),
@@ -340,6 +342,7 @@ where
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerdeMacro<T> {
     id: usize,
+    name: String,
     inputs: Vec<SerdeMacroInput<T>>,
     dst: DeserDST<T>,
 }
@@ -358,6 +361,7 @@ where
     fn from(macr: &'d Macro<'t, T, E>) -> Self {
         Self {
             id: macr.id,
+            name: macr.name.clone(),
             inputs: macr.inputs.iter().map(SerdeMacroInput::from).collect(),
             dst: DeserDST::from_dst(&macr.dst),
         }
@@ -374,12 +378,14 @@ impl<T> SerdeMacro<T> {
     {
         // TODO: Deal with nested macros
         let id = self.id;
+        let name = self.name;
         let mut inputs = Vec::with_capacity(self.inputs.len());
         for input in self.inputs {
             inputs.push(input.into_macro_input()?);
         }
         self.dst.into_dst(macro_manager).map(move |dst| Macro {
             id,
+            name,
             inputs,
             dst,
             updated_on: Instant::now(),
