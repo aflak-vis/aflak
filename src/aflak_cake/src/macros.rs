@@ -58,6 +58,12 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().name.clone()
     }
 
+    pub fn name_mut(&self) -> MacroNameMut<'_, 't, T, E> {
+        MacroNameMut {
+            guard: self.inner.write().unwrap(),
+        }
+    }
+
     pub fn input_types(&self) -> Vec<TypeId> {
         self.read().input_types()
     }
@@ -258,6 +264,23 @@ impl<'a, 't, T: Clone, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.changed = true;
         self.inner.deref_mut()
+    }
+}
+
+pub struct MacroNameMut<'a, 't: 'a, T: 't, E: 't> {
+    guard: RwLockWriteGuard<'a, Macro<'t, T, E>>,
+}
+
+impl<'a, 't, T, E> ops::Deref for MacroNameMut<'a, 't, T, E> {
+    type Target = String;
+    fn deref(&self) -> &Self::Target {
+        &self.guard.name
+    }
+}
+
+impl<'a, 't, T, E> ops::DerefMut for MacroNameMut<'a, 't, T, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.guard.name
     }
 }
 
