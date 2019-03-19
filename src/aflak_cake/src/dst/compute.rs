@@ -189,6 +189,9 @@ where
         let t_idx = output.t_idx;
         let index: usize = output.output_i.into();
         let updated_on = self.updated_on(t_idx);
+        if index >= t.outputs().len() {
+            return Err(Timed::from(Arc::new(ComputeError::MissingOutput(output))));
+        }
 
         if let Some(result) = cache.compute(t_idx, updated_on, || {
             let deps = self
