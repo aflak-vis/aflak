@@ -349,7 +349,7 @@ struct SerdeMacroInput<T> {
 
 impl<'t, 'd, T, E> From<&'d Macro<'t, T, E>> for SerdeMacro<T>
 where
-    T: Clone + VariantName,
+    T: Clone,
 {
     fn from(macr: &'d Macro<'t, T, E>) -> Self {
         Self {
