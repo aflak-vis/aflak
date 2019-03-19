@@ -1,11 +1,13 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Instant;
 
 use boow::Bow;
 
-use super::{ConvertibleVariants, InputSlot, TransformInputSlot, TypeId, VariantName, DST};
+use super::{
+    ConvertibleVariants, InputSlot, Output, Transform, TransformInputSlot, TypeId, VariantName, DST,
+};
 use compute::ComputeError;
 use export::{DeserDST, ImportError, NamedAlgorithms};
 
@@ -84,9 +86,11 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().id
     }
 
-    /// TODO
-    pub fn call(&self, _args: Vec<Bow<'_, T>>) -> Vec<Result<T, Arc<ComputeError<E>>>> {
-        vec![]
+    pub fn call(&self, args: Vec<Bow<'_, T>>) -> Vec<Result<T, Arc<ComputeError<E>>>>
+    where
+        T: Clone + VariantName + ConvertibleVariants,
+    {
+        self.read().call(args)
     }
 
     pub fn get_macro(&self) -> Macro<'t, T, E>
@@ -199,6 +203,32 @@ impl<'t, T, E> Macro<'t, T, E> {
             inputs.push(input);
         }
         inputs
+    }
+
+    fn call(&self, args: Vec<Bow<'_, T>>) -> Vec<Result<T, Arc<ComputeError<E>>>>
+    where
+        T: Clone + VariantName + ConvertibleVariants,
+    {
+        let mut cache = HashMap::new();
+
+        let mut dst = self.dst.clone();
+
+        for (arg, input) in args.into_iter().zip(&self.inputs) {
+            let t_idx = dst.add_owned_transform(Transform::new_constant((*arg).clone()));
+            let output = Output::new(t_idx, 0);
+            match input.slot {
+                InputSlot::Output(output_id) => dst.update_output(output_id, output),
+                InputSlot::Transform(input) => {
+                    if let Err(e) = dst.connect(output, input) {
+                        unimplemented!("Type error: {}", e);
+                    }
+                }
+            }
+        }
+
+        dst.outputs_iter()
+            .map(|(output_id, _)| dst.compute_sync(*output_id, &mut cache))
+            .collect()
     }
 }
 
