@@ -80,6 +80,7 @@ where
         ui: &Ui,
         dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
+        addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
     ) -> Vec<RenderEvent<T, E>>
     where
@@ -103,7 +104,7 @@ where
         if self.show_left_pane {
             self.render_left_pane(ui, dst);
         }
-        self.render_graph_node(ui, dst, addable_nodes, constant_editor);
+        self.render_graph_node(ui, dst, addable_nodes, addable_macros, constant_editor);
 
         if ui.is_window_focused() && !ui.want_capture_keyboard() {
             let delete_index = ui.imgui().get_key_index(ImGuiKey::Delete);
@@ -223,6 +224,7 @@ where
         ui: &Ui,
         dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
+        addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
     ) where
         ED: ConstantEditor<T>,
@@ -283,7 +285,13 @@ where
                         .show_scrollbar_with_mouse(false)
                         .build(|| {
                             // TODO: Manage scaling (and font-scaling)
-                            self.render_graph_canvas(ui, dst, addable_nodes, constant_editor);
+                            self.render_graph_canvas(
+                                ui,
+                                dst,
+                                addable_nodes,
+                                addable_macros,
+                                constant_editor,
+                            );
                         });
                 });
             });
@@ -294,6 +302,7 @@ where
         ui: &Ui,
         dst: &DST<'static, T, E>,
         addable_nodes: &[&'static Transform<T, E>],
+        addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
     ) where
         ED: ConstantEditor<T>,
@@ -684,8 +693,15 @@ where
                 ui.pop_id();
             }
             ui.separator();
-            if ui.menu_item(im_str!("Macro")).build() {
+            if ui.menu_item(im_str!("New macro")).build() {
                 self.events.push(RenderEvent::AddNewMacro);
+            }
+            for macr in addable_macros.macros() {
+                ui.with_id(macr.id() as i32, || {
+                    if ui.menu_item(&ImString::new(macr.name())).build() {
+                        self.events.push(RenderEvent::AddMacro(macr.clone()));
+                    }
+                });
             }
             ui.separator();
             if ui.menu_item(im_str!("Output node")).build() {

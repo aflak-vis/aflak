@@ -1,6 +1,6 @@
 use std::fmt;
 
-use cake::{InputSlot, NodeId, Output, Transform, TransformIdx};
+use cake::{macros, InputSlot, NodeId, Output, Transform, TransformIdx};
 
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
@@ -17,6 +17,7 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     Import,
     Export,
     AddNewMacro,
+    AddMacro(macros::MacroHandle<'static, T, E>),
     EditNode(NodeId),
 }
 
@@ -40,6 +41,7 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             Import => write!(f, "Import"),
             Export => write!(f, "Export"),
             AddNewMacro => write!(f, "AddNewMacro"),
+            AddMacro(handle) => write!(f, "AddMacro(id={}, name={:?})", handle.id(), handle.name()),
             EditNode(node_id) => write!(f, "EditNode({:?})", node_id),
         }
     }
@@ -63,6 +65,7 @@ pub trait ApplyRenderEvent<T, E> {
             Import => self.import(),
             Export => self.export(),
             AddNewMacro => self.add_new_macro(),
+            AddMacro(handle) => self.add_macro(handle),
             EditNode(node_id) => self.edit_node(node_id),
         }
     }
@@ -77,5 +80,6 @@ pub trait ApplyRenderEvent<T, E> {
     fn import(&mut self);
     fn export(&mut self);
     fn add_new_macro(&mut self);
+    fn add_macro(&mut self, handle: macros::MacroHandle<'static, T, E>);
     fn edit_node(&mut self, node: NodeId);
 }

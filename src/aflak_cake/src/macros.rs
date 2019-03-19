@@ -303,6 +303,10 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     {
         SerdeMacroManager::from(self)
     }
+
+    pub fn macros(&self) -> impl Iterator<Item = &MacroHandle<'t, T, E>> {
+        self.macros.values()
+    }
 }
 
 impl<T, E> MacroManager<'static, T, E> {
