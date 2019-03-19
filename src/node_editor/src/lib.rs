@@ -174,9 +174,9 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        let events = self
-            .layout
-            .render(ui, &self.dst, addable_nodes, constant_editor);
+        let events =
+            self.layout
+                .render(ui, &self.dst, addable_nodes, &self.macros, constant_editor);
         for event in events {
             self.apply_event(event);
         }
@@ -233,6 +233,7 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
+        let macros = &self.macros;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             ui.window(&imgui::ImString::new(format!(
                 "Macro editor: '{}'###{}",
@@ -245,7 +246,7 @@ where
                     let dst = lock.dst();
                     node_edit
                         .layout
-                        .render(ui, dst, addable_nodes, constant_editor)
+                        .render(ui, dst, addable_nodes, macros, constant_editor)
                 };
                 for event in events {
                     node_edit.apply_event(event);
@@ -327,6 +328,10 @@ where
             self.macros.create_macro().clone(),
         ));
     }
+    fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
+        self.dst
+            .add_owned_transform(cake::Transform::from_macro(handle));
+    }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         if let cake::NodeId::Transform(t_idx) = node_id {
             if let Some(t) = self.dst.get_transform(t_idx) {
@@ -394,6 +399,13 @@ where
     }
     fn add_new_macro(&mut self) {
         eprintln!("Nested macro not supported!");
+    }
+    fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
+        // FIXME: Prevent recursive macros
+        self.handle
+            .write()
+            .dst_mut()
+            .add_owned_transform(cake::Transform::from_macro(handle));
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         eprintln!("Unimplemented event: EditNode({:?})", node_id)
