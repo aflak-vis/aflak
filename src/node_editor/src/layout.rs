@@ -746,10 +746,37 @@ where
         let mut title_bar_height = 0.0;
         let p = ui.get_cursor_screen_pos();
 
+        fn get_macro_handle<'a, 't, T, E>(
+            dst: &'a DST<'t, T, E>,
+            id: cake::NodeId,
+        ) -> Option<&'a cake::macros::MacroHandle<'t, T, E>> {
+            if let cake::NodeId::Transform(t_idx) = id {
+                if let Some(t) = dst.get_transform(t_idx) {
+                    if let cake::Algorithm::Macro { handle } = t.algorithm() {
+                        return Some(handle);
+                    }
+                }
+            }
+            None
+        }
+
         ui.group(|| {
             let default_text_color = ui.imgui().style().colors[ImGuiCol::Text as usize];
             ui.with_color_var(ImGuiCol::Text, default_text_color, || {
-                ui.text(&node_name);
+                if let Some(handle) = get_macro_handle(dst, *id) {
+                    // Allow to change macro name
+                    ui.text(format!("#{}", id.id()));
+                    ui.same_line(0.0);
+                    let mut out = ImString::with_capacity(1024);
+                    out.push_str(&handle.name());
+                    let changed = ui.input_text(im_str!(""), &mut out).build();
+                    if changed {
+                        *handle.name_mut() = out.to_str().to_owned();
+                    }
+                } else {
+                    // Show node name
+                    ui.text(&node_name);
+                }
                 title_bar_height = ui.get_item_rect_size().1;
                 if ui.is_item_hovered() {
                     ui.tooltip(|| ui.text(description));
