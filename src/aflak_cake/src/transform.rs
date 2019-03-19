@@ -315,8 +315,8 @@ where
     T: VariantName + ConvertibleVariants,
 {
     /// Feed next argument to transformation. Expect a reference as input.
-    /// Panic if expected type is not provided or if too many arguments are supplied.
-    pub fn feed(&mut self, input: &'i T) {
+    /// Panic if too many arguments are supplied.
+    pub fn feed(&mut self, input: &'i T) -> Result<(), ArgumentError> {
         let expected_type = self
             .expected_input_types
             .next()
@@ -325,8 +325,27 @@ where
         let input_type = input.variant_name();
         if let Some(converted_input) = T::convert(input_type, expected_type, input) {
             self.input.push(converted_input);
+            Ok(())
         } else {
-            panic!("Cannot convert '{}' to '{}'", input_type, expected_type)
+            Err(ArgumentError::ConversionError {
+                from: TypeId(input_type),
+                to: TypeId(expected_type),
+            })
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum ArgumentError {
+    ConversionError { from: TypeId, to: TypeId },
+}
+
+impl fmt::Display for ArgumentError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ArgumentError::ConversionError { from, to } => {
+                write!(f, "Cannot convert '{}' to '{}'", from.name(), to.name())
+            }
         }
     }
 }

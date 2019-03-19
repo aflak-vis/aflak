@@ -13,7 +13,7 @@ use cache::{Cache, CacheRef};
 use dst::{Input, Output, OutputId, TransformIdx, DST};
 use future::Task;
 use timed::Timed;
-use transform::CallError;
+use transform::{ArgumentError, CallError};
 use variant_name::VariantName;
 
 /// The successful result of a computation.
@@ -51,6 +51,14 @@ pub enum ComputeError<E> {
     /// the calculation to abort.
     RuntimeError {
         cause: E,
+        /// Where the error occurred.
+        t_idx: TransformIdx,
+        /// Name of function where error occurred.
+        t_name: Cow<'static, str>,
+    },
+    /// Error on passing arguments to transformation
+    ArgumentError {
+        cause: ArgumentError,
         /// Where the error occurred.
         t_idx: TransformIdx,
         /// Name of function where error occurred.
@@ -95,6 +103,11 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 output
             ),
             RuntimeError {
+                cause,
+                t_idx,
+                t_name,
+            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
+            ArgumentError {
                 cause,
                 t_idx,
                 t_name,
@@ -211,7 +224,16 @@ where
             let mut op = t.start();
             for result in &results {
                 match result {
-                    Ok(ok) => op.feed(&**ok),
+                    Ok(ok) => {
+                        if let Err(e) = op.feed(&**ok) {
+                            let runtime_error = ComputeError::ArgumentError {
+                                cause: e,
+                                t_idx,
+                                t_name: t.name(),
+                            };
+                            return vec![Err(Arc::new(runtime_error)); output_count];
+                        }
+                    }
                     Err(e) => {
                         let error_stack = ComputeError::ErrorStack {
                             cause: e.clone(),
@@ -342,7 +364,16 @@ where
         let mut op = t.start();
         for result in &results {
             match result {
-                Ok(ok) => op.feed(ok),
+                Ok(ok) => {
+                    if let Err(e) = op.feed(ok) {
+                        let runtime_error = ComputeError::ArgumentError {
+                            cause: e,
+                            t_idx,
+                            t_name: t.name(),
+                        };
+                        return Err(Arc::new(runtime_error));
+                    }
+                }
                 Err(e) => {
                     let error_stack = ComputeError::ErrorStack {
                         cause: e.clone(),
