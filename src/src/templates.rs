@@ -118,6 +118,8 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
     ],
     scrolling: (-818, -667),
+    nodes_edit: [
+    ],
 )
     "#,
         path
@@ -438,6 +440,8 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
     ],
     scrolling: (-578, -819),
+    nodes_edit: [
+    ],
 )
         "#,
         path
@@ -601,6 +605,8 @@ pub fn show_velocity_field<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
     ],
     scrolling: (-788, -596),
+    nodes_edit: [
+    ],
 )
         "#,
         path
@@ -790,6 +796,8 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
         )),
     ],
     scrolling: (-818, -667),
+    nodes_edit: [
+    ],
 )
         "#,
         path
