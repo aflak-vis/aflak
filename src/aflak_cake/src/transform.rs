@@ -61,7 +61,7 @@ pub struct Version {
     pub patch: u8,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TransformInputSlot<T> {
     pub type_id: TypeId,
     pub default: Option<T>,

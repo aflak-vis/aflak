@@ -53,3 +53,24 @@ fn test_run_macros() {
         .collect();
     assert_eq!(got_outputs, vec![AlgoIO::Integer(2), AlgoIO::Integer(0)]);
 }
+
+#[test]
+fn test_macro_inputs() {
+    let macr = make_macro();
+
+    assert_eq!(
+        macr.inputs(),
+        vec![
+            aflak_cake::TransformInputSlot {
+                type_id: TypeId("Integer"),
+                default: None,
+                name: "Macro input",
+            },
+            aflak_cake::TransformInputSlot {
+                type_id: TypeId("Integer"),
+                default: Some(AlgoIO::Integer(0)),
+                name: "Macro input",
+            },
+        ]
+    )
+}
