@@ -74,3 +74,37 @@ fn test_macro_inputs() {
         ]
     )
 }
+
+#[test]
+fn test_macro_inputs_overwrite_correct_type() {
+    let macr = make_macro();
+    let mut dst = DST::new();
+    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr));
+    {
+        let mut inputs = dst.get_default_inputs_mut(t_idx).unwrap();
+        inputs.write(1, AlgoIO::Integer(2));
+    }
+
+    // Get overwritten input if type aggrees with macro's expected input type
+    assert_eq!(
+        dst.get_default_inputs(t_idx).unwrap().to_owned(),
+        vec![None, Some(AlgoIO::Integer(2))],
+    )
+}
+
+#[test]
+fn test_macro_inputs_overwrite_wrong_type() {
+    let macr = make_macro();
+    let mut dst = DST::new();
+    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr));
+    {
+        let mut inputs = dst.get_default_inputs_mut(t_idx).unwrap();
+        inputs.write(1, AlgoIO::Image2d(vec![]));
+    }
+
+    // Get macro's original input if overwritten input is of incorrect type
+    assert_eq!(
+        dst.get_default_inputs(t_idx).unwrap().to_owned(),
+        vec![None, Some(AlgoIO::Integer(0))],
+    )
+}
