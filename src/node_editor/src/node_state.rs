@@ -54,6 +54,7 @@ impl NodeState {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct NodeStates(BTreeMap<cake::NodeId, NodeState>);
 
 impl NodeStates {
