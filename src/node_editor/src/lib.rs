@@ -343,7 +343,19 @@ where
         if let cake::NodeId::Transform(t_idx) = node_id {
             if let Some(t) = self.dst.get_transform(t_idx) {
                 if let cake::Algorithm::Macro { handle } = t.algorithm() {
-                    self.nodes_edit.push(InnerNodeEditor::new(handle))
+                    let found = if let Some(editor) = self
+                        .nodes_edit
+                        .iter_mut()
+                        .find(|node_edit| &node_edit.handle == handle)
+                    {
+                        editor.opened = true;
+                        true
+                    } else {
+                        false
+                    };
+                    if !found {
+                        self.nodes_edit.push(InnerNodeEditor::new(handle));
+                    }
                 }
             }
         }
