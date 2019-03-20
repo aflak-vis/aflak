@@ -98,7 +98,11 @@ where
     T: Clone,
 {
     pub fn new(t: Bow<'t, Transform<'t, T, E>>) -> Self {
-        let input_defaults = t.defaults();
+        let input_defaults = if let Algorithm::Macro { .. } = t.algorithm() {
+            vec![]
+        } else {
+            t.defaults()
+        };
         Self {
             t,
             input_defaults,
