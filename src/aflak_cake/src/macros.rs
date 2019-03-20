@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ops;
+use std::ptr;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Instant;
 
@@ -20,6 +21,12 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
         Self {
             inner: self.inner.clone(),
         }
+    }
+}
+
+impl<'t, T, E> PartialEq for MacroHandle<'t, T, E> {
+    fn eq(&self, other: &MacroHandle<'t, T, E>) -> bool {
+        ptr::eq(self.inner.as_ref(), other.inner.as_ref())
     }
 }
 
