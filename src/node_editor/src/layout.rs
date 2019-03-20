@@ -746,7 +746,7 @@ where
                 }
                 let outputs = dst.outputs_attached_to_transform(t_idx).unwrap();
                 if let Some(default_inputs) = dst.get_default_inputs(t_idx) {
-                    for (i, (mut default_input, some_output)) in
+                    for (i, (default_input, some_output)) in
                         default_inputs.into_iter().zip(outputs).enumerate()
                     {
                         let read_only = some_output.is_some();
