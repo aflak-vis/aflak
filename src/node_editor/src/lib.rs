@@ -45,6 +45,7 @@ pub struct NodeEditor<T: 'static, E: 'static> {
 struct InnerNodeEditor<T: 'static, E: 'static> {
     handle: cake::macros::MacroHandle<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
+    opened: bool,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -52,6 +53,7 @@ impl<T, E> InnerNodeEditor<T, E> {
         Self {
             handle: handle.clone(),
             layout: Default::default(),
+            opened: true,
         }
     }
 }
@@ -235,23 +237,28 @@ where
     {
         let macros = &self.macros;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
-            ui.window(&imgui::ImString::new(format!(
-                "Macro editor: '{}'###{}",
-                node_edit.handle.name(),
-                i,
-            )))
-            .build(|| {
-                let events = {
-                    let lock = node_edit.handle.read();
-                    let dst = lock.dst();
-                    node_edit
-                        .layout
-                        .render(ui, dst, addable_nodes, macros, constant_editor)
-                };
-                for event in events {
-                    node_edit.apply_event(event);
-                }
-            })
+            let mut opened = node_edit.opened;
+            if opened {
+                ui.window(&imgui::ImString::new(format!(
+                    "Macro editor: '{}'###{}",
+                    node_edit.handle.name(),
+                    i,
+                )))
+                .opened(&mut opened)
+                .build(|| {
+                    let events = {
+                        let lock = node_edit.handle.read();
+                        let dst = lock.dst();
+                        node_edit
+                            .layout
+                            .render(ui, dst, addable_nodes, macros, constant_editor)
+                    };
+                    for event in events {
+                        node_edit.apply_event(event);
+                    }
+                });
+                node_edit.opened = opened;
+            }
         }
     }
 }
