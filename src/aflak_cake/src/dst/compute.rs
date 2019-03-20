@@ -322,7 +322,7 @@ where
         }
     }
 
-    pub fn _compute_sync(
+    fn _compute_sync(
         &self,
         output: Output,
         cache: &mut collections::HashMap<Output, Result<T, Arc<ComputeError<E>>>>,
