@@ -465,6 +465,8 @@ struct SerialEditor<'e, T: 'e> {
     dst: cake::SerialDST<'e, T>,
     node_states: Vec<(&'e cake::NodeId, &'e node_state::NodeState)>,
     scrolling: vec2::Vec2,
+
+    nodes_edit: Vec<SerialInnerEditor>,
 }
 
 impl<'e, T> SerialEditor<'e, T>
@@ -477,6 +479,11 @@ where
             node_states: editor.layout.node_states().iter().collect(),
             scrolling: editor.layout.scrolling().get_current(),
             macros: editor.macros.to_serializable(),
+            nodes_edit: editor
+                .nodes_edit
+                .iter()
+                .map(SerialInnerEditor::new)
+                .collect(),
         }
     }
 }
@@ -488,6 +495,8 @@ struct DeserEditor<T> {
     dst: cake::DeserDST<T>,
     node_states: Vec<(cake::NodeId, node_state::NodeState)>,
     scrolling: vec2::Vec2,
+
+    nodes_edit: Vec<SerialInnerEditor>,
 }
 
 impl<T, E> NodeEditor<T, E>
@@ -525,8 +534,12 @@ where
         self.output_results = collections::BTreeMap::new();
         self.cache = cake::Cache::new();
 
-        // Close macro editing windows
-        self.nodes_edit = vec![];
+        // Load macro editing windows
+        let mut nodes_edit = Vec::with_capacity(deserialized.nodes_edit.len());
+        for node_edit in deserialized.nodes_edit {
+            nodes_edit.push(node_edit.into_inner_node_editor(&self.macros)?);
+        }
+        self.nodes_edit = nodes_edit;
 
         Ok(())
     }
@@ -566,6 +579,56 @@ impl<T, E> Default for NodeEditor<T, E> {
             error_stack: vec![],
             success_stack: vec![],
             nodes_edit: vec![],
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct SerialInnerEditor {
+    macro_id: usize,
+    node_states: Vec<(cake::NodeId, node_state::NodeState)>,
+    scrolling: vec2::Vec2,
+}
+
+impl SerialInnerEditor {
+    fn new<T, E>(editor: &InnerNodeEditor<T, E>) -> Self {
+        Self {
+            macro_id: editor.handle.id(),
+            node_states: editor
+                .layout
+                .node_states()
+                .iter()
+                .map(|(id, state)| (*id, state.clone()))
+                .collect(),
+            scrolling: editor.layout.scrolling().get_current(),
+        }
+    }
+
+    fn into_inner_node_editor<T, E>(
+        self,
+        manager: &cake::macros::MacroManager<'static, T, E>,
+    ) -> Result<InnerNodeEditor<T, E>, export::ImportError> {
+        if let Some(handle) = manager.get_macro(self.macro_id) {
+            let mut layout = NodeEditorLayout::default();
+            let node_states = {
+                let mut node_states = node_state::NodeStates::new();
+                for (node_id, state) in self.node_states {
+                    node_states.insert(node_id, state);
+                }
+                node_states
+            };
+            let scrolling = scrolling::Scrolling::new(self.scrolling);
+            layout.import(node_states, scrolling);
+            Ok(InnerNodeEditor {
+                handle: handle.clone(),
+                layout,
+                opened: false,
+                focus: false,
+            })
+        } else {
+            Err(export::ImportError::DSTError(
+                cake::ImportError::MacroNotFound(self.macro_id),
+            ))
         }
     }
 }
