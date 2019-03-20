@@ -226,7 +226,7 @@ struct DeserMetaTransform<T> {
 impl<T> DeserDST<T> {
     pub fn from_dst<'t, E>(dst: &DST<'t, T, E>) -> Self
     where
-        T: Clone,
+        T: Clone + VariantName,
     {
         Self {
             transforms: dst
