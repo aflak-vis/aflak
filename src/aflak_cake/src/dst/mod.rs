@@ -5,7 +5,7 @@ use std::error::Error;
 use std::fmt;
 use std::time::Instant;
 
-use transform::Transform;
+use transform::{Algorithm, Transform};
 use variant_name::VariantName;
 
 mod build;
@@ -123,8 +123,34 @@ impl<'t, T, E> MetaTransform<'t, T, E> {
         self.t.as_ref()
     }
 
-    pub fn defaults(&self) -> &[Option<T>] {
-        &self.input_defaults
+    pub fn defaults(&self) -> ::std::borrow::Cow<'_, [Option<T>]>
+    where
+        T: Clone + VariantName,
+    {
+        if let Algorithm::Macro { handle } = self.t.algorithm() {
+            let macro_defaults = handle.defaults();
+            let mut defaults = Vec::with_capacity(macro_defaults.len());
+            for (i, macro_default) in macro_defaults.into_iter().enumerate() {
+                if let Some(some_input_default) = self.input_defaults.get(i) {
+                    match (some_input_default.as_ref(), macro_default) {
+                        (Some(input_default), Some(macro_default)) => {
+                            if input_default.variant_name() == macro_default.variant_name() {
+                                // Keep input default
+                                defaults.push(Some(input_default.clone()));
+                            } else {
+                                defaults.push(Some(macro_default));
+                            }
+                        }
+                        (_, some_macro_default) => defaults.push(some_macro_default),
+                    }
+                } else {
+                    defaults.push(macro_default)
+                }
+            }
+            ::std::borrow::Cow::Owned(defaults)
+        } else {
+            ::std::borrow::Cow::Borrowed(&self.input_defaults)
+        }
     }
 
     pub fn transform_mut(&mut self) -> Option<&mut Transform<'t, T, E>> {
@@ -154,6 +180,9 @@ pub struct InputDefaultsMut<'a, 't: 'a, T: 'a + 't, E: 'a + 't> {
 
 impl<'a, 't, T, E> InputDefaultsMut<'a, 't, T, E> {
     pub fn write(&mut self, index: usize, value: T) {
+        while self.t.input_defaults.len() <= index {
+            self.t.input_defaults.push(None);
+        }
         self.t.input_defaults[index] = Some(value);
         self.t.updated_on = Instant::now();
     }
