@@ -120,7 +120,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
 
     pub fn write(&self) -> MacroMut<'_, 't, T, E>
     where
-        T: Clone,
+        T: Clone + VariantName,
     {
         MacroMut {
             inner: self.inner.write().unwrap(),
@@ -194,7 +194,7 @@ impl<'t, T, E> Macro<'t, T, E> {
 
     fn find_default_inputs(dst: &DST<'t, T, E>) -> Vec<MacroInput<T>>
     where
-        T: Clone,
+        T: Clone + VariantName,
     {
         let mut inputs = vec![];
         for input_slot in dst.unattached_input_slots() {
@@ -205,12 +205,17 @@ impl<'t, T, E> Macro<'t, T, E> {
                     default: None,
                 },
                 InputSlot::Transform(input) => {
-                    let t = dst.get_transform(input.t_idx).expect("Get transform");
-                    let t_input = &t.inputs()[input.index()];
+                    let defaults = dst.get_default_inputs(input.t_idx).expect("Get transform");
+                    let types = dst
+                        .get_transform(input.t_idx)
+                        .expect("Get transform")
+                        .input_types();
+                    let default = &defaults[input.index()];
+                    let type_id = types[input.index()];
                     MacroInput {
                         slot: input_slot,
-                        type_id: Some(t_input.type_id),
-                        default: t_input.default.clone(),
+                        type_id: Some(type_id),
+                        default: default.clone(),
                     }
                 }
             };
@@ -246,12 +251,12 @@ impl<'t, T, E> Macro<'t, T, E> {
     }
 }
 
-pub struct MacroMut<'a, 't: 'a, T: 't + Clone, E: 't> {
+pub struct MacroMut<'a, 't: 'a, T: 't + Clone + VariantName, E: 't> {
     inner: RwLockWriteGuard<'a, Macro<'t, T, E>>,
     changed: bool,
 }
 
-impl<'a, 't, T: Clone, E> Drop for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone + VariantName, E> Drop for MacroMut<'a, 't, T, E> {
     fn drop(&mut self) {
         if self.changed {
             self.inner.updated_on = Instant::now();
@@ -260,14 +265,14 @@ impl<'a, 't, T: Clone, E> Drop for MacroMut<'a, 't, T, E> {
     }
 }
 
-impl<'a, 't, T: Clone, E> ops::Deref for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone + VariantName, E> ops::Deref for MacroMut<'a, 't, T, E> {
     type Target = Macro<'t, T, E>;
     fn deref(&self) -> &Self::Target {
         self.inner.deref()
     }
 }
 
-impl<'a, 't, T: Clone, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
+impl<'a, 't, T: Clone + VariantName, E> ops::DerefMut for MacroMut<'a, 't, T, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.changed = true;
         self.inner.deref_mut()
@@ -310,7 +315,7 @@ impl<'t, T, E> MacroManager<'t, T, E> {
 
     pub fn create_macro(&mut self) -> &MacroHandle<'t, T, E>
     where
-        T: Clone,
+        T: Clone + VariantName,
     {
         self.cnt += 1;
         let dst = DST::new();
