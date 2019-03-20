@@ -46,6 +46,7 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
     handle: cake::macros::MacroHandle<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
     opened: bool,
+    focus: bool,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -54,6 +55,7 @@ impl<T, E> InnerNodeEditor<T, E> {
             handle: handle.clone(),
             layout: Default::default(),
             opened: true,
+            focus: true,
         }
     }
 }
@@ -239,6 +241,10 @@ where
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
             if opened {
+                if node_edit.focus {
+                    unsafe { imgui::sys::igSetNextWindowFocus() };
+                    node_edit.focus = false;
+                }
                 ui.window(&imgui::ImString::new(format!(
                     "Macro editor: '{}'###{}",
                     node_edit.handle.name(),
@@ -349,6 +355,7 @@ where
                         .find(|node_edit| &node_edit.handle == handle)
                     {
                         editor.opened = true;
+                        editor.focus = true;
                         true
                     } else {
                         false
