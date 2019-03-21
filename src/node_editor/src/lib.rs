@@ -237,6 +237,8 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
+        const MACRO_WINDOW_DEFAULT_SIZE: (f32, f32) = (900.0, 600.0);
+
         let macros = &self.macros;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
@@ -250,6 +252,7 @@ where
                     node_edit.handle.name(),
                     i,
                 )))
+                .size(MACRO_WINDOW_DEFAULT_SIZE, imgui::ImGuiCond::FirstUseEver)
                 .opened(&mut opened)
                 .build(|| {
                     let events = {
