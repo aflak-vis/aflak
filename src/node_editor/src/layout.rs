@@ -693,7 +693,7 @@ where
                 ui.pop_id();
             }
             ui.separator();
-            if ui.menu_item(im_str!("New macro")).build() {
+            if ui.menu_item(im_str!("Create new macro")).build() {
                 self.events.push(RenderEvent::AddNewMacro);
             }
             for macr in addable_macros.macros() {
