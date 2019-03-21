@@ -40,6 +40,7 @@ pub struct Macro<'t, T: 't, E: 't> {
 
 #[derive(Clone)]
 struct MacroInput<T> {
+    name: &'static str,
     slot: InputSlot,
     type_id: Option<TypeId>,
     default: Option<T>,
@@ -156,10 +157,9 @@ impl<'t, T, E> Macro<'t, T, E> {
         self.inputs
             .iter()
             .map(|input| TransformInputSlot {
-                // TODO
                 type_id: input.type_id.unwrap_or(TypeId("No type")),
                 default: input.default.clone(),
-                name: "Macro input",
+                name: input.name,
             })
             .collect()
     }
@@ -200,21 +200,23 @@ impl<'t, T, E> Macro<'t, T, E> {
         for input_slot in dst.unattached_input_slots() {
             let input = match input_slot {
                 InputSlot::Output(_) => MacroInput {
+                    name: "Out",
                     slot: input_slot,
                     type_id: None,
                     default: None,
                 },
                 InputSlot::Transform(input) => {
                     let defaults = dst.get_default_inputs(input.t_idx).expect("Get transform");
-                    let types = dst
+                    let t_inputs = dst
                         .get_transform(input.t_idx)
                         .expect("Get transform")
-                        .input_types();
+                        .inputs();
                     let default = &defaults[input.index()];
-                    let type_id = types[input.index()];
+                    let t_input = &t_inputs[input.index()];
                     MacroInput {
+                        name: t_input.name,
                         slot: input_slot,
-                        type_id: Some(type_id),
+                        type_id: Some(t_input.type_id),
                         default: default.clone(),
                     }
                 }
@@ -474,6 +476,7 @@ where
             None
         };
         Ok(MacroInput {
+            name: "<unset>",
             slot: self.slot,
             type_id,
             default: self.default,
