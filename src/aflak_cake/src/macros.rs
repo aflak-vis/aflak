@@ -380,15 +380,7 @@ where
 struct SerdeMacro<T> {
     id: usize,
     name: String,
-    inputs: Vec<SerdeMacroInput<T>>,
     dst: DeserDST<T>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct SerdeMacroInput<T> {
-    slot: InputSlot,
-    type_id: Option<String>,
-    default: Option<T>,
 }
 
 impl<'t, 'd, T, E> From<&'d Macro<'t, T, E>> for SerdeMacro<T>
@@ -399,7 +391,6 @@ where
         Self {
             id: macr.id,
             name: macr.name.clone(),
-            inputs: macr.inputs.iter().map(SerdeMacroInput::from).collect(),
             dst: DeserDST::from_dst(&macr.dst),
         }
     }
@@ -416,14 +407,10 @@ impl<T> SerdeMacro<T> {
         // TODO: Deal with nested macros
         let id = self.id;
         let name = self.name;
-        let mut inputs = Vec::with_capacity(self.inputs.len());
-        for input in self.inputs {
-            inputs.push(input.into_macro_input()?);
-        }
         self.dst.into_dst(macro_manager).map(move |dst| Macro {
             id,
             name,
-            inputs,
+            inputs: Macro::find_default_inputs(&dst),
             dst,
             updated_on: Instant::now(),
         })
@@ -455,44 +442,5 @@ impl<T> SerdeMacroManager<T> {
             );
         }
         Ok(MacroManager { cnt, macros })
-    }
-}
-
-impl<T> SerdeMacroInput<T>
-where
-    T: VariantName,
-{
-    fn into_macro_input(self) -> Result<MacroInput<T>, ImportError> {
-        let type_id = if let Some(variant_name) = self.type_id {
-            let some_type_id = T::variant_names()
-                .iter()
-                .find(|name| **name == variant_name);
-            if let Some(type_id) = some_type_id {
-                Some(TypeId(type_id))
-            } else {
-                return Err(ImportError::UnexpectedType(variant_name));
-            }
-        } else {
-            None
-        };
-        Ok(MacroInput {
-            name: "<unset>",
-            slot: self.slot,
-            type_id,
-            default: self.default,
-        })
-    }
-}
-
-impl<'a, T> From<&'a MacroInput<T>> for SerdeMacroInput<T>
-where
-    T: Clone,
-{
-    fn from(input: &'a MacroInput<T>) -> Self {
-        Self {
-            slot: input.slot,
-            type_id: input.type_id.map(|type_id| type_id.name().to_owned()),
-            default: input.default.clone(),
-        }
     }
 }
