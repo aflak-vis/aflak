@@ -696,7 +696,14 @@ where
             if ui.menu_item(im_str!("Create new macro")).build() {
                 self.events.push(RenderEvent::AddNewMacro);
             }
+
+            let mut macro_list_started = false;
             for macr in addable_macros.macros() {
+                if !macro_list_started {
+                    ui.separator();
+                    ui.text("Add macro node");
+                    macro_list_started = true;
+                }
                 ui.with_id(macr.id() as i32, || {
                     if ui.menu_item(&ImString::new(macr.name())).build() {
                         self.events.push(RenderEvent::AddMacro(macr.clone()));
