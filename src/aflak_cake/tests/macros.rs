@@ -64,12 +64,12 @@ fn test_macro_inputs() {
             aflak_cake::TransformInputSlot {
                 type_id: TypeId("Integer"),
                 default: None,
-                name: "Macro input",
+                name: "i",
             },
             aflak_cake::TransformInputSlot {
                 type_id: TypeId("Integer"),
                 default: Some(AlgoIO::Integer(0)),
-                name: "Macro input",
+                name: "i",
             },
         ]
     )
