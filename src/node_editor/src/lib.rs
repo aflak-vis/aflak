@@ -187,7 +187,9 @@ where
         for event in events {
             self.apply_event(event);
         }
+    }
 
+    pub fn render_popups(&mut self, ui: &imgui::Ui) {
         self.render_error_popup(ui);
         self.render_success_popup(ui);
     }
