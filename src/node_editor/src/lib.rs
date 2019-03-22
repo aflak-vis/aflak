@@ -446,11 +446,17 @@ where
         unreachable!("Macro can only be created in NodeEditor's context!");
     }
     fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
-        // FIXME: Prevent recursive macros
-        self.handle
-            .write()
-            .dst_mut()
-            .add_owned_transform(cake::Transform::from_macro(handle));
+        // FIXME: Prevent non-trivial recursive macros
+        if self.handle == handle {
+            self.error_stack.push(InnerEditorError::SelfDefiningMacro {
+                name: self.handle.name(),
+            });
+        } else {
+            self.handle
+                .write()
+                .dst_mut()
+                .add_owned_transform(cake::Transform::from_macro(handle));
+        }
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         eprintln!("Unimplemented event: EditNode({:?})", node_id)
@@ -460,6 +466,7 @@ where
 #[derive(Debug)]
 enum InnerEditorError {
     IncorrectNodeConnection(cake::DSTError),
+    SelfDefiningMacro { name: String },
 }
 
 impl fmt::Display for InnerEditorError {
@@ -467,6 +474,7 @@ impl fmt::Display for InnerEditorError {
         use InnerEditorError::*;
         match self {
             IncorrectNodeConnection(e) => write!(f, "{}", e),
+            SelfDefiningMacro { name } => write!(f, "Cannot re-use macro '{}' in itself!", name),
         }
     }
 }
