@@ -244,7 +244,7 @@ where
     {
         const MACRO_WINDOW_DEFAULT_SIZE: (f32, f32) = (900.0, 600.0);
 
-        let macros = &self.macros;
+        let macros = &mut self.macros;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
             if opened {
@@ -268,7 +268,13 @@ where
                             .render(ui, dst, addable_nodes, macros, constant_editor)
                     };
                     for event in events {
-                        node_edit.apply_event(event);
+                        if let event::RenderEvent::AddNewMacro = event {
+                            node_edit.handle.write().dst_mut().add_owned_transform(
+                                cake::Transform::from_macro(macros.create_macro().clone()),
+                            );
+                        } else {
+                            node_edit.apply_event(event);
+                        }
                     }
                 });
                 node_edit.opened = opened;
@@ -434,7 +440,7 @@ where
         eprintln!("Export unsupported in MacroEditor!");
     }
     fn add_new_macro(&mut self) {
-        eprintln!("Nested macro not supported!");
+        unreachable!("Macro can only be created in NodeEditor's context!");
     }
     fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
         // FIXME: Prevent recursive macros
