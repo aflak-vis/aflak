@@ -388,7 +388,7 @@ where
             cake::InputSlot::Transform(input) => {
                 if let Err(e) = dst.connect(output, input) {
                     eprintln!("Cannot connect in macro: {:?}", e);
-                    // TODO: Error stack
+                    self.error_stack.push(Box::new(e));
                 }
             }
             cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
