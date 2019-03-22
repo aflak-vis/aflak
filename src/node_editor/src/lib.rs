@@ -47,6 +47,8 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
     layout: NodeEditorLayout<T, E>,
     opened: bool,
     focus: bool,
+
+    error_stack: Vec<Box<error::Error>>,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -56,6 +58,7 @@ impl<T, E> InnerNodeEditor<T, E> {
             layout: Default::default(),
             opened: true,
             focus: true,
+            error_stack: vec![],
         }
     }
 }
@@ -268,6 +271,8 @@ where
                 });
                 node_edit.opened = opened;
             }
+
+            self.error_stack.extend(node_edit.error_stack.drain(..));
         }
     }
 }
@@ -627,6 +632,7 @@ impl SerialInnerEditor {
                 layout,
                 opened: false,
                 focus: false,
+                error_stack: vec![],
             })
         } else {
             Err(export::ImportError::DSTError(
