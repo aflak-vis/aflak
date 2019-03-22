@@ -52,9 +52,9 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
-    fn new(handle: &cake::macros::MacroHandle<'static, T, E>) -> Self {
+    fn new(handle: cake::macros::MacroHandle<'static, T, E>) -> Self {
         Self {
-            handle: handle.clone(),
+            handle,
             layout: Default::default(),
             opened: true,
             focus: true,
@@ -244,6 +244,7 @@ where
     {
         const MACRO_WINDOW_DEFAULT_SIZE: (f32, f32) = (900.0, 600.0);
 
+        let mut macros_to_edit = vec![];
         let macros = &mut self.macros;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
@@ -272,6 +273,15 @@ where
                             node_edit.handle.write().dst_mut().add_owned_transform(
                                 cake::Transform::from_macro(macros.create_macro().clone()),
                             );
+                        } else if let event::RenderEvent::EditNode(node_id) = event {
+                            if let cake::NodeId::Transform(t_idx) = node_id {
+                                if let Some(t) = node_edit.handle.read().dst().get_transform(t_idx)
+                                {
+                                    if let cake::Algorithm::Macro { handle } = t.algorithm() {
+                                        macros_to_edit.push(handle.clone());
+                                    }
+                                }
+                            }
                         } else {
                             node_edit.apply_event(event);
                         }
@@ -284,6 +294,29 @@ where
                 self.error_stack.push(Box::new(error));
             }
         }
+
+        for handle in macros_to_edit {
+            open_macro_editor(&mut self.nodes_edit, handle);
+        }
+    }
+}
+
+fn open_macro_editor<T, E>(
+    nodes_edit: &mut Vec<InnerNodeEditor<T, E>>,
+    handle: cake::macros::MacroHandle<'static, T, E>,
+) {
+    let found = if let Some(editor) = nodes_edit
+        .iter_mut()
+        .find(|node_edit| node_edit.handle == handle)
+    {
+        editor.opened = true;
+        editor.focus = true;
+        true
+    } else {
+        false
+    };
+    if !found {
+        nodes_edit.push(InnerNodeEditor::new(handle));
     }
 }
 
@@ -367,20 +400,7 @@ where
         if let cake::NodeId::Transform(t_idx) = node_id {
             if let Some(t) = self.dst.get_transform(t_idx) {
                 if let cake::Algorithm::Macro { handle } = t.algorithm() {
-                    let found = if let Some(editor) = self
-                        .nodes_edit
-                        .iter_mut()
-                        .find(|node_edit| &node_edit.handle == handle)
-                    {
-                        editor.opened = true;
-                        editor.focus = true;
-                        true
-                    } else {
-                        false
-                    };
-                    if !found {
-                        self.nodes_edit.push(InnerNodeEditor::new(handle));
-                    }
+                    open_macro_editor(&mut self.nodes_edit, handle.clone());
                 }
             }
         }
@@ -458,8 +478,8 @@ where
                 .add_owned_transform(cake::Transform::from_macro(handle));
         }
     }
-    fn edit_node(&mut self, node_id: cake::NodeId) {
-        eprintln!("Unimplemented event: EditNode({:?})", node_id)
+    fn edit_node(&mut self, _: cake::NodeId) {
+        unreachable!("Macro can only be edited in NodeEditor's context!");
     }
 }
 
