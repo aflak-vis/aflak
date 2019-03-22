@@ -20,7 +20,7 @@ mod node_state;
 mod scrolling;
 mod vec2;
 
-use std::{collections, error, fs, io, path};
+use std::{collections, error, fmt, fs, io, path};
 
 use cake::Future;
 use imgui::ImString;
@@ -48,7 +48,7 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
     opened: bool,
     focus: bool,
 
-    error_stack: Vec<Box<error::Error>>,
+    error_stack: Vec<InnerEditorError>,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -280,7 +280,9 @@ where
                 node_edit.opened = opened;
             }
 
-            self.error_stack.extend(node_edit.error_stack.drain(..));
+            for error in node_edit.error_stack.drain(..) {
+                self.error_stack.push(Box::new(error));
+            }
         }
     }
 }
@@ -396,7 +398,8 @@ where
             cake::InputSlot::Transform(input) => {
                 if let Err(e) = dst.connect(output, input) {
                     eprintln!("Cannot connect in macro: {:?}", e);
-                    self.error_stack.push(Box::new(e));
+                    self.error_stack
+                        .push(InnerEditorError::IncorrectNodeConnection(e));
                 }
             }
             cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
@@ -453,6 +456,22 @@ where
         eprintln!("Unimplemented event: EditNode({:?})", node_id)
     }
 }
+
+#[derive(Debug)]
+enum InnerEditorError {
+    IncorrectNodeConnection(cake::DSTError),
+}
+
+impl fmt::Display for InnerEditorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use InnerEditorError::*;
+        match self {
+            IncorrectNodeConnection(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl error::Error for InnerEditorError {}
 
 impl<T, E> NodeEditor<T, E>
 where
