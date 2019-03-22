@@ -81,3 +81,9 @@ cargo run --release -- -f <FITS_FILE>
 ## Contributing, bug report, feature request
 
 Please read [the contribution guide](./CONTRIBUTING.md).
+
+## [Newsletter](https://mailchi.mp/c94954601fe9/aflak-newsletter-subscription)
+
+Please fill your e-mail address on [this
+link](https://mailchi.mp/c94954601fe9/aflak-newsletter-subscription) to
+subscribe to aflak's monthly newsletter and follow aflak's development.
