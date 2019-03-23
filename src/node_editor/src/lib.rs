@@ -465,9 +465,16 @@ where
         ))
     }
     fn export(&mut self) {
-        self.error_stack.push(InnerEditorError::Unimplemented(
-            "Export unsupported in MacroEditor!",
-        ))
+        let file_name = format!("{}.macro", self.handle.name());
+        if let Err(e) = self.export_to_file(&file_name) {
+            eprintln!("Error on export! {}", e);
+            self.error_stack.push(InnerEditorError::ExportError(e));
+        } else {
+            self.success_stack.push(ImString::new(format!(
+                "Macro content was exported with success to '{}'!",
+                file_name
+            )));
+        }
     }
     fn add_new_macro(&mut self) {
         unreachable!("Macro can only be created in NodeEditor's context!");
@@ -494,6 +501,7 @@ where
 enum InnerEditorError {
     IncorrectNodeConnection(cake::DSTError),
     SelfDefiningMacro { name: String },
+    ExportError(export::ExportError),
     Unimplemented(&'static str),
 }
 
@@ -503,6 +511,7 @@ impl fmt::Display for InnerEditorError {
         match self {
             IncorrectNodeConnection(e) => write!(f, "{}", e),
             SelfDefiningMacro { name } => write!(f, "Cannot re-use macro '{}' in itself!", name),
+            ExportError(e) => write!(f, "Error on export macro! {}", e),
             Unimplemented(msg) => write!(f, "Unimplemented! {}", msg),
         }
     }
@@ -652,6 +661,25 @@ impl<T, E> Default for NodeEditor<T, E> {
             success_stack: vec![],
             nodes_edit: vec![],
         }
+    }
+}
+
+impl<T, E> InnerNodeEditor<T, E> {
+    fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), export::ExportError> {
+        // FIXME: Support for nested macro
+        let serializable = SerialInnerEditor::new(self);
+        let serialized = ron::ser::to_string_pretty(&serializable, Default::default())?;
+        w.write_all(serialized.as_bytes())?;
+        w.flush()?;
+        Ok(())
+    }
+
+    fn export_to_file<P: AsRef<path::Path>>(
+        &self,
+        file_path: P,
+    ) -> Result<(), export::ExportError> {
+        let mut f = fs::File::create(file_path)?;
+        self.export_to_buf(&mut f)
     }
 }
 
