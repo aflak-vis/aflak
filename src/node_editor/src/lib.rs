@@ -49,6 +49,7 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
     focus: bool,
 
     error_stack: Vec<InnerEditorError>,
+    success_stack: Vec<ImString>,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -59,6 +60,7 @@ impl<T, E> InnerNodeEditor<T, E> {
             opened: true,
             focus: true,
             error_stack: vec![],
+            success_stack: vec![],
         }
     }
 }
@@ -293,6 +295,7 @@ where
             for error in node_edit.error_stack.drain(..) {
                 self.error_stack.push(Box::new(error));
             }
+            self.success_stack.extend(node_edit.success_stack.drain(..));
         }
 
         for handle in macros_to_edit {
@@ -694,6 +697,7 @@ impl SerialInnerEditor {
                 opened: false,
                 focus: false,
                 error_stack: vec![],
+                success_stack: vec![],
             })
         } else {
             Err(export::ImportError::DSTError(
