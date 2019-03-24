@@ -146,6 +146,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().updated_on
     }
 
+    /// Get all children, ordered from deepest to shallowest
     fn children_deep(&self) -> impl Iterator<Item = MacroHandle<'t, T, E>> {
         fn inner<'t, T, E>(
             macr: &MacroHandle<'t, T, E>,
@@ -167,6 +168,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         if let Some(pos) = out.iter().position(|handle| handle == self) {
             out.remove(pos);
         }
+        out.reverse();
         out.into_iter()
     }
 }
@@ -390,6 +392,17 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     pub fn macros(&self) -> impl Iterator<Item = &MacroHandle<'t, T, E>> {
         self.macros.values()
     }
+
+    /// Used internal for import/export.
+    /// Fail if a macro with the same ID is already added.
+    fn add_macro(&mut self, macr: Macro<'t, T, E>) -> Result<(), ImportError> {
+        if self.macros.contains_key(&macr.id) {
+            Err(ImportError::DuplicateMacroId(macr.id))
+        } else {
+            self.macros.insert(macr.id, MacroHandle::from(macr));
+            Ok(())
+        }
+    }
 }
 
 impl<T, E> MacroManager<'static, T, E> {
@@ -489,6 +502,20 @@ impl<T> SerdeMacroManager<T> {
 pub struct SerdeMacroStandAlone<T> {
     main: SerdeMacro<T>,
     subs: Vec<SerdeMacro<T>>,
+}
+
+impl<T> SerdeMacroStandAlone<T> {
+    pub fn into_macro<E>(self) -> Result<Macro<'static, T, E>, ImportError>
+    where
+        T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
+    {
+        let mut macro_manager = MacroManager::new();
+        for macr in self.subs {
+            let sub = macr.into_macro(&macro_manager)?;
+            macro_manager.add_macro(sub)?;
+        }
+        self.main.into_macro(&macro_manager)
+    }
 }
 
 impl<'t, 'd, T, E> From<&'d MacroHandle<'t, T, E>> for SerdeMacroStandAlone<T>
