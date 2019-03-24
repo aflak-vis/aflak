@@ -10,17 +10,14 @@ by providing a visual programming language interface.
 
 **IN ACTIVE DEVELOPMENT: Features and API highly unstable!**
 
+## Download binary (nightly)
+
+- [Linux](https://aflak-vis.github.io/download/build/linux64/aflak-a5e4f5317.tar.gz)
+
+
 ## Getting started
 
-Minimum Rust version: 1.28.0.
-
-Install the rust toolchain with [rustup](https://rustup.rs/).
-You will need a working C & C++ environment to install from sources.
-
-## Quick install (nightly)
-
 ```sh
-cargo install --git https://github.com/aflak-vis/aflak aflak
 # Open a FITS file with aflak
 aflak -f <FITS_FILE>
 # See CLI help
@@ -43,7 +40,21 @@ Hopefully, aflak remembers the arrangement of your windows between sessions.
 - It is advised to use aflak with a large screen more 2000-pixel large
 for a better experience. 3000-pixel is even better!
 
-## Update
+
+## Build from source
+
+Minimum Rust version: 1.28.0.
+
+Install the rust toolchain with [rustup](https://rustup.rs/).
+You will need a working C & C++ environment to install from sources.
+
+### Quick install (nightly)
+
+```sh
+cargo install --git https://github.com/aflak-vis/aflak aflak
+```
+
+### Update
 
 If aflak is already installed, just append the `--force` flag to the `cargo`
 command in order to overwrite the current install of aflak with a new one.
@@ -52,7 +63,7 @@ command in order to overwrite the current install of aflak with a new one.
 cargo install --force --git https://github.com/aflak-vis/aflak aflak
 ```
 
-## Slower install
+### Slower install
 
 Clone the git repository.
 You will need to initialize the git submodules.
@@ -64,7 +75,7 @@ git submodule update --init --recursive
 cargo install --path .
 ```
 
-## Build
+### Build
 
 ```sh
 cd aflak/src
