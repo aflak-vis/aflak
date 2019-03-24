@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::fmt;
 use std::ops;
 use std::ptr;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -27,6 +28,16 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
 impl<'t, T, E> PartialEq for MacroHandle<'t, T, E> {
     fn eq(&self, other: &MacroHandle<'t, T, E>) -> bool {
         ptr::eq(self.inner.as_ref(), other.inner.as_ref())
+    }
+}
+
+impl<'t, T, E> fmt::Debug for MacroHandle<'t, T, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("MacroHandle")
+            .field("inner", &format!("{:p}", &*self.inner))
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .finish()
     }
 }
 
