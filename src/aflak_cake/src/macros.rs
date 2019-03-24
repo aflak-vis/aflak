@@ -8,7 +8,8 @@ use std::time::Instant;
 use boow::Bow;
 
 use super::{
-    ConvertibleVariants, InputSlot, Output, Transform, TransformInputSlot, TypeId, VariantName, DST,
+    Algorithm, ConvertibleVariants, InputSlot, Output, Transform, TransformInputSlot, TypeId,
+    VariantName, DST,
 };
 use compute::ComputeError;
 use export::{DeserDST, ImportError, NamedAlgorithms};
@@ -144,6 +145,30 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     pub fn updated_on(&self) -> Instant {
         self.read().updated_on
     }
+
+    fn children_deep(&self) -> impl Iterator<Item = MacroHandle<'t, T, E>> {
+        fn inner<'t, T, E>(
+            macr: &MacroHandle<'t, T, E>,
+            mut already_selected: Vec<MacroHandle<'t, T, E>>,
+        ) -> Vec<MacroHandle<'t, T, E>> {
+            let lock = macr.read();
+            if already_selected.contains(macr) {
+                already_selected
+            } else {
+                already_selected.push(macr.clone());
+                for child in lock.children_shallow() {
+                    already_selected = inner(child, already_selected);
+                }
+                already_selected
+            }
+        }
+
+        let mut out = inner(self, vec![]);
+        if let Some(pos) = out.iter().position(|handle| handle == self) {
+            out.remove(pos);
+        }
+        out.into_iter()
+    }
 }
 
 impl<'t, T, E> Macro<'t, T, E> {
@@ -262,6 +287,15 @@ impl<'t, T, E> Macro<'t, T, E> {
         dst.outputs_iter()
             .map(|(output_id, _)| dst.compute_sync(*output_id, &mut cache))
             .collect()
+    }
+
+    fn children_shallow(&self) -> impl Iterator<Item = &MacroHandle<'t, T, E>> {
+        self.dst()
+            .transforms_iter()
+            .filter_map(|(_, t)| match t.algorithm() {
+                Algorithm::Macro { handle } => Some(handle),
+                _ => None,
+            })
     }
 }
 
@@ -447,5 +481,28 @@ impl<T> SerdeMacroManager<T> {
             macros.insert(macr.id, MacroHandle::from(macr));
         }
         Ok(MacroManager { cnt, macros })
+    }
+}
+
+/// Stand-along format to save macro along with its dependency sub-macros
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SerdeMacroStandAlone<T> {
+    main: SerdeMacro<T>,
+    subs: Vec<SerdeMacro<T>>,
+}
+
+impl<'t, 'd, T, E> From<&'d MacroHandle<'t, T, E>> for SerdeMacroStandAlone<T>
+where
+    T: Clone + VariantName,
+{
+    fn from(handle: &'d MacroHandle<'t, T, E>) -> Self {
+        let main = SerdeMacro::from(&*handle.read());
+        Self {
+            main,
+            subs: handle
+                .children_deep()
+                .map(|handle| SerdeMacro::from(&*handle.read()))
+                .collect(),
+        }
     }
 }
