@@ -457,10 +457,14 @@ where
         self.handle.write().dst_mut().remove_node(&node_id);
     }
     fn import(&mut self) {
-        eprintln!("Import unsupported in MacroEditor!");
+        self.error_stack.push(InnerEditorError::Unimplemented(
+            "Import unsupported in MacroEditor!",
+        ))
     }
     fn export(&mut self) {
-        eprintln!("Export unsupported in MacroEditor!");
+        self.error_stack.push(InnerEditorError::Unimplemented(
+            "Export unsupported in MacroEditor!",
+        ))
     }
     fn add_new_macro(&mut self) {
         unreachable!("Macro can only be created in NodeEditor's context!");
@@ -487,6 +491,7 @@ where
 enum InnerEditorError {
     IncorrectNodeConnection(cake::DSTError),
     SelfDefiningMacro { name: String },
+    Unimplemented(&'static str),
 }
 
 impl fmt::Display for InnerEditorError {
@@ -495,6 +500,7 @@ impl fmt::Display for InnerEditorError {
         match self {
             IncorrectNodeConnection(e) => write!(f, "{}", e),
             SelfDefiningMacro { name } => write!(f, "Cannot re-use macro '{}' in itself!", name),
+            Unimplemented(msg) => write!(f, "Unimplemented! {}", msg),
         }
     }
 }
