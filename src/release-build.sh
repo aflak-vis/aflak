@@ -15,7 +15,7 @@ strip target/release/aflak
 tar cvf - -C target/release aflak | gzip --best > "$ARCHIVE_NAME"
 
 rm -rf aflak-vis
-git clone git@github.com:aflak-vis/aflak-vis.github.io.git aflak-vis
+git clone --depth 1 git@github.com:aflak-vis/aflak-vis.github.io.git aflak-vis
 mkdir -p "aflak-vis/download/build/$OS"
 mv "$ARCHIVE_NAME" "aflak-vis/download/build/$OS"
 cd aflak-vis
