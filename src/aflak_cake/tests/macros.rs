@@ -108,3 +108,40 @@ fn test_macro_inputs_overwrite_wrong_type() {
         vec![None, Some(AlgoIO::Integer(0))],
     )
 }
+
+#[test]
+fn test_macro_standalone_serde() {
+    let macr = make_macro();
+    let serde = aflak_cake::macros::SerdeMacroStandAlone::from(&macr);
+    let out = ron::ser::to_string_pretty(&serde, Default::default()).unwrap();
+
+    let back: aflak_cake::macros::SerdeMacroStandAlone<AlgoIO> = ron::de::from_str(&out).unwrap();
+    let recreated_macr = aflak_cake::macros::MacroHandle::from(back.into_macro().unwrap());
+    let serde2 = aflak_cake::macros::SerdeMacroStandAlone::from(&recreated_macr);
+    let out2 = ron::ser::to_string_pretty(&serde2, Default::default()).unwrap();
+
+    assert_eq!(out, out2);
+}
+
+#[test]
+fn test_nested_macro_standalone_serde() {
+    let macr = make_macro();
+    {
+        let nested_macro = aflak_cake::macros::MacroManager::new()
+            .create_macro()
+            .clone();
+        macr.write()
+            .dst_mut()
+            .add_owned_transform(aflak_cake::Transform::from_macro(nested_macro));
+    }
+
+    let serde = aflak_cake::macros::SerdeMacroStandAlone::from(&macr);
+    let out = ron::ser::to_string_pretty(&serde, Default::default()).unwrap();
+
+    let back: aflak_cake::macros::SerdeMacroStandAlone<AlgoIO> = ron::de::from_str(&out).unwrap();
+    let recreated_macr = aflak_cake::macros::MacroHandle::from(back.into_macro().unwrap());
+    let serde2 = aflak_cake::macros::SerdeMacroStandAlone::from(&recreated_macr);
+    let out2 = ron::ser::to_string_pretty(&serde2, Default::default()).unwrap();
+
+    assert_eq!(out, out2);
+}
