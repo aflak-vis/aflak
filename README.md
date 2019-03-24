@@ -13,6 +13,7 @@ by providing a visual programming language interface.
 ## Download binary (nightly)
 
 - [Linux](https://aflak-vis.github.io/download/build/linux64/aflak-a5e4f5317.tar.gz)
+- [macOS](None)
 
 
 ## Getting started

@@ -2,9 +2,21 @@
 
 set -eux
 
+UNAME_OUT="$(uname -s)"
+case "$UNAME_OUT" in
+    Linux*)
+        OS=linux
+        OS_PRETTY=Linux
+        ;;
+    Darwin*)
+        OS=macos
+        OS_PRETTY=macOS
+        ;;
+    *)          echo "Unsupported OS: $UNAME_OUT"; exit 1
+esac
+
 REV=$(git rev-parse --short=9 HEAD)
 ARCHIVE_NAME="aflak-$REV.tar.gz"
-OS=linux64
 DOWNLOAD_LINK="https://aflak-vis.github.io/download/build/$OS/$ARCHIVE_NAME"
 
 cargo clean
@@ -24,6 +36,6 @@ git commit -m "Release $REV for $OS"
 git push
 
 cd ..
-sed -i 's|^- \[Linux\]\(.*\)$|- [Linux]('"$DOWNLOAD_LINK"')|' ../README.md
+sed -i 's|^- \['"$OS_PRETTY"'\]\(.*\)$|- ['"$OS_PRETTY"']('"$DOWNLOAD_LINK"')|' ../README.md
 git add ../README.md
 git commit -m "Release $REV for $OS"
