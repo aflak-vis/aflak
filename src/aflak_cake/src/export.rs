@@ -35,6 +35,8 @@ pub enum ImportError {
     ConstructionError(&'static str, DSTError),
     /// Macro with the given ID not found.
     MacroNotFound(usize),
+    /// Two Macros with the same ID were found.
+    DuplicateMacroId(usize),
     /// Type found does not exist
     UnexpectedType(String),
 }
@@ -59,6 +61,7 @@ impl fmt::Display for ImportError {
                 write!(f, "Construction error! {} Caused by {}", s, e)
             }
             ImportError::MacroNotFound(id) => write!(f, "Macro with id {} not found", id),
+            ImportError::DuplicateMacroId(id) => write!(f, "Two macro with id {} were found", id),
             ImportError::UnexpectedType(ref type_id) => {
                 write!(f, "Type '{}' does not exist", type_id)
             }
