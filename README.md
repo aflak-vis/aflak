@@ -12,8 +12,8 @@ by providing a visual programming language interface.
 
 ## Download binary (nightly)
 
-- [Linux](https://aflak-vis.github.io/download/build/linux64/aflak-a5e4f5317.tar.gz)
-- [macOS](None)
+- [Linux](https://aflak-vis.github.io/download/build/linux/aflak-4a1ab4328.tar.gz)
+- [macOS](https://aflak-vis.github.io/download/build/macos/aflak-4a1ab4328.tar.gz)
 
 
 ## Getting started
