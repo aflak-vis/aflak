@@ -108,13 +108,6 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().call(args)
     }
 
-    pub fn get_macro(&self) -> Macro<'t, T, E>
-    where
-        T: Clone,
-    {
-        self.read().clone()
-    }
-
     pub fn read(&self) -> RwLockReadGuard<'_, Macro<'t, T, E>> {
         self.inner.read().unwrap()
     }
