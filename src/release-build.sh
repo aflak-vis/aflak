@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Quick-and-dirty convenience script for making releases.
 
 set -eux
 
@@ -16,7 +17,7 @@ case "$UNAME_OUT" in
 esac
 
 REV=$(git rev-parse --short=9 HEAD)
-ARCHIVE_NAME="aflak-$REV.tar.gz"
+ARCHIVE_NAME="aflak-$OS-$REV.tar.gz"
 DOWNLOAD_LINK="https://aflak-vis.github.io/download/build/$OS/$ARCHIVE_NAME"
 
 cargo clean
