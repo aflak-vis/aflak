@@ -5,6 +5,7 @@ set -eux
 REV=$(git rev-parse --short=9 HEAD)
 ARCHIVE_NAME="aflak-$REV.tar.gz"
 OS=linux64
+DOWNLOAD_LINK="https://aflak-vis.github.io/download/build/$OS/$ARCHIVE_NAME"
 
 cargo clean
 echo '[profile.release]' >> Cargo.toml
@@ -21,3 +22,8 @@ cd aflak-vis
 git add "download/build/$OS/$ARCHIVE_NAME"
 git commit -m "Release $REV for $OS"
 git push
+
+cd ..
+sed -i 's|^- \[Linux\]\(.*\)$|- [Linux]('"$DOWNLOAD_LINK"')|' ../README.md
+git add ../README.md
+git commit -m "Release $REV for $OS"
