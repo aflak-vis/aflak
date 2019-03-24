@@ -61,6 +61,14 @@ where
     }
 }
 
+impl<'t, T, E> From<Macro<'t, T, E>> for MacroHandle<'t, T, E> {
+    fn from(macr: Macro<'t, T, E>) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(macr)),
+        }
+    }
+}
+
 impl<'t, T, E> MacroHandle<'t, T, E> {
     pub fn name(&self) -> String {
         self.read().name.clone()
@@ -316,15 +324,13 @@ impl<'t, T, E> MacroManager<'t, T, E> {
         let dst = DST::new();
         self.macros.insert(
             self.cnt,
-            MacroHandle {
-                inner: Arc::new(RwLock::new(Macro {
-                    id: self.cnt,
-                    name: format!("New macro #{}", self.cnt),
-                    inputs: Macro::find_default_inputs(&dst),
-                    dst,
-                    updated_on: Instant::now(),
-                })),
-            },
+            MacroHandle::from(Macro {
+                id: self.cnt,
+                name: format!("New macro #{}", self.cnt),
+                inputs: Macro::find_default_inputs(&dst),
+                dst,
+                updated_on: Instant::now(),
+            }),
         );
         self.macros.get(&self.cnt).unwrap()
     }
@@ -427,12 +433,7 @@ impl<T> SerdeMacroManager<T> {
         let mut macros = BTreeMap::new();
         for macr in self.macros {
             let macr = macr.into_macro(macro_manager)?;
-            macros.insert(
-                macr.id,
-                MacroHandle {
-                    inner: Arc::new(RwLock::new(macr)),
-                },
-            );
+            macros.insert(macr.id, MacroHandle::from(macr));
         }
         Ok(MacroManager { cnt, macros })
     }
