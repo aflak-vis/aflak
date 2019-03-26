@@ -352,6 +352,14 @@ pub struct MacroManager<'t, T: 't, E: 't> {
     macros: BTreeMap<Uuid, MacroHandle<'t, T, E>>,
 }
 
+impl<'t, T, E> fmt::Debug for MacroManager<'t, T, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("MacroManager")
+            .field("macros", &self.macros)
+            .finish()
+    }
+}
+
 impl<'t, T, E> MacroManager<'t, T, E> {
     pub fn get_macro(&self, id: Uuid) -> Option<&MacroHandle<'t, T, E>> {
         self.macros.get(&id)
