@@ -534,3 +534,50 @@ where
         }
     }
 }
+
+/// Stand-alone format to a full DST along with its dependency sub-macros
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SerdeDSTStandAlone<T> {
+    main: DeserDST<T>,
+    subs: Vec<SerdeMacro<T>>,
+}
+
+impl<T> SerdeDSTStandAlone<T> {
+    pub fn into_dst<E>(
+        self,
+    ) -> Result<(DST<'static, T, E>, MacroManager<'static, T, E>), ImportError>
+    where
+        T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
+    {
+        let mut macro_manager = MacroManager::new();
+        for macr in self.subs {
+            let sub = macr.into_macro(&macro_manager)?;
+            macro_manager.add_macro(sub)?;
+        }
+        self.main
+            .into_dst(&macro_manager)
+            .map(|dst| (dst, macro_manager))
+    }
+}
+
+impl<'t, 'd, T, E> From<&'d DST<'t, T, E>> for SerdeDSTStandAlone<T>
+where
+    T: Clone + VariantName,
+{
+    fn from(dst: &'d DST<'t, T, E>) -> Self {
+        let tmp = MacroHandle::from(Macro {
+            id: Uuid::nil(),
+            name: String::new(),
+            inputs: Macro::find_default_inputs(dst),
+            dst: dst.clone(),
+            updated_on: Instant::now(),
+        });
+        Self {
+            main: DeserDST::from_dst(dst),
+            subs: tmp
+                .children_deep()
+                .map(|handle| SerdeMacro::from(&*handle.read()))
+                .collect(),
+        }
+    }
+}
