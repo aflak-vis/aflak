@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Instant;
 
 use boow::Bow;
+use uuid::Uuid;
 
 use super::{
     Algorithm, ConvertibleVariants, InputSlot, Output, Transform, TransformInputSlot, TypeId,
@@ -43,7 +44,7 @@ impl<'t, T, E> fmt::Debug for MacroHandle<'t, T, E> {
 }
 
 pub struct Macro<'t, T: 't, E: 't> {
-    id: usize,
+    id: Uuid,
     name: String,
     inputs: Vec<MacroInput<T>>,
     dst: DST<'t, T, E>,
@@ -117,7 +118,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
         self.read().defaults()
     }
 
-    pub fn id(&self) -> usize {
+    pub fn id(&self) -> Uuid {
         self.read().id
     }
 
@@ -348,11 +349,11 @@ impl<'a, 't, T, E> ops::DerefMut for MacroNameMut<'a, 't, T, E> {
 
 pub struct MacroManager<'t, T: 't, E: 't> {
     cnt: usize,
-    macros: BTreeMap<usize, MacroHandle<'t, T, E>>,
+    macros: BTreeMap<Uuid, MacroHandle<'t, T, E>>,
 }
 
 impl<'t, T, E> MacroManager<'t, T, E> {
-    pub fn get_macro(&self, id: usize) -> Option<&MacroHandle<'t, T, E>> {
+    pub fn get_macro(&self, id: Uuid) -> Option<&MacroHandle<'t, T, E>> {
         self.macros.get(&id)
     }
 
@@ -369,17 +370,18 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     {
         self.cnt += 1;
         let dst = DST::new();
+        let id = Uuid::new_v4();
         self.macros.insert(
-            self.cnt,
+            id,
             MacroHandle::from(Macro {
-                id: self.cnt,
+                id,
                 name: format!("New macro #{}", self.cnt),
                 inputs: Macro::find_default_inputs(&dst),
                 dst,
                 updated_on: Instant::now(),
             }),
         );
-        self.macros.get(&self.cnt).unwrap()
+        self.macros.get(&id).unwrap()
     }
 
     pub fn to_serializable(&self) -> SerdeMacroManager<T>
@@ -435,7 +437,7 @@ where
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerdeMacro<T> {
-    id: usize,
+    id: Uuid,
     name: String,
     dst: DeserDST<T>,
 }
@@ -487,13 +489,12 @@ impl<T> SerdeMacroManager<T> {
     where
         T: Clone + VariantName + ConvertibleVariants + NamedAlgorithms<E>,
     {
-        let cnt = self.macros.iter().map(|macr| macr.id).max().unwrap_or(0);
         let mut macros = BTreeMap::new();
         for macr in self.macros {
             let macr = macr.into_macro(macro_manager)?;
             macros.insert(macr.id, MacroHandle::from(macr));
         }
-        Ok(MacroManager { cnt, macros })
+        Ok(MacroManager { cnt: 0, macros })
     }
 }
 

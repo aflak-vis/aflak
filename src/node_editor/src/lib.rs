@@ -685,7 +685,7 @@ impl<T, E> InnerNodeEditor<T, E> {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerialInnerEditor {
-    macro_id: usize,
+    macro_id: cake::uuid::Uuid,
     node_states: Vec<(cake::NodeId, node_state::NodeState)>,
     scrolling: vec2::Vec2,
 }

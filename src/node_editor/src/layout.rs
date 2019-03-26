@@ -704,7 +704,7 @@ where
                     ui.text("Add macro node");
                     macro_list_started = true;
                 }
-                ui.with_id(macr.id() as i32, || {
+                ui.with_id(macr.id().as_fields().0 as i32, || {
                     if ui.menu_item(&ImString::new(macr.name())).build() {
                         self.events.push(RenderEvent::AddMacro(macr.clone()));
                     }
