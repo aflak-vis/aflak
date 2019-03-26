@@ -6,85 +6,85 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    macros: (
-        macros: [
-        ],
-    ),
     dst: (
-        transforms: [
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
-            ((2), (
-                t: Function("open_fits", 1, 0, 0),
-                input_defaults: [
-                    None,
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                    Some(Str("FLUX")),
-                ],
-            )),
-            ((4), (
-                t: Function("extract_wave", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Roi(All)),
-                ],
-            )),
-            ((5), (
-                t: Function("slice_one_frame", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(100)),
-                ],
-            )),
-        ],
-        edges: [
-            ((
-                t_idx: (1),
-                output_i: (0),
-            ), (
-                t_idx: (2),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (4),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (5),
-                input_i: (0),
-            )),
-        ],
-        outputs: [
-            ((1), Some((
-                t_idx: (4),
-                output_i: (0),
-            ))),
-            ((2), Some((
-                t_idx: (5),
-                output_i: (0),
-            ))),
+        main: (
+            transforms: [
+                ((1), (
+                    t: Constant(Path({:?})),
+                    input_defaults: [
+                    ],
+                )),
+                ((2), (
+                    t: Function("open_fits", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                    ],
+                )),
+                ((3), (
+                    t: Function("fits_to_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(0)),
+                        Some(Str("FLUX")),
+                    ],
+                )),
+                ((4), (
+                    t: Function("extract_wave", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Roi(All)),
+                    ],
+                )),
+                ((5), (
+                    t: Function("slice_one_frame", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(100)),
+                    ],
+                )),
+            ],
+            edges: [
+                ((
+                    t_idx: (1),
+                    output_i: (0),
+                ), (
+                    t_idx: (2),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (2),
+                    output_i: (0),
+                ), (
+                    t_idx: (3),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (4),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (5),
+                    input_i: (0),
+                )),
+            ],
+            outputs: [
+                ((1), Some((
+                    t_idx: (4),
+                    output_i: (0),
+                ))),
+                ((2), Some((
+                    t_idx: (5),
+                    output_i: (0),
+                ))),
+            ],
+        ),
+        subs: [
         ],
     ),
     node_states: [
@@ -132,239 +132,239 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    macros: (
-        macros: [
-        ],
-    ),
     dst: (
-        transforms: [
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
-            ((2), (
-                t: Function("open_fits", 1, 0, 0),
-                input_defaults: [
-                    None,
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                    Some(Str("FLUX")),
-                ],
-            )),
-            ((19), (
-                t: Function("average", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(3134)),
-                    Some(Integer(3154)),
-                ],
-            )),
-            ((20), (
-                t: Function("average", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(3099)),
-                    Some(Integer(3119)),
-                ],
-            )),
-            ((21), (
-                t: Function("average", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(3174)),
-                    Some(Integer(3194)),
-                ],
-            )),
-            ((22), (
-                t: Function("linear_composition", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    None,
-                    Some(Float(0.533333)),
-                    Some(Float(0.467)),
-                ],
-            )),
-            ((23), (
-                t: Function("create_equivalent_width", 0, 1, 0),
-                input_defaults: [
-                    None,
-                    None,
-                    Some(Float(20)),
-                    Some(Float(10000000000)),
-                    Some(Bool(true)),
-                ],
-            )),
-            ((24), (
-                t: Function("ratio_from_bands", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    None,
-                    None,
-                ],
-            )),
-            ((25), (
-                t: Function("image_min_max", 1, 0, 0),
-                input_defaults: [
-                    None,
-                ],
-            )),
-            ((26), (
-                t: Function("convert_to_logscale", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Float(1000)),
-                    None,
-                    None,
-                ],
-            )),
-        ],
-        edges: [
-            ((
-                t_idx: (1),
-                output_i: (0),
-            ), (
-                t_idx: (2),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (19),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (20),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (21),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (19),
-                output_i: (0),
-            ), (
-                t_idx: (23),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (19),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (20),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (20),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (21),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (1),
-            )),
-            ((
-                t_idx: (21),
-                output_i: (1),
-            ), (
-                t_idx: (24),
-                input_i: (2),
-            )),
-            ((
-                t_idx: (22),
-                output_i: (0),
-            ), (
-                t_idx: (23),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (23),
-                output_i: (0),
-            ), (
-                t_idx: (25),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (23),
-                output_i: (0),
-            ), (
-                t_idx: (26),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (24),
-                output_i: (0),
-            ), (
-                t_idx: (22),
-                input_i: (2),
-            )),
-            ((
-                t_idx: (24),
-                output_i: (1),
-            ), (
-                t_idx: (22),
-                input_i: (3),
-            )),
-            ((
-                t_idx: (25),
-                output_i: (0),
-            ), (
-                t_idx: (26),
-                input_i: (2),
-            )),
-            ((
-                t_idx: (25),
-                output_i: (1),
-            ), (
-                t_idx: (26),
-                input_i: (3),
-            )),
-        ],
-        outputs: [
-            ((6), Some((
-                t_idx: (19),
-                output_i: (0),
-            ))),
-            ((7), Some((
-                t_idx: (22),
-                output_i: (0),
-            ))),
-            ((8), Some((
-                t_idx: (26),
-                output_i: (0),
-            ))),
+        main: (
+            transforms: [
+                ((1), (
+                    t: Constant(Path({:?})),
+                    input_defaults: [
+                    ],
+                )),
+                ((2), (
+                    t: Function("open_fits", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                    ],
+                )),
+                ((3), (
+                    t: Function("fits_to_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(0)),
+                        Some(Str("FLUX")),
+                    ],
+                )),
+                ((19), (
+                    t: Function("average", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(3134)),
+                        Some(Integer(3154)),
+                    ],
+                )),
+                ((20), (
+                    t: Function("average", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(3099)),
+                        Some(Integer(3119)),
+                    ],
+                )),
+                ((21), (
+                    t: Function("average", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(3174)),
+                        Some(Integer(3194)),
+                    ],
+                )),
+                ((22), (
+                    t: Function("linear_composition", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        None,
+                        Some(Float(0.533333)),
+                        Some(Float(0.467)),
+                    ],
+                )),
+                ((23), (
+                    t: Function("create_equivalent_width", 0, 1, 0),
+                    input_defaults: [
+                        None,
+                        None,
+                        Some(Float(20)),
+                        Some(Float(10000000000)),
+                        Some(Bool(true)),
+                    ],
+                )),
+                ((24), (
+                    t: Function("ratio_from_bands", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        None,
+                        None,
+                    ],
+                )),
+                ((25), (
+                    t: Function("image_min_max", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                    ],
+                )),
+                ((26), (
+                    t: Function("convert_to_logscale", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Float(1000)),
+                        None,
+                        None,
+                    ],
+                )),
+            ],
+            edges: [
+                ((
+                    t_idx: (1),
+                    output_i: (0),
+                ), (
+                    t_idx: (2),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (2),
+                    output_i: (0),
+                ), (
+                    t_idx: (3),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (19),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (20),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (21),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (19),
+                    output_i: (0),
+                ), (
+                    t_idx: (23),
+                    input_i: (1),
+                )),
+                ((
+                    t_idx: (19),
+                    output_i: (1),
+                ), (
+                    t_idx: (24),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (20),
+                    output_i: (0),
+                ), (
+                    t_idx: (22),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (20),
+                    output_i: (1),
+                ), (
+                    t_idx: (24),
+                    input_i: (1),
+                )),
+                ((
+                    t_idx: (21),
+                    output_i: (0),
+                ), (
+                    t_idx: (22),
+                    input_i: (1),
+                )),
+                ((
+                    t_idx: (21),
+                    output_i: (1),
+                ), (
+                    t_idx: (24),
+                    input_i: (2),
+                )),
+                ((
+                    t_idx: (22),
+                    output_i: (0),
+                ), (
+                    t_idx: (23),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (23),
+                    output_i: (0),
+                ), (
+                    t_idx: (25),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (23),
+                    output_i: (0),
+                ), (
+                    t_idx: (26),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (24),
+                    output_i: (0),
+                ), (
+                    t_idx: (22),
+                    input_i: (2),
+                )),
+                ((
+                    t_idx: (24),
+                    output_i: (1),
+                ), (
+                    t_idx: (22),
+                    input_i: (3),
+                )),
+                ((
+                    t_idx: (25),
+                    output_i: (0),
+                ), (
+                    t_idx: (26),
+                    input_i: (2),
+                )),
+                ((
+                    t_idx: (25),
+                    output_i: (1),
+                ), (
+                    t_idx: (26),
+                    input_i: (3),
+                )),
+            ],
+            outputs: [
+                ((6), Some((
+                    t_idx: (19),
+                    output_i: (0),
+                ))),
+                ((7), Some((
+                    t_idx: (22),
+                    output_i: (0),
+                ))),
+                ((8), Some((
+                    t_idx: (26),
+                    output_i: (0),
+                ))),
+            ],
+        ),
+        subs: [
         ],
     ),
     node_states: [
@@ -454,116 +454,116 @@ pub fn show_velocity_field<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    macros: (
-        macros: [
-        ],
-    ),
     dst: (
-        transforms: [
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
-            ((2), (
-                t: Function("open_fits", 1, 0, 0),
-                input_defaults: [
-                    None,
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                    Some(Str("FLUX")),
-                ],
-            )),
-            ((4), (
-                t: Function("extract_argmin_max_wavelength", 0, 1, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(3135)),
-                    Some(Integer(3155)),
-                    Some(Bool(false)),
-                ],
-            )),
-            ((5), (
-                t: Function("extract_centrobaric_wavelength", 0, 1, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(3135)),
-                    Some(Integer(3155)),
-                ],
-            )),
-            ((6), (
-                t: Function("create_velocity_field_map", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Float(6765.6)),
-                ],
-            )),
-            ((7), (
-                t: Function("create_velocity_field_map", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Float(6765.6)),
-                ],
-            )),
-        ],
-        edges: [
-            ((
-                t_idx: (1),
-                output_i: (0),
-            ), (
-                t_idx: (2),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (4),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (5),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (4),
-                output_i: (0),
-            ), (
-                t_idx: (6),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (5),
-                output_i: (0),
-            ), (
-                t_idx: (7),
-                input_i: (0),
-            )),
-        ],
-        outputs: [
-            ((1), Some((
-                t_idx: (6),
-                output_i: (0),
-            ))),
-            ((2), Some((
-                t_idx: (7),
-                output_i: (0),
-            ))),
+        main: (
+            transforms: [
+                ((1), (
+                    t: Constant(Path({:?})),
+                    input_defaults: [
+                    ],
+                )),
+                ((2), (
+                    t: Function("open_fits", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                    ],
+                )),
+                ((3), (
+                    t: Function("fits_to_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(0)),
+                        Some(Str("FLUX")),
+                    ],
+                )),
+                ((4), (
+                    t: Function("extract_argmin_max_wavelength", 0, 1, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(3135)),
+                        Some(Integer(3155)),
+                        Some(Bool(false)),
+                    ],
+                )),
+                ((5), (
+                    t: Function("extract_centrobaric_wavelength", 0, 1, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(3135)),
+                        Some(Integer(3155)),
+                    ],
+                )),
+                ((6), (
+                    t: Function("create_velocity_field_map", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Float(6765.6)),
+                    ],
+                )),
+                ((7), (
+                    t: Function("create_velocity_field_map", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Float(6765.6)),
+                    ],
+                )),
+            ],
+            edges: [
+                ((
+                    t_idx: (1),
+                    output_i: (0),
+                ), (
+                    t_idx: (2),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (2),
+                    output_i: (0),
+                ), (
+                    t_idx: (3),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (4),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (5),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (4),
+                    output_i: (0),
+                ), (
+                    t_idx: (6),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (5),
+                    output_i: (0),
+                ), (
+                    t_idx: (7),
+                    input_i: (0),
+                )),
+            ],
+            outputs: [
+                ((1), Some((
+                    t_idx: (6),
+                    output_i: (0),
+                ))),
+                ((2), Some((
+                    t_idx: (7),
+                    output_i: (0),
+                ))),
+            ],
+        ),
+        subs: [
         ],
     ),
     node_states: [
@@ -619,118 +619,118 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let ron = format!(
         r#"
 (
-    macros: (
-        macros: [
-        ],
-    ),
     dst: (
-        transforms: [
-            ((1), (
-                t: Constant(Path({:?})),
-                input_defaults: [
-                ],
-            )),
-            ((2), (
-                t: Function("open_fits", 1, 0, 0),
-                input_defaults: [
-                    None,
-                ],
-            )),
-            ((3), (
-                t: Function("fits_to_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                    Some(Str("")),
-                ],
-            )),
-            ((4), (
-                t: Function("extract_wave", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Roi(All)),
-                ],
-            )),
-            ((6), (
-                t: Function("slice_one_frame", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Integer(0)),
-                ],
-            )),
-            ((8), (
-                t: Function("clip_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Float(0)),
-                    Some(Bool(false)),
-                ],
-            )),
-            ((9), (
-                t: Function("replace_nan_image", 1, 0, 0),
-                input_defaults: [
-                    None,
-                    Some(Float(0)),
-                ],
-            )),
-        ],
-        edges: [
-            ((
-                t_idx: (1),
-                output_i: (0),
-            ), (
-                t_idx: (2),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (2),
-                output_i: (0),
-            ), (
-                t_idx: (3),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (3),
-                output_i: (0),
-            ), (
-                t_idx: (8),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (8),
-                output_i: (0),
-            ), (
-                t_idx: (6),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (8),
-                output_i: (0),
-            ), (
-                t_idx: (9),
-                input_i: (0),
-            )),
-            ((
-                t_idx: (9),
-                output_i: (0),
-            ), (
-                t_idx: (4),
-                input_i: (0),
-            )),
-        ],
-        outputs: [
-            ((1), Some((
-                t_idx: (4),
-                output_i: (0),
-            ))),
-            ((2), Some((
-                t_idx: (6),
-                output_i: (0),
-            ))),
-            ((3), Some((
-                t_idx: (2),
-                output_i: (0),
-            ))),
+        main: (
+            transforms: [
+                ((1), (
+                    t: Constant(Path({:?})),
+                    input_defaults: [
+                    ],
+                )),
+                ((2), (
+                    t: Function("open_fits", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                    ],
+                )),
+                ((3), (
+                    t: Function("fits_to_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(0)),
+                        Some(Str("")),
+                    ],
+                )),
+                ((4), (
+                    t: Function("extract_wave", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Roi(All)),
+                    ],
+                )),
+                ((6), (
+                    t: Function("slice_one_frame", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Integer(0)),
+                    ],
+                )),
+                ((8), (
+                    t: Function("clip_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Float(0)),
+                        Some(Bool(false)),
+                    ],
+                )),
+                ((9), (
+                    t: Function("replace_nan_image", 1, 0, 0),
+                    input_defaults: [
+                        None,
+                        Some(Float(0)),
+                    ],
+                )),
+            ],
+            edges: [
+                ((
+                    t_idx: (1),
+                    output_i: (0),
+                ), (
+                    t_idx: (2),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (2),
+                    output_i: (0),
+                ), (
+                    t_idx: (3),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (3),
+                    output_i: (0),
+                ), (
+                    t_idx: (8),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (8),
+                    output_i: (0),
+                ), (
+                    t_idx: (6),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (8),
+                    output_i: (0),
+                ), (
+                    t_idx: (9),
+                    input_i: (0),
+                )),
+                ((
+                    t_idx: (9),
+                    output_i: (0),
+                ), (
+                    t_idx: (4),
+                    input_i: (0),
+                )),
+            ],
+            outputs: [
+                ((1), Some((
+                    t_idx: (4),
+                    output_i: (0),
+                ))),
+                ((2), Some((
+                    t_idx: (6),
+                    output_i: (0),
+                ))),
+                ((3), Some((
+                    t_idx: (2),
+                    output_i: (0),
+                ))),
+            ],
+        ),
+        subs: [
         ],
     ),
     node_states: [
