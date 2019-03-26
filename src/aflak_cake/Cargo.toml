@@ -13,6 +13,7 @@ futures = "0.1"
 rayon = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
+uuid = { version = "0.7.1", features = ["serde", "v4"] }
 
 [dev-dependencies]
 ron = "0.2"
