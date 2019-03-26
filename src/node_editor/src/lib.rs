@@ -344,17 +344,18 @@ where
                             ron::de::from_reader(file);
                         match editor {
                             Ok(editor) => match editor.into_inner_node_editor() {
-                                Ok(editor) => {
+                                Ok(mut editor) => {
                                     if let Some(node_edit) = self
                                         .nodes_edit
                                         .iter_mut()
                                         .find(|node_edit| &node_edit.handle == handle)
                                     {
+                                        *handle.write() = editor.handle.read().clone();
+                                        editor.handle = handle.clone();
                                         *node_edit = editor;
                                     } else {
                                         eprintln!("Could not update macro editor. Not found...");
                                     }
-                                    // *handle.write() = editor.handle.read().clone();
                                 }
                                 Err(e) => self.error_stack.push(Box::new(e)),
                             },
