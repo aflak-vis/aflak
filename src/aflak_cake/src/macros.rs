@@ -404,9 +404,9 @@ impl<'t, T, E> MacroManager<'t, T, E> {
         self.macros.values()
     }
 
-    /// Used internal for import/export.
+    /// Used internally for import/export.
     /// Fail if a macro with the same ID is already added.
-    fn add_macro(&mut self, macr: Macro<'t, T, E>) -> Result<(), ImportError> {
+    pub fn add_macro(&mut self, macr: Macro<'t, T, E>) -> Result<(), ImportError> {
         if self.macros.contains_key(&macr.id) {
             Err(ImportError::DuplicateMacroId(macr.id))
         } else {
