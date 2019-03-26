@@ -348,7 +348,6 @@ impl<'a, 't, T, E> ops::DerefMut for MacroNameMut<'a, 't, T, E> {
 }
 
 pub struct MacroManager<'t, T: 't, E: 't> {
-    cnt: usize,
     macros: BTreeMap<Uuid, MacroHandle<'t, T, E>>,
 }
 
@@ -367,7 +366,6 @@ impl<'t, T, E> MacroManager<'t, T, E> {
 
     pub fn new() -> Self {
         MacroManager {
-            cnt: 0,
             macros: BTreeMap::new(),
         }
     }
@@ -376,14 +374,17 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     where
         T: Clone + VariantName,
     {
-        self.cnt += 1;
         let dst = DST::new();
         let id = Uuid::new_v4();
+        let name = (1..)
+            .map(|cnt| format!("New macro #{}", cnt))
+            .find(|name| self.macros.values().all(|macr| &macr.name() != name))
+            .unwrap();
         self.macros.insert(
             id,
             MacroHandle::from(Macro {
                 id,
-                name: format!("New macro #{}", self.cnt),
+                name,
                 inputs: Macro::find_default_inputs(&dst),
                 dst,
                 updated_on: Instant::now(),
@@ -502,7 +503,7 @@ impl<T> SerdeMacroManager<T> {
             let macr = macr.into_macro(macro_manager)?;
             macros.insert(macr.id, MacroHandle::from(macr));
         }
-        Ok(MacroManager { cnt: 0, macros })
+        Ok(MacroManager { macros })
     }
 }
 
