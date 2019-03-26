@@ -7,6 +7,6 @@ license = "GPL-3.0-only"
 
 [dependencies]
 clipboard = "0.5.0"
-glium = { git = "https://github.com/malikolivier/glium", rev = "d6ac886143198014c6dd254bcfb23422a0df6307" }
+glium = { git = "https://github.com/malikolivier/glium", rev = "f36ceca3864171e8217dc60085750e2af9beec82" }
 imgui = { path = "../../imgui-rs", version = "0.0.22-pre" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.0.22-pre" }
