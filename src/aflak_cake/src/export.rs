@@ -6,6 +6,7 @@ use std::fmt;
 use boow::Bow;
 use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
+use uuid::Uuid;
 use variant_name::VariantName;
 
 use super::ConvertibleVariants;
@@ -34,9 +35,9 @@ pub enum ImportError {
     /// The DST cannot be constructed because it is inconsistent.
     ConstructionError(&'static str, DSTError),
     /// Macro with the given ID not found.
-    MacroNotFound(usize),
+    MacroNotFound(Uuid),
     /// Two Macros with the same ID were found.
-    DuplicateMacroId(usize),
+    DuplicateMacroId(Uuid),
     /// Type found does not exist
     UnexpectedType(String),
 }
@@ -80,7 +81,7 @@ impl error::Error for ImportError {
 pub enum SerialTransform<'t, T: 't> {
     Function(&'static str, u8, u8, u8),
     Constant(&'t T),
-    Macro(usize),
+    Macro(Uuid),
 }
 
 #[doc(hidden)]
@@ -88,7 +89,7 @@ pub enum SerialTransform<'t, T: 't> {
 pub enum DeserTransform<T> {
     Function(String, u8, u8, u8),
     Constant(T),
-    Macro(usize),
+    Macro(Uuid),
 }
 
 impl<'t, T> SerialTransform<'t, T>
