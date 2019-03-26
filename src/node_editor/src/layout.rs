@@ -683,7 +683,9 @@ where
             self.new_link = None;
         }
         ui.popup(im_str!("add-new-node"), || {
-            ui.text("Add node");
+            const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
+
+            ui.with_color_var(ImGuiCol::Text, HEADER_COLOR, || ui.text("Add node"));
             ui.separator();
             for (i, node) in addable_nodes.iter().enumerate() {
                 ui.push_id(i as i32);
@@ -701,7 +703,7 @@ where
             for macr in addable_macros.macros() {
                 if !macro_list_started {
                     ui.separator();
-                    ui.text("Add macro node");
+                    ui.with_color_var(ImGuiCol::Text, HEADER_COLOR, || ui.text("Add macro node"));
                     macro_list_started = true;
                 }
                 ui.with_id(macr.id() as i32, || {
