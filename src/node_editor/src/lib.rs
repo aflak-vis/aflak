@@ -5,6 +5,7 @@
 extern crate aflak_cake as cake;
 #[macro_use]
 extern crate imgui;
+extern crate imgui_file_explorer;
 extern crate ron;
 
 extern crate serde;
@@ -24,6 +25,7 @@ use std::{collections, error, fmt, fs, io, path};
 
 use cake::Future;
 use imgui::ImString;
+use imgui_file_explorer::UiFileExplorer;
 
 pub use constant_editor::ConstantEditor;
 use event::ApplyRenderEvent;
@@ -40,6 +42,7 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     success_stack: Vec<ImString>,
 
     nodes_edit: Vec<InnerNodeEditor<T, E>>,
+    import_macro: Option<cake::macros::MacroHandle<'static, T, E>>,
 }
 
 struct InnerNodeEditor<T: 'static, E: 'static> {
@@ -248,6 +251,7 @@ where
 
         let mut macros_to_edit = vec![];
         let macros = &mut self.macros;
+        let import_macro = &mut self.import_macro;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
             if opened {
@@ -284,6 +288,8 @@ where
                                     }
                                 }
                             }
+                        } else if let event::RenderEvent::Import = event {
+                            *import_macro = Some(node_edit.handle.clone());
                         } else {
                             node_edit.apply_event(event);
                         }
@@ -300,6 +306,73 @@ where
 
         for handle in macros_to_edit {
             open_macro_editor(&mut self.nodes_edit, handle);
+        }
+
+        let mut opened = true;
+        if let Some(handle) = import_macro {
+            let mut selected_path = None;
+            let mut cancelled = false;
+            let mouse_pos = ui.imgui().mouse_pos();
+            ui.window(&imgui::ImString::new(format!(
+                "Import macro in '{}'",
+                handle.name(),
+            )))
+            .opened(&mut opened)
+            .save_settings(false)
+            .position(mouse_pos, imgui::ImGuiCond::Appearing)
+            .size((400.0, 410.0), imgui::ImGuiCond::Appearing)
+            .build(|| {
+                ui.child_frame(im_str!("edit"), (0.0, 350.0))
+                    .scrollbar_horizontal(true)
+                    .build(|| {
+                        if let Ok(Some(path)) =
+                            ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
+                        {
+                            selected_path = Some(path);
+                        }
+                    });
+                if ui.button(im_str!("Cancel"), (0.0, 0.0)) {
+                    cancelled = true;
+                }
+            });
+            if cancelled {
+                opened = false;
+            } else if let Some(path) = selected_path.take() {
+                match fs::File::open(path) {
+                    Ok(file) => {
+                        let editor: Result<SerialInnerEditorStandAlone<T>, _> =
+                            ron::de::from_reader(file);
+                        match editor {
+                            Ok(editor) => match editor.into_inner_node_editor() {
+                                Ok(editor) => {
+                                    if let Some(node_edit) = self
+                                        .nodes_edit
+                                        .iter_mut()
+                                        .find(|node_edit| &node_edit.handle == handle)
+                                    {
+                                        *node_edit = editor;
+                                    } else {
+                                        eprintln!("Could not update macro editor. Not found...");
+                                    }
+                                    // *handle.write() = editor.handle.read().clone();
+                                }
+                                Err(e) => self.error_stack.push(Box::new(e)),
+                            },
+                            Err(e) => self
+                                .error_stack
+                                .push(Box::new(export::ImportError::DeserializationError(e))),
+                        }
+                    }
+                    Err(e) => {
+                        self.error_stack
+                            .push(Box::new(export::ImportError::IOError(e)));
+                    }
+                }
+                opened = false;
+            }
+        }
+        if !opened {
+            *import_macro = None;
         }
     }
 }
@@ -412,7 +485,7 @@ where
 
 impl<T, E> ApplyRenderEvent<T, E> for InnerNodeEditor<T, E>
 where
-    T: Clone + cake::ConvertibleVariants + cake::DefaultFor,
+    T: Clone + cake::ConvertibleVariants + cake::DefaultFor + serde::Serialize,
 {
     fn connect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
         let mut lock = self.handle.write();
@@ -460,9 +533,7 @@ where
         self.handle.write().dst_mut().remove_node(&node_id);
     }
     fn import(&mut self) {
-        self.error_stack.push(InnerEditorError::Unimplemented(
-            "Import unsupported in MacroEditor!",
-        ))
+        unreachable!("Import can only be handled in NodeEditor's context!");
     }
     fn export(&mut self) {
         let file_name = format!("{}.macro", self.handle.name());
@@ -658,14 +729,17 @@ impl<T, E> Default for NodeEditor<T, E> {
             error_stack: vec![],
             success_stack: vec![],
             nodes_edit: vec![],
+            import_macro: None,
         }
     }
 }
 
-impl<T, E> InnerNodeEditor<T, E> {
+impl<T, E> InnerNodeEditor<T, E>
+where
+    T: Clone + cake::VariantName + serde::Serialize,
+{
     fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), export::ExportError> {
-        // FIXME: Support for nested macro
-        let serializable = SerialInnerEditor::new(self);
+        let serializable = SerialInnerEditorStandAlone::new(self);
         let serialized = ron::ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
         w.flush()?;
@@ -730,5 +804,27 @@ impl SerialInnerEditor {
                 cake::ImportError::MacroNotFound(self.macro_id),
             ))
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct SerialInnerEditorStandAlone<T> {
+    editor: SerialInnerEditor,
+    macr: cake::macros::SerdeMacroStandAlone<T>,
+}
+
+impl<T> SerialInnerEditorStandAlone<T> {
+    fn new<E>(editor: &InnerNodeEditor<T, E>) -> Self
+    where
+        T: Clone + cake::VariantName,
+    {
+        Self {
+            editor: SerialInnerEditor::new(editor),
+            macr: cake::macros::SerdeMacroStandAlone::from(&editor.handle),
+        }
+    }
+
+    fn into_inner_node_editor<E>(self) -> Result<InnerNodeEditor<T, E>, export::ImportError> {
+        unimplemented!()
     }
 }
