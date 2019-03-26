@@ -37,7 +37,7 @@ impl<'t, T, E> fmt::Debug for MacroHandle<'t, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("MacroHandle")
             .field("inner", &format!("{:p}", &*self.inner))
-            .field("id", &self.id())
+            .field("id", &self.id().to_hyphenated().to_string())
             .field("name", &self.name())
             .finish()
     }
