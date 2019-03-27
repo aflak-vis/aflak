@@ -376,6 +376,8 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     {
         let dst = DST::new();
         let id = Uuid::new_v4();
+        // FIXME: Reading from all macros may cause deadlock if the caller is
+        // currently writing to a macor.
         let name = (1..)
             .map(|cnt| format!("New macro #{}", cnt))
             .find(|name| self.macros.values().all(|macr| &macr.name() != name))
