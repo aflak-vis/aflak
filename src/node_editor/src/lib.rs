@@ -252,6 +252,7 @@ where
         let mut macros_to_edit = vec![];
         let macros = &mut self.macros;
         let import_macro = &mut self.import_macro;
+        let mut import_macro_focus = false;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
             if opened {
@@ -290,6 +291,7 @@ where
                             }
                         } else if let event::RenderEvent::Import = event {
                             *import_macro = Some(node_edit.handle.clone());
+                            import_macro_focus = true;
                         } else {
                             node_edit.apply_event(event);
                         }
@@ -310,6 +312,9 @@ where
 
         let mut opened = true;
         if let Some(handle) = import_macro {
+            if import_macro_focus {
+                unsafe { imgui::sys::igSetNextWindowFocus() };
+            }
             let mut selected_path = None;
             let mut cancelled = false;
             let mouse_pos = ui.imgui().mouse_pos();
