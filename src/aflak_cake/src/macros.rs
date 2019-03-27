@@ -148,7 +148,7 @@ impl<'t, T, E> MacroHandle<'t, T, E> {
     }
 
     /// Get all children, ordered from deepest to shallowest
-    fn children_deep(&self) -> impl Iterator<Item = MacroHandle<'t, T, E>> {
+    pub fn children_deep(&self) -> impl Iterator<Item = MacroHandle<'t, T, E>> {
         fn inner<'t, T, E>(
             macr: &MacroHandle<'t, T, E>,
             mut already_selected: Vec<MacroHandle<'t, T, E>>,

@@ -253,6 +253,7 @@ where
         let macros = &mut self.macros;
         let import_macro = &mut self.import_macro;
         let mut import_macro_focus = false;
+        let mut export_macro = None;
         for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
             let mut opened = node_edit.opened;
             if opened {
@@ -289,6 +290,8 @@ where
                                     }
                                 }
                             }
+                        } else if let event::RenderEvent::Export = event {
+                            export_macro = Some(node_edit.handle.clone());
                         } else if let event::RenderEvent::Import = event {
                             *import_macro = Some(node_edit.handle.clone());
                             import_macro_focus = true;
@@ -308,6 +311,31 @@ where
 
         for handle in macros_to_edit {
             open_macro_editor(&mut self.nodes_edit, handle);
+        }
+
+        if let Some(handle) = export_macro {
+            if let Some(editor) = self
+                .nodes_edit
+                .iter_mut()
+                .find(|editor| editor.handle == handle)
+            {
+                let file_name = format!("{}.macro", handle.name());
+                if let Err(e) = self.export_to_file(&file_name, subeditors) {
+                    eprintln!("Error on export! {}", e);
+                    self.error_stack.push(InnerEditorError::ExportError(e));
+                } else {
+                    self.success_stack.push(ImString::new(format!(
+                        "Macro content was exported with success to '{}'!",
+                        file_name
+                    )));
+                }
+            } else {
+                eprintln!(
+                    "Editor not found on attempting to export macro '{}' (id={})",
+                    handle.name(),
+                    handle.id().to_hyphenated()
+                );
+            }
         }
 
         let mut opened = true;
@@ -565,16 +593,7 @@ where
         unreachable!("Import can only be handled in NodeEditor's context!");
     }
     fn export(&mut self) {
-        let file_name = format!("{}.macro", self.handle.name());
-        if let Err(e) = self.export_to_file(&file_name) {
-            eprintln!("Error on export! {}", e);
-            self.error_stack.push(InnerEditorError::ExportError(e));
-        } else {
-            self.success_stack.push(ImString::new(format!(
-                "Macro content was exported with success to '{}'!",
-                file_name
-            )));
-        }
+        unreachable!("Export can only be handled in NodeEditor's context!");
     }
     fn add_new_macro(&mut self) {
         unreachable!("Macro can only be created in NodeEditor's context!");
@@ -767,8 +786,12 @@ impl<T, E> InnerNodeEditor<T, E>
 where
     T: Clone + cake::VariantName + serde::Serialize,
 {
-    fn export_to_buf<W: io::Write>(&self, w: &mut W) -> Result<(), export::ExportError> {
-        let serializable = SerialInnerEditorStandAlone::new(self);
+    fn export_to_buf<W: io::Write>(
+        &self,
+        w: &mut W,
+        subeditors: &[InnerNodeEditor<T, E>],
+    ) -> Result<(), export::ExportError> {
+        let serializable = SerialInnerEditorStandAlone::new(self, subeditors);
         let serialized = ron::ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
         w.flush()?;
@@ -778,9 +801,23 @@ where
     fn export_to_file<P: AsRef<path::Path>>(
         &self,
         file_path: P,
+        subeditors: &[InnerNodeEditor<T, E>],
     ) -> Result<(), export::ExportError> {
         let mut f = fs::File::create(file_path)?;
-        self.export_to_buf(&mut f)
+        self.export_to_buf(&mut f, subeditors)
+    }
+
+    fn export_stand_alone(&mut self, subeditors: &[InnerNodeEditor<T, E>]) {
+        let file_name = format!("{}.macro", self.handle.name());
+        if let Err(e) = self.export_to_file(&file_name, subeditors) {
+            eprintln!("Error on export! {}", e);
+            self.error_stack.push(InnerEditorError::ExportError(e));
+        } else {
+            self.success_stack.push(ImString::new(format!(
+                "Macro content was exported with success to '{}'!",
+                file_name
+            )));
+        }
     }
 }
 
@@ -839,17 +876,36 @@ impl SerialInnerEditor {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerialInnerEditorStandAlone<T> {
     editor: SerialInnerEditor,
+    subeditors: Vec<SerialInnerEditor>,
     macr: cake::macros::SerdeMacroStandAlone<T>,
 }
 
 impl<T> SerialInnerEditorStandAlone<T> {
-    fn new<E>(editor: &InnerNodeEditor<T, E>) -> Self
+    fn new<E>(editor: &NodeEditor<T, E>, handle: &cake::macros::MacroHandle<'static, T, E>) -> Self
     where
         T: Clone + cake::VariantName,
     {
-        Self {
-            editor: SerialInnerEditor::new(editor),
-            macr: cake::macros::SerdeMacroStandAlone::from(&editor.handle),
+        if let Some(main_editor) = editor
+            .nodes_edit
+            .iter()
+            .find(|subeditor| &subeditor.handle == handle)
+        {
+            Self {
+                editor: SerialInnerEditor::new(main_editor),
+                subeditors: handle
+                    .children_deep()
+                    .filter_map(|h| {
+                        editor
+                            .nodes_edit
+                            .iter()
+                            .find(|subeditor| subeditor.handle == h)
+                            .map(SerialInnerEditor::new)
+                    })
+                    .collect(),
+                macr: cake::macros::SerdeMacroStandAlone::from(handle),
+            }
+        } else {
+            unreachable!("ERROR: Could not find handle {:?} in context", handle)
         }
     }
 
