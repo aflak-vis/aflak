@@ -345,6 +345,7 @@ where
                         match editor {
                             Ok(editor) => match editor.into_inner_node_editor() {
                                 Ok(mut editor) => {
+                                    // FIXME: Handle case when loading a macro with the same Uuid than an existing one.
                                     if let Some(node_edit) = self
                                         .nodes_edit
                                         .iter_mut()
@@ -352,6 +353,8 @@ where
                                     {
                                         *handle.write() = editor.handle.read().clone();
                                         editor.handle = handle.clone();
+                                        editor.focus = true;
+                                        editor.opened = true;
                                         *node_edit = editor;
                                     } else {
                                         eprintln!("Could not update macro editor. Not found...");
@@ -825,7 +828,12 @@ impl<T> SerialInnerEditorStandAlone<T> {
         }
     }
 
-    fn into_inner_node_editor<E>(self) -> Result<InnerNodeEditor<T, E>, export::ImportError> {
-        unimplemented!()
+    fn into_inner_node_editor<E>(self) -> Result<InnerNodeEditor<T, E>, export::ImportError>
+    where
+        T: Clone + cake::VariantName + cake::ConvertibleVariants + cake::NamedAlgorithms<E>,
+    {
+        let mut manager = cake::macros::MacroManager::new();
+        manager.add_macro(self.macr.into_macro()?)?;
+        self.editor.into_inner_node_editor(&manager)
     }
 }
