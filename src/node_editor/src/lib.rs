@@ -350,14 +350,34 @@ where
                         match editor {
                             Ok(editor) => match editor.into_inner_node_editor() {
                                 Ok(mut editor) => {
-                                    // FIXME: Handle case when loading a macro with the same Uuid than an existing one.
+                                    if let Some(same_id_macr) = macros
+                                        .macros()
+                                        .find(|h| h.id() == editor.handle.id() && h != &handle)
+                                    {
+                                        let msg = format!("Other macro '{}' with same ID '{}' already loaded... Replace it.",
+                                            same_id_macr.name(),
+                                            same_id_macr.id().to_hyphenated());
+                                        eprintln!("{}", &msg);
+                                        self.success_stack.push(ImString::new(msg));
+                                        *same_id_macr.write() = editor.handle.read().clone();
+                                        editor.handle = same_id_macr.clone();
+                                        if let Some(node_edit_idx) =
+                                            self.nodes_edit.iter().position(|node_edit| {
+                                                node_edit.handle.id() == same_id_macr.id()
+                                            })
+                                        {
+                                            self.nodes_edit.remove(node_edit_idx);
+                                        }
+                                    } else {
+                                        *handle.write() = editor.handle.read().clone();
+                                        editor.handle = handle.clone();
+                                    }
+
                                     if let Some(node_edit) = self
                                         .nodes_edit
                                         .iter_mut()
                                         .find(|node_edit| &node_edit.handle == handle)
                                     {
-                                        *handle.write() = editor.handle.read().clone();
-                                        editor.handle = handle.clone();
                                         editor.focus = true;
                                         editor.opened = true;
                                         *node_edit = editor;
