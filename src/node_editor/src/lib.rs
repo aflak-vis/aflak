@@ -277,9 +277,12 @@ where
                     };
                     for event in events {
                         if let event::RenderEvent::AddNewMacro = event {
-                            node_edit.handle.write().dst_mut().add_owned_transform(
-                                cake::Transform::from_macro(macros.create_macro().clone()),
-                            );
+                            let new_macr = macros.create_macro().clone();
+                            node_edit
+                                .handle
+                                .write()
+                                .dst_mut()
+                                .add_owned_transform(cake::Transform::from_macro(new_macr));
                         } else if let event::RenderEvent::EditNode(node_id) = event {
                             if let cake::NodeId::Transform(t_idx) = node_id {
                                 if let Some(t) = node_edit.handle.read().dst().get_transform(t_idx)
