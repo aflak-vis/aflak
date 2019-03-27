@@ -249,187 +249,181 @@ where
     {
         const MACRO_WINDOW_DEFAULT_SIZE: (f32, f32) = (900.0, 600.0);
 
-        let mut macros_to_edit = vec![];
-        let macros = &mut self.macros;
-        let import_macro = &mut self.import_macro;
-        let mut import_macro_focus = false;
         let mut export_macro = None;
-        for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
-            let mut opened = node_edit.opened;
-            if opened {
-                if node_edit.focus {
-                    unsafe { imgui::sys::igSetNextWindowFocus() };
-                    node_edit.focus = false;
-                }
-                ui.window(&imgui::ImString::new(format!(
-                    "Macro editor: '{}'###{}",
-                    node_edit.handle.name(),
-                    i,
-                )))
-                .size(MACRO_WINDOW_DEFAULT_SIZE, imgui::ImGuiCond::FirstUseEver)
-                .opened(&mut opened)
-                .build(|| {
-                    let events = {
-                        let lock = node_edit.handle.read();
-                        let dst = lock.dst();
-                        node_edit
-                            .layout
-                            .render(ui, dst, addable_nodes, macros, constant_editor)
-                    };
-                    for event in events {
-                        if let event::RenderEvent::AddNewMacro = event {
-                            node_edit.handle.write().dst_mut().add_owned_transform(
-                                cake::Transform::from_macro(macros.create_macro().clone()),
-                            );
-                        } else if let event::RenderEvent::EditNode(node_id) = event {
-                            if let cake::NodeId::Transform(t_idx) = node_id {
-                                if let Some(t) = node_edit.handle.read().dst().get_transform(t_idx)
-                                {
-                                    if let cake::Algorithm::Macro { handle } = t.algorithm() {
-                                        macros_to_edit.push(handle.clone());
+        {
+            let macros = &mut self.macros;
+            let import_macro = &mut self.import_macro;
+            let mut import_macro_focus = false;
+            let mut macros_to_edit = vec![];
+            for (i, node_edit) in self.nodes_edit.iter_mut().enumerate() {
+                let mut opened = node_edit.opened;
+                if opened {
+                    if node_edit.focus {
+                        unsafe { imgui::sys::igSetNextWindowFocus() };
+                        node_edit.focus = false;
+                    }
+                    ui.window(&imgui::ImString::new(format!(
+                        "Macro editor: '{}'###{}",
+                        node_edit.handle.name(),
+                        i,
+                    )))
+                    .size(MACRO_WINDOW_DEFAULT_SIZE, imgui::ImGuiCond::FirstUseEver)
+                    .opened(&mut opened)
+                    .build(|| {
+                        let events = {
+                            let lock = node_edit.handle.read();
+                            let dst = lock.dst();
+                            node_edit
+                                .layout
+                                .render(ui, dst, addable_nodes, macros, constant_editor)
+                        };
+                        for event in events {
+                            if let event::RenderEvent::AddNewMacro = event {
+                                node_edit.handle.write().dst_mut().add_owned_transform(
+                                    cake::Transform::from_macro(macros.create_macro().clone()),
+                                );
+                            } else if let event::RenderEvent::EditNode(node_id) = event {
+                                if let cake::NodeId::Transform(t_idx) = node_id {
+                                    if let Some(t) =
+                                        node_edit.handle.read().dst().get_transform(t_idx)
+                                    {
+                                        if let cake::Algorithm::Macro { handle } = t.algorithm() {
+                                            macros_to_edit.push(handle.clone());
+                                        }
                                     }
                                 }
+                            } else if let event::RenderEvent::Export = event {
+                                export_macro = Some(node_edit.handle.clone());
+                            } else if let event::RenderEvent::Import = event {
+                                *import_macro = Some(node_edit.handle.clone());
+                                import_macro_focus = true;
+                            } else {
+                                node_edit.apply_event(event);
                             }
-                        } else if let event::RenderEvent::Export = event {
-                            export_macro = Some(node_edit.handle.clone());
-                        } else if let event::RenderEvent::Import = event {
-                            *import_macro = Some(node_edit.handle.clone());
-                            import_macro_focus = true;
-                        } else {
-                            node_edit.apply_event(event);
                         }
+                    });
+                    node_edit.opened = opened;
+                }
+
+                for error in node_edit.error_stack.drain(..) {
+                    self.error_stack.push(Box::new(error));
+                }
+                self.success_stack.extend(node_edit.success_stack.drain(..));
+            }
+
+            for handle in macros_to_edit {
+                open_macro_editor(&mut self.nodes_edit, handle);
+            }
+
+            let mut opened = true;
+            if let Some(handle) = import_macro {
+                if import_macro_focus {
+                    unsafe { imgui::sys::igSetNextWindowFocus() };
+                }
+                let mut selected_path = None;
+                let mut cancelled = false;
+                let mouse_pos = ui.imgui().mouse_pos();
+                ui.window(&imgui::ImString::new(format!(
+                    "Import macro in '{}'",
+                    handle.name(),
+                )))
+                .opened(&mut opened)
+                .save_settings(false)
+                .position(mouse_pos, imgui::ImGuiCond::Appearing)
+                .size((400.0, 410.0), imgui::ImGuiCond::Appearing)
+                .build(|| {
+                    ui.child_frame(im_str!("edit"), (0.0, 350.0))
+                        .scrollbar_horizontal(true)
+                        .build(|| {
+                            if let Ok(Some(path)) =
+                                ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
+                            {
+                                selected_path = Some(path);
+                            }
+                        });
+                    if ui.button(im_str!("Cancel"), (0.0, 0.0)) {
+                        cancelled = true;
                     }
                 });
-                node_edit.opened = opened;
-            }
+                if cancelled {
+                    opened = false;
+                } else if let Some(path) = selected_path.take() {
+                    match fs::File::open(path) {
+                        Ok(file) => {
+                            let editor: Result<SerialInnerEditorStandAlone<T>, _> =
+                                ron::de::from_reader(file);
+                            match editor {
+                                Ok(editor) => match editor.into_inner_node_editor() {
+                                    Ok(mut editor) => {
+                                        if let Some(same_id_macr) = macros
+                                            .macros()
+                                            .find(|h| h.id() == editor.handle.id() && h != &handle)
+                                        {
+                                            let msg = format!("Other macro '{}' with same ID '{}' already loaded... Replace it.",
+                                            same_id_macr.name(),
+                                            same_id_macr.id().to_hyphenated());
+                                            eprintln!("{}", &msg);
+                                            self.success_stack.push(ImString::new(msg));
+                                            *same_id_macr.write() = editor.handle.read().clone();
+                                            editor.handle = same_id_macr.clone();
+                                            if let Some(node_edit_idx) =
+                                                self.nodes_edit.iter().position(|node_edit| {
+                                                    node_edit.handle.id() == same_id_macr.id()
+                                                })
+                                            {
+                                                self.nodes_edit.remove(node_edit_idx);
+                                            }
+                                        } else {
+                                            *handle.write() = editor.handle.read().clone();
+                                            editor.handle = handle.clone();
+                                        }
 
-            for error in node_edit.error_stack.drain(..) {
-                self.error_stack.push(Box::new(error));
+                                        if let Some(node_edit) = self
+                                            .nodes_edit
+                                            .iter_mut()
+                                            .find(|node_edit| &node_edit.handle == handle)
+                                        {
+                                            editor.focus = true;
+                                            editor.opened = true;
+                                            *node_edit = editor;
+                                        } else {
+                                            eprintln!(
+                                                "Could not update macro editor. Not found..."
+                                            );
+                                        }
+                                    }
+                                    Err(e) => self.error_stack.push(Box::new(e)),
+                                },
+                                Err(e) => self
+                                    .error_stack
+                                    .push(Box::new(export::ImportError::DeserializationError(e))),
+                            }
+                        }
+                        Err(e) => {
+                            self.error_stack
+                                .push(Box::new(export::ImportError::IOError(e)));
+                        }
+                    }
+                    opened = false;
+                }
             }
-            self.success_stack.extend(node_edit.success_stack.drain(..));
-        }
-
-        for handle in macros_to_edit {
-            open_macro_editor(&mut self.nodes_edit, handle);
+            if !opened {
+                *import_macro = None;
+            }
         }
 
         if let Some(handle) = export_macro {
-            if let Some(editor) = self
-                .nodes_edit
-                .iter_mut()
-                .find(|editor| editor.handle == handle)
-            {
-                let file_name = format!("{}.macro", handle.name());
-                if let Err(e) = self.export_to_file(&file_name, subeditors) {
-                    eprintln!("Error on export! {}", e);
-                    self.error_stack.push(InnerEditorError::ExportError(e));
-                } else {
-                    self.success_stack.push(ImString::new(format!(
-                        "Macro content was exported with success to '{}'!",
-                        file_name
-                    )));
-                }
+            let file_name = format!("{}.macro", handle.name());
+            if let Err(e) = self.macro_export_to_file(&file_name, &handle) {
+                eprintln!("Error on export! {}", e);
+                self.error_stack
+                    .push(Box::new(InnerEditorError::ExportError(e)));
             } else {
-                eprintln!(
-                    "Editor not found on attempting to export macro '{}' (id={})",
-                    handle.name(),
-                    handle.id().to_hyphenated()
-                );
+                self.success_stack.push(ImString::new(format!(
+                    "Macro content was exported with success to '{}'!",
+                    file_name
+                )));
             }
-        }
-
-        let mut opened = true;
-        if let Some(handle) = import_macro {
-            if import_macro_focus {
-                unsafe { imgui::sys::igSetNextWindowFocus() };
-            }
-            let mut selected_path = None;
-            let mut cancelled = false;
-            let mouse_pos = ui.imgui().mouse_pos();
-            ui.window(&imgui::ImString::new(format!(
-                "Import macro in '{}'",
-                handle.name(),
-            )))
-            .opened(&mut opened)
-            .save_settings(false)
-            .position(mouse_pos, imgui::ImGuiCond::Appearing)
-            .size((400.0, 410.0), imgui::ImGuiCond::Appearing)
-            .build(|| {
-                ui.child_frame(im_str!("edit"), (0.0, 350.0))
-                    .scrollbar_horizontal(true)
-                    .build(|| {
-                        if let Ok(Some(path)) =
-                            ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
-                        {
-                            selected_path = Some(path);
-                        }
-                    });
-                if ui.button(im_str!("Cancel"), (0.0, 0.0)) {
-                    cancelled = true;
-                }
-            });
-            if cancelled {
-                opened = false;
-            } else if let Some(path) = selected_path.take() {
-                match fs::File::open(path) {
-                    Ok(file) => {
-                        let editor: Result<SerialInnerEditorStandAlone<T>, _> =
-                            ron::de::from_reader(file);
-                        match editor {
-                            Ok(editor) => match editor.into_inner_node_editor() {
-                                Ok(mut editor) => {
-                                    if let Some(same_id_macr) = macros
-                                        .macros()
-                                        .find(|h| h.id() == editor.handle.id() && h != &handle)
-                                    {
-                                        let msg = format!("Other macro '{}' with same ID '{}' already loaded... Replace it.",
-                                            same_id_macr.name(),
-                                            same_id_macr.id().to_hyphenated());
-                                        eprintln!("{}", &msg);
-                                        self.success_stack.push(ImString::new(msg));
-                                        *same_id_macr.write() = editor.handle.read().clone();
-                                        editor.handle = same_id_macr.clone();
-                                        if let Some(node_edit_idx) =
-                                            self.nodes_edit.iter().position(|node_edit| {
-                                                node_edit.handle.id() == same_id_macr.id()
-                                            })
-                                        {
-                                            self.nodes_edit.remove(node_edit_idx);
-                                        }
-                                    } else {
-                                        *handle.write() = editor.handle.read().clone();
-                                        editor.handle = handle.clone();
-                                    }
-
-                                    if let Some(node_edit) = self
-                                        .nodes_edit
-                                        .iter_mut()
-                                        .find(|node_edit| &node_edit.handle == handle)
-                                    {
-                                        editor.focus = true;
-                                        editor.opened = true;
-                                        *node_edit = editor;
-                                    } else {
-                                        eprintln!("Could not update macro editor. Not found...");
-                                    }
-                                }
-                                Err(e) => self.error_stack.push(Box::new(e)),
-                            },
-                            Err(e) => self
-                                .error_stack
-                                .push(Box::new(export::ImportError::DeserializationError(e))),
-                        }
-                    }
-                    Err(e) => {
-                        self.error_stack
-                            .push(Box::new(export::ImportError::IOError(e)));
-                    }
-                }
-                opened = false;
-            }
-        }
-        if !opened {
-            *import_macro = None;
         }
     }
 }
@@ -782,42 +776,29 @@ impl<T, E> Default for NodeEditor<T, E> {
     }
 }
 
-impl<T, E> InnerNodeEditor<T, E>
+impl<T, E> NodeEditor<T, E>
 where
     T: Clone + cake::VariantName + serde::Serialize,
 {
-    fn export_to_buf<W: io::Write>(
+    fn macro_export_to_buf<W: io::Write>(
         &self,
         w: &mut W,
-        subeditors: &[InnerNodeEditor<T, E>],
+        handle: &cake::macros::MacroHandle<'static, T, E>,
     ) -> Result<(), export::ExportError> {
-        let serializable = SerialInnerEditorStandAlone::new(self, subeditors);
+        let serializable = SerialInnerEditorStandAlone::new(self, handle);
         let serialized = ron::ser::to_string_pretty(&serializable, Default::default())?;
         w.write_all(serialized.as_bytes())?;
         w.flush()?;
         Ok(())
     }
 
-    fn export_to_file<P: AsRef<path::Path>>(
+    fn macro_export_to_file<P: AsRef<path::Path>>(
         &self,
         file_path: P,
-        subeditors: &[InnerNodeEditor<T, E>],
+        handle: &cake::macros::MacroHandle<'static, T, E>,
     ) -> Result<(), export::ExportError> {
         let mut f = fs::File::create(file_path)?;
-        self.export_to_buf(&mut f, subeditors)
-    }
-
-    fn export_stand_alone(&mut self, subeditors: &[InnerNodeEditor<T, E>]) {
-        let file_name = format!("{}.macro", self.handle.name());
-        if let Err(e) = self.export_to_file(&file_name, subeditors) {
-            eprintln!("Error on export! {}", e);
-            self.error_stack.push(InnerEditorError::ExportError(e));
-        } else {
-            self.success_stack.push(ImString::new(format!(
-                "Macro content was exported with success to '{}'!",
-                file_name
-            )));
-        }
+        self.macro_export_to_buf(&mut f, handle)
     }
 }
 
