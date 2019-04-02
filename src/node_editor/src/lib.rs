@@ -839,6 +839,7 @@ impl SerialInnerEditor {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct SerialInnerEditorStandAlone<T> {
+    // FIXME: Serialize and deserialize editor of sub-macros
     editor: SerialInnerEditor,
     macr: cake::macros::SerdeMacroStandAlone<T>,
 }
