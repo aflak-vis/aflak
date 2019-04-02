@@ -109,6 +109,17 @@ where
             updated_on: Instant::now(),
         }
     }
+
+    pub fn deep_clone(&self) -> Self {
+        Self {
+            t: match &self.t {
+                Bow::Borrowed(t) => Bow::Borrowed(t),
+                Bow::Owned(t) => Bow::Owned(t.deep_clone()),
+            },
+            input_defaults: self.input_defaults.clone(),
+            updated_on: self.updated_on,
+        }
+    }
 }
 
 impl<'t, T, E> MetaTransform<'t, T, E> {

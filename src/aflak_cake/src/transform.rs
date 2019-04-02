@@ -118,6 +118,36 @@ where
     }
 }
 
+impl<'t, T, E> Algorithm<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn deep_clone(&self) -> Self {
+        use Algorithm::*;
+        match *self {
+            Function {
+                f,
+                id,
+                version,
+                description,
+                ref inputs,
+                ref outputs,
+            } => Function {
+                f,
+                id,
+                version,
+                description,
+                inputs: inputs.clone(),
+                outputs: outputs.clone(),
+            },
+            Constant(ref t) => Constant(t.clone()),
+            Macro { ref handle } => Macro {
+                handle: handle.deep_clone(),
+            },
+        }
+    }
+}
+
 impl<'t, T, E> Algorithm<'t, T, E> {
     pub fn updated_on(&self) -> Option<Instant> {
         if let Algorithm::Macro { handle } = self {
@@ -154,6 +184,18 @@ where
         Self {
             updated_on: self.updated_on,
             algorithm: self.algorithm.clone(),
+        }
+    }
+}
+
+impl<'t, T, E> Transform<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn deep_clone(&self) -> Self {
+        Self {
+            updated_on: self.updated_on,
+            algorithm: self.algorithm.deep_clone(),
         }
     }
 }

@@ -391,3 +391,21 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         self.outputs.keys().max().unwrap_or(&OutputId(0)).incr()
     }
 }
+
+impl<'t, T, E> DST<'t, T, E> {
+    /// Make a new empty [`DST`].
+    pub fn deep_clone(&self) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            transforms: self
+                .transforms
+                .iter()
+                .map(|(t_idx, meta)| (*t_idx, meta.deep_clone()))
+                .collect(),
+            edges: self.edges.clone(),
+            outputs: self.outputs.clone(),
+        }
+    }
+}

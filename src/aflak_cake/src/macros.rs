@@ -27,6 +27,17 @@ impl<'t, T, E> Clone for MacroHandle<'t, T, E> {
     }
 }
 
+impl<'t, T, E> MacroHandle<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn deep_clone(&self) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(self.read().deep_clone())),
+        }
+    }
+}
+
 impl<'t, T, E> PartialEq for MacroHandle<'t, T, E> {
     fn eq(&self, other: &MacroHandle<'t, T, E>) -> bool {
         ptr::eq(self.inner.as_ref(), other.inner.as_ref())
@@ -69,6 +80,21 @@ where
             name: self.name.clone(),
             inputs: self.inputs.clone(),
             dst: self.dst.clone(),
+            updated_on: self.updated_on,
+        }
+    }
+}
+
+impl<'t, T, E> Macro<'t, T, E>
+where
+    T: Clone,
+{
+    pub fn deep_clone(&self) -> Self {
+        Self {
+            id: self.id,
+            name: self.name.clone(),
+            inputs: self.inputs.clone(),
+            dst: self.dst.deep_clone(),
             updated_on: self.updated_on,
         }
     }
