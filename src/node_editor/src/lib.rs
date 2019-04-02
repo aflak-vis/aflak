@@ -605,7 +605,6 @@ enum InnerEditorError {
     IncorrectNodeConnection(cake::DSTError),
     SelfDefiningMacro { name: String },
     ExportError(export::ExportError),
-    Unimplemented(&'static str),
 }
 
 impl fmt::Display for InnerEditorError {
@@ -615,7 +614,6 @@ impl fmt::Display for InnerEditorError {
             IncorrectNodeConnection(e) => write!(f, "{}", e),
             SelfDefiningMacro { name } => write!(f, "Cannot re-use macro '{}' in itself!", name),
             ExportError(e) => write!(f, "Error on export macro! {}", e),
-            Unimplemented(msg) => write!(f, "Unimplemented! {}", msg),
         }
     }
 }
