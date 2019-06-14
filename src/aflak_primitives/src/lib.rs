@@ -908,6 +908,39 @@ fn run_create_equivalent_width(
     ))))
 }
 
+fn zsc_sample(v: &mut Vec<f32>, image: &WcsArray, maxpix: &i64) -> Result<(), IOErr> {
+    use std::cmp::max;
+    dim_is!(image, 2)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let size = dim.as_array_view();
+    let nc = size[0];
+    let nl = size[1];
+    /*let stride = if 1.0 < (((nc - 1) * (nl - 1)) as f32 / *maxpix as f32).sqrt() {
+        (((nc - 1) * (nl - 1)) as f32 / *maxpix as f32).sqrt() as usize
+    } else {
+        1
+    };*/
+    let stride = max(
+        1,
+        (((nc - 1) * (nl - 1)) as f32 / *maxpix as f32).sqrt() as usize,
+    );
+    for line in image_val.axis_iter(Axis(0)).step_by(stride) {
+        for &data in line.iter().step_by(stride) {
+            if !data.is_nan() {
+                v.push(data);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn other_function(image: &WcsArray) {
+    let mut samples: Vec<f32> = Vec::new();
+    zsc_sample(&mut samples, &image, &1000);
+    println!("{:?}", samples);
+}
+
 fn run_convert_to_logscale(
     image: &WcsArray,
     a: f32,
