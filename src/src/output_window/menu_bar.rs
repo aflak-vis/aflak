@@ -13,6 +13,7 @@ use owning_ref::ArcRef;
 use aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
+    three::UiImage3d,
     AxisTransform, InteractionIterMut, ValueIter,
 };
 use cake::OutputId;
@@ -418,6 +419,12 @@ impl MenuBar for primitives::WcsArray {
                     &mut ctx.window.editable_values,
                     ctx.node_editor,
                 );
+            }
+            3 => {
+                let arr = self.array();
+                let val = arr.scalar().view();
+                let texture_id = ImTexture::from(hash_outputid(ctx.output));
+                ui.image3d(&val, texture_id, ctx.textures);
             }
             _ => {
                 ui.text(format!(
