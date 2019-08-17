@@ -15,6 +15,7 @@ extern crate ndarray;
 
 pub mod imshow;
 pub mod plot;
+pub mod three;
 
 mod err;
 mod interactions;
