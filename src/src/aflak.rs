@@ -19,7 +19,7 @@ pub struct Aflak {
     node_editor: AflakNodeEditor,
     layout_engine: LayoutEngine,
     output_windows: HashMap<OutputId, OutputWindow>,
-    error_alerts: Vec<Box<error::Error>>,
+    error_alerts: Vec<Box<dyn error::Error>>,
 }
 
 impl Aflak {

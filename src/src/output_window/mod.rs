@@ -38,7 +38,7 @@ impl OutputWindow {
         node_editor: &mut AflakNodeEditor,
         gl_ctx: &F,
         textures: &mut Textures,
-    ) -> Vec<Box<error::Error>>
+    ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
     {

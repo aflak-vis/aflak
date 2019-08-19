@@ -31,7 +31,7 @@ fn main() {
 // https://github.com/rust-lang-nursery/rustup.rs/blob/dd51ab0/build.rs
 fn commit_info() -> String {
     match (commit_hash(), commit_date()) {
-        (Ok(hash), Ok(date)) => format!(" ({} {})", hash.trim_right(), date),
+        (Ok(hash), Ok(date)) => format!(" ({} {})", hash.trim_end(), date),
         _ => String::new(),
     }
 }

@@ -80,7 +80,7 @@ pub fn handle_mouse_button_state(imgui: &mut ImGui, button: MouseButton, state: 
         MouseButton::Left => states[0] = state_bool,
         MouseButton::Right => states[1] = state_bool,
         MouseButton::Middle => states[2] = state_bool,
-        MouseButton::Other(idx @ 0...4) => states[idx as usize] = state_bool,
+        MouseButton::Other(idx @ 0..=4) => states[idx as usize] = state_bool,
         _ => (),
     }
     imgui.set_mouse_down(states);
