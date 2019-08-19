@@ -53,7 +53,7 @@ pub trait MenuBar {
         &self,
         ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, F>,
         window: Window<'ui, '_>,
-    ) -> Vec<Box<error::Error>>
+    ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
     {
@@ -76,8 +76,8 @@ pub trait MenuBar {
         ui: &Ui,
         output: OutputId,
         window: &mut OutputWindow,
-    ) -> Vec<Box<error::Error>> {
-        let mut errors: Vec<Box<error::Error>> = vec![];
+    ) -> Vec<Box<dyn error::Error>> {
+        let mut errors: Vec<Box<dyn error::Error>> = vec![];
 
         let mut output_saved_success_popup = false;
         ui.menu_bar(|| {

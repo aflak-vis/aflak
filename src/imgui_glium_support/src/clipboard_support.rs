@@ -5,7 +5,7 @@ use clipboard::ClipboardProvider;
 
 use imgui::{Clipboard, ImGui};
 
-pub fn setup(imgui: &mut ImGui) -> Result<(), Box<error::Error>> {
+pub fn setup(imgui: &mut ImGui) -> Result<(), Box<dyn error::Error>> {
     let ctx: ClipboardContext = ClipboardProvider::new()?;
     imgui.prepare_clipboard::<ClipboardImpl>(ctx);
     Ok(())

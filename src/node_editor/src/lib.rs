@@ -38,7 +38,7 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     cache: cake::Cache<T, cake::compute::ComputeError<E>>,
     macros: cake::macros::MacroManager<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
-    error_stack: Vec<Box<error::Error>>,
+    error_stack: Vec<Box<dyn error::Error>>,
     success_stack: Vec<ImString>,
 
     nodes_edit: Vec<InnerNodeEditor<T, E>>,

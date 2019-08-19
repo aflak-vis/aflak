@@ -94,7 +94,7 @@ fn path_clean_up(path: Option<&str>, default: &str) -> PathBuf {
     path.canonicalize().unwrap_or(path)
 }
 
-fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<Read>, io::Error> {
+fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<dyn Read>, io::Error> {
     let fits = matches.value_of("fits");
     let fits_path = path_clean_up(fits, "file.fits");
     if let Some(template_name) = matches.value_of("template") {
