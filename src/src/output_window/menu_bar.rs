@@ -424,7 +424,7 @@ impl MenuBar for primitives::WcsArray {
                 let arr = self.array();
                 let val = arr.scalar().view();
                 let texture_id = ImTexture::from(hash_outputid(ctx.output));
-                ui.image3d(&val, texture_id, ctx.textures);
+                ui.image3d(&val, texture_id, ctx.textures, ctx.gl_ctx);
             }
             _ => {
                 ui.text(format!(

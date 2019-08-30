@@ -6,6 +6,7 @@
 //! Basically, this crate defines and implements two traits on imgui's `Ui`
 //! objet. These are [UiImage1d](plot/trait.UiImage1d.html) and
 //! [UiImage2d](imshow/trait.UiImage2d.html).
+#[macro_use]
 extern crate glium;
 #[macro_use]
 extern crate imgui;
