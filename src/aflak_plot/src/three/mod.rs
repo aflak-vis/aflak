@@ -1,15 +1,17 @@
 //! Draw 3D representations.
-use std::borrow::Cow;
 use glium::{
     backend::Facade,
     texture::{ClientFormat, RawImage2d},
-    Texture2d,
-    Surface,
+    Surface, Texture2d,
 };
 use imgui::{ImTexture, Ui};
 use ndarray::{ArrayBase, Data, Ix3, IxDyn};
+use std::borrow::Cow;
 
 use super::imshow::Textures;
+
+mod state;
+pub use self::state::{State, Vertex};
 
 /// TODO
 pub trait UiImage3d {
@@ -19,6 +21,7 @@ pub trait UiImage3d {
         texture_id: ImTexture,
         textures: &mut Textures,
         ctx: &F,
+        state: &mut state::State,
     ) where
         S: Data<Elem = f32>,
         F: Facade;
@@ -32,6 +35,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
         texture_id: ImTexture,
         textures: &mut Textures,
         ctx: &F,
+        state: &mut state::State,
     ) where
         S: Data<Elem = f32>,
         F: Facade,
@@ -45,7 +49,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
         );
 
         // 3D image...
-        let raw = make_raw_image(image);
+        let raw = make_raw_image(image, state);
         let gl_texture = Texture2d::new(ctx, raw).expect("Error!");
         textures.replace(texture_id, gl_texture);
 
@@ -53,25 +57,18 @@ impl<'ui> UiImage3d for Ui<'ui> {
     }
 }
 
-#[derive(Copy, Clone)]
-struct Vertex {
-    pos: [f32; 3],
-    texcoord: [f32; 2],
-}
-implement_vertex!(Vertex, pos, texcoord);
-
-fn ray_casting_gpu<S>(image: &ArrayBase<S, Ix3>, n: usize, m: usize) -> Vec<u8>
+fn ray_casting_gpu<S>(image: &ArrayBase<S, Ix3>, n: usize, m: usize, state: &mut state::State) -> Vec<u8>
 where
     S: Data<Elem = f32>,
 {
     let mut data = vec![0; 3 * n * m];
-
+    /*
     let events_loop = glium::glutin::EventsLoop::new();
-    let wb = glium::glutin::WindowBuilder::new()
-        .with_visibility(false);
+    let wb = glium::glutin::WindowBuilder::new().with_visibility(false);
     let cb = glium::glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &events_loop).unwrap();
-    let program = glium::Program::from_source(display.get_context(),
+    let program = glium::Program::from_source(
+        display.get_context(),
         "#version 430
 
         in vec3 pos;
@@ -156,18 +153,30 @@ where
         }
 
         void main() {
-            const vec3 eye = vec3(0.0f, 0.0f, -2.0f);
+            const vec3 eye = vec3(0.0f, 0.0f, -4.0f);
             const vec3 position_screen =
             {
                 Texcoord.x * 2.0f - 1.0f,
                 Texcoord.y * 2.0f - 1.0f,
-                eye.z + 0.5f,
+                eye.z + 1.732f,
             };
+            const float theta = PI / 4;
+            const float phi = 0.0;
+            const mat3 M1 = mat3(
+                cos(theta), 0, sin(theta),
+                0, 1, 0,
+                -sin(theta), 0, cos(theta)
+            );
+            const mat3 M2 = mat3(
+                1, 0, 0,
+                0, cos(phi), -sin(phi),
+                0, sin(phi), cos(phi)
+            );
 
             ray r =
             {
-                eye,
-                normalize(position_screen - eye),
+                M1 * M2 * eye,
+                M1 * M2 * normalize(position_screen - eye),
                 vec4(0.0f),
             };
 
@@ -175,30 +184,61 @@ where
 
             out_color = gammaCorrect(r.color, 2.2);
         }",
-        None
-    ).unwrap();
+        None,
+    )
+    .unwrap();
 
-    let fb_tex = Texture2d::empty_with_format(display.get_context(), glium::texture::UncompressedFloatFormat::F32F32F32F32, glium::texture::MipmapsOption::NoMipmap, n as u32, m as u32).unwrap();
+    let fb_tex = Texture2d::empty_with_format(
+        display.get_context(),
+        glium::texture::UncompressedFloatFormat::F32F32F32F32,
+        glium::texture::MipmapsOption::NoMipmap,
+        n as u32,
+        m as u32,
+    )
+    .unwrap();
 
-    let mut fb = glium::framebuffer::SimpleFrameBuffer::new(display.get_context(), &fb_tex).unwrap();
+    let mut fb =
+        glium::framebuffer::SimpleFrameBuffer::new(display.get_context(), &fb_tex).unwrap();
 
-    let vertex_buffer = glium::VertexBuffer::new(display.get_context(), &[
-        Vertex{pos: [1.0, -1.0, 0.0], texcoord: [1.0, 1.0]},
-        Vertex{pos: [-1.0, -1.0, 0.0], texcoord: [0.0, 1.0]},
-        Vertex{pos: [-1.0, 1.0, 0.0], texcoord: [0.0, 0.0]},
-        Vertex{pos: [1.0, 1.0, 0.0], texcoord: [1.0, 0.0]},
-    ]).unwrap();
+    let vertex_buffer = glium::VertexBuffer::new(
+        display.get_context(),
+        &[
+            Vertex {
+                pos: [1.0, -1.0, 0.0],
+                texcoord: [1.0, 1.0],
+            },
+            Vertex {
+                pos: [-1.0, -1.0, 0.0],
+                texcoord: [0.0, 1.0],
+            },
+            Vertex {
+                pos: [-1.0, 1.0, 0.0],
+                texcoord: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [1.0, 1.0, 0.0],
+                texcoord: [1.0, 0.0],
+            },
+        ],
+    )
+    .unwrap();
     let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
     let mut shape = image.dim();
-    if shape.0 > 128 {shape.0 = 128;} // max texture size is 2048
+    if shape.0 > 128 {
+        shape.0 = 128;
+    } // max texture size is 2048
     let mut volume_data = vec![vec![vec![0f32; shape.2]; shape.1]; shape.0];
     let mut min_val = std::f32::MAX;
     let mut max_val = 0f32;
-    for i in 0..shape.0 {
+    for i in 1900..shape.0+1900 {
         for j in 0..shape.1 {
             for k in 0..shape.2 {
                 if min_val > image[[i, j, k]] {
-                    min_val = if image[[i, j, k]] < 0f32 { 0f32 } else { image[[i, j, k]] };
+                    min_val = if image[[i, j, k]] < 0f32 {
+                        0f32
+                    } else {
+                        image[[i, j, k]]
+                    };
                 }
                 if max_val < image[[i, j, k]] {
                     max_val = image[[i, j, k]];
@@ -209,15 +249,33 @@ where
     for i in 0..shape.0 {
         for j in 0..shape.1 {
             for k in 0..shape.2 {
-                volume_data[i][j][k] = (if image[[i, j, k]] < 0f32 { 0f32 } else { image[[i, j, k]] } - min_val) / (max_val - min_val);
+                volume_data[i][j][k] = (if image[[i+1900, j, k]] < 0f32 {
+                    0f32
+                } else {
+                    image[[i+1900, j, k]]
+                } - min_val)
+                    / (max_val - min_val);
             }
         }
     }
-    let texture = glium::texture::CompressedTexture3d::new(display.get_context(), glium::texture::Texture3dDataSource::into_raw(volume_data)).unwrap();
-    let uniforms = uniform!{volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)};
-    fb.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &Default::default()).unwrap();
+    let texture = glium::texture::CompressedTexture3d::new(
+        display.get_context(),
+        glium::texture::Texture3dDataSource::into_raw(volume_data),
+    )
+    .unwrap();
 
-    let read_back: Vec<Vec<(u8, u8, u8, u8)>> = fb_tex.read();
+    let uniforms = uniform! {volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)};
+    */
+    state.vctx.fb.draw(
+        &state.vctx.vb,
+        &state.vctx.ib,
+        &state.vctx.program,
+        &state.vctx.uniforms,
+        &Default::default(),
+    )
+    .unwrap();
+
+    let read_back: Vec<Vec<(u8, u8, u8, u8)>> = state.vctx.fb_tex.read();
 
     for i in 0..n {
         for j in 0..m {
@@ -230,14 +288,14 @@ where
     data
 }
 
-fn make_raw_image<S>(image: &ArrayBase<S, IxDyn>) -> RawImage2d<'static, u8>
+fn make_raw_image<S>(image: &ArrayBase<S, IxDyn>, state: &mut state::State) -> RawImage2d<'static, u8>
 where
     S: Data<Elem = f32>,
 {
     let image3 = image.slice(s![.., .., ..]);
-    let n = 256;
-    let m = 256;
-    let data = ray_casting_gpu(&image3, n, m);
+    let n = 1024;
+    let m = 1024;
+    let data = ray_casting_gpu(&image3, n, m, state);
     RawImage2d {
         data: Cow::Owned(data),
         width: n as u32,

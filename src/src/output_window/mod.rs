@@ -10,7 +10,7 @@ use owning_ref::ArcRef;
 
 use aflak_plot::{
     imshow::{self, Textures},
-    plot, InteractionId,
+    plot, three, InteractionId,
 };
 use cake::{OutputId, TransformIdx};
 use primitives::{ndarray, IOValue, SuccessOut};
@@ -23,6 +23,7 @@ use aflak::AflakNodeEditor;
 pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
+    image3d_state: three::State,
     editable_values: EditableValues,
     show_pixels: bool,
 }
