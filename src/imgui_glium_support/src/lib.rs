@@ -3,22 +3,25 @@ extern crate glium;
 
 extern crate imgui;
 extern crate imgui_glium_renderer;
+extern crate imgui_winit_support;
 
 mod clipboard_support;
-mod glutin_support;
 
 use std::error;
 use std::fmt;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::result;
 use std::time::Instant;
 
 use glium::{
-    backend::{glutin::DisplayCreationError, Context, Facade},
-    glutin, Display, Surface, SwapBuffersError, Texture2d,
+    backend::{self, glutin::DisplayCreationError, Facade},
+    glutin::{self, Event, WindowEvent},
+    Display, Surface, SwapBuffersError, Texture2d,
 };
-use imgui::{ImGui, ImString, Textures, Ui};
+use imgui::{Context, FontConfig, FontSource, Textures, Ui};
 use imgui_glium_renderer::{Renderer, RendererError};
+use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
 struct MouseState {
@@ -31,8 +34,8 @@ struct MouseState {
 pub struct AppConfig {
     pub title: String,
     pub clear_color: [f32; 4],
-    pub ini_filename: Option<ImString>,
-    pub log_filename: Option<ImString>,
+    pub ini_filename: Option<PathBuf>,
+    pub log_filename: Option<PathBuf>,
     pub window_width: u32,
     pub window_height: u32,
     pub maximized: bool,
@@ -57,6 +60,7 @@ pub enum Error {
     Glutin(DisplayCreationError),
     Render(RendererError),
     SwapBuffers(SwapBuffersError),
+    PrepareFrame,
     Message(&'static str),
 }
 
@@ -66,6 +70,7 @@ impl fmt::Display for Error {
             Error::Glutin(ref e) => e.fmt(f),
             Error::Render(ref e) => e.fmt(f),
             Error::SwapBuffers(ref e) => e.fmt(f),
+            Error::PrepareFrame => write!(f, "Failed to prepare frame"),
             Error::Message(msg) => write!(f, "{}", msg),
         }
     }
@@ -95,7 +100,7 @@ impl From<SwapBuffersError> for Error {
 
 pub fn run<F>(config: AppConfig, mut run_ui: F) -> Result<()>
 where
-    F: FnMut(&Ui, &Rc<Context>, &mut Textures<Texture2d>) -> bool,
+    F: FnMut(&mut Ui, &Rc<backend::Context>, &mut Textures<Rc<Texture2d>>) -> bool,
 {
     let mut events_loop = glutin::EventsLoop::new();
     let context = glutin::ContextBuilder::new().with_vsync(true);
@@ -107,58 +112,60 @@ where
         ))
         .with_maximized(config.maximized);
     let display = Display::new(builder, context, &events_loop)?;
-    let window = display.gl_window();
+    let gl_window = display.gl_window();
+    let window = gl_window.window();
 
-    let mut imgui = ImGui::init();
+    let mut imgui = Context::create();
     imgui.set_ini_filename(config.ini_filename);
     imgui.set_log_filename(config.log_filename);
 
-    // We only use integer DPI factors, because the UI can get very blurry
-    // otherwise.
-    let hidpi_factor = window.get_hidpi_factor().round();
+    if let Some(backend) = clipboard_support::init() {
+        imgui.set_clipboard_backend(Box::new(backend));
+    } else {
+        eprintln!("Failed to initialize clipboard");
+    }
+
+    let mut platform = WinitPlatform::init(&mut imgui);
+    {
+        let gl_window = display.gl_window();
+        let window = gl_window.window();
+        platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Rounded);
+    }
+
+    let hidpi_factor = platform.hidpi_factor();
+    let font_size = (13.0 * hidpi_factor) as f32;
+    imgui.fonts().add_font(&[FontSource::DefaultFontData {
+        config: Some(FontConfig {
+            size_pixels: font_size,
+            ..FontConfig::default()
+        }),
+    }]);
+
+    imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
 
     let mut renderer = Renderer::init(&mut imgui, &display)?;
-
-    glutin_support::configure_keys(&mut imgui);
-    if let Err(e) = clipboard_support::setup(&mut imgui) {
-        eprintln!("Failed to set up clipboard: {}", e);
-    }
 
     let mut last_frame = Instant::now();
     let mut quit = false;
 
     loop {
         events_loop.poll_events(|event| {
-            use glium::glutin::{Event, WindowEvent::CloseRequested};
-
-            glutin_support::handle_event(
-                &mut imgui,
-                &event,
-                window.get_hidpi_factor(),
-                hidpi_factor,
-            );
+            platform.handle_event(imgui.io_mut(), &window, &event);
 
             if let Event::WindowEvent { event, .. } = event {
-                match event {
-                    CloseRequested => quit = true,
-                    _ => (),
+                if let WindowEvent::CloseRequested = event {
+                    quit = true;
                 }
             }
         });
 
-        let now = Instant::now();
-        let delta = now - last_frame;
-        let delta_s = delta.as_secs() as f32 + delta.subsec_nanos() as f32 / 1_000_000_000.0;
-        last_frame = now;
-
-        glutin_support::update_mouse_cursor(&imgui, &window);
-
-        let frame_size = glutin_support::get_frame_size(&window, hidpi_factor).ok_or(
-            Error::Message("Could not get frame size. Window no longer exists!"),
-        )?;
-
-        let ui = imgui.frame(frame_size, delta_s);
-        if !run_ui(&ui, display.get_context(), renderer.textures()) {
+        let io = imgui.io_mut();
+        platform
+            .prepare_frame(io, &window)
+            .map_err(|_| Error::PrepareFrame)?;
+        last_frame = io.update_delta_time(last_frame);
+        let mut ui = imgui.frame();
+        if !run_ui(&mut ui, display.get_context(), renderer.textures()) {
             break;
         }
 
@@ -169,7 +176,9 @@ where
             config.clear_color[2],
             config.clear_color[3],
         );
-        renderer.render(&mut target, ui)?;
+        platform.prepare_render(&ui, &window);
+        let draw_data = ui.render();
+        renderer.render(&mut target, draw_data)?;
         target.finish()?;
 
         if quit {

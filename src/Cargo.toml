@@ -20,7 +20,7 @@ aflak_imgui_glium_support = { path = "./imgui_glium_support", version = "0.0.3" 
 node_editor = { path = "./node_editor", version = "0.0.3" }
 
 clap = "2.32.0"
-glium = { git = "https://github.com/malikolivier/glium", rev = "f36ceca3864171e8217dc60085750e2af9beec82" }
+glium = { version = "0.25", default-features = true }
 imgui = { path = "../imgui-rs", version = "0.3.0-pre" }
 imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.3.0-pre" }
 owning_ref = "0.4.0"
