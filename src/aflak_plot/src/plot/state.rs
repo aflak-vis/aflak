@@ -172,13 +172,9 @@ impl State {
 
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
-                    let mouse_pos = ui.io().mouse_pos;
-                    if ui.is_item_hovered()
-                        && x - CLICKABLE_WIDTH <= mouse_pos[0]
-                        && mouse_pos[0] < x + CLICKABLE_WIDTH
-                        && y <= mouse_pos[1]
-                        && mouse_pos[0] <= y + size[1]
-                    {
+                    ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
+                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size[1]]);
+                    if ui.is_item_hovered() {
                         ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
                         if ui.is_mouse_clicked(MouseButton::Left) {
                             *moving = true;

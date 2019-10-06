@@ -6,7 +6,7 @@ use glium::{
     texture::{ClientFormat, RawImage2d},
     Texture2d,
 };
-use imgui::ImTexture;
+use imgui::TextureId;
 use ndarray::{ArrayBase, ArrayD, ArrayView2, Data, Dimension, Ix2};
 
 use super::hist;
@@ -84,7 +84,7 @@ where
         image: I,
         created_on: Instant,
         ctx: &F,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         textures: &mut Textures,
         lut: &ColorLUT,
     ) -> Result<Image<I>, Error>
@@ -119,7 +119,7 @@ where
     pub fn update_texture<F>(
         &self,
         ctx: &F,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         textures: &mut Textures,
         lut: &ColorLUT,
     ) -> Result<(), Error>

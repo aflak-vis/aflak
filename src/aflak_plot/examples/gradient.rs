@@ -5,6 +5,7 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
+use std::path::PathBuf;
 use std::time::Instant;
 
 use aflak_plot::{
@@ -15,7 +16,7 @@ use aflak_plot::{
 fn main() {
     let config = support::AppConfig {
         title: "Example".to_owned(),
-        ini_filename: Some(imgui::ImString::new("gradient.ini")),
+        ini_filename: Some(PathBuf::from("gradient.ini")),
         ..Default::default()
     };
     let mut state = imshow::State::default();

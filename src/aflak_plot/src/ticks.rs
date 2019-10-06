@@ -1,4 +1,4 @@
-use imgui::{ImColor, ImString, ImVec2, Ui, WindowDrawList};
+use imgui::{ImColor, ImString, Ui, WindowDrawList};
 
 use super::AxisTransform;
 
@@ -15,13 +15,13 @@ pub struct XYTicks {
 }
 
 pub struct XTicks {
-    labels: Vec<(ImString, ImVec2)>,
-    axis_label: (ImString, ImVec2),
+    labels: Vec<(ImString, [f32; 2])>,
+    axis_label: (ImString, [f32; 2]),
 }
 
 pub struct YTicks {
-    labels: Vec<(ImString, ImVec2)>,
-    axis_label: (ImString, ImVec2),
+    labels: Vec<(ImString, [f32; 2])>,
+    axis_label: (ImString, [f32; 2]),
 }
 
 impl XYTicks {
@@ -50,14 +50,7 @@ impl XYTicks {
         self.y.width()
     }
 
-    pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
-    where
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
-    {
-        let p = p.into();
-        let size = size.into();
-
+    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
         self.x.draw(draw_list, p, size);
         self.y.draw(draw_list, p, size);
     }
@@ -91,42 +84,35 @@ impl XTicks {
     }
 
     pub fn height(&self) -> f32 {
-        let label_height = self.axis_label.1.y;
+        let label_height = self.axis_label.1[1];
         let tick_height: f32 = self
             .labels
             .iter()
-            .fold(0.0, |acc, (_, size)| acc.max(size.y));
+            .fold(0.0, |acc, (_, size)| acc.max(size[1]));
         tick_height + label_height
     }
 
-    pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
-    where
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
-    {
-        let p = p.into();
-        let size = size.into();
-
-        let x_step = size.x / (self.labels.len() - 1) as f32;
-        let mut x_pos = p.x;
-        let y_pos = p.y + size.y;
+    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
+        let x_step = size[0] / (self.labels.len() - 1) as f32;
+        let mut x_pos = p[0];
+        let y_pos = p[1] + size[1];
         let mut label_height = 0.0f32;
         for (label, text_size) in self.labels {
             draw_list
-                .add_line([x_pos, y_pos], [x_pos, y_pos - size.y], GRID_COLOR)
+                .add_line([x_pos, y_pos], [x_pos, y_pos - size[1]], GRID_COLOR)
                 .build();
             draw_list
                 .add_line([x_pos, y_pos], [x_pos, y_pos - TICK_SIZE], COLOR)
                 .build();
-            draw_list.add_text([x_pos - text_size.x / 2.0, y_pos], COLOR, label.to_str());
+            draw_list.add_text([x_pos - text_size[0] / 2.0, y_pos], COLOR, label.to_str());
             x_pos += x_step;
-            label_height = label_height.max(text_size.y);
+            label_height = label_height.max(text_size[1]);
         }
 
         let (label, text_size) = self.axis_label;
-        let middle_x = p.x + size.x / 2.0;
+        let middle_x = p[0] + size[0] / 2.0;
         draw_list.add_text(
-            [middle_x - text_size.x / 2.0, y_pos + label_height],
+            [middle_x - text_size[0] / 2.0, y_pos + label_height],
             COLOR,
             label,
         );
@@ -163,52 +149,45 @@ impl YTicks {
     }
 
     pub fn width(&self) -> f32 {
-        let label_width = self.axis_label.1.y;
+        let label_width = self.axis_label.1[1];
         let tick_width: f32 = self
             .labels
             .iter()
-            .fold(0.0, |acc, (_, size)| acc.max(size.x));
+            .fold(0.0, |acc, (_, size)| acc.max(size[0]));
         label_width + tick_width + YTicks::AXIS_NAME_RIGHT_PADDING
     }
 
-    pub fn draw<P, S>(self, draw_list: &WindowDrawList, p: P, size: S)
-    where
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
-    {
-        let p = p.into();
-        let size = size.into();
-
-        let y_step = size.y / (self.labels.len() - 1) as f32;
-        let mut y_pos = p.y + size.y;
-        let x_pos = p.x;
+    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
+        let y_step = size[1] / (self.labels.len() - 1) as f32;
+        let mut y_pos = p[1] + size[1];
+        let x_pos = p[0];
         let mut label_width = 0.0f32;
         for (label, text_size) in self.labels {
             draw_list
-                .add_line([x_pos, y_pos], [x_pos + size.x, y_pos], GRID_COLOR)
+                .add_line([x_pos, y_pos], [x_pos + size[0], y_pos], GRID_COLOR)
                 .build();
             draw_list
                 .add_line([x_pos, y_pos], [x_pos + TICK_SIZE, y_pos], COLOR)
                 .build();
             draw_list.add_text(
                 [
-                    x_pos - text_size.x - LABEL_HORIZONTAL_PADDING,
-                    y_pos - text_size.y / 2.0,
+                    x_pos - text_size[0] - LABEL_HORIZONTAL_PADDING,
+                    y_pos - text_size[1] / 2.0,
                 ],
                 COLOR,
                 label.to_str(),
             );
             y_pos -= y_step;
-            label_width = label_width.max(text_size.x)
+            label_width = label_width.max(text_size[0])
         }
 
         let (label, text_size) = self.axis_label;
-        let middle_y = p.y + size.y / 2.0;
+        let middle_y = p[1] + size[1] / 2.0;
         unsafe {
             add_text_vertical(
                 [
-                    p.x - label_width - text_size.y - YTicks::AXIS_NAME_RIGHT_PADDING,
-                    middle_y + text_size.x / 2.0,
+                    p[0] - label_width - text_size[1] - YTicks::AXIS_NAME_RIGHT_PADDING,
+                    middle_y + text_size[0] / 2.0,
                 ],
                 COLOR,
                 label,
@@ -220,19 +199,17 @@ impl YTicks {
 /// Draw vertical text using direct draw calls.
 ///
 /// Inspired from: https://github.com/ocornut/imgui/issues/705#issuecomment-247959437
-unsafe fn add_text_vertical<P, C, T>(pos: P, col: C, text: T)
+unsafe fn add_text_vertical<C, T>(pos: [f32; 2], col: C, text: T)
 where
-    P: Into<ImVec2>,
     C: Into<ImColor>,
     T: AsRef<str>,
 {
     use imgui::sys;
 
-    let pos = pos.into();
     let col = col.into();
     let text = text.as_ref();
 
-    let mut y = pos.y;
+    let mut y = pos[1];
 
     let font = sys::igGetFont();
     for c in text.chars() {
@@ -245,17 +222,41 @@ where
         sys::ImDrawList_PrimReserve(draw_list, 6, 4);
         sys::ImDrawList_PrimQuadUV(
             draw_list,
-            ImVec2::new(pos.x + glyph.y0, y - glyph.x0),
-            ImVec2::new(pos.x + glyph.y0, y - glyph.x1),
-            ImVec2::new(pos.x + glyph.y1, y - glyph.x1),
-            ImVec2::new(pos.x + glyph.y1, y - glyph.x0),
-            ImVec2::new(glyph.u0, glyph.v0),
-            ImVec2::new(glyph.u1, glyph.v0),
-            ImVec2::new(glyph.u1, glyph.v1),
-            ImVec2::new(glyph.u0, glyph.v1),
+            sys::ImVec2 {
+                x: pos[0] + glyph.Y0,
+                y: y - glyph.X0,
+            },
+            sys::ImVec2 {
+                x: pos[0] + glyph.Y0,
+                y: y - glyph.X1,
+            },
+            sys::ImVec2 {
+                x: pos[0] + glyph.Y1,
+                y: y - glyph.X1,
+            },
+            sys::ImVec2 {
+                x: pos[0] + glyph.Y1,
+                y: y - glyph.X0,
+            },
+            sys::ImVec2 {
+                x: glyph.U0,
+                y: glyph.V0,
+            },
+            sys::ImVec2 {
+                x: glyph.U1,
+                y: glyph.V0,
+            },
+            sys::ImVec2 {
+                x: glyph.U1,
+                y: glyph.V1,
+            },
+            sys::ImVec2 {
+                x: glyph.U0,
+                y: glyph.V1,
+            },
             col.into(),
         );
 
-        y -= glyph.advance_x;
+        y -= glyph.AdvanceX;
     }
 }

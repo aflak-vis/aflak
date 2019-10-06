@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::time::Instant;
 
 use glium::backend::Facade;
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImString, ImTexture, ImVec2, Ui};
+use imgui::{ComboBox, ImString, Image, MenuItem, MouseButton, MouseCursor, TextureId, Ui};
 use ndarray::ArrayD;
 
 use super::image;
@@ -35,7 +35,7 @@ pub struct State<I> {
 struct RoiInputState {
     roi_id_cnt: usize,
     roi_names: Vec<ImString>,
-    selected: i32,
+    selected: usize,
 }
 
 impl RoiInputState {
@@ -43,12 +43,12 @@ impl RoiInputState {
         self.roi_id_cnt += 1;
         self.roi_names
             .push(ImString::new(format!("Roi {}", self.roi_id_cnt)));
-        self.selected = self.roi_id_cnt as i32;
+        self.selected = self.roi_id_cnt;
         self.roi_id_cnt
     }
 
     fn is_selected(&self, id: usize) -> bool {
-        id as i32 == self.selected
+        id == self.selected
     }
 }
 
@@ -85,7 +85,7 @@ where
         image: I,
         created_on: Instant,
         ctx: &F,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         textures: &mut Textures,
     ) -> Result<(), Error>
     where
@@ -103,30 +103,26 @@ where
         &self.image
     }
 
-    pub(crate) fn show_bar<P, S>(&mut self, ui: &Ui, pos: P, size: S) -> bool
-    where
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
-    {
+    pub(crate) fn show_bar(&mut self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) -> bool {
         let mut changed = false;
         let pos = pos.into();
         let size = size.into();
 
         ui.set_cursor_screen_pos(pos);
         ui.invisible_button(im_str!("image_bar"), size);
-        if ui.is_item_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+        if ui.is_item_hovered() && ui.is_mouse_clicked(MouseButton::Right) {
             ui.open_popup(im_str!("swap-lut"));
         }
         ui.popup(im_str!("swap-lut"), || {
             ui.text("Swap LUT");
             ui.separator();
             for builtin_lut in BuiltinLUT::values() {
-                ui.push_id(*builtin_lut as i32);
-                if ui.menu_item(builtin_lut.name()).build() {
+                let stack = ui.push_id(*builtin_lut as i32);
+                if MenuItem::new(builtin_lut.name()).build(ui) {
                     self.lut.set_gradient(*builtin_lut);
                     changed = true;
                 }
-                ui.pop_id();
+                stack.pop(ui);
             }
         });
 
@@ -143,8 +139,8 @@ where
 
             // Min triangle
             let min_color = util::to_u32_color(self.lut.color_at(lims.0));
-            let x_pos = pos.x + size.x + TRIANGLE_LEFT_PADDING;
-            let y_pos = pos.y + size.y * (1.0 - lims.0);
+            let x_pos = pos[0] + size[0] + TRIANGLE_LEFT_PADDING;
+            let y_pos = pos[1] + size[1] * (1.0 - lims.0);
             draw_list
                 .add_triangle(
                     [x_pos, y_pos],
@@ -173,25 +169,25 @@ where
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
-                if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_min_moving = true;
                 }
             }
             if self.lut_min_moving {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
-                let (_, mouse_y) = ui.imgui().mouse_pos();
-                let min = 1.0 - (mouse_y - pos.y) / size.y;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let min = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_min(min);
                 changed = true;
             }
-            if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+            if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_min_moving = false;
             }
 
             // Max triangle
             let max_color = util::to_u32_color(self.lut.color_at(lims.1));
-            let y_pos = pos.y + size.y * (1.0 - lims.1);
+            let y_pos = pos[1] + size[1] * (1.0 - lims.1);
             draw_list
                 .add_triangle(
                     [x_pos, y_pos],
@@ -220,32 +216,32 @@ where
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(im_str!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
-                if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_max_moving = true;
                 }
             }
             if self.lut_max_moving {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
-                let (_, mouse_y) = ui.imgui().mouse_pos();
-                let max = 1.0 - (mouse_y - pos.y) / size.y;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let max = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_max(max);
                 changed = true;
             }
-            if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+            if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_max_moving = false;
             }
         }
 
-        let x_pos = pos.x + 5.0;
+        let x_pos = pos[0] + 5.0;
         for ((v1, c1), (v2, c2)) in self.lut.bounds() {
             let bottom_col = util::to_u32_color(c1);
             let top_col = util::to_u32_color(c2);
-            let bottom_y_pos = pos.y + size.y * (1.0 - v1);
-            let top_y_pos = pos.y + size.y * (1.0 - v2);
+            let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
+            let top_y_pos = pos[1] + size[1] * (1.0 - v2);
             draw_list.add_rect_filled_multicolor(
                 [x_pos, top_y_pos],
-                [x_pos + size.x, bottom_y_pos],
+                [x_pos + size[0], bottom_y_pos],
                 top_col,
                 top_col,
                 bottom_col,
@@ -253,25 +249,25 @@ where
             );
         }
         let mut i = 1.0;
-        let text_height = ui.get_text_line_height_with_spacing();
+        let text_height = ui.text_line_height_with_spacing();
         const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
         const COLOR: u32 = 0xFFFF_FFFF;
         const TICK_SIZE: f32 = 3.0;
         const TICK_COUNT: usize = 10;
         const TICK_STEP: f32 = 1.0 / TICK_COUNT as f32;
         while i >= -0.01 {
-            let tick_y_pos = util::lerp(pos.y, pos.y + size.y, i);
+            let tick_y_pos = util::lerp(pos[1], pos[1] + size[1], i);
             let y_pos = tick_y_pos - text_height / 2.5;
             let val = vmax + (vmin - vmax) * i;
             draw_list.add_text(
-                [x_pos + size.x + LABEL_HORIZONTAL_PADDING, y_pos],
+                [x_pos + size[0] + LABEL_HORIZONTAL_PADDING, y_pos],
                 COLOR,
                 &format!("{:.2}", val),
             );
             draw_list
                 .add_line(
-                    [x_pos + size.x - TICK_SIZE, tick_y_pos],
-                    [x_pos + size.x, tick_y_pos],
+                    [x_pos + size[0] - TICK_SIZE, tick_y_pos],
+                    [x_pos + size[0], tick_y_pos],
                     COLOR,
                 )
                 .build();
@@ -285,12 +281,12 @@ where
     pub(crate) fn show_image<FX, FY>(
         &mut self,
         ui: &Ui,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         vunit: &str,
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         max_size: (f32, f32),
-    ) -> Result<([(f32, f32); 2], f32), Error>
+    ) -> Result<([[f32; 2]; 2], f32), Error>
     where
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
@@ -317,21 +313,21 @@ where
             );
             let original_size = (tex_size.0 as f32, tex_size.1 as f32);
             let zoom = (available_size.0 / original_size.0).min(available_size.1 / original_size.1);
-            (original_size.0 * zoom, original_size.1 * zoom)
+            [original_size.0 * zoom, original_size.1 * zoom]
         };
 
-        let p = ui.get_cursor_screen_pos();
-        ui.set_cursor_screen_pos([p.0 + y_labels_width, p.1 + IMAGE_TOP_PADDING]);
-        let p = ui.get_cursor_screen_pos();
+        let p = ui.cursor_screen_pos();
+        ui.set_cursor_screen_pos([p[0] + y_labels_width, p[1] + IMAGE_TOP_PADDING]);
+        let p = ui.cursor_screen_pos();
 
-        ui.image(texture_id, size).build();
+        Image::new(texture_id, size).build(ui);
         let is_image_hovered = ui.is_item_hovered();
 
-        let abs_mouse_pos = ui.imgui().mouse_pos();
-        let mouse_pos = (abs_mouse_pos.0 - p.0, -abs_mouse_pos.1 + p.1 + size.1);
+        let abs_mouse_pos = ui.io().mouse_pos;
+        let mouse_pos = (abs_mouse_pos[0] - p[0], -abs_mouse_pos[1] + p[1] + size[1]);
         self.mouse_pos = (
-            mouse_pos.0 / size.0 * tex_size.0 as f32,
-            mouse_pos.1 / size.1 * tex_size.1 as f32,
+            mouse_pos.0 / size[0] * tex_size.0 as f32,
+            mouse_pos.1 / size[1] * tex_size.1 as f32,
         );
 
         if is_image_hovered {
@@ -361,7 +357,7 @@ where
                 }
             }
 
-            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+            if ui.is_mouse_clicked(MouseButton::Right) {
                 ui.open_popup(im_str!("add-interaction-handle"))
             }
         }
@@ -372,16 +368,16 @@ where
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if ui.menu_item(im_str!("Horizontal Line")).build() {
+            if MenuItem::new(im_str!("Horizontal Line")).build(ui) {
                 let new =
                     Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1.round()));
                 self.interactions.insert(new);
             }
-            if ui.menu_item(im_str!("Vertical Line")).build() {
+            if MenuItem::new(im_str!("Vertical Line")).build(ui) {
                 let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
                 self.interactions.insert(new);
             }
-            if ui.menu_item(im_str!("Region of interest")).build() {
+            if MenuItem::new(im_str!("Region of interest")).build(ui) {
                 let new =
                     Interaction::FinedGrainedROI(FinedGrainedROI::new(self.roi_input.gen_id()));
                 self.interactions.insert(new);
@@ -390,12 +386,12 @@ where
 
         let mut line_marked_for_deletion = None;
         for (id, interaction) in self.interactions.iter_mut() {
-            ui.push_id(id.id());
+            let stack = ui.push_id(id.id());
             const LINE_COLOR: u32 = 0xFFFF_FFFF;
             match interaction {
                 Interaction::HorizontalLine(HorizontalLine { height, moving }) => {
-                    let x = p.0;
-                    let y = p.1 + size.1 - *height / tex_size.1 as f32 * size.1;
+                    let x = p[0];
+                    let y = p[1] + size[1] - *height / tex_size.1 as f32 * size[1];
 
                     const CLICKABLE_HEIGHT: f32 = 5.0;
 
@@ -403,65 +399,65 @@ where
 
                     ui.invisible_button(
                         im_str!("horizontal-line"),
-                        [size.0, 2.0 * CLICKABLE_HEIGHT],
+                        [size[0], 2.0 * CLICKABLE_HEIGHT],
                     );
                     if ui.is_item_hovered() {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeNS);
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                        ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                        if ui.is_mouse_clicked(MouseButton::Left) {
                             *moving = true;
                         }
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                        if ui.is_mouse_clicked(MouseButton::Right) {
                             ui.open_popup(im_str!("edit-horizontal-line"))
                         }
                     }
                     if *moving {
                         *height = util::clamp(self.mouse_pos.1.round(), 0.0, tex_size.1 as f32);
                     }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                    if !ui.is_mouse_down(MouseButton::Left) {
                         *moving = false;
                     }
 
                     draw_list
-                        .add_line([x, y], [x + size.0, y], LINE_COLOR)
+                        .add_line([x, y], [x + size[0], y], LINE_COLOR)
                         .build();
 
                     ui.popup(im_str!("edit-horizontal-line"), || {
-                        if ui.menu_item(im_str!("Delete Line")).build() {
+                        if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
                     });
                 }
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
-                    let x = p.0 + *x_pos / tex_size.0 as f32 * size.0;
-                    let y = p.1;
+                    let x = p[0] + *x_pos / tex_size.0 as f32 * size[0];
+                    let y = p[1];
 
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
                     ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
 
-                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size.1]);
+                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size[1]]);
                     if ui.is_item_hovered() {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                        ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
+                        if ui.is_mouse_clicked(MouseButton::Left) {
                             *moving = true;
                         }
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                        if ui.is_mouse_clicked(MouseButton::Right) {
                             ui.open_popup(im_str!("edit-vertical-line"))
                         }
                     }
                     if *moving {
                         *x_pos = util::clamp(self.mouse_pos.0.round(), 0.0, tex_size.0 as f32);
                     }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                    if !ui.is_mouse_down(MouseButton::Left) {
                         *moving = false;
                     }
 
                     draw_list
-                        .add_line([x, y], [x, y + size.1], LINE_COLOR)
+                        .add_line([x, y], [x, y + size[1]], LINE_COLOR)
                         .build();
 
                     ui.popup(im_str!("edit-vertical-line"), || {
-                        if ui.menu_item(im_str!("Delete Line")).build() {
+                        if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
                     });
@@ -469,8 +465,8 @@ where
                 Interaction::FinedGrainedROI(FinedGrainedROI { id, pixels }) => {
                     let selected = self.roi_input.is_selected(*id);
 
-                    let pixel_size_x = size.0 / tex_size.0 as f32;
-                    let pixel_size_y = size.1 / tex_size.1 as f32;
+                    let pixel_size_x = size[0] / tex_size.0 as f32;
+                    let pixel_size_y = size[1] / tex_size.1 as f32;
                     const ROI_COLOR_SELECTED: u32 = 0xA000_0000;
                     const ROI_COLOR_UNSELECTED: u32 = 0x5000_0000;
 
@@ -483,8 +479,8 @@ where
                     for &(i, j) in pixels.iter() {
                         let i = i as f32;
                         let j = j as f32;
-                        let x = p.0 + i / tex_size.0 as f32 * size.0;
-                        let y = p.1 + size.1 - j / tex_size.1 as f32 * size.1;
+                        let x = p[0] + i / tex_size.0 as f32 * size[0];
+                        let y = p[1] + size[1] - j / tex_size.1 as f32 * size[1];
                         draw_list.add_rect_filled_multicolor(
                             [x, y],
                             [x + pixel_size_x, y - pixel_size_y],
@@ -495,10 +491,7 @@ where
                         )
                     }
 
-                    if selected
-                        && is_image_hovered
-                        && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
-                    {
+                    if selected && is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
                         let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
                         let some_position = pixels.iter().position(|&pixel_| pixel_ == pixel);
                         if let Some(position) = some_position {
@@ -509,7 +502,7 @@ where
                     }
                 }
             }
-            ui.pop_id();
+            stack.pop(ui);
         }
 
         if let Some(line_id) = line_marked_for_deletion {
@@ -521,14 +514,7 @@ where
         Ok(([p, size], x_labels_height))
     }
 
-    pub(crate) fn show_hist<P, S>(&self, ui: &Ui, pos: P, size: S)
-    where
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
-    {
-        let pos = pos.into();
-        let size = size.into();
-
+    pub(crate) fn show_hist(&self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) {
         let vmin = self.image.vmin();
         let vmax = self.image.vmax();
 
@@ -538,11 +524,11 @@ where
         if let Some(max_count) = hist.iter().map(|bin| bin.count).max() {
             let draw_list = ui.get_window_draw_list();
 
-            let x_pos = pos.x;
+            let x_pos = pos[0];
             for bin in hist {
-                let y_pos = pos.y + size.y / (vmax - vmin) * (vmax - bin.start);
-                let y_pos_end = pos.y + size.y / (vmax - vmin) * (vmax - bin.end);
-                let length = size.x
+                let y_pos = pos[1] + size[1] / (vmax - vmin) * (vmax - bin.start);
+                let y_pos_end = pos[1] + size[1] / (vmax - vmin) * (vmax - bin.end);
+                let length = size[0]
                     * if self.hist_logscale {
                         (bin.count as f32).log10() / (max_count as f32).log10()
                     } else {
@@ -550,8 +536,8 @@ where
                     };
                 draw_list
                     .add_rect(
-                        [x_pos + size.x - length, y_pos],
-                        [x_pos + size.x, y_pos_end],
+                        [x_pos + size[0] - length, y_pos],
+                        [x_pos + size[0], y_pos_end],
                         FILL_COLOR,
                     )
                     .filled(true)
@@ -559,7 +545,7 @@ where
             }
 
             draw_list
-                .add_rect(pos, [pos.x + size.x, pos.y + size.y], BORDER_COLOR)
+                .add_rect(pos, [pos[0] + size[0], pos[1] + size[1]], BORDER_COLOR)
                 .build();
         } // TODO show error
     }
@@ -571,11 +557,10 @@ where
             for name in self.roi_input.roi_names.iter() {
                 names.push(&name);
             }
-            ui.combo(
-                im_str!("Active ROI"),
+            ComboBox::new(im_str!("Active ROI")).build_simple_string(
+                ui,
                 &mut self.roi_input.selected,
                 &names,
-                -1,
             );
         }
     }
