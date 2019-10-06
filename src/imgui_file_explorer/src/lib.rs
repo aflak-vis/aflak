@@ -100,7 +100,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                     let im_dirname = ImString::new(dirname);
                     let open = default_dir.starts_with(&i);
                     ui.tree_node(&im_dirname)
-                        .opened(open, ImGuiCond::Once)
+                        .opened(open, Condition::Once)
                         .build(|| {
                             let out = view_dirs(ui, &i, extensions, default_dir);
                             match ret {
