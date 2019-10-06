@@ -1,4 +1,4 @@
-use imgui::{ImGuiMouseCursor, ImMouseButton, ImVec2, Ui};
+use imgui::{MenuItem, MouseButton, MouseCursor, Ui};
 use ndarray::{ArrayBase, Data, Ix1};
 
 use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine};
@@ -11,9 +11,9 @@ use super::Error;
 /// Current state of a plot UI.
 #[derive(Debug)]
 pub struct State {
-    offset: ImVec2,
-    zoom: ImVec2,
-    mouse_pos: ImVec2,
+    offset: [f32; 2],
+    zoom: [f32; 2],
+    mouse_pos: [f32; 2],
     interactions: Interactions,
 }
 
@@ -21,12 +21,9 @@ impl Default for State {
     fn default() -> Self {
         use std::f32;
         State {
-            offset: ImVec2 { x: 0.0, y: 0.0 },
-            zoom: ImVec2 { x: 1.0, y: 1.0 },
-            mouse_pos: ImVec2 {
-                x: f32::NAN,
-                y: f32::NAN,
-            },
+            offset: [0.0, 0.0],
+            zoom: [1.0, 1.0],
+            mouse_pos: [f32::NAN, f32::NAN],
             interactions: Interactions::new(),
         }
     }
@@ -41,37 +38,32 @@ impl State {
         self.interactions.iter_mut()
     }
 
-    pub(crate) fn plot<D, F, P, S>(
+    pub(crate) fn plot<D, F>(
         &mut self,
         ui: &Ui,
         image: &ArrayBase<D, Ix1>,
         vtype: &str,
         vunit: &str,
         axis: Option<&AxisTransform<F>>,
-        pos: P,
-        size: S,
+        pos: [f32; 2],
+        size: [f32; 2],
     ) -> Result<(), Error>
     where
         D: Data<Elem = f32>,
         F: Fn(f32) -> f32,
-        P: Into<ImVec2>,
-        S: Into<ImVec2>,
     {
-        let pos = pos.into();
-        let size = size.into();
-
         let min = lims::get_vmin(image)?;
         let max = lims::get_vmax(image)?;
 
         let xvlims = (0.0, (image.len() - 1) as f32);
         let yvlims = (min, max);
         let xlims = (
-            xvlims.0 * self.zoom.x + self.offset.x,
-            xvlims.1 * self.zoom.x + self.offset.x,
+            xvlims.0 * self.zoom[0] + self.offset[0],
+            xvlims.1 * self.zoom[0] + self.offset[0],
         );
         let ylims = (
-            yvlims.0 * self.zoom.y + self.offset.y,
-            yvlims.1 * self.zoom.y + self.offset.y,
+            yvlims.0 * self.zoom[1] + self.offset[1],
+            yvlims.1 * self.zoom[1] + self.offset[1],
         );
 
         // Pre-compute tick size to accurately position and resize the figure
@@ -83,14 +75,14 @@ impl State {
 
         const BOTTOM_PADDING: f32 = 40.0;
         const RIGHT_PADDING: f32 = 20.0;
-        let size = ImVec2 {
-            x: size.x - y_labels_width - RIGHT_PADDING,
-            y: size.y - x_labels_height - BOTTOM_PADDING,
-        };
+        let size = [
+            size[0] - y_labels_width - RIGHT_PADDING,
+            size[1] - x_labels_height - BOTTOM_PADDING,
+        ];
 
         // Start drawing the figure
-        ui.set_cursor_screen_pos([pos.x + y_labels_width, pos.y]);
-        let p = ui.get_cursor_screen_pos();
+        ui.set_cursor_screen_pos([pos[0] + y_labels_width, pos[1]]);
+        let p = ui.cursor_screen_pos();
 
         ui.invisible_button(im_str!("plot"), size);
 
@@ -99,7 +91,7 @@ impl State {
         const BG_COLOR: u32 = 0xA033_3333;
         const LINE_COLOR: u32 = 0xFFFF_FFFF;
 
-        let bottom_right_corner = [p.0 + size.x, p.1 + size.y];
+        let bottom_right_corner = [p[0] + size[0], p[1] + size[1]];
 
         draw_list.with_clip_rect_intersect(p, bottom_right_corner, || {
             draw_list
@@ -113,24 +105,24 @@ impl State {
                 let x1 = x1 as f32;
                 let x2 = x2 as f32;
                 let p0 = [
-                    p.0 + (x1 - xlims.0) / (xlims.1 - xlims.0) * size.x,
-                    p.1 + size.y - (y1 - ylims.0) / (ylims.1 - ylims.0) * size.y,
+                    p[0] + (x1 - xlims.0) / (xlims.1 - xlims.0) * size[0],
+                    p[1] + size[1] - (y1 - ylims.0) / (ylims.1 - ylims.0) * size[1],
                 ];
                 let p1 = [
-                    p.0 + (x2 - xlims.0) / (xlims.1 - xlims.0) * size.x,
-                    p.1 + size.y - (y2 - ylims.0) / (ylims.1 - ylims.0) * size.y,
+                    p[0] + (x2 - xlims.0) / (xlims.1 - xlims.0) * size[0],
+                    p[1] + size[1] - (y2 - ylims.0) / (ylims.1 - ylims.0) * size[1],
                 ];
                 draw_list.add_line(p0, p1, LINE_COLOR).build();
             }
         });
 
         if ui.is_item_hovered() {
-            let mouse_x = ui.imgui().mouse_pos().0;
-            self.mouse_pos.x = xlims.0 + (mouse_x - p.0) / size.x * (xlims.1 - xlims.0);
-            let point = self.mouse_pos.x as usize;
+            let mouse_x = ui.io().mouse_pos[0];
+            self.mouse_pos[0] = xlims.0 + (mouse_x - p[0]) / size[0] * (xlims.1 - xlims.0);
+            let point = self.mouse_pos[0] as usize;
             if let Some(y) = image.get(point) {
                 let x = axis.map(|axis| Measurement {
-                    v: axis.pix2world(self.mouse_pos.x),
+                    v: axis.pix2world(self.mouse_pos[0]),
                     unit: axis.unit(),
                 });
                 let val = Measurement { v: *y, unit: vunit };
@@ -139,28 +131,27 @@ impl State {
             }
 
             // Zoom along X-axis
-            let wheel_delta = ui.imgui().mouse_wheel();
+            let wheel_delta = ui.io().mouse_wheel;
 
             if wheel_delta != 0.0 {
                 const ZOOM_SPEED: f32 = 0.5;
 
-                let zoom_before = self.zoom.x;
-                self.zoom.x *= 1.0 - wheel_delta * ZOOM_SPEED;
+                let zoom_before = self.zoom[0];
+                self.zoom[0] *= 1.0 - wheel_delta * ZOOM_SPEED;
                 // Correct offset value so that the zoom be centered on the mouse position
-                self.offset.x -= (self.zoom.x - zoom_before)
-                    * (xvlims.0 + (mouse_x - p.0) / size.x * (xvlims.1 - xvlims.0));
+                self.offset[0] -= (self.zoom[0] - zoom_before)
+                    * (xvlims.0 + (mouse_x - p[0]) / size[0] * (xvlims.1 - xvlims.0));
             }
 
             // Pan by dragging mouse
-            if !self.interactions.any_moving() && ui.imgui().is_mouse_dragging(ImMouseButton::Left)
-            {
-                ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeAll);
-                let delta = ui.imgui().mouse_delta();
-                self.offset.x -= delta.0 / size.x * (xlims.1 - xlims.0);
-                self.offset.y += delta.1 / size.y * (ylims.1 - ylims.0);
+            if !self.interactions.any_moving() && ui.is_mouse_dragging(MouseButton::Left) {
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
+                let delta = ui.io().mouse_delta;
+                self.offset[0] -= delta[0] / size[0] * (xlims.1 - xlims.0);
+                self.offset[1] += delta[1] / size[1] * (ylims.1 - ylims.0);
             }
 
-            if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+            if ui.is_mouse_clicked(MouseButton::Right) {
                 ui.open_popup(im_str!("add-interaction-handle"))
             }
         }
@@ -169,43 +160,43 @@ impl State {
         // Flag to only allow line to be moved at a time
         let mut moved_one = false;
         for (id, interaction) in self.interactions.iter_mut() {
-            ui.push_id(id.id());
+            let stack = ui.push_id(id.id());
             match interaction {
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
                     const LINE_COLOR: u32 = 0xFFFF_FFFF;
                     const LINE_LABEL_LELT_PADDING: f32 = 10.0;
                     const LINE_LABEL_TOP_PADDING: f32 = 10.0;
 
-                    let x = p.0 + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size.x;
-                    let y = p.1;
+                    let x = p[0] + (*x_pos - xlims.0) / (xlims.1 - xlims.0) * size[0];
+                    let y = p[1];
 
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
-                    let mouse_pos = ui.imgui().mouse_pos();
+                    let mouse_pos = ui.io().mouse_pos;
                     if ui.is_item_hovered()
-                        && x - CLICKABLE_WIDTH <= mouse_pos.0
-                        && mouse_pos.0 < x + CLICKABLE_WIDTH
-                        && y <= mouse_pos.1
-                        && mouse_pos.1 <= y + size.y
+                        && x - CLICKABLE_WIDTH <= mouse_pos[0]
+                        && mouse_pos[0] < x + CLICKABLE_WIDTH
+                        && y <= mouse_pos[1]
+                        && mouse_pos[0] <= y + size[1]
                     {
-                        ui.imgui().set_mouse_cursor(ImGuiMouseCursor::ResizeEW);
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+                        ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
+                        if ui.is_mouse_clicked(MouseButton::Left) {
                             *moving = true;
                         }
-                        if ui.imgui().is_mouse_clicked(ImMouseButton::Right) {
+                        if ui.is_mouse_clicked(MouseButton::Right) {
                             ui.open_popup(im_str!("edit-vertical-line"))
                         }
                     }
                     if !moved_one && *moving {
                         moved_one = true;
-                        *x_pos = util::clamp(self.mouse_pos.x.round(), xvlims.0, xvlims.1);
+                        *x_pos = util::clamp(self.mouse_pos[0].round(), xvlims.0, xvlims.1);
                     }
-                    if !ui.imgui().is_mouse_down(ImMouseButton::Left) {
+                    if !ui.is_mouse_down(MouseButton::Left) {
                         *moving = false;
                     }
 
                     draw_list
-                        .add_line([x, y], [x, y + size.y], LINE_COLOR)
+                        .add_line([x, y], [x, y + size[1]], LINE_COLOR)
                         .build();
                     draw_list.add_text(
                         [x + LINE_LABEL_LELT_PADDING, y + LINE_LABEL_TOP_PADDING],
@@ -214,7 +205,7 @@ impl State {
                     );
 
                     ui.popup(im_str!("edit-vertical-line"), || {
-                        if ui.menu_item(im_str!("Delete Line")).build() {
+                        if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
                     });
@@ -223,7 +214,7 @@ impl State {
                 Interaction::HorizontalLine(_) => {}
                 Interaction::FinedGrainedROI(_) => {}
             }
-            ui.pop_id();
+            stack.pop(ui);
         }
 
         if let Some(line_id) = line_marked_for_deletion {
@@ -236,14 +227,14 @@ impl State {
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if ui.menu_item(im_str!("Vertical Line")).build() {
-                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.x.round()));
+            if MenuItem::new(im_str!("Vertical Line")).build(ui) {
+                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
                 self.interactions.insert(new);
             }
             ui.separator();
-            if ui.menu_item(im_str!("Reset view")).build() {
-                self.zoom = ImVec2 { x: 1.0, y: 1.0 };
-                self.offset = ImVec2 { x: 0.0, y: 0.0 };
+            if MenuItem::new(im_str!("Reset view")).build(ui) {
+                self.zoom = [1.0, 1.0];
+                self.offset = [0.0, 0.0];
             }
         });
 

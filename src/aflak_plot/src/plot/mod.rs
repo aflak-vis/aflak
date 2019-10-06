@@ -45,10 +45,10 @@ impl<'ui> UiImage1d for Ui<'ui> {
         S: Data<Elem = f32>,
         F: Fn(f32) -> f32,
     {
-        let p = self.get_cursor_screen_pos();
-        let window_pos = self.get_window_pos();
-        let window_size = self.get_window_size();
-        let size = (window_size.0, window_size.1 - (p.1 - window_pos.1));
+        let p = self.cursor_screen_pos();
+        let window_pos = self.window_pos();
+        let window_size = self.window_size();
+        let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
         state.plot(self, image, vtype, vunit, axis, p, size)
     }
 }
