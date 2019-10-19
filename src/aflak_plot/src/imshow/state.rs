@@ -7,8 +7,8 @@ use ndarray::ArrayD;
 
 use super::image;
 use super::interactions::{
-    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, ValueIter,
-    VerticalLine,
+    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, Line,
+    ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -28,6 +28,7 @@ pub struct State<I> {
     lut_max_moving: bool,
     interactions: Interactions,
     roi_input: RoiInputState,
+    line_input: LineInputState,
     image: image::Image<I>,
 }
 
@@ -52,6 +53,27 @@ impl RoiInputState {
     }
 }
 
+#[derive(Default)]
+struct LineInputState {
+    line_id_cnt: usize,
+    line_names: Vec<ImString>,
+    selected: i32,
+}
+
+impl LineInputState {
+    fn gen_id(&mut self) -> usize {
+        self.line_id_cnt += 1;
+        self.line_names
+            .push(ImString::new(format!("Line: {}", self.line_id_cnt)));
+        self.selected = self.line_id_cnt as i32;
+        self.line_id_cnt
+    }
+
+    fn is_selected(&self, id: usize) -> bool {
+        id as i32 == self.selected
+    }
+}
+
 impl<I> Default for State<I> {
     fn default() -> Self {
         use std::f32;
@@ -63,6 +85,7 @@ impl<I> Default for State<I> {
             lut_max_moving: false,
             interactions: Interactions::new(),
             roi_input: Default::default(),
+            line_input: Default::default(),
             image: Default::default(),
         }
     }
@@ -386,6 +409,10 @@ where
                     Interaction::FinedGrainedROI(FinedGrainedROI::new(self.roi_input.gen_id()));
                 self.interactions.insert(new);
             }
+            if ui.menu_item(im_str!("Line")).build() {
+                let new = Interaction::Line(Line::new(self.line_input.gen_id()));
+                self.interactions.insert(new);
+            }
         });
 
         let mut line_marked_for_deletion = None;
@@ -506,6 +533,34 @@ where
                         } else {
                             pixels.push(pixel);
                         }
+                    }
+                }
+                Interaction::Line(Line {
+                    id,
+                    endpoints,
+                    endpointsfill,
+                }) => {
+                    let selected = self.line_input.is_selected(*id);
+
+                    if selected
+                        && is_image_hovered
+                        && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
+                    {
+                        let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
+                        if endpointsfill.0 == false {
+                            endpointsfill.0 = true;
+                            endpoints.0 = pixel;
+                        } else if endpointsfill.1 == false {
+                            endpointsfill.1 = true;
+                            endpoints.1 = pixel;
+                        }
+                    }
+                    let x0 = p.0 + (endpoints.0).0 as f32 / tex_size.0 as f32 * size.0;
+                    let y0 = p.1 + size.1 - (endpoints.0).1 as f32 / tex_size.1 as f32 * size.1;
+                    let x1 = p.0 + (endpoints.1).0 as f32 / tex_size.0 as f32 * size.0;
+                    let y1 = p.1 + size.1 - (endpoints.1).1 as f32 / tex_size.1 as f32 * size.1;
+                    if endpointsfill.0 && endpointsfill.1 {
+                        draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
                     }
                 }
             }
