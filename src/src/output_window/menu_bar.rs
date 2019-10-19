@@ -153,6 +153,7 @@ fn update_editor_from_state(
             Value::Float2(f) => IOValue::Float2(f),
             Value::Float3(f) => IOValue::Float3(f),
             Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
+            Value::Line(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
         };
         if store.contains_key(id) {
             let t_idx = *store.get(id).unwrap();
