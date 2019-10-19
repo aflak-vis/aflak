@@ -35,4 +35,11 @@ impl ROI {
             }
         }
     }
+
+    pub fn datalen(&self) -> usize {
+        match *self {
+            ROI::All => 0,
+            ROI::PixelList(ref pixels) => pixels.len(),
+        }
+    }
 }
