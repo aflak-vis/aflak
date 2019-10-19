@@ -11,7 +11,7 @@ pub enum Value {
     Float2([f32; 2]),
     Float3([f32; 3]),
     FinedGrainedROI(Vec<(usize, usize)>),
-    Line(Vec<(usize, usize)>),
+    Line(((usize, usize), (usize, usize))),
 }
 
 impl From<i64> for Value {
@@ -64,7 +64,6 @@ pub struct Line {
     pub(crate) id: usize,
     pub endpoints: ((usize, usize), (usize, usize)),
     pub endpointsfill: (bool, bool),
-    pub pixels: Vec<(usize, usize)>,
 }
 
 impl HorizontalLine {
@@ -97,7 +96,6 @@ impl Line {
             id,
             endpoints: ((0, 0), (0, 0)),
             endpointsfill: (false, false),
-            pixels: vec![],
         }
     }
 }
@@ -150,7 +148,7 @@ impl Interaction {
             Interaction::FinedGrainedROI(FinedGrainedROI { pixels, .. }) => {
                 Value::FinedGrainedROI(pixels.clone())
             }
-            Interaction::Line(Line { pixels, .. }) => Value::Line(pixels.clone()),
+            Interaction::Line(Line { endpoints, .. }) => Value::Line(endpoints.clone()),
         }
     }
 
