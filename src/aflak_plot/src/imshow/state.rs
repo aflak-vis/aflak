@@ -539,9 +539,9 @@ where
                     id,
                     endpoints,
                     endpointsfill,
+                    pixels,
                 }) => {
                     let selected = self.line_input.is_selected(*id);
-
                     if selected
                         && is_image_hovered
                         && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
@@ -553,6 +553,52 @@ where
                         } else if endpointsfill.1 == false {
                             endpointsfill.1 = true;
                             endpoints.1 = pixel;
+                            let dx = ((endpoints.1).0 - (endpoints.0).0) as i32;
+                            let dy = ((endpoints.1).1 - (endpoints.0).1) as i32;
+                            let mut err = 0.0;
+                            if dx < 0 {
+                                let tmp = endpoints.0;
+                                endpoints.0 = endpoints.1;
+                                endpoints.1 = tmp;
+                            }
+                            let derr = dy as f32 / dx as f32;
+                            let derrabs = derr.abs();
+                            if derrabs <= 1.0 {
+                                let mut y = (endpoints.0).1;
+                                for x in (endpoints.0).0..(endpoints.1).0 {
+                                    pixels.push((x, y));
+                                    err += derrabs;
+                                    if err >= 0.5 {
+                                        if derr <= 0.0 {
+                                            y -= 1;
+                                        } else {
+                                            y += 1;
+                                        }
+                                        err -= 1.0;
+                                    }
+                                }
+                            } else {
+                                if dy < 0 {
+                                    let tmp = endpoints.0;
+                                    endpoints.0 = endpoints.1;
+                                    endpoints.1 = tmp;
+                                }
+                                let mut x = (endpoints.0).0;
+                                let derr = dx as f32 / dy as f32;
+                                let derrabs = derr.abs();
+                                for y in (endpoints.0).1..(endpoints.1).1 {
+                                    pixels.push((x, y));
+                                    err += derrabs;
+                                    if err >= 0.5 {
+                                        if derr <= 0.0 {
+                                            x -= 1;
+                                        } else {
+                                            x += 1;
+                                        }
+                                        err -= 1.0;
+                                    }
+                                }
+                            }
                         }
                     }
                     let x0 = p.0 + (endpoints.0).0 as f32 / tex_size.0 as f32 * size.0;
@@ -560,6 +606,11 @@ where
                     let x1 = p.0 + (endpoints.1).0 as f32 / tex_size.0 as f32 * size.0;
                     let y1 = p.1 + size.1 - (endpoints.1).1 as f32 / tex_size.1 as f32 * size.1;
                     if endpointsfill.0 && endpointsfill.1 {
+                        draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
+                    } else if endpointsfill.0 {
+                        let x1 = p.0 + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size.0;
+                        let y1 =
+                            p.1 + size.1 - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size.1;
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
                     }
                 }
