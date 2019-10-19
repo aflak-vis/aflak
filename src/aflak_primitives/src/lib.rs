@@ -43,7 +43,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ndarray::{Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, Slice};
+use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use variant_name::VariantName;
 
 /// Value used for I/O in astronomical transforms.
@@ -328,6 +328,20 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                 1, 0, 0,
                 negation<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_negation(image)]
+                }
+            ),
+            cake_transform!(
+                "Extrude along the wavelength",
+                0, 1, 0,
+                extrude<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
+                    vec![run_extrude(image, roi)]
+                }
+            ),
+            cake_transform!(
+                "range specification",
+                0, 1, 0,
+                range_specification<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_range_specification(image, *start, *end)]
                 }
             ),
         ]
@@ -694,6 +708,33 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
                 .with_new_value(Array1::from_vec(wave).into_dyn()),
         ),
     ))
+}
+
+fn run_range_specification(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(image, start, end, |slices| slices.to_owned())
+}
+
+fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+
+    let image_val = image.scalar();
+    let wave_size = *image_val.dim().as_array_view().first().unwrap();
+
+    let new_size = (roi.datalen(), wave_size);
+    let mut result = Vec::with_capacity(wave_size * roi.datalen());
+
+    for i in 0..wave_size {
+        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
+            result.push(val);
+        }
+    }
+
+    let waveimg = Array::from_shape_vec(new_size.strides((1, roi.datalen())), result).unwrap();
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        waveimg.into_dyn(),
+        Unit::None,
+    ))))
 }
 
 fn run_clip(image: &WcsArray, threshold: f32, above: bool) -> Result<IOValue, IOErr> {
