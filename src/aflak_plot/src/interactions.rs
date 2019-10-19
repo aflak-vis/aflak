@@ -64,6 +64,7 @@ pub struct Line {
     pub(crate) id: usize,
     pub endpoints: ((usize, usize), (usize, usize)),
     pub endpointsfill: (bool, bool),
+    pub pixels: Vec<(usize, usize)>,
 }
 
 impl HorizontalLine {
@@ -96,6 +97,7 @@ impl Line {
             id,
             endpoints: ((0, 0), (0, 0)),
             endpointsfill: (false, false),
+            pixels: vec![],
         }
     }
 }
