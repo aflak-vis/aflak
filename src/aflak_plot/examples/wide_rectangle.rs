@@ -5,6 +5,7 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
+use std::path::PathBuf;
 use std::time::Instant;
 
 use aflak_plot::{
@@ -15,11 +16,11 @@ use aflak_plot::{
 fn main() {
     let config = support::AppConfig {
         title: "Example wide_rectangle.rs".to_owned(),
-        ini_filename: Some(imgui::ImString::new("wide_rectangle.ini")),
+        ini_filename: Some(PathBuf::from("wide_rectangle.ini")),
         ..Default::default()
     };
     let mut state = imshow::State::default();
-    let texture_id = imgui::ImTexture::from(1);
+    let texture_id = imgui::TextureId::from(1);
 
     support::run(config, |ui, gl_ctx, textures| {
         if state.image_created_on().is_none() {
@@ -39,7 +40,7 @@ fn main() {
                 .unwrap();
         }
 
-        ui.window(im_str!("Wide Rectangle")).build(|| {
+        imgui::Window::new(im_str!("Wide Rectangle")).build(ui, || {
             ui.image2d(
                 gl_ctx,
                 textures,

@@ -20,7 +20,7 @@ fn main() {
         ..Default::default()
     };
     let mut state = imshow::State::default();
-    let texture_id = imgui::ImTexture::from(1);
+    let texture_id = imgui::TextureId::from(1);
 
     support::run(config, |ui, gl_ctx, textures| {
         if state.image_created_on().is_none() {
@@ -39,7 +39,7 @@ fn main() {
                 .set_image(image_data, Instant::now(), gl_ctx, texture_id, textures)
                 .unwrap();
         }
-        ui.window(im_str!("Gradient")).build(|| {
+        imgui::Window::new(im_str!("Gradient")).build(ui, || {
             ui.image2d(
                 gl_ctx,
                 textures,
