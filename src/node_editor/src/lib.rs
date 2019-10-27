@@ -213,11 +213,11 @@ where
             ui.open_popup(im_str!("Error!"));
         }
         ui.popup_modal(im_str!("Error!")).build(|| {
-            ui.with_text_wrap_pos(400.0, || {
-                let e = &self.error_stack[self.error_stack.len() - 1];
-                ui.text_wrapped(&ImString::new(format!("{}", e)));
-            });
-            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(imgui::ImMouseButton::Left) {
+            let stack = ui.push_text_wrap_pos(400.0);
+            let e = &self.error_stack[self.error_stack.len() - 1];
+            ui.text_wrapped(&ImString::new(format!("{}", e)));
+            stack.pop(ui);
+            if !ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
                 self.error_stack.pop();
                 ui.close_current_popup();
             }
@@ -232,7 +232,7 @@ where
                 let msg = &self.success_stack[self.success_stack.len() - 1];
                 ui.text(msg);
             }
-            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(imgui::ImMouseButton::Left) {
+            if !ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
                 self.success_stack.pop();
                 ui.close_current_popup();
             }
@@ -247,7 +247,7 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        const MACRO_WINDOW_DEFAULT_SIZE: (f32, f32) = (900.0, 600.0);
+        const MACRO_WINDOW_DEFAULT_SIZE: [f32; 2] = [900.0, 600.0];
 
         let mut macros_to_edit = vec![];
         let macros = &mut self.macros;
@@ -260,14 +260,14 @@ where
                     unsafe { imgui::sys::igSetNextWindowFocus() };
                     node_edit.focus = false;
                 }
-                ui.window(&imgui::ImString::new(format!(
+                imgui::Window::new(&imgui::ImString::new(format!(
                     "Macro editor: '{}'###{}",
                     node_edit.handle.name(),
                     i,
                 )))
-                .size(MACRO_WINDOW_DEFAULT_SIZE, imgui::ImGuiCond::FirstUseEver)
+                .size(MACRO_WINDOW_DEFAULT_SIZE, imgui::Condition::FirstUseEver)
                 .opened(&mut opened)
-                .build(|| {
+                .build(ui, || {
                     let events = {
                         let lock = node_edit.handle.read();
                         let dst = lock.dst();
@@ -320,26 +320,27 @@ where
             }
             let mut selected_path = None;
             let mut cancelled = false;
-            let mouse_pos = ui.imgui().mouse_pos();
-            ui.window(&imgui::ImString::new(format!(
+            let mouse_pos = ui.io().mouse_pos;
+            imgui::Window::new(&imgui::ImString::new(format!(
                 "Import macro in '{}'",
                 handle.name(),
             )))
             .opened(&mut opened)
             .save_settings(false)
-            .position(mouse_pos, imgui::ImGuiCond::Appearing)
-            .size((400.0, 410.0), imgui::ImGuiCond::Appearing)
-            .build(|| {
-                ui.child_frame(im_str!("edit"), (0.0, 350.0))
-                    .scrollbar_horizontal(true)
-                    .build(|| {
+            .position(mouse_pos, imgui::Condition::Appearing)
+            .size([400.0, 410.0], imgui::Condition::Appearing)
+            .build(ui, || {
+                imgui::ChildWindow::new(im_str!("edit"))
+                    .size([0.0, 350.0])
+                    .horizontal_scrollbar(true)
+                    .build(ui, || {
                         if let Ok(Some(path)) =
                             ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
                         {
                             selected_path = Some(path);
                         }
                     });
-                if ui.button(im_str!("Cancel"), (0.0, 0.0)) {
+                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
                     cancelled = true;
                 }
             });

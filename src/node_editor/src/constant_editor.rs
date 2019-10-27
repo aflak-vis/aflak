@@ -1,4 +1,4 @@
-use imgui::{ImId, Ui};
+use imgui::{self, Ui};
 
 /// Trait to define how to draw constant editor.
 ///
@@ -9,5 +9,5 @@ pub trait ConstantEditor<T>: Default {
     /// Build editor for constant T and return new value if value changed
     fn editor<'a, I>(&self, ui: &Ui, constant: &T, id: I, read_only: bool) -> Option<T>
     where
-        I: Into<ImId<'a>>;
+        I: Into<imgui::Id<'a>>;
 }

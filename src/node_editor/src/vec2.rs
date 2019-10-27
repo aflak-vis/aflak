@@ -1,4 +1,3 @@
-use imgui::ImVec2;
 use std::ops::{Add, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -9,10 +8,14 @@ impl From<(f32, f32)> for Vec2 {
         Vec2(vec.0, vec.1)
     }
 }
-
-impl From<Vec2> for ImVec2 {
+impl From<[f32; 2]> for Vec2 {
+    fn from(vec: [f32; 2]) -> Self {
+        Vec2(vec[0], vec[1])
+    }
+}
+impl From<Vec2> for [f32; 2] {
     fn from(vec: Vec2) -> Self {
-        Self::new(vec.0, vec.1)
+        [vec.0, vec.1]
     }
 }
 
