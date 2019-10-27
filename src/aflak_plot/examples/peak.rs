@@ -5,8 +5,8 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
-use std::time::Instant;
 use std::path::PathBuf;
+use std::time::Instant;
 
 use aflak_plot::{
     imshow::{self, UiImage2d},
