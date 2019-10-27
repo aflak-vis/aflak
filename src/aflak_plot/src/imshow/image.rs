@@ -1,4 +1,5 @@
 use std::borrow::{Borrow, Cow};
+use std::rc::Rc;
 use std::time::Instant;
 
 use glium::{
@@ -100,7 +101,7 @@ where
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
             let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
-            textures.replace(texture_id, gl_texture);
+            textures.replace(texture_id, Rc::new(gl_texture));
 
             let hist = hist::histogram(&image, vmin, vmax);
             (vmin, vmax, tex_size, hist)
@@ -130,7 +131,7 @@ where
             let image = coerce_to_array_view2(data);
             let raw = make_raw_image(&image, self.vmin, self.vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
-            textures.replace(texture_id, gl_texture);
+            textures.replace(texture_id, Rc::new(gl_texture));
         }
         Ok(())
     }

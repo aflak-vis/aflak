@@ -7,6 +7,7 @@ mod state;
 pub use self::state::State;
 
 use std::borrow::Borrow;
+use std::rc::Rc;
 
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, TextureId, Ui};
@@ -20,7 +21,7 @@ use util;
 use super::AxisTransform;
 
 /// A handle to an OpenGL 2D texture.
-pub type Textures = imgui::Textures<Texture2d>;
+pub type Textures = imgui::Textures<Rc<Texture2d>>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input.
