@@ -132,8 +132,7 @@ where
         platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Rounded);
     }
 
-    let hidpi_factor = platform.hidpi_factor();
-    let font_size = (13.0 * hidpi_factor) as f32;
+    let font_size = 13.0;
     imgui.fonts().add_font(&[FontSource::DefaultFontData {
         config: Some(FontConfig {
             size_pixels: font_size,
@@ -141,7 +140,7 @@ where
         }),
     }]);
 
-    imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
+    imgui.io_mut().font_global_scale = 1.0;
 
     let mut renderer = Renderer::init(&mut imgui, &display)?;
 
