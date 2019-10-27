@@ -85,6 +85,8 @@ impl State {
         let p = ui.cursor_screen_pos();
 
         ui.invisible_button(im_str!("plot"), size);
+        let is_plot_hovered = ui.is_item_hovered();
+        ui.set_item_allow_overlap();
 
         let draw_list = ui.get_window_draw_list();
 
@@ -116,9 +118,9 @@ impl State {
             }
         });
 
-        if ui.is_item_hovered() {
-            let mouse_x = ui.io().mouse_pos[0];
-            self.mouse_pos[0] = xlims.0 + (mouse_x - p[0]) / size[0] * (xlims.1 - xlims.0);
+        let mouse_x = ui.io().mouse_pos[0];
+        self.mouse_pos[0] = xlims.0 + (mouse_x - p[0]) / size[0] * (xlims.1 - xlims.0);
+        if is_plot_hovered {
             let point = self.mouse_pos[0] as usize;
             if let Some(y) = image.get(point) {
                 let x = axis.map(|axis| Measurement {
