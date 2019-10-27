@@ -536,6 +536,7 @@ dependencies = [
  "glium 0.25.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui 0.3.0-pre",
  "imgui-glium-renderer 0.3.0-pre",
+ "imgui-winit-support 0.3.0-pre",
 ]
 
 [[package]]

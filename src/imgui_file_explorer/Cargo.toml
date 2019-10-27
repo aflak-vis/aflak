@@ -13,3 +13,4 @@ imgui = {path = "../../imgui-rs", version = "0.3.0-pre" }
 [dev-dependencies]
 glium = { version = "0.25", default-features = true }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.3.0-pre" }
+imgui-winit-support = { path = "../../imgui-rs/imgui-winit-support", version = "0.3.0-pre" }
