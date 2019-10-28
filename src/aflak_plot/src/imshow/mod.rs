@@ -39,7 +39,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///
     /// use std::time::Instant;
     ///
-    /// use imgui::{ImTexture, Ui};
+    /// use imgui::{TextureId, Ui};
     /// use ndarray::Array2;
     /// use aflak_plot::{
     ///     imshow::{self, UiImage2d},
@@ -49,7 +49,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// fn main() {
     ///     let mut state = imshow::State::default();
     ///     support::run(Default::default(), |ui, gl_ctx, textures| {
-    ///         let texture_id = ImTexture::from(1);
+    ///         let texture_id = TextureId::from(1);
     ///         if state.image_created_on().is_none() {
     ///             let data = Array2::eye(10).into_dimensionality().unwrap();
     ///             if let Err(e) = state.set_image(data, Instant::now(), gl_ctx, texture_id, textures) {
