@@ -129,7 +129,7 @@ where
     {
         let gl_window = display.gl_window();
         let window = gl_window.window();
-        platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Rounded);
+        platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Locked(1.0));
     }
 
     let font_size = 13.0;
