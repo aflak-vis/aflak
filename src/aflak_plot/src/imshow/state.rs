@@ -105,8 +105,6 @@ where
 
     pub(crate) fn show_bar(&mut self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) -> bool {
         let mut changed = false;
-        let pos = pos.into();
-        let size = size.into();
 
         ui.set_cursor_screen_pos(pos);
         ui.invisible_button(im_str!("image_bar"), size);
