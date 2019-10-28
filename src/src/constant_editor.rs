@@ -2,7 +2,7 @@ use imgui_file_explorer::{UiFileExplorer, TOP_FOLDER};
 use node_editor::ConstantEditor;
 use primitives::{self, IOValue};
 
-use imgui::{ImId, ImString, Ui};
+use imgui::{ChildWindow, Id, ImString, Ui};
 
 #[derive(Default)]
 pub struct MyConstantEditor;
@@ -10,9 +10,9 @@ pub struct MyConstantEditor;
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
     fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I, read_only: bool) -> Option<IOValue>
     where
-        I: Into<ImId<'a>>,
+        I: Into<Id<'a>>,
     {
-        ui.push_id(id);
+        let id_stack = ui.push_id(id);
 
         let mut some_new_value = None;
 
@@ -22,7 +22,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             ui.tooltip_text("Read only, value is set by input!");
         }
 
-        ui.pop_id();
+        id_stack.pop(ui);
 
         some_new_value
     }
@@ -116,12 +116,13 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
             if read_only {
                 None
             } else {
-                let size = ui.get_item_rect_size();
+                let size = ui.item_rect_size();
 
                 let mut ret = Ok(None);
-                ui.child_frame(im_str!("edit"), (size.0.max(400.0), 150.0))
-                    .scrollbar_horizontal(true)
-                    .build(|| {
+                ChildWindow::new(im_str!("edit"))
+                    .size([size[0].max(400.0), 150.0])
+                    .horizontal_scrollbar(true)
+                    .build(ui, || {
                         ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit"]);
                     });
                 if let Ok(Some(new_file)) = ret {

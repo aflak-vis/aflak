@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error;
 
 use glium;
-use imgui::{ImGuiCond, ImMouseButton, ImString, Ui};
+use imgui::{Condition, ImString, MouseButton, Ui, Window};
 
 use aflak_plot::imshow::Textures;
 use cake::{OutputId, Transform};
@@ -33,12 +33,12 @@ impl Aflak {
     }
 
     pub fn node_editor(&mut self, ui: &Ui, addable_nodes: &[&'static Transform<IOValue, IOErr>]) {
-        let display_size = ui.imgui().display_size();
+        let display_size = ui.io().display_size;
         let Layout { position, size } = self.layout_engine.default_editor_layout(display_size);
-        ui.window(im_str!("Node editor"))
-            .position(position, ImGuiCond::FirstUseEver)
-            .size(size, ImGuiCond::FirstUseEver)
-            .build(|| {
+        Window::new(im_str!("Node editor"))
+            .position(position, Condition::FirstUseEver)
+            .size(size, Condition::FirstUseEver)
+            .build(ui, || {
                 self.node_editor
                     .render(ui, addable_nodes, &MyConstantEditor);
             });
@@ -52,18 +52,18 @@ impl Aflak {
         F: glium::backend::Facade,
     {
         let outputs = self.node_editor.outputs();
-        let display_size = ui.imgui().display_size();
+        let display_size = ui.io().display_size;
         for output in outputs {
             let output_window = self.output_windows.entry(output).or_default();
             let window_name = ImString::new(format!("Output #{}", output.id()));
-            let mut window = ui.window(&window_name);
+            let mut window = Window::new(&window_name);
             if let Some(Layout { position, size }) = self
                 .layout_engine
                 .default_output_window_layout(&window_name, display_size)
             {
                 window = window
-                    .position(position, ImGuiCond::FirstUseEver)
-                    .size(size, ImGuiCond::FirstUseEver);
+                    .position(position, Condition::FirstUseEver)
+                    .size(size, Condition::FirstUseEver);
             }
             let new_errors =
                 output_window.draw(ui, output, window, &mut self.node_editor, gl_ctx, textures);
@@ -80,7 +80,7 @@ impl Aflak {
                 let e = &self.error_alerts[self.error_alerts.len() - 1];
                 ui.text(&ImString::new(format!("{}", e)));
             }
-            if !ui.is_window_hovered() && ui.imgui().is_mouse_clicked(ImMouseButton::Left) {
+            if !ui.is_window_hovered() && ui.is_mouse_clicked(MouseButton::Left) {
                 self.error_alerts.pop();
                 ui.close_current_popup();
             }

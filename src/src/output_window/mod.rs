@@ -34,7 +34,7 @@ impl OutputWindow {
         &mut self,
         ui: &'ui Ui,
         output: OutputId,
-        window: Window<'ui, '_>,
+        window: Window<'_>,
         node_editor: &mut AflakNodeEditor,
         gl_ctx: &F,
         textures: &mut Textures,

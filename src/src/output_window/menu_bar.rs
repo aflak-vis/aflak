@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use glium;
 
-use imgui::{ImTexture, Ui, Window};
+use imgui::{MenuItem, TextureId, Ui, Window};
 use owning_ref::ArcRef;
 
 use aflak_plot::{
@@ -52,13 +52,13 @@ pub trait MenuBar {
     fn draw<'ui, F>(
         &self,
         ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, F>,
-        window: Window<'ui, '_>,
+        window: Window<'_>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
     {
         let mut errors = vec![];
-        window.menu_bar(true).build(|| {
+        window.menu_bar(true).build(ctx.ui, || {
             errors = MenuBar::menu_bar(self, ctx.ui, ctx.output, ctx.window);
             MenuBar::visualize(self, ctx);
         });
@@ -81,8 +81,8 @@ pub trait MenuBar {
 
         let mut output_saved_success_popup = false;
         ui.menu_bar(|| {
-            ui.menu(im_str!("File")).build(|| {
-                if ui.menu_item(im_str!("Save")).build() {
+            if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
+                if MenuItem::new(im_str!("Save")).build(ui) {
                     let path = self.file_name(output);
                     if let Err(e) = self.save(path) {
                         eprintln!("Error on saving output: '{}'", e);
@@ -92,7 +92,8 @@ pub trait MenuBar {
                     }
                 }
                 self.file_submenu(ui, window);
-            });
+                menu.end(ui);
+            }
         });
 
         if output_saved_success_popup {
@@ -103,7 +104,7 @@ pub trait MenuBar {
                 "File saved with success to '{}'.",
                 self.file_name(output)
             ));
-            if ui.button(im_str!("Close"), (0.0, 0.0)) {
+            if ui.button(im_str!("Close"), [0.0, 0.0]) {
                 ui.close_current_popup();
             }
         });
@@ -291,10 +292,9 @@ impl MenuBar for primitives::WcsArray {
         match self.scalar().ndim() {
             1 | 2 => {
                 let has_wcs_data = self.wcs().is_some();
-                ui.menu_item(im_str!("Show pixels"))
+                MenuItem::new(im_str!("Show pixels"))
                     .enabled(has_wcs_data)
-                    .selected(&mut window.show_pixels)
-                    .build();
+                    .build_with_ref(ui, &mut window.show_pixels);
                 if !has_wcs_data && ui.is_item_hovered() {
                     ui.tooltip_text("Data has no WCS metadata attached.");
                 }
@@ -353,7 +353,7 @@ impl MenuBar for primitives::WcsArray {
                     &ctx.window.editable_values,
                     &ctx.node_editor,
                 );
-                let texture_id = ImTexture::from(hash_outputid(ctx.output));
+                let texture_id = TextureId::from(hash_outputid(ctx.output));
                 let (x_transform, y_transform) = if ctx.window.show_pixels {
                     (None, None)
                 } else {

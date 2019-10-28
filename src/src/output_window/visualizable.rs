@@ -8,8 +8,8 @@ use primitives::fitrs::Fits;
 pub trait Visualizable {
     fn visualize(&self, ui: &Ui);
 
-    fn draw<'ui>(&self, ui: &'ui Ui, window: Window<'ui, '_>) {
-        window.build(|| self.visualize(ui));
+    fn draw<'ui>(&self, ui: &'ui Ui, window: Window<'_>) {
+        window.build(ui, || self.visualize(ui));
     }
 }
 
@@ -68,7 +68,7 @@ impl Visualizable for Fits {
                 }
             };
 
-            ui.push_id(i as i32);
+            let id_stack = ui.push_id(i as i32);
             ui.tree_node(&tree_name).build(|| {
                 for (key, value) in hdu {
                     ui.text(key);
@@ -90,7 +90,7 @@ impl Visualizable for Fits {
                     ui.separator();
                 }
             });
-            ui.pop_id();
+            id_stack.pop(ui);
         }
         if !has_hdus {
             ui.text("Input Fits appears invalid. No HDU could be found.");

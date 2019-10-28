@@ -27,8 +27,6 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process;
 
-use imgui::ImString;
-
 use node_editor::NodeEditor;
 
 use aflak::Aflak;
@@ -68,7 +66,7 @@ fn main() -> support::Result<()> {
     let config = support::AppConfig {
         title: format!("aflak {}", env!("CARGO_PKG_VERSION")),
         clear_color: CLEAR_COLOR,
-        ini_filename: Some(ImString::new("aflak.ini")),
+        ini_filename: Some(PathBuf::from("aflak.ini")),
         maximized: true,
         ..Default::default()
     };
