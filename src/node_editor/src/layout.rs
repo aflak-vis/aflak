@@ -2,7 +2,7 @@ use std::error::Error;
 
 use imgui::{
     ChildWindow, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable, StyleColor,
-    StyleVar, Ui, WindowDrawList,
+    StyleVar, Ui, WindowDrawList, WindowFocusedFlags,
 };
 use serde::{Deserialize, Serialize};
 
@@ -106,7 +106,9 @@ where
         }
         self.render_graph_node(ui, dst, addable_nodes, addable_macros, constant_editor);
 
-        if ui.is_window_focused() && !ui.io().want_capture_keyboard {
+        if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
+            && !ui.io().want_capture_keyboard
+        {
             let delete_index = ui.key_index(Key::Delete);
             let backspace_index = ui.key_index(Key::Backspace);
             if ui.is_key_pressed(delete_index) || ui.is_key_pressed(backspace_index) {
