@@ -281,6 +281,7 @@ where
                 .border(true)
                 .scroll_bar(false)
                 .movable(false)
+                .scrollable(false)
                 .build(ui, || {
                     // TODO: Manage scaling (and font-scaling)
                     self.render_graph_canvas(
