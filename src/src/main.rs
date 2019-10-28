@@ -34,8 +34,6 @@ use aflak::Aflak;
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
 fn main() -> support::Result<()> {
-    env::set_var("WINIT_HIDPI_FACTOR", "1");
-
     let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
     let transformations = transformations_ref.as_slice();
 
