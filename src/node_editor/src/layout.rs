@@ -280,6 +280,7 @@ where
             ChildWindow::new(im_str!("scrolling_region"))
                 .border(true)
                 .scroll_bar(false)
+                .movable(false)
                 .build(ui, || {
                     // TODO: Manage scaling (and font-scaling)
                     self.render_graph_canvas(
