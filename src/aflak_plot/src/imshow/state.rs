@@ -541,8 +541,8 @@ where
                         } else if endpointsfill.1 == false {
                             endpointsfill.1 = true;
                             endpoints.1 = pixel;
-                            let dx = ((endpoints.1).0 - (endpoints.0).0) as i32;
-                            let dy = ((endpoints.1).1 - (endpoints.0).1) as i32;
+                            let dx = (endpoints.1).0 as i32 - (endpoints.0).0 as i32;
+                            let dy = (endpoints.1).1 as i32 - (endpoints.0).1 as i32;
                             let mut err = 0.0;
                             if dx < 0 {
                                 let tmp = endpoints.0;
