@@ -403,7 +403,7 @@ where
                     Interaction::FinedGrainedROI(FinedGrainedROI::new(self.roi_input.gen_id()));
                 self.interactions.insert(new);
             }
-            if ui.menu_item(im_str!("Line")).build() {
+            if MenuItem::new(im_str!("Line")).build(ui) {
                 let new = Interaction::Line(Line::new(self.line_input.gen_id()));
                 self.interactions.insert(new);
             }
@@ -533,10 +533,7 @@ where
                     pixels,
                 }) => {
                     let selected = self.line_input.is_selected(*id);
-                    if selected
-                        && is_image_hovered
-                        && ui.imgui().is_mouse_clicked(ImMouseButton::Left)
-                    {
+                    if selected && is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
                         let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
                         if endpointsfill.0 == false {
                             endpointsfill.0 = true;
@@ -592,16 +589,16 @@ where
                             }
                         }
                     }
-                    let x0 = p.0 + (endpoints.0).0 as f32 / tex_size.0 as f32 * size.0;
-                    let y0 = p.1 + size.1 - (endpoints.0).1 as f32 / tex_size.1 as f32 * size.1;
-                    let x1 = p.0 + (endpoints.1).0 as f32 / tex_size.0 as f32 * size.0;
-                    let y1 = p.1 + size.1 - (endpoints.1).1 as f32 / tex_size.1 as f32 * size.1;
+                    let x0 = p[0] + (endpoints.0).0 as f32 / tex_size.0 as f32 * size[0];
+                    let y0 = p[1] + size[1] - (endpoints.0).1 as f32 / tex_size.1 as f32 * size[1];
+                    let x1 = p[0] + (endpoints.1).0 as f32 / tex_size.0 as f32 * size[0];
+                    let y1 = p[1] + size[1] - (endpoints.1).1 as f32 / tex_size.1 as f32 * size[1];
                     if endpointsfill.0 && endpointsfill.1 {
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
                     } else if endpointsfill.0 {
-                        let x1 = p.0 + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size.0;
+                        let x1 = p[0] + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size[0];
                         let y1 =
-                            p.1 + size.1 - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size.1;
+                            p[1] + size[1] - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1];
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
                     }
                 }
