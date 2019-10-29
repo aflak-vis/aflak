@@ -212,6 +212,7 @@ impl State {
                 Interaction::HorizontalLine(_) => {}
                 Interaction::FinedGrainedROI(_) => {}
                 Interaction::Line(_) => {}
+                Interaction::Circle(_) => {}
             }
             stack.pop(ui);
         }
