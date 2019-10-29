@@ -723,8 +723,10 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let new_size = (roi.datalen(), wave_size);
     let mut result = Vec::with_capacity(wave_size * roi.datalen());
 
+
+    
     for i in 0..wave_size {
-        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
+        for (_, val) in roi.filterx(image_val.slice(s![i, .., ..])) {
             result.push(val);
         }
     }
