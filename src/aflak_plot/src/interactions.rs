@@ -12,6 +12,7 @@ pub enum Value {
     Float3([f32; 3]),
     FinedGrainedROI(Vec<(usize, usize)>),
     Line(Vec<(usize, usize)>),
+    Circle(Vec<(usize, usize)>),
 }
 
 impl From<i64> for Value {
@@ -42,6 +43,7 @@ pub enum Interaction {
     VerticalLine(VerticalLine),
     FinedGrainedROI(FinedGrainedROI),
     Line(Line),
+    Circle(Circle),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -65,6 +67,14 @@ pub struct Line {
     pub endpoints: ((usize, usize), (usize, usize)),
     pub endpointsfill: (bool, bool),
     pub pixels: Vec<(usize, usize)>,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct Circle {
+    pub(crate) id: usize,
+    pub center: (usize, usize),
+    pub radius: f32,
+    pub parametersfill: (bool, bool),
+    pub pixels: Vec<(usize, usize)>
 }
 
 impl HorizontalLine {
@@ -98,6 +108,18 @@ impl Line {
             endpoints: ((0, 0), (0, 0)),
             endpointsfill: (false, false),
             pixels: vec![],
+        }
+    }
+}
+
+impl Circle {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            center: (0, 0),
+            radius: 0.0,
+            parametersfill: (false, false),
+            pixels: vec![]
         }
     }
 }
@@ -138,6 +160,7 @@ impl Interactions {
             Interaction::VerticalLine(VerticalLine { moving, .. }) => *moving,
             Interaction::FinedGrainedROI(..) => false,
             Interaction::Line(..) => false,
+            Interaction::Circle(..) => false,
         })
     }
 }
@@ -151,6 +174,7 @@ impl Interaction {
                 Value::FinedGrainedROI(pixels.clone())
             }
             Interaction::Line(Line { pixels, .. }) => Value::Line(pixels.clone()),
+            Interaction::Circle(Circle{ pixels, ..}) => Value::Circle(pixels.clone()),
         }
     }
 
