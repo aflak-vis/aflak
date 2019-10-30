@@ -7,7 +7,7 @@ use ndarray::{self, ArrayD, IxDyn};
 pub trait FitsDataToArray<Dimension> {
     type Target;
 
-    fn to_array(&self) -> Result<Self::Target, FitsArrayReadError>;
+    fn to_array(self) -> Result<Self::Target, FitsArrayReadError>;
 }
 
 #[derive(Debug)]
@@ -42,18 +42,18 @@ impl error::Error for FitsArrayReadError {
 impl FitsDataToArray<IxDyn> for FitsDataArray<f32> {
     type Target = ArrayD<f32>;
 
-    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
-        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
-        ArrayD::from_shape_vec(sh, self.data.clone()).map_err(FitsArrayReadError::ShapeError)
+    fn to_array(self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.into_iter().rev().collect();
+        ArrayD::from_shape_vec(sh, self.data).map_err(FitsArrayReadError::ShapeError)
     }
 }
 
 impl FitsDataToArray<IxDyn> for FitsDataArray<f64> {
     type Target = ArrayD<f32>;
 
-    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
-        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
-        ArrayD::from_shape_vec(sh, self.data.iter().map(|f| *f as f32).collect())
+    fn to_array(self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.into_iter().rev().collect();
+        ArrayD::from_shape_vec(sh, self.data.into_iter().map(|f| f as f32).collect())
             .map_err(FitsArrayReadError::ShapeError)
     }
 }
@@ -61,15 +61,15 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<f64> {
 impl FitsDataToArray<IxDyn> for FitsDataArray<Option<i32>> {
     type Target = ArrayD<f32>;
 
-    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
-        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
+    fn to_array(self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.into_iter().rev().collect();
         ArrayD::from_shape_vec(
             sh,
             self.data
-                .iter()
+                .into_iter()
                 .map(|some_int| {
                     if let Some(int) = some_int {
-                        *int as f32
+                        int as f32
                     } else {
                         ::std::f32::NAN
                     }
@@ -83,15 +83,15 @@ impl FitsDataToArray<IxDyn> for FitsDataArray<Option<i32>> {
 impl FitsDataToArray<IxDyn> for FitsDataArray<Option<u32>> {
     type Target = ArrayD<f32>;
 
-    fn to_array(&self) -> Result<ArrayD<f32>, FitsArrayReadError> {
-        let sh: Vec<_> = self.shape.iter().rev().cloned().collect();
+    fn to_array(self) -> Result<ArrayD<f32>, FitsArrayReadError> {
+        let sh: Vec<_> = self.shape.into_iter().rev().collect();
         ArrayD::from_shape_vec(
             sh,
             self.data
-                .iter()
+                .into_iter()
                 .map(|some_int| {
                     if let Some(int) = some_int {
-                        *int as f32
+                        int as f32
                     } else {
                         ::std::f32::NAN
                     }

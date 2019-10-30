@@ -110,11 +110,11 @@ impl WcsArray {
     /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
         let data = hdu.read_data();
-        let image = match *data {
-            FitsData::FloatingPoint32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
-            FitsData::FloatingPoint64(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
-            FitsData::IntegersI32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
-            FitsData::IntegersU32(ref image) => FitsDataToArray::<IxDyn>::to_array(image)?,
+        let image = match data {
+            FitsData::FloatingPoint32(image) => FitsDataToArray::<IxDyn>::to_array(image)?,
+            FitsData::FloatingPoint64(image) => FitsDataToArray::<IxDyn>::to_array(image)?,
+            FitsData::IntegersI32(image) => FitsDataToArray::<IxDyn>::to_array(image)?,
+            FitsData::IntegersU32(image) => FitsDataToArray::<IxDyn>::to_array(image)?,
             FitsData::Characters(_) => {
                 return Err(FitsArrayReadError::UnsupportedData("Characters"));
             }

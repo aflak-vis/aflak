@@ -7,7 +7,7 @@ license = "GPL-3.0-only"
 
 [dependencies]
 aflak_cake = { path = "../aflak_cake", version = "0.0.3" }
-fitrs = "0.4.2"
+fitrs = "0.5.0"
 lazy_static = "1.0"
 ndarray = { version = "0.12", features = ["serde-1"] }
 serde = "1.0"
