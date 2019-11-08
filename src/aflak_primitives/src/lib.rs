@@ -805,13 +805,7 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
         };
         let mut out = 0.0;
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
-            if !is_min && slice[&index] > value {
-                value = slice[&index];
-                out = match image.pix2world(2, (k + start) as f32) {
-                    Some(value) => value,
-                    None => (k + start) as f32,
-                };
-            } else if is_min && slice[&index] < value {
+            if (!is_min && slice[&index] > value) || (is_min && slice[&index] < value) {
                 value = slice[&index];
                 out = match image.pix2world(2, (k + start) as f32) {
                     Some(value) => value,
