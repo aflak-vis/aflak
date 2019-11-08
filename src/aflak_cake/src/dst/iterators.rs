@@ -242,7 +242,7 @@ where
     fn unattached_inputs(&self) -> Vec<Input> {
         self.transform_inputs()
             .filter(|input| {
-                for (_, input_list) in &self.edges {
+                for input_list in self.edges.values() {
                     if input_list.contains(input) {
                         return false;
                     }
