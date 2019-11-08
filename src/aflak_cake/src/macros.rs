@@ -415,11 +415,13 @@ impl<'t, T, E> MacroManager<'t, T, E> {
     /// Used internally for import/export.
     /// Fail if a macro with the same ID is already added.
     pub fn add_macro(&mut self, macr: Macro<'t, T, E>) -> Result<(), ImportError> {
-        if self.macros.contains_key(&macr.id) {
-            Err(ImportError::DuplicateMacroId(macr.id))
-        } else {
-            self.macros.insert(macr.id, MacroHandle::from(macr));
-            Ok(())
+        use std::collections::btree_map::Entry;
+        match self.macros.entry(macr.id) {
+            Entry::Vacant(entry) => {
+                entry.insert(MacroHandle::from(macr));
+                Ok(())
+            }
+            Entry::Occupied(_) => Err(ImportError::DuplicateMacroId(macr.id)),
         }
     }
 }
