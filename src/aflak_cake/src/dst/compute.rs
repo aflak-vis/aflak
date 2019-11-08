@@ -388,7 +388,7 @@ where
             }
         }
 
-        let out = if let Some(out) = op.call().into_iter().nth(index) {
+        let out = if let Some(out) = op.call().nth(index) {
             out.map_err(|e| {
                 Arc::new(match e {
                     CallError::FunctionError(e) => ComputeError::RuntimeError {
