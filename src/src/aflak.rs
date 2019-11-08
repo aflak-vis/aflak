@@ -35,8 +35,19 @@ impl Aflak {
     pub fn main_menu_bar(&mut self, ui: &Ui) {
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
             if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
-                if MenuItem::new(im_str!("Open")).build(ui) {
+                if MenuItem::new(im_str!("New")).build(ui) {
+                    println!("New!");
+                }
+                if MenuItem::new(im_str!("Open"))
+                    .shortcut(im_str!("Ctrl+O"))
+                    .build(ui)
+                {
                     println!("Open!");
+                }
+                if let Some(menu) = ui.begin_menu(im_str!("Open Recent"), true) {
+                    MenuItem::new(im_str!("test1.fits")).build(ui);
+                    MenuItem::new(im_str!("test2.fits")).build(ui);
+                    menu.end(ui);
                 }
                 menu.end(ui);
             }
