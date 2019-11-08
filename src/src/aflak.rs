@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error;
 
 use glium;
-use imgui::{Condition, ImString, MouseButton, Ui, Window};
+use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
 
 use aflak_plot::imshow::Textures;
 use cake::{OutputId, Transform};
@@ -29,6 +29,18 @@ impl Aflak {
             layout_engine: LayoutEngine::new(),
             output_windows: HashMap::new(),
             error_alerts: vec![],
+        }
+    }
+
+    pub fn main_menu_bar(&mut self, ui: &Ui) {
+        if let Some(menu_bar) = ui.begin_main_menu_bar() {
+            if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
+                if MenuItem::new(im_str!("Open")).build(ui) {
+                    println!("Open!");
+                }
+                menu.end(ui);
+            }
+            menu_bar.end(ui);
         }
     }
 
