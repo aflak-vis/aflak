@@ -100,9 +100,10 @@ pub trait ConvertibleVariants: VariantName + Sized + 'static {
     fn convertible(from: &'static str, into: &'static str) -> bool {
         if from == into {
             true
-        } else if let Some(_) = Self::CONVERTION_TABLE
+        } else if Self::CONVERTION_TABLE
             .iter()
             .find(|variant| variant.from == from && variant.into == into)
+            .is_some()
         {
             true
         } else {
