@@ -351,6 +351,12 @@ pub struct MacroManager<'t, T: 't, E: 't> {
     macros: BTreeMap<Uuid, MacroHandle<'t, T, E>>,
 }
 
+impl<'t, T, E> Default for MacroManager<'t, T, E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'t, T, E> fmt::Debug for MacroManager<'t, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("MacroManager")
