@@ -38,7 +38,7 @@ impl BuiltinLUT {
         use self::BuiltinLUT::*;
         const VALUES: [BuiltinLUT; 7] =
             [Grey, GreyClip, Thermal, Flame, Yellowy, HeatMap, HeatMapInv];
-        VALUES.into_iter()
+        VALUES.iter()
     }
 
     pub fn name(self) -> &'static ImStr {
