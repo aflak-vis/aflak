@@ -1,6 +1,19 @@
 use std::io::Cursor;
 use std::path::Path;
 
+pub fn select_template<P: AsRef<Path>>(
+    template_name: &str,
+    fits_path: P,
+) -> Option<Cursor<String>> {
+    match template_name {
+        "waveform" => Some(show_frame_and_wave(fits_path)),
+        "equivalent_width" => Some(show_equivalent_width(fits_path)),
+        "fits_cleaning" => Some(show_fits_cleaning(fits_path)),
+        "velocity_field" => Some(show_velocity_field(fits_path)),
+        _ => None,
+    }
+}
+
 pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
     let path = path.as_ref().to_string_lossy();
     let ron = format!(
