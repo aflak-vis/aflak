@@ -95,14 +95,11 @@ fn open_buffer(matches: &clap::ArgMatches) -> Result<Box<dyn Read>, io::Error> {
     let fits = matches.value_of("fits");
     let fits_path = path_clean_up(fits, "file.fits");
     if let Some(template_name) = matches.value_of("template") {
-        let template = match template_name {
-            "waveform" => templates::show_frame_and_wave(fits_path),
-            "equivalent_width" => templates::show_equivalent_width(fits_path),
-            "fits_cleaning" => templates::show_fits_cleaning(fits_path),
-            "velocity_field" => templates::show_velocity_field(fits_path),
-            _ => unreachable!("Got '{}', an unexpected result.", template_name),
-        };
-        Ok(Box::new(template))
+        if let Some(template) = templates::select_template(template_name, fits_path) {
+            Ok(Box::new(template))
+        } else {
+            unreachable!("Got '{}', an unexpected result.", template_name)
+        }
     } else if let Some(ron_file) = matches.value_of("ron") {
         if ron_file == "-" {
             Ok(Box::new(StdinReader::default()))
