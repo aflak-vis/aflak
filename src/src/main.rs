@@ -17,6 +17,7 @@ extern crate node_editor;
 mod aflak;
 mod cli;
 mod constant_editor;
+mod file_dialog;
 mod layout;
 mod output_window;
 mod templates;
@@ -73,6 +74,7 @@ fn main() -> support::Result<()> {
         aflak.node_editor(ui, transformations);
         aflak.output_windows(ui, gl_ctx, textures);
         aflak.show_errors(ui);
+        aflak.file_dialog(ui);
         !aflak.quit
     })
 }

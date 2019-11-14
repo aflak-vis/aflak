@@ -10,6 +10,7 @@ use node_editor::NodeEditor;
 use primitives::{IOErr, IOValue};
 
 use constant_editor::MyConstantEditor;
+use file_dialog::{FileDialog, FileDialogEvent};
 use layout::{Layout, LayoutEngine};
 use output_window::OutputWindow;
 
@@ -21,6 +22,7 @@ pub struct Aflak {
     output_windows: HashMap<OutputId, OutputWindow>,
     error_alerts: Vec<Box<dyn error::Error>>,
     pub quit: bool,
+    file_dialog: Option<FileDialog>,
 }
 
 impl Aflak {
@@ -31,6 +33,7 @@ impl Aflak {
             output_windows: HashMap::new(),
             error_alerts: vec![],
             quit: false,
+            file_dialog: None,
         }
     }
 
@@ -40,11 +43,8 @@ impl Aflak {
                 if MenuItem::new(im_str!("New")).build(ui) {
                     println!("New!");
                 }
-                if MenuItem::new(im_str!("Open"))
-                    .shortcut(im_str!("Ctrl+O"))
-                    .build(ui)
-                {
-                    println!("Open!");
+                if MenuItem::new(im_str!("Open FITS")).build(ui) {
+                    self.file_dialog = Some(FileDialog::default());
                 }
                 if let Some(menu) = ui.begin_menu(im_str!("Open Recent"), true) {
                     MenuItem::new(im_str!("test1.fits")).build(ui);
@@ -117,5 +117,21 @@ impl Aflak {
                 ui.close_current_popup();
             }
         });
+    }
+
+    pub fn file_dialog(&mut self, ui: &Ui) {
+        if let Some(dialog) = &mut self.file_dialog {
+            match dialog.build(ui) {
+                Some(FileDialogEvent::Selection(result)) => {
+                    match result.into_node_editor() {
+                        Ok(node_editor) => self.node_editor = node_editor,
+                        Err(e) => self.error_alerts.push(Box::new(e)),
+                    }
+                    self.file_dialog = None;
+                }
+                Some(FileDialogEvent::Close) => self.file_dialog = None,
+                None => {}
+            }
+        }
     }
 }
