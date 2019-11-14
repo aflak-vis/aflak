@@ -18,7 +18,7 @@ pub enum FileDialogEvent {
 }
 
 pub struct FileDialogResult {
-    path: PathBuf,
+    pub path: PathBuf,
     template: String,
 }
 
@@ -73,8 +73,8 @@ impl FileDialog {
 }
 
 impl FileDialogResult {
-    pub fn into_node_editor(self) -> Result<AflakNodeEditor, impl error::Error> {
-        if let Some(import_data) = templates::select_template(&self.template, self.path) {
+    pub fn to_node_editor(&self) -> Result<AflakNodeEditor, impl error::Error> {
+        if let Some(import_data) = templates::select_template(&self.template, &self.path) {
             AflakNodeEditor::from_export_buf(import_data)
         } else {
             unreachable!("Got '{}', an unexpected result.", self.template)

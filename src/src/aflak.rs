@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::error;
+use std::path::PathBuf;
 
 use glium;
 use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
@@ -23,6 +24,7 @@ pub struct Aflak {
     error_alerts: Vec<Box<dyn error::Error>>,
     pub quit: bool,
     file_dialog: Option<FileDialog>,
+    recent_files: Vec<PathBuf>,
 }
 
 impl Aflak {
@@ -34,6 +36,7 @@ impl Aflak {
             error_alerts: vec![],
             quit: false,
             file_dialog: None,
+            recent_files: vec![],
         }
     }
 
@@ -46,9 +49,14 @@ impl Aflak {
                 if MenuItem::new(im_str!("Open FITS")).build(ui) {
                     self.file_dialog = Some(FileDialog::default());
                 }
-                if let Some(menu) = ui.begin_menu(im_str!("Open Recent"), true) {
-                    MenuItem::new(im_str!("test1.fits")).build(ui);
-                    MenuItem::new(im_str!("test2.fits")).build(ui);
+                if let Some(menu) =
+                    ui.begin_menu(im_str!("Open Recent"), self.recent_files.len() > 0)
+                {
+                    for file in &self.recent_files {
+                        if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
+                            println!("Open {:?}", file);
+                        }
+                    }
                     menu.end(ui);
                 }
                 ui.separator();
@@ -123,10 +131,11 @@ impl Aflak {
         if let Some(dialog) = &mut self.file_dialog {
             match dialog.build(ui) {
                 Some(FileDialogEvent::Selection(result)) => {
-                    match result.into_node_editor() {
+                    match result.to_node_editor() {
                         Ok(node_editor) => self.node_editor = node_editor,
                         Err(e) => self.error_alerts.push(Box::new(e)),
                     }
+                    self.recent_files.push(result.path);
                     self.file_dialog = None;
                 }
                 Some(FileDialogEvent::Close) => self.file_dialog = None,
