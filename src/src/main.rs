@@ -73,7 +73,7 @@ fn main() -> support::Result<()> {
         aflak.node_editor(ui, transformations);
         aflak.output_windows(ui, gl_ctx, textures);
         aflak.show_errors(ui);
-        true
+        !aflak.quit
     })
 }
 

@@ -20,6 +20,7 @@ pub struct Aflak {
     layout_engine: LayoutEngine,
     output_windows: HashMap<OutputId, OutputWindow>,
     error_alerts: Vec<Box<dyn error::Error>>,
+    pub quit: bool,
 }
 
 impl Aflak {
@@ -29,6 +30,7 @@ impl Aflak {
             layout_engine: LayoutEngine::new(),
             output_windows: HashMap::new(),
             error_alerts: vec![],
+            quit: false,
         }
     }
 
@@ -48,6 +50,13 @@ impl Aflak {
                     MenuItem::new(im_str!("test1.fits")).build(ui);
                     MenuItem::new(im_str!("test2.fits")).build(ui);
                     menu.end(ui);
+                }
+                ui.separator();
+                if MenuItem::new(im_str!("Quit"))
+                    .shortcut(im_str!("Alt+F4"))
+                    .build(ui)
+                {
+                    self.quit = true;
                 }
                 menu.end(ui);
             }
