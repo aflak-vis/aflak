@@ -544,56 +544,8 @@ where
                         } else if endpointsfill.1 == false {
                             endpointsfill.1 = true;
                             endpoints.1 = self.mouse_pos;
-                            let dx = (endpoints.1).0 as i32 - (endpoints.0).0 as i32;
-                            let dy = (endpoints.1).1 as i32 - (endpoints.0).1 as i32;
-                            let mut err = 0.0;
-                            if dx < 0 {
-                                let tmp = endpoints.0;
-                                endpoints.0 = endpoints.1;
-                                endpoints.1 = tmp;
-                            }
-                            let derr = dy as f32 / dx as f32;
-                            let derrabs = derr.abs();
-                            let endpoints_usize = (
-                                ((endpoints.0).0 as usize, (endpoints.0).1 as usize),
-                                ((endpoints.1).0 as usize, (endpoints.1).1 as usize),
-                            );
-                            if derrabs <= 1.0 {
-                                let mut y = (endpoints_usize.0).1;
-                                for x in (endpoints_usize.0).0..(endpoints_usize.1).0 {
-                                    pixels.push((x, y));
-                                    err += derrabs;
-                                    if err >= 0.5 {
-                                        if derr <= 0.0 {
-                                            y -= 1;
-                                        } else {
-                                            y += 1;
-                                        }
-                                        err -= 1.0;
-                                    }
-                                }
-                            } else {
-                                if dy < 0 {
-                                    let tmp = endpoints.0;
-                                    endpoints.0 = endpoints.1;
-                                    endpoints.1 = tmp;
-                                }
-                                let mut x = (endpoints_usize.0).0;
-                                let derr = dx as f32 / dy as f32;
-                                let derrabs = derr.abs();
-                                for y in (endpoints_usize.0).1..(endpoints_usize.1).1 {
-                                    pixels.push((x, y));
-                                    err += derrabs;
-                                    if err >= 0.5 {
-                                        if derr <= 0.0 {
-                                            x -= 1;
-                                        } else {
-                                            x += 1;
-                                        }
-                                        err -= 1.0;
-                                    }
-                                }
-                            }
+                            pixels.clear();
+                            get_pixels_of_line(pixels, endpoints);
                         }
                     }
                     let x0 = p[0] + (endpoints.0).0 as f32 / tex_size.0 as f32 * size[0];
@@ -659,6 +611,8 @@ where
                             (endpoints.1).0 += now_mousepos.0 - pre_mousepos.0;
                             (endpoints.1).1 += now_mousepos.1 - pre_mousepos.1;
                             *pre_mousepos = now_mousepos;
+                            pixels.clear();
+                            get_pixels_of_line(pixels, endpoints);
                         }
                         if !ui.is_mouse_down(MouseButton::Left) && *moving {
                             *moving = false;
@@ -673,6 +627,61 @@ where
                         draw_list
                             .add_line([x0, y0], [mousepos.0, mousepos.1], LINE_COLOR)
                             .build();
+                    }
+                    fn get_pixels_of_line(
+                        pixels: &mut Vec<(usize, usize)>,
+                        endpoints: &mut ((f32, f32), (f32, f32)),
+                    ) {
+                        let dx = (endpoints.1).0 as i32 - (endpoints.0).0 as i32;
+                        let dy = (endpoints.1).1 as i32 - (endpoints.0).1 as i32;
+                        let mut err = 0.0;
+                        if dx < 0 {
+                            let tmp = endpoints.0;
+                            endpoints.0 = endpoints.1;
+                            endpoints.1 = tmp;
+                        }
+                        let derr = dy as f32 / dx as f32;
+                        let derrabs = derr.abs();
+                        let endpoints_usize = (
+                            ((endpoints.0).0 as usize, (endpoints.0).1 as usize),
+                            ((endpoints.1).0 as usize, (endpoints.1).1 as usize),
+                        );
+                        if derrabs <= 1.0 {
+                            let mut y = (endpoints_usize.0).1;
+                            for x in (endpoints_usize.0).0..(endpoints_usize.1).0 {
+                                pixels.push((x, y));
+                                err += derrabs;
+                                if err >= 0.5 {
+                                    if derr <= 0.0 {
+                                        y -= 1;
+                                    } else {
+                                        y += 1;
+                                    }
+                                    err -= 1.0;
+                                }
+                            }
+                        } else {
+                            if dy < 0 {
+                                let tmp = endpoints.0;
+                                endpoints.0 = endpoints.1;
+                                endpoints.1 = tmp;
+                            }
+                            let mut x = (endpoints_usize.0).0;
+                            let derr = dx as f32 / dy as f32;
+                            let derrabs = derr.abs();
+                            for y in (endpoints_usize.0).1..(endpoints_usize.1).1 {
+                                pixels.push((x, y));
+                                err += derrabs;
+                                if err >= 0.5 {
+                                    if derr <= 0.0 {
+                                        x -= 1;
+                                    } else {
+                                        x += 1;
+                                    }
+                                    err -= 1.0;
+                                }
+                            }
+                        }
                     }
                 }
                 Interaction::Circle(Circle {
