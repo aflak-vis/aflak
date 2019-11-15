@@ -624,13 +624,52 @@ where
                     let y0 = p[1] + size[1] - (endpoints.0).1 as f32 / tex_size.1 as f32 * size[1];
                     let x1 = p[0] + (endpoints.1).0 as f32 / tex_size.0 as f32 * size[0];
                     let y1 = p[1] + size[1] - (endpoints.1).1 as f32 / tex_size.1 as f32 * size[1];
+                    const CLICKABLE_WIDTH: f32 = 5.0;
+                    let linevec = (x1 - x0, y1 - y0);
+                    let center = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+                    let angle = (linevec.1).atan2(linevec.0);
+                    let linevecsize = (linevec.0 * linevec.0 + linevec.1 * linevec.1).sqrt();
+                    let rotated = (
+                        linevec.1 / linevecsize * CLICKABLE_WIDTH,
+                        -linevec.0 / linevecsize * CLICKABLE_WIDTH,
+                    );
+                    let upperleft = (x0 + rotated.0, y0 + rotated.1);
+                    let center_to_upperleft = (upperleft.0 - center.0, upperleft.1 - center.1);
+                    let mousepos = (
+                        p[0] + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size[0],
+                        p[1] + size[1] - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1],
+                    );
+                    let center_to_mousepos = (mousepos.0 - center.0, mousepos.1 - center.1);
+                    let rotated_upperleft = (
+                        center.0
+                            + center_to_upperleft.0 * (-angle).cos()
+                            + center_to_upperleft.1 * -(-angle).sin(),
+                        center.1
+                            + center_to_upperleft.0 * (-angle).sin()
+                            + center_to_upperleft.1 * (-angle).cos(),
+                    );
+                    let rotated_mousepos = (
+                        center.0
+                            + center_to_mousepos.0 * (-angle).cos()
+                            + center_to_mousepos.1 * -(-angle).sin(),
+                        center.1
+                            + center_to_mousepos.0 * (-angle).sin()
+                            + center_to_mousepos.1 * (-angle).cos(),
+                    );
                     if endpointsfill.0 && endpointsfill.1 {
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
                     } else if endpointsfill.0 {
-                        let x1 = p[0] + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size[0];
-                        let y1 =
-                            p[1] + size[1] - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1];
-                        draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
+                        draw_list
+                            .add_line([x0, y0], [mousepos.0, mousepos.1], LINE_COLOR)
+                            .build();
+                    }
+
+                    if rotated_upperleft.0 <= rotated_mousepos.0
+                        && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
+                        && rotated_upperleft.1 <= rotated_mousepos.1
+                        && rotated_mousepos.1 <= rotated_upperleft.1 + CLICKABLE_WIDTH * 2.0
+                    {
+                        ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
                     }
                 }
                 Interaction::Circle(Circle {
