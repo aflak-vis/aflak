@@ -63,7 +63,6 @@ pub struct FinedGrainedROI {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Line {
-    pub(crate) id: usize,
     pub endpoints: ((f32, f32), (f32, f32)),
     pub endpointsfill: (bool, bool),
     pub pixels: Vec<(usize, usize)>,
@@ -102,9 +101,8 @@ impl FinedGrainedROI {
 }
 
 impl Line {
-    pub fn new(id: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            id,
             endpoints: ((0.0, 0.0), (0.0, 0.0)),
             endpointsfill: (false, false),
             pixels: vec![],

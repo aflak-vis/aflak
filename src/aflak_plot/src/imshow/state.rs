@@ -28,7 +28,6 @@ pub struct State<I> {
     lut_max_moving: bool,
     interactions: Interactions,
     roi_input: RoiInputState,
-    line_input: LineInputState,
     circle_input: CircleInputState,
     image: image::Image<I>,
 }
@@ -51,27 +50,6 @@ impl RoiInputState {
 
     fn is_selected(&self, id: usize) -> bool {
         id == self.selected
-    }
-}
-
-#[derive(Default)]
-struct LineInputState {
-    line_id_cnt: usize,
-    line_names: Vec<ImString>,
-    selected: i32,
-}
-
-impl LineInputState {
-    fn gen_id(&mut self) -> usize {
-        self.line_id_cnt += 1;
-        self.line_names
-            .push(ImString::new(format!("Line: {}", self.line_id_cnt)));
-        self.selected = self.line_id_cnt as i32;
-        self.line_id_cnt
-    }
-
-    fn is_selected(&self, id: usize) -> bool {
-        id as i32 == self.selected
     }
 }
 
@@ -107,7 +85,6 @@ impl<I> Default for State<I> {
             lut_max_moving: false,
             interactions: Interactions::new(),
             roi_input: Default::default(),
-            line_input: Default::default(),
             circle_input: Default::default(),
             image: Default::default(),
         }
@@ -427,7 +404,7 @@ where
                 self.interactions.insert(new);
             }
             if MenuItem::new(im_str!("Line")).build(ui) {
-                let new = Interaction::Line(Line::new(self.line_input.gen_id()));
+                let new = Interaction::Line(Line::new());
                 self.interactions.insert(new);
             }
             if MenuItem::new(im_str!("Circle")).build(ui) {
@@ -554,13 +531,11 @@ where
                     }
                 }
                 Interaction::Line(Line {
-                    id,
                     endpoints,
                     endpointsfill,
                     pixels,
                 }) => {
-                    let selected = self.line_input.is_selected(*id);
-                    if selected && is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
+                    if is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
                         let pixel = (self.mouse_pos.0, self.mouse_pos.1);
                         if endpointsfill.0 == false {
                             endpointsfill.0 = true;
