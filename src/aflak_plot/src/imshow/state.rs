@@ -534,15 +534,16 @@ where
                     endpoints,
                     endpointsfill,
                     pixels,
+                    pre_mousepos,
+                    moving,
                 }) => {
                     if is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
-                        let pixel = (self.mouse_pos.0, self.mouse_pos.1);
                         if endpointsfill.0 == false {
                             endpointsfill.0 = true;
-                            endpoints.0 = pixel;
+                            endpoints.0 = self.mouse_pos;
                         } else if endpointsfill.1 == false {
                             endpointsfill.1 = true;
-                            endpoints.1 = pixel;
+                            endpoints.1 = self.mouse_pos;
                             let dx = (endpoints.1).0 as i32 - (endpoints.0).0 as i32;
                             let dy = (endpoints.1).1 as i32 - (endpoints.0).1 as i32;
                             let mut err = 0.0;
@@ -633,18 +634,45 @@ where
                     );
                     if endpointsfill.0 && endpointsfill.1 {
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
+                        ui.set_cursor_screen_pos([x0.min(x1), y0.min(y1)]);
+                        ui.invisible_button(im_str!("line"), [(x1 - x0).abs(), (y1 - y0).abs()]);
+                        if rotated_upperleft.0 <= rotated_mousepos.0
+                            && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
+                            && rotated_upperleft.1 <= rotated_mousepos.1
+                            && rotated_mousepos.1 <= rotated_upperleft.1 + CLICKABLE_WIDTH * 2.0
+                        {
+                            ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
+
+                            if ui.is_mouse_clicked(MouseButton::Left) && !*moving {
+                                *moving = true;
+                                *pre_mousepos = self.mouse_pos;
+                            }
+                            if ui.is_mouse_clicked(MouseButton::Right) {
+                                ui.open_popup(im_str!("edit-line"))
+                            }
+                        }
+
+                        if *moving {
+                            let now_mousepos = self.mouse_pos;
+                            (endpoints.0).0 += now_mousepos.0 - pre_mousepos.0;
+                            (endpoints.0).1 += now_mousepos.1 - pre_mousepos.1;
+                            (endpoints.1).0 += now_mousepos.0 - pre_mousepos.0;
+                            (endpoints.1).1 += now_mousepos.1 - pre_mousepos.1;
+                            *pre_mousepos = now_mousepos;
+                        }
+                        if !ui.is_mouse_down(MouseButton::Left) && *moving {
+                            *moving = false;
+                        }
+
+                        ui.popup(im_str!("edit-line"), || {
+                            if MenuItem::new(im_str!("Delete Line")).build(ui) {
+                                line_marked_for_deletion = Some(*id);
+                            }
+                        });
                     } else if endpointsfill.0 {
                         draw_list
                             .add_line([x0, y0], [mousepos.0, mousepos.1], LINE_COLOR)
                             .build();
-                    }
-
-                    if rotated_upperleft.0 <= rotated_mousepos.0
-                        && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
-                        && rotated_upperleft.1 <= rotated_mousepos.1
-                        && rotated_mousepos.1 <= rotated_upperleft.1 + CLICKABLE_WIDTH * 2.0
-                    {
-                        ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
                     }
                 }
                 Interaction::Circle(Circle {
