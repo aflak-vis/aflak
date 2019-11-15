@@ -561,7 +561,7 @@ where
                 }) => {
                     let selected = self.line_input.is_selected(*id);
                     if selected && is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
-                        let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
+                        let pixel = (self.mouse_pos.0, self.mouse_pos.1);
                         if endpointsfill.0 == false {
                             endpointsfill.0 = true;
                             endpoints.0 = pixel;
@@ -578,9 +578,13 @@ where
                             }
                             let derr = dy as f32 / dx as f32;
                             let derrabs = derr.abs();
+                            let endpoints_usize = (
+                                ((endpoints.0).0 as usize, (endpoints.0).1 as usize),
+                                ((endpoints.1).0 as usize, (endpoints.1).1 as usize),
+                            );
                             if derrabs <= 1.0 {
-                                let mut y = (endpoints.0).1;
-                                for x in (endpoints.0).0..(endpoints.1).0 {
+                                let mut y = (endpoints_usize.0).1;
+                                for x in (endpoints_usize.0).0..(endpoints_usize.1).0 {
                                     pixels.push((x, y));
                                     err += derrabs;
                                     if err >= 0.5 {
@@ -598,10 +602,10 @@ where
                                     endpoints.0 = endpoints.1;
                                     endpoints.1 = tmp;
                                 }
-                                let mut x = (endpoints.0).0;
+                                let mut x = (endpoints_usize.0).0;
                                 let derr = dx as f32 / dy as f32;
                                 let derrabs = derr.abs();
-                                for y in (endpoints.0).1..(endpoints.1).1 {
+                                for y in (endpoints_usize.0).1..(endpoints_usize.1).1 {
                                     pixels.push((x, y));
                                     err += derrabs;
                                     if err >= 0.5 {
