@@ -7,7 +7,7 @@ use ndarray::ArrayD;
 
 use super::image;
 use super::interactions::{
-    FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, Line,
+    Circle, FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, Line,
     ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
@@ -29,6 +29,7 @@ pub struct State<I> {
     interactions: Interactions,
     roi_input: RoiInputState,
     line_input: LineInputState,
+    circle_input: CircleInputState,
     image: image::Image<I>,
 }
 
@@ -74,6 +75,27 @@ impl LineInputState {
     }
 }
 
+#[derive(Default)]
+struct CircleInputState {
+    circle_id_cnt: usize,
+    circle_names: Vec<ImString>,
+    selected: i32,
+}
+
+impl CircleInputState {
+    fn gen_id(&mut self) -> usize {
+        self.circle_id_cnt += 1;
+        self.circle_names
+            .push(ImString::new(format!("Circle: {}", self.circle_id_cnt)));
+        self.selected = self.circle_id_cnt as i32;
+        self.circle_id_cnt
+    }
+
+    fn is_selected(&self, id: usize) -> bool {
+        id as i32 == self.selected
+    }
+}
+
 impl<I> Default for State<I> {
     fn default() -> Self {
         use std::f32;
@@ -86,6 +108,7 @@ impl<I> Default for State<I> {
             interactions: Interactions::new(),
             roi_input: Default::default(),
             line_input: Default::default(),
+            circle_input: Default::default(),
             image: Default::default(),
         }
     }
@@ -407,6 +430,10 @@ where
                 let new = Interaction::Line(Line::new(self.line_input.gen_id()));
                 self.interactions.insert(new);
             }
+            if MenuItem::new(im_str!("Circle")).build(ui) {
+                let new = Interaction::Circle(Circle::new(self.circle_input.gen_id()));
+                self.interactions.insert(new);
+            }
         });
 
         let mut line_marked_for_deletion = None;
@@ -604,6 +631,51 @@ where
                         let y1 =
                             p[1] + size[1] - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1];
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
+                    }
+                }
+                Interaction::Circle(Circle {
+                    id,
+                    center,
+                    radius,
+                    parametersfill,
+                    pixels: _pixels,
+                }) => {
+                    let selected = self.circle_input.is_selected(*id);
+                    if selected && is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
+                        let pixel = (self.mouse_pos.0 as usize, self.mouse_pos.1 as usize);
+                        if parametersfill.0 == false {
+                            parametersfill.0 = true;
+                            *center = pixel;
+                        } else if parametersfill.1 == false {
+                            parametersfill.1 = true;
+                            let x0 = p[0] + center.0 as f32 / tex_size.0 as f32 * size[0];
+                            let y0 = p[1] + size[1] - center.1 as f32 / tex_size.1 as f32 * size[1];
+                            let x1 = p[0] + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size[0];
+                            let y1 = p[1] + size[1]
+                                - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1];
+                            let rad = ((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1)).sqrt();
+                            *radius = rad;
+                        }
+                    }
+
+                    if parametersfill.0 && parametersfill.1 {
+                        let x0 = p[0] + center.0 as f32 / tex_size.0 as f32 * size[0];
+                        let y0 = p[1] + size[1] - center.1 as f32 / tex_size.1 as f32 * size[1];
+                        draw_list
+                            .add_circle([x0, y0], *radius as f32, LINE_COLOR)
+                            .num_segments(50)
+                            .build();
+                    } else if parametersfill.0 {
+                        let x0 = p[0] + center.0 as f32 / tex_size.0 as f32 * size[0];
+                        let y0 = p[1] + size[1] - center.1 as f32 / tex_size.1 as f32 * size[1];
+                        let x1 = p[0] + self.mouse_pos.0 as f32 / tex_size.0 as f32 * size[0];
+                        let y1 =
+                            p[1] + size[1] - self.mouse_pos.1 as f32 / tex_size.1 as f32 * size[1];
+                        let rad = ((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1)).sqrt();
+                        draw_list
+                            .add_circle([x0, y0], rad, LINE_COLOR)
+                            .num_segments(50)
+                            .build();
                     }
                 }
             }

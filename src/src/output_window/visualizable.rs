@@ -70,7 +70,7 @@ impl Visualizable for Fits {
 
             let id_stack = ui.push_id(i as i32);
             ui.tree_node(&tree_name).build(|| {
-                for (key, value) in hdu {
+                for (key, value) in &hdu {
                     ui.text(key);
                     if let Some(value) = value {
                         ui.same_line(150.0);
