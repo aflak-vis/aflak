@@ -650,19 +650,19 @@ where
                         }
                         let derr = dy as f32 / dx as f32;
                         let derrabs = derr.abs();
-                        let endpoints_usize = (
-                            ((endpoints.0).0 as usize, (endpoints.0).1 as usize),
-                            ((endpoints.1).0 as usize, (endpoints.1).1 as usize),
+                        let endpoints_isize = (
+                            ((endpoints.0).0 as isize, (endpoints.0).1 as isize),
+                            ((endpoints.1).0 as isize, (endpoints.1).1 as isize),
                         );
                         if derrabs <= 1.0 {
-                            let mut y = (endpoints_usize.0).1;
-                            for x in (endpoints_usize.0).0..(endpoints_usize.1).0 {
+                            let mut y = (endpoints_isize.0).1;
+                            for x in (endpoints_isize.0).0..(endpoints_isize.1).0 {
                                 if 0.0 <= (x as f32)
                                     && (x as f32) < tex_size.0
                                     && 0.0 <= (y as f32)
                                     && (y as f32) < tex_size.1
                                 {
-                                    pixels.push((x, y));
+                                    pixels.push((x as usize, y as usize));
                                 }
                                 err += derrabs;
                                 if err >= 0.5 {
@@ -680,16 +680,16 @@ where
                                 endpoints.0 = endpoints.1;
                                 endpoints.1 = tmp;
                             }
-                            let mut x = (endpoints_usize.0).0;
+                            let mut x = (endpoints_isize.0).0;
                             let derr = dx as f32 / dy as f32;
                             let derrabs = derr.abs();
-                            for y in (endpoints_usize.0).1..(endpoints_usize.1).1 {
+                            for y in (endpoints_isize.0).1..(endpoints_isize.1).1 {
                                 if 0.0 <= (x as f32)
                                     && (x as f32) < tex_size.0
                                     && 0.0 <= (y as f32)
                                     && (y as f32) < tex_size.1
                                 {
-                                    pixels.push((x, y));
+                                    pixels.push((x as usize, y as usize));
                                 }
                                 err += derrabs;
                                 if err >= 0.5 {
