@@ -535,8 +535,10 @@ where
                     endpointsfill,
                     pixels,
                     pre_mousepos,
-                    moving,
+                    allmoving,
+                    edgemoving,
                 }) => {
+                    const CLICKABLE_WIDTH: f32 = 5.0;
                     if is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
                         if endpointsfill.0 == false {
                             endpointsfill.0 = true;
@@ -552,11 +554,10 @@ where
                     let y0 = p[1] + size[1] - (endpoints.0).1 as f32 / tex_size.1 as f32 * size[1];
                     let x1 = p[0] + (endpoints.1).0 as f32 / tex_size.0 as f32 * size[0];
                     let y1 = p[1] + size[1] - (endpoints.1).1 as f32 / tex_size.1 as f32 * size[1];
-                    const CLICKABLE_WIDTH: f32 = 5.0;
                     let linevec = (x1 - x0, y1 - y0);
+                    let linevecsize = (linevec.0 * linevec.0 + linevec.1 * linevec.1).sqrt();
                     let center = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
                     let angle = (linevec.1).atan2(linevec.0);
-                    let linevecsize = (linevec.0 * linevec.0 + linevec.1 * linevec.1).sqrt();
                     let rotated = (
                         linevec.1 / linevecsize * CLICKABLE_WIDTH,
                         -linevec.0 / linevecsize * CLICKABLE_WIDTH,
@@ -586,7 +587,63 @@ where
                     );
                     if endpointsfill.0 && endpointsfill.1 {
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
-                        if rotated_upperleft.0 <= rotated_mousepos.0
+                        if (x0 - mousepos.0) * (x0 - mousepos.0)
+                            + (y0 - mousepos.1) * (y0 - mousepos.1)
+                            <= CLICKABLE_WIDTH * CLICKABLE_WIDTH
+                        {
+                            if !edgemoving.0 {
+                                const CIRCLE_COLOR: u32 = 0x8000_FFFF;
+                                draw_list
+                                    .add_circle([x0, y0], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR)
+                                    .filled(true)
+                                    .build();
+                            }
+                            ui.set_cursor_screen_pos([
+                                mousepos.0 - CLICKABLE_WIDTH,
+                                mousepos.1 - CLICKABLE_WIDTH,
+                            ]);
+                            ui.invisible_button(
+                                im_str!("line"),
+                                [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
+                            );
+                            ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
+
+                            if ui.is_mouse_clicked(MouseButton::Left) && !edgemoving.0 {
+                                edgemoving.0 = true;
+                                *pre_mousepos = self.mouse_pos;
+                            }
+                            if ui.is_mouse_clicked(MouseButton::Right) {
+                                ui.open_popup(im_str!("edit-line"))
+                            }
+                        } else if (x1 - mousepos.0) * (x1 - mousepos.0)
+                            + (y1 - mousepos.1) * (y1 - mousepos.1)
+                            <= CLICKABLE_WIDTH * CLICKABLE_WIDTH
+                        {
+                            if !edgemoving.1 {
+                                const CIRCLE_COLOR: u32 = 0x8000_FFFF;
+                                draw_list
+                                    .add_circle([x1, y1], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR)
+                                    .filled(true)
+                                    .build();
+                            }
+                            ui.set_cursor_screen_pos([
+                                mousepos.0 - CLICKABLE_WIDTH,
+                                mousepos.1 - CLICKABLE_WIDTH,
+                            ]);
+                            ui.invisible_button(
+                                im_str!("line"),
+                                [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
+                            );
+                            ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
+
+                            if ui.is_mouse_clicked(MouseButton::Left) && !edgemoving.1 {
+                                edgemoving.1 = true;
+                                *pre_mousepos = self.mouse_pos;
+                            }
+                            if ui.is_mouse_clicked(MouseButton::Right) {
+                                ui.open_popup(im_str!("edit-line"))
+                            }
+                        } else if rotated_upperleft.0 <= rotated_mousepos.0
                             && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
                             && rotated_upperleft.1 <= rotated_mousepos.1
                             && rotated_mousepos.1 <= rotated_upperleft.1 + CLICKABLE_WIDTH * 2.0
@@ -601,16 +658,15 @@ where
                             );
                             ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
 
-                            if ui.is_mouse_clicked(MouseButton::Left) && !*moving {
-                                *moving = true;
+                            if ui.is_mouse_clicked(MouseButton::Left) && !*allmoving {
+                                *allmoving = true;
                                 *pre_mousepos = self.mouse_pos;
                             }
                             if ui.is_mouse_clicked(MouseButton::Right) {
                                 ui.open_popup(im_str!("edit-line"))
                             }
                         }
-
-                        if *moving {
+                        if *allmoving {
                             let now_mousepos = self.mouse_pos;
                             (endpoints.0).0 += now_mousepos.0 - pre_mousepos.0;
                             (endpoints.0).1 += now_mousepos.1 - pre_mousepos.1;
@@ -619,10 +675,39 @@ where
                             *pre_mousepos = now_mousepos;
                             pixels.clear();
                             get_pixels_of_line(pixels, endpoints, tex_size);
-                            println!("{:?}", pixels);
+                        } else if edgemoving.0 {
+                            const CIRCLE_COLOR: u32 = 0x8000_FFFF;
+                            draw_list
+                                .add_circle([x0, y0], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR)
+                                .filled(true)
+                                .build();
+                            let now_mousepos = self.mouse_pos;
+                            (endpoints.0).0 += now_mousepos.0 - pre_mousepos.0;
+                            (endpoints.0).1 += now_mousepos.1 - pre_mousepos.1;
+                            *pre_mousepos = now_mousepos;
+                            pixels.clear();
+                            get_pixels_of_line(pixels, endpoints, tex_size);
+                        } else if edgemoving.1 {
+                            const CIRCLE_COLOR: u32 = 0x8000_FFFF;
+                            draw_list
+                                .add_circle([x1, y1], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR)
+                                .filled(true)
+                                .build();
+                            let now_mousepos = self.mouse_pos;
+                            (endpoints.1).0 += now_mousepos.0 - pre_mousepos.0;
+                            (endpoints.1).1 += now_mousepos.1 - pre_mousepos.1;
+                            *pre_mousepos = now_mousepos;
+                            pixels.clear();
+                            get_pixels_of_line(pixels, endpoints, tex_size);
                         }
-                        if !ui.is_mouse_down(MouseButton::Left) && *moving {
-                            *moving = false;
+                        if !ui.is_mouse_down(MouseButton::Left) {
+                            if *allmoving {
+                                *allmoving = false;
+                            } else if edgemoving.0 {
+                                edgemoving.0 = false;
+                            } else if edgemoving.1 {
+                                edgemoving.1 = false;
+                            }
                         }
 
                         ui.popup(im_str!("edit-line"), || {
