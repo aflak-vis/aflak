@@ -586,13 +586,19 @@ where
                     );
                     if endpointsfill.0 && endpointsfill.1 {
                         draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
-                        ui.set_cursor_screen_pos([x0.min(x1), y0.min(y1)]);
-                        ui.invisible_button(im_str!("line"), [(x1 - x0).abs(), (y1 - y0).abs()]);
                         if rotated_upperleft.0 <= rotated_mousepos.0
                             && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
                             && rotated_upperleft.1 <= rotated_mousepos.1
                             && rotated_mousepos.1 <= rotated_upperleft.1 + CLICKABLE_WIDTH * 2.0
                         {
+                            ui.set_cursor_screen_pos([
+                                mousepos.0 - CLICKABLE_WIDTH,
+                                mousepos.1 - CLICKABLE_WIDTH,
+                            ]);
+                            ui.invisible_button(
+                                im_str!("line"),
+                                [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
+                            );
                             ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
 
                             if ui.is_mouse_clicked(MouseButton::Left) && !*moving {
@@ -613,6 +619,7 @@ where
                             *pre_mousepos = now_mousepos;
                             pixels.clear();
                             get_pixels_of_line(pixels, endpoints, tex_size);
+                            println!("{:?}", pixels);
                         }
                         if !ui.is_mouse_down(MouseButton::Left) && *moving {
                             *moving = false;
