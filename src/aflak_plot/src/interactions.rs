@@ -67,7 +67,8 @@ pub struct Line {
     pub endpointsfill: (bool, bool),
     pub pixels: Vec<(usize, usize)>,
     pub pre_mousepos: (f32, f32),
-    pub moving: bool,
+    pub allmoving: bool,
+    pub edgemoving: (bool, bool),
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Circle {
@@ -109,7 +110,8 @@ impl Line {
             endpointsfill: (false, false),
             pixels: vec![],
             pre_mousepos: (0.0, 0.0),
-            moving: false,
+            allmoving: false,
+            edgemoving: (false, false),
         }
     }
 }
