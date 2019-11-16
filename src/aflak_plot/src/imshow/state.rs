@@ -545,7 +545,7 @@ where
                             endpointsfill.1 = true;
                             endpoints.1 = self.mouse_pos;
                             pixels.clear();
-                            get_pixels_of_line(pixels, endpoints);
+                            get_pixels_of_line(pixels, endpoints, tex_size);
                         }
                     }
                     let x0 = p[0] + (endpoints.0).0 as f32 / tex_size.0 as f32 * size[0];
@@ -612,7 +612,7 @@ where
                             (endpoints.1).1 += now_mousepos.1 - pre_mousepos.1;
                             *pre_mousepos = now_mousepos;
                             pixels.clear();
-                            get_pixels_of_line(pixels, endpoints);
+                            get_pixels_of_line(pixels, endpoints, tex_size);
                         }
                         if !ui.is_mouse_down(MouseButton::Left) && *moving {
                             *moving = false;
@@ -631,6 +631,7 @@ where
                     fn get_pixels_of_line(
                         pixels: &mut Vec<(usize, usize)>,
                         endpoints: &mut ((f32, f32), (f32, f32)),
+                        tex_size: (f32, f32),
                     ) {
                         let dx = (endpoints.1).0 as i32 - (endpoints.0).0 as i32;
                         let dy = (endpoints.1).1 as i32 - (endpoints.0).1 as i32;
@@ -649,7 +650,13 @@ where
                         if derrabs <= 1.0 {
                             let mut y = (endpoints_usize.0).1;
                             for x in (endpoints_usize.0).0..(endpoints_usize.1).0 {
-                                pixels.push((x, y));
+                                if 0.0 <= (x as f32)
+                                    && (x as f32) < tex_size.0
+                                    && 0.0 <= (y as f32)
+                                    && (y as f32) < tex_size.1
+                                {
+                                    pixels.push((x, y));
+                                }
                                 err += derrabs;
                                 if err >= 0.5 {
                                     if derr <= 0.0 {
@@ -670,7 +677,13 @@ where
                             let derr = dx as f32 / dy as f32;
                             let derrabs = derr.abs();
                             for y in (endpoints_usize.0).1..(endpoints_usize.1).1 {
-                                pixels.push((x, y));
+                                if 0.0 <= (x as f32)
+                                    && (x as f32) < tex_size.0
+                                    && 0.0 <= (y as f32)
+                                    && (y as f32) < tex_size.1
+                                {
+                                    pixels.push((x, y));
+                                }
                                 err += derrabs;
                                 if err >= 0.5 {
                                     if derr <= 0.0 {
