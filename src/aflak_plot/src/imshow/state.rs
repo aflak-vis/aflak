@@ -610,7 +610,6 @@ where
 
                             if ui.is_mouse_clicked(MouseButton::Left) && !edgemoving.0 {
                                 edgemoving.0 = true;
-                                *pre_mousepos = self.mouse_pos;
                             }
                             if ui.is_mouse_clicked(MouseButton::Right) {
                                 ui.open_popup(im_str!("edit-line"))
@@ -638,7 +637,6 @@ where
 
                             if ui.is_mouse_clicked(MouseButton::Left) && !edgemoving.1 {
                                 edgemoving.1 = true;
-                                *pre_mousepos = self.mouse_pos;
                             }
                             if ui.is_mouse_clicked(MouseButton::Right) {
                                 ui.open_popup(im_str!("edit-line"))
@@ -681,10 +679,7 @@ where
                                 .add_circle([x0, y0], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR_BEGIN)
                                 .filled(true)
                                 .build();
-                            let now_mousepos = self.mouse_pos;
-                            (endpoints.0).0 += now_mousepos.0 - pre_mousepos.0;
-                            (endpoints.0).1 += now_mousepos.1 - pre_mousepos.1;
-                            *pre_mousepos = now_mousepos;
+                            endpoints.0 = self.mouse_pos;
                             pixels.clear();
                             get_pixels_of_line(pixels, *endpoints, tex_size);
                         } else if edgemoving.1 {
@@ -693,10 +688,7 @@ where
                                 .add_circle([x1, y1], CLICKABLE_WIDTH * 2.0, CIRCLE_COLOR_END)
                                 .filled(true)
                                 .build();
-                            let now_mousepos = self.mouse_pos;
-                            (endpoints.1).0 += now_mousepos.0 - pre_mousepos.0;
-                            (endpoints.1).1 += now_mousepos.1 - pre_mousepos.1;
-                            *pre_mousepos = now_mousepos;
+                            endpoints.1 = self.mouse_pos;
                             pixels.clear();
                             get_pixels_of_line(pixels, *endpoints, tex_size);
                         }
@@ -735,7 +727,7 @@ where
                         let wy = ((endpoints.1).1 as isize - (endpoints.0).1 as isize).abs();
                         let xmode = wx >= wy;
                         let mut derr = 0;
-                        while x != dx && y != dy {
+                        while x != dx || y != dy {
                             if 0.0 <= (x as f32)
                                 && (x as f32) < tex_size.0
                                 && 0.0 <= (y as f32)
