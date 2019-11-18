@@ -57,7 +57,12 @@ impl<'ui> UiImage3d for Ui<'ui> {
     }
 }
 
-fn ray_casting_gpu<S>(image: &ArrayBase<S, Ix3>, n: usize, m: usize, state: &mut state::State) -> Vec<u8>
+fn ray_casting_gpu<S>(
+    image: &ArrayBase<S, Ix3>,
+    n: usize,
+    m: usize,
+    state: &mut state::State,
+) -> Vec<u8>
 where
     S: Data<Elem = f32>,
 {
@@ -266,14 +271,24 @@ where
 
     let uniforms = uniform! {volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)};
     */
-    state.vctx.fb.draw(
-        &state.vctx.vb,
-        &state.vctx.ib,
-        &state.vctx.program,
-        &state.vctx.uniforms,
-        &Default::default(),
-    )
-    .unwrap();
+    if state.is_initialized {
+        let mut fb = glium::framebuffer::SimpleFrameBuffer::new(
+            state.vctx.display.get_context(),
+            &state.vctx.fb_tex,
+        )
+        .unwrap();
+
+        let uniforms = uniform! {volume: state.vctx.texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)};
+
+        fb.draw(
+            &state.vctx.vb,
+            &state.vctx.ib,
+            &state.vctx.program,
+            &uniforms,
+            &Default::default(),
+        )
+        .unwrap();
+    }
 
     let read_back: Vec<Vec<(u8, u8, u8, u8)>> = state.vctx.fb_tex.read();
 
@@ -288,7 +303,10 @@ where
     data
 }
 
-fn make_raw_image<S>(image: &ArrayBase<S, IxDyn>, state: &mut state::State) -> RawImage2d<'static, u8>
+fn make_raw_image<S>(
+    image: &ArrayBase<S, IxDyn>,
+    state: &mut state::State,
+) -> RawImage2d<'static, u8>
 where
     S: Data<Elem = f32>,
 {

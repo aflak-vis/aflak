@@ -24,29 +24,31 @@ pub struct Vertex {
 }
 implement_vertex!(Vertex, pos, texcoord);
 
-pub struct VolumeContext<'a> {
+pub struct VolumeContext {
     //pub eventsLoop: glium::glutin::EventsLoop,
     //pub wb: glium::glutin::WindowBuilder,
     //pub cb: glium::glutin::ContextBuilder<'a>,
-    //pub display: glium::Display,
+    pub display: glium::Display,
     pub program: glium::Program,
     pub fb_tex: glium::Texture2d,
-    pub fb: glium::framebuffer::SimpleFrameBuffer<'a>,
+    //pub fb: glium::framebuffer::SimpleFrameBuffer<'a>,
     pub vb: glium::VertexBuffer<Vertex>,
     pub ib: glium::index::NoIndices,
     //pub shape: (usize, usize, usize),
     //pub volume_data: std::vec::Vec<std::vec::Vec<std::vec::Vec<f32>>>,
     //pub min_val: f32,
     //pub max_val: f32,
-    //pub texture: glium::texture::CompressedTexture3d,
+    pub texture: glium::texture::CompressedTexture3d,
+    /*
     pub uniforms: glium::uniforms::UniformsStorage<
         'a,
         glium::uniforms::Sampler<'a, glium::texture::CompressedTexture3d>,
         glium::uniforms::EmptyUniforms,
     >,
+    */
 }
 
-impl Default for VolumeContext<'_> {
+impl Default for VolumeContext {
     fn default() -> Self {
         let eventsLoop = glium::glutin::EventsLoop::new();
         let wb = glium::glutin::WindowBuilder::new().with_visibility(false);
@@ -180,8 +182,10 @@ impl Default for VolumeContext<'_> {
             1024 as u32,
         )
         .unwrap();
+        /*
         let fb =
             glium::framebuffer::SimpleFrameBuffer::new(display.get_context(), &fb_tex).unwrap();
+            */
         let vb = glium::VertexBuffer::new(
             display.get_context(),
             &[
@@ -206,7 +210,7 @@ impl Default for VolumeContext<'_> {
         .unwrap();
         let ib = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
         let shape = (76, 76, 76);
-        let volume_data = vec![vec![vec![0f32; shape.2]; shape.1]; shape.0];
+        let volume_data = vec![vec![vec![1f32; shape.2]; shape.1]; shape.0];
         let min_val = std::f32::MAX;
         let max_val = 0f32;
         let texture = glium::texture::CompressedTexture3d::new(
@@ -214,37 +218,37 @@ impl Default for VolumeContext<'_> {
             glium::texture::Texture3dDataSource::into_raw(volume_data),
         )
         .unwrap();
-        let uniforms = uniform! {volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)};
+
         Self {
             //eventsLoop,
             //wb,
             //cb,
-            //display,
+            display,
             program,
             fb_tex,
-            fb,
+            //fb,
             vb,
             ib,
             //shape,
             //volume_data,
             //min_val,
             //max_val,
-            //texture,
-            uniforms,
+            texture,
+            //uniforms,
         }
     }
 }
 
 pub struct State {
-    pub isInitialized: bool,
-    pub vctx: VolumeContext<'static>,
+    pub is_initialized: bool,
+    pub vctx: VolumeContext,
     image: self::Image,
 }
 
 impl Default for State {
     fn default() -> Self {
         State {
-            isInitialized: false,
+            is_initialized: true,
             image: Default::default(),
             vctx: Default::default(),
         }

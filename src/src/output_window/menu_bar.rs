@@ -421,7 +421,7 @@ impl MenuBar for primitives::WcsArray {
                 );
             }
             3 => {
-                let state = &mut ctx.window.image3d_state;
+                let mut state = &mut ctx.window.image3d_state;
                 let new_incoming_image = match state.image_created_on() {
                     Some(image_created_on) => ctx.created_on > image_created_on,
                     None => true,
@@ -430,13 +430,7 @@ impl MenuBar for primitives::WcsArray {
                 let arr = self.array();
                 let val = arr.scalar().view();
                 let texture_id = ImTexture::from(hash_outputid(ctx.output));
-                ui.image3d(
-                    &val,
-                    texture_id,
-                    ctx.textures,
-                    ctx.gl_ctx,
-                    &mut state,
-                );
+                ui.image3d(&val, texture_id, ctx.textures, ctx.gl_ctx, &mut state);
             }
             _ => {
                 ui.text(format!(

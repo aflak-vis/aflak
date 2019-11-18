@@ -32,7 +32,7 @@ fn main() {
 
     support::run(config, |ui, gl_ctx, textures| {
         ui.window(im_str!("Three")).build(|| {
-            ui.image3d(&image, texture_id, textures, gl_ctx);
+            ui.image3d(&image, texture_id, textures, gl_ctx, &mut state);
         });
         true
     })
