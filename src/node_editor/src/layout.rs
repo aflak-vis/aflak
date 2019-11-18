@@ -1,3 +1,4 @@
+use collections::HashSet;
 use std::error::Error;
 
 use imgui::{
@@ -20,6 +21,9 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     active_node: Option<cake::NodeId>,
     drag_node: Option<cake::NodeId>,
     creating_link: Option<LinkExtremity>,
+    deleting_link: Option<(cake::Output, InputSlot)>,
+    delete_link_list: HashSet<Option<(cake::Output, InputSlot)>>,
+    delete_flag: bool,
     new_link: Option<(cake::Output, InputSlot)>,
     show_left_pane: bool,
     left_pane_size: Option<f32>,
@@ -39,6 +43,9 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             active_node: None,
             drag_node: None,
             creating_link: None,
+            deleting_link: Default::default(),
+            delete_link_list: HashSet::new(),
+            delete_flag: false,
             new_link: None,
             show_left_pane: true,
             left_pane_size: None,
@@ -652,6 +659,28 @@ where
                         )
                     }
                 };
+                let mut is_deleting_link = false;
+                if let Some((del_output, del_input_slot)) = self.deleting_link {
+                    is_deleting_link = match del_input_slot {
+                        cake::InputSlot::Transform(input) => match input_slot {
+                            cake::InputSlot::Transform(input_s) => {
+                                del_output.index() == output.index()
+                                    && del_output.t_idx.id() == output.t_idx.id()
+                                    && input.t_idx.id() == input_s.t_idx.id()
+                                    && input.index() == input_s.index()
+                            }
+                            cake::InputSlot::Output(_) => false,
+                        },
+                        cake::InputSlot::Output(input) => match input_slot {
+                            cake::InputSlot::Transform(_) => false,
+                            cake::InputSlot::Output(input_s) => {
+                                del_output.index() == output.index()
+                                    && del_output.t_idx.id() == output.t_idx.id()
+                                    && input.id() == input_s.id()
+                            }
+                        },
+                    };
+                }
                 let p1 = offset + connector_in_pos;
                 let output_node_count = dst.get_transform(output.t_idx).unwrap().outputs().len();
                 let output_node_state = self
@@ -668,11 +697,41 @@ where
                 let cp1 = p1 - link_cp;
                 let cp2 = p2 + link_cp;
                 const LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
+                const DELETE_LINK_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
                 let (p1, cp1, cp2, p2) = (p1.into(), cp1.into(), cp2.into(), p2.into());
-                draw_list
-                    .add_bezier_curve(p1, cp1, cp2, p2, LINK_COLOR)
-                    .thickness(link_line_width)
-                    .build();
+                if is_deleting_link {
+                    draw_list
+                        .add_bezier_curve(p1, cp1, cp2, p2, DELETE_LINK_COLOR)
+                        .thickness(link_line_width)
+                        .build();
+                    if self.delete_flag {
+                        self.delete_flag = false;
+                    }
+                } else {
+                    draw_list
+                        .add_bezier_curve(p1, cp1, cp2, p2, LINK_COLOR)
+                        .thickness(link_line_width)
+                        .build();
+                }
+                let mouse_pos = ui.io().mouse_pos;
+                if ui.is_mouse_clicked(MouseButton::Right) {
+                    if (p1[0] - mouse_pos[0]) * (p1[0] - mouse_pos[0])
+                        + (p1[1] - mouse_pos[1]) * (p1[1] - mouse_pos[1])
+                        < NODE_SLOT_RADIUS * NODE_SLOT_RADIUS
+                    {
+                        self.delete_link_list
+                            .retain(|&e| e.unwrap().1 == input_slot);
+                        self.delete_link_list.insert(Some((*output, input_slot)));
+                        ui.open_popup(im_str!("delete-link"));
+                    } else if (p2[0] - mouse_pos[0]) * (p2[0] - mouse_pos[0])
+                        + (p2[1] - mouse_pos[1]) * (p2[1] - mouse_pos[1])
+                        < NODE_SLOT_RADIUS * NODE_SLOT_RADIUS
+                    {
+                        self.delete_link_list.retain(|&e| e.unwrap().0 == *output);
+                        self.delete_link_list.insert(Some((*output, input_slot)));
+                        ui.open_popup(im_str!("delete-link"));
+                    }
+                }
             }
         });
         item_width_stack.pop(ui);
@@ -680,6 +739,73 @@ where
         if let Some((output, input_slot)) = self.new_link {
             self.events.push(RenderEvent::Connect(output, input_slot));
             self.new_link = None;
+        }
+        ui.popup(im_str!("delete-link"), || {
+            const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
+
+            let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
+            ui.text("Delete Link");
+            color_stack.pop(ui);
+            ui.separator();
+            let mut hoverflag = false;
+            for candidate_link in self.delete_link_list.clone() {
+                if let Some((cand_out, cand_input_slot)) = candidate_link {
+                    match cand_input_slot {
+                        cake::InputSlot::Transform(input) => {
+                            let text = im_str!(
+                                "from node #{}, output {} to node #{} input {}",
+                                cand_out.t_idx.id(),
+                                cand_out.index(),
+                                input.t_idx.id(),
+                                input.index(),
+                            );
+
+                            MenuItem::new(&text).build(ui);
+                            if ui.is_item_hovered() {
+                                self.deleting_link = candidate_link;
+                                hoverflag = true;
+                            }
+                            if ui.is_item_clicked(MouseButton::Left) {
+                                self.deleting_link = candidate_link;
+                                self.delete_flag = true;
+                                ui.close_current_popup();
+                            }
+                        }
+                        cake::InputSlot::Output(input) => {
+                            let text = im_str!(
+                                "from node #{}, output {} to Output #{}",
+                                cand_out.t_idx.id(),
+                                cand_out.index(),
+                                input.id()
+                            );
+
+                            MenuItem::new(&text).build(ui);
+                            if ui.is_item_hovered() {
+                                self.deleting_link = candidate_link;
+                                hoverflag = true;
+                            }
+                            if ui.is_item_clicked(MouseButton::Left) {
+                                self.deleting_link = candidate_link;
+                                self.delete_flag = true;
+                                ui.close_current_popup();
+                            }
+                        }
+                    }
+                }
+            }
+            if !hoverflag {
+                self.deleting_link = None;
+            }
+        });
+        if let Some((output, input_slot)) = self.deleting_link {
+            if self.delete_flag {
+                self.events
+                    .push(RenderEvent::Disconnect(output, input_slot));
+                self.deleting_link = None;
+                self.delete_flag = false;
+                self.delete_link_list
+                    .retain(|e| e.unwrap().0 != output || e.unwrap().1 != input_slot);
+            }
         }
         ui.popup(im_str!("add-new-node"), || {
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
