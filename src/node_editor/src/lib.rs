@@ -452,6 +452,12 @@ where
             cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
         }
     }
+    fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+        match input_slot {
+            cake::InputSlot::Transform(input) => self.dst.disconnect(&output, &input),
+            cake::InputSlot::Output(output_id) => self.dst.detach_output(&output_id),
+        }
+    }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
         self.dst.add_transform(t);
     }
@@ -532,6 +538,14 @@ where
                 }
             }
             cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+        }
+    }
+    fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        match input_slot {
+            cake::InputSlot::Transform(input) => dst.disconnect(&output, &input),
+            cake::InputSlot::Output(output_id) => dst.detach_output(&output_id),
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
