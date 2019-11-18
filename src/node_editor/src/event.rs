@@ -4,6 +4,7 @@ use cake::{macros, InputSlot, NodeId, Output, Transform, TransformIdx};
 
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
+    Disconnect(Output, InputSlot),
     AddTransform(&'static Transform<'static, T, E>),
     CreateOutput,
     AddConstant(&'static str),
@@ -26,6 +27,7 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
         use self::RenderEvent::*;
         match self {
             Connect(o, i) => write!(f, "Connect({:?}, {:?})", o, i),
+            Disconnect(o, i) => write!(f, "Disconnect({:?}, {:?})", o, i),
             AddTransform(_) => write!(f, "AddTransform(_)"),
             CreateOutput => write!(f, "CreateOutput"),
             AddConstant(name) => write!(f, "AddConstant({:?})", name),
@@ -52,6 +54,7 @@ pub trait ApplyRenderEvent<T, E> {
         use event::RenderEvent::*;
         match ev {
             Connect(output, input_slot) => self.connect(output, input_slot),
+            Disconnect(output, input_slot) => self.disconnect(output, input_slot),
             AddTransform(t) => self.add_transform(t),
             CreateOutput => self.create_output(),
             AddConstant(constant_type) => self.add_constant(constant_type),
@@ -71,6 +74,7 @@ pub trait ApplyRenderEvent<T, E> {
     }
 
     fn connect(&mut self, output: Output, input_slot: InputSlot);
+    fn disconnect(&mut self, output: Output, input_slot: InputSlot);
     fn add_transform(&mut self, t: &'static Transform<'static, T, E>);
     fn create_output(&mut self);
     fn add_constant(&mut self, constant_type: &'static str);
