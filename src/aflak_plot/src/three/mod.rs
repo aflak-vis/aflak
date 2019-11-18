@@ -4,9 +4,10 @@ use glium::{
     texture::{ClientFormat, RawImage2d},
     Surface, Texture2d,
 };
-use imgui::{ImTexture, Ui};
+use imgui::{Image, TextureId, Ui};
 use ndarray::{ArrayBase, Data, Ix3, IxDyn};
 use std::borrow::Cow;
+use std::rc::Rc;
 
 use super::imshow::Textures;
 
@@ -18,7 +19,7 @@ pub trait UiImage3d {
     fn image3d<S, F>(
         &self,
         image: &ArrayBase<S, IxDyn>,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         textures: &mut Textures,
         ctx: &F,
         state: &mut state::State,
@@ -32,7 +33,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
     fn image3d<S, F>(
         &self,
         image: &ArrayBase<S, IxDyn>,
-        texture_id: ImTexture,
+        texture_id: TextureId,
         textures: &mut Textures,
         ctx: &F,
         state: &mut state::State,
@@ -40,20 +41,20 @@ impl<'ui> UiImage3d for Ui<'ui> {
         S: Data<Elem = f32>,
         F: Facade,
     {
-        let p = self.get_cursor_screen_pos();
-        let window_pos = self.get_window_pos();
-        let window_size = self.get_window_size();
-        let size = (
-            window_size.0 - 15.0,
-            window_size.1 - (p.1 - window_pos.1) - 10.0,
-        );
+        let p = self.cursor_screen_pos();
+        let window_pos = self.window_pos();
+        let window_size = self.window_size();
+        let size = [
+            window_size[0] - 15.0,
+            window_size[1] - (p[1] - window_pos[1]) - 10.0,
+        ];
 
         // 3D image...
         let raw = make_raw_image(image, state);
         let gl_texture = Texture2d::new(ctx, raw).expect("Error!");
-        textures.replace(texture_id, gl_texture);
+        textures.replace(texture_id, Rc::new(gl_texture));
 
-        self.image(texture_id, size).build();
+        Image::new(texture_id, size).build(self);
     }
 }
 
