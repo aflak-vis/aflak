@@ -747,7 +747,7 @@ where
             ui.text("Delete Link");
             color_stack.pop(ui);
             ui.separator();
-            let mut hoverflag = false;
+            let mut hover_flag = false;
             for candidate_link in self.delete_link_list.clone() {
                 if let Some((cand_out, cand_input_slot)) = candidate_link {
                     match cand_input_slot {
@@ -763,7 +763,7 @@ where
                             MenuItem::new(&text).build(ui);
                             if ui.is_item_hovered() {
                                 self.deleting_link = candidate_link;
-                                hoverflag = true;
+                                hover_flag = true;
                             }
                             if ui.is_item_clicked(MouseButton::Left) {
                                 self.deleting_link = candidate_link;
@@ -782,7 +782,7 @@ where
                             MenuItem::new(&text).build(ui);
                             if ui.is_item_hovered() {
                                 self.deleting_link = candidate_link;
-                                hoverflag = true;
+                                hover_flag = true;
                             }
                             if ui.is_item_clicked(MouseButton::Left) {
                                 self.deleting_link = candidate_link;
@@ -793,7 +793,7 @@ where
                     }
                 }
             }
-            if !hoverflag {
+            if !hover_flag {
                 self.deleting_link = None;
             }
         });
