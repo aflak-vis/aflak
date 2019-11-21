@@ -720,7 +720,7 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let image_val = image.scalar();
     let wave_size = *image_val.dim().as_array_view().first().unwrap();
 
-    let new_size = (roi.datalen(), wave_size);
+    let new_size = (wave_size, roi.datalen());
     let mut result = Vec::with_capacity(wave_size * roi.datalen());
 
     for i in 0..wave_size {
@@ -729,7 +729,7 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
         }
     }
 
-    let waveimg = Array::from_shape_vec(new_size.strides((1, roi.datalen())), result).unwrap();
+    let waveimg = Array::from_shape_vec(new_size.strides((roi.datalen(), 1)), result).unwrap();
 
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         waveimg.into_dyn(),
