@@ -691,6 +691,66 @@ where
                             endpoints.1 = self.mouse_pos;
                             pixels.clear();
                             get_pixels_of_line(pixels, *endpoints, tex_size);
+                        } else if !is_image_hovered {
+                            if *allmoving {
+                                *allmoving = false;
+                            } else if edgemoving.0 {
+                                edgemoving.0 = false;
+                            } else if edgemoving.1 {
+                                edgemoving.1 = false;
+                            }
+                        }
+                        if edgemoving.0 {
+                            if (endpoints.0).0 > tex_size.0 {
+                                (endpoints.0).0 = tex_size.0;
+                            } else if (endpoints.0).0 < 0.0 {
+                                (endpoints.0).0 = 0.0;
+                            }
+                            if (endpoints.0).1 > tex_size.1 {
+                                (endpoints.0).1 = tex_size.1;
+                            } else if (endpoints.0).1 < 0.0 {
+                                (endpoints.0).1 = 0.0;
+                            }
+                        } else if edgemoving.1 {
+                            if (endpoints.1).0 > tex_size.0 {
+                                (endpoints.1).0 = tex_size.0;
+                            } else if (endpoints.1).0 < 0.0 {
+                                (endpoints.1).0 = 0.0;
+                            }
+                            if (endpoints.1).1 > tex_size.1 {
+                                (endpoints.1).1 = tex_size.1;
+                            } else if (endpoints.1).1 < 0.0 {
+                                (endpoints.1).1 = 0.0;
+                            }
+                        } else if *allmoving {
+                            if (endpoints.0).0 > tex_size.0 {
+                                *allmoving = false;
+                                (endpoints.0).0 = tex_size.0;
+                            } else if (endpoints.0).0 < 0.0 {
+                                *allmoving = false;
+                                (endpoints.0).0 = 0.0;
+                            }
+                            if (endpoints.0).1 > tex_size.1 {
+                                *allmoving = false;
+                                (endpoints.0).1 = tex_size.1;
+                            } else if (endpoints.0).1 < 0.0 {
+                                *allmoving = false;
+                                (endpoints.0).1 = 0.0;
+                            }
+                            if (endpoints.1).0 > tex_size.0 {
+                                *allmoving = false;
+                                (endpoints.1).0 = tex_size.0;
+                            } else if (endpoints.1).0 < 0.0 {
+                                *allmoving = false;
+                                (endpoints.1).0 = 0.0;
+                            }
+                            if (endpoints.1).1 > tex_size.1 {
+                                *allmoving = false;
+                                (endpoints.1).1 = tex_size.1;
+                            } else if (endpoints.1).1 < 0.0 {
+                                *allmoving = false;
+                                (endpoints.1).1 = 0.0;
+                            }
                         }
                         if !ui.is_mouse_down(MouseButton::Left) {
                             if *allmoving {
