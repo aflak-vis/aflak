@@ -54,7 +54,7 @@ impl Aflak {
                 {
                     for file in &self.recent_files {
                         if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
-                            println!("Open {:?}", file);
+                            self.file_dialog = Some(FileDialog::with_path(file.clone()));
                         }
                     }
                     menu.end(ui);
