@@ -52,7 +52,7 @@ impl Aflak {
                     self.file_dialog = Some(FileDialog::default());
                 }
                 if let Some(menu) =
-                    ui.begin_menu(im_str!("Open Recent"), self.recent_files.len() > 0)
+                    ui.begin_menu(im_str!("Open Recent"), !self.recent_files.is_empty())
                 {
                     for file in &self.recent_files {
                         if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
