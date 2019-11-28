@@ -41,10 +41,12 @@ impl Aflak {
     }
 
     pub fn main_menu_bar(&mut self, ui: &Ui) {
+        let mut new_editor = false;
+
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
             if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
                 if MenuItem::new(im_str!("New")).build(ui) {
-                    println!("New!");
+                    new_editor = true;
                 }
                 if MenuItem::new(im_str!("Open FITS")).build(ui) {
                     self.file_dialog = Some(FileDialog::default());
@@ -70,6 +72,24 @@ impl Aflak {
             }
             menu_bar.end(ui);
         }
+
+        if new_editor {
+            ui.open_popup(im_str!("Start new node program"));
+        }
+        ui.popup_modal(im_str!("Start new node program"))
+            .always_auto_resize(true)
+            .build(|| {
+                ui.text("The current node program will be lost. Proceed?");
+                ui.separator();
+                if ui.button(im_str!("OK"), [120.0, 0.0]) {
+                    self.node_editor = NodeEditor::default();
+                    ui.close_current_popup();
+                }
+                ui.same_line(0.0);
+                if ui.button(im_str!("Cancel"), [120.0, 0.0]) {
+                    ui.close_current_popup();
+                }
+            });
     }
 
     pub fn node_editor(&mut self, ui: &Ui, addable_nodes: &[&'static Transform<IOValue, IOErr>]) {
