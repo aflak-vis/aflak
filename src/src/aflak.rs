@@ -54,7 +54,7 @@ impl Aflak {
                 if let Some(menu) =
                     ui.begin_menu(im_str!("Open Recent"), !self.recent_files.is_empty())
                 {
-                    for file in &self.recent_files {
+                    for file in self.recent_files.iter().rev() {
                         if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
                             self.file_dialog = Some(FileDialog::with_path(file.clone()));
                         }
@@ -155,7 +155,9 @@ impl Aflak {
                         Ok(node_editor) => self.node_editor = node_editor,
                         Err(e) => self.error_alerts.push(Box::new(e)),
                     }
-                    self.recent_files.push(result.path);
+                    if !self.recent_files.contains(&result.path) {
+                        self.recent_files.push(result.path);
+                    }
                     self.file_dialog = None;
                 }
                 Some(FileDialogEvent::Close) => self.file_dialog = None,
