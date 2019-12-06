@@ -12,7 +12,7 @@ pub struct ColorLUT {
     /// Linear gradient
     /// Takes a series of color stops that indicate how to interpolate between the colors
     gradient: Vec<(f32, [u8; 3])>,
-    lut: [[u8; 3]; LUT_SIZE],
+    lut: Box<[[u8; 3]; LUT_SIZE]>,
     lims: (f32, f32),
 }
 
@@ -114,7 +114,7 @@ impl ColorLUT {
         }
         let mut color_lut = ColorLUT {
             gradient: vec,
-            lut: [[0; 3]; LUT_SIZE],
+            lut: Box::new([[0; 3]; LUT_SIZE]),
             lims: (0.0, 1.0),
         };
         color_lut.lut_init();
