@@ -30,3 +30,10 @@ jobs:
         - cargo fmt --version
       script:
         - cargo fmt --all -- --check
+    - stage: size-check
+      rust: nightly
+      install:
+        - cargo install print-type-sizes
+        - print-type-sizes --version
+      script:
+        - print-type-sizes --max-size 100000
