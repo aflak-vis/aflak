@@ -19,8 +19,20 @@ use cake::OutputId;
 use primitives::{
     self,
     fitrs::{Fits, Hdu},
-    IOValue, ROI,
+    //ndarray::Dimension,
+    IOValue,
+    ROI,
 };
+
+extern crate gaiku_3d;
+extern crate obj_exporter;
+
+use output_window::menu_bar::gaiku_3d::{
+    bakers::HeightMapBaker,
+    common::{nalgebra::Point3, Baker, Chunk, Mesh},
+};
+
+use output_window::menu_bar::obj_exporter::{Geometry, ObjSet, Object, Primitive, Shape, Vertex};
 
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
 
@@ -47,6 +59,8 @@ pub trait MenuBar {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError>;
 
+    fn save_obj<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError>;
+
     const EXTENSION: &'static str;
 
     fn draw<'ui, F>(
@@ -65,7 +79,7 @@ pub trait MenuBar {
         errors
     }
 
-    fn file_submenu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn file_submenu(&self, _: &Ui, _: &mut OutputWindow, OutputId) {}
 
     fn file_name(&self, output: OutputId) -> String {
         format!("output-{}.{}", output.id(), Self::EXTENSION)
@@ -91,7 +105,7 @@ pub trait MenuBar {
                         output_saved_success_popup = true;
                     }
                 }
-                self.file_submenu(ui, window);
+                self.file_submenu(ui, window, output);
                 menu.end(ui);
             }
         });
@@ -190,6 +204,10 @@ impl MenuBar for String {
         Ok(())
     }
 
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
+        Ok(())
+    }
+
     const EXTENSION: &'static str = "txt";
 }
 
@@ -203,6 +221,10 @@ impl MenuBar for i64 {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         write_to_file_as_display(path, self)?;
+        Ok(())
+    }
+
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
         Ok(())
     }
 
@@ -222,6 +244,10 @@ impl MenuBar for f32 {
         Ok(())
     }
 
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
+        Ok(())
+    }
+
     const EXTENSION: &'static str = "txt";
 }
 
@@ -235,6 +261,10 @@ impl MenuBar for [f32; 2] {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         write_to_file_as_debug(path, self)?;
+        Ok(())
+    }
+
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
         Ok(())
     }
 
@@ -254,6 +284,10 @@ impl MenuBar for [f32; 3] {
         Ok(())
     }
 
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
+        Ok(())
+    }
+
     const EXTENSION: &'static str = "txt";
 }
 
@@ -267,6 +301,10 @@ impl MenuBar for bool {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         write_to_file_as_display(path, self)?;
+        Ok(())
+    }
+
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
         Ok(())
     }
 
@@ -286,11 +324,29 @@ impl MenuBar for Path {
         Ok(())
     }
 
+    fn save_obj<P: AsRef<Path>>(&self, _: P) -> Result<(), ExportError> {
+        Ok(())
+    }
+
     const EXTENSION: &'static str = "txt";
 }
 
 impl MenuBar for primitives::WcsArray {
-    fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
+    fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow, output: OutputId) {
+        match &self.scalar().ndim() {
+            2 => {
+                if MenuItem::new(im_str!("Save to obj (heightmap)")).build(ui) {
+                    let path = self.file_name(output);
+                    if let Err(e) = self.save_obj(path) {
+                        eprintln!("Error on saving output: '{}'", e);
+                    //errors.push(Box::new(e));
+                    } else {
+                        println!("successfully saved");
+                    }
+                }
+            }
+            _ => {}
+        }
         match self.scalar().ndim() {
             1 | 2 => {
                 let has_wcs_data = self.wcs().is_some();
@@ -448,6 +504,78 @@ impl MenuBar for primitives::WcsArray {
         Ok(())
     }
 
+    fn save_obj<P: AsRef<Path>>(&self, _path: P) -> Result<(), ExportError> {
+        use primitives::ndarray::Dimension;
+        let arr = self.scalar();
+        if arr.ndim() != 2 {
+            /*error!*/
+            Ok(())
+        } else {
+            let mut min = std::f32::MAX;
+            let mut max = std::f32::MIN;
+            let dim = arr.dim();
+            let shape = dim.as_array_view();
+            let new_size: Vec<_> = shape.iter().cloned().collect();
+            println!("{:?}", new_size);
+            for i in arr {
+                min = min.min(*i);
+                max = max.max(*i);
+            }
+            let zero_point = (-min / (max - min) * 255.0) as u8;
+            println!("{}", zero_point);
+            let mut data: Vec<u8> = Vec::with_capacity(new_size[0] * new_size[1] * 3);
+            let mut buf = vec![0; new_size[0] * new_size[1]];
+            let mut c = 0;
+            for i in arr {
+                buf[c] = ((i - min) / (max - min) * 255.0) as u8;
+                c += 1;
+            }
+            for d in buf {
+                data.push(d);
+                data.push(d);
+                data.push(d);
+                data.push(d);
+            }
+            let mut i = 0;
+            let mut colors = vec![[0; 4]; (new_size[0] * new_size[1]) as usize];
+            for color in data.chunks(4) {
+                if color.len() == 3 {
+                    colors[i] = [color[0] << 0, color[1] << 0, color[2] << 0, 255];
+                } else {
+                    colors[i] = [color[0] << 0, color[1] << 0, color[2] << 0, color[3] << 0];
+                }
+                i += 1;
+            }
+            let mut chunk = Chunk::new(
+                [0.0, 0.0, 0.0],
+                new_size[0] as usize,
+                new_size[1] as usize,
+                1,
+            );
+
+            for x in 0..new_size[0] as usize {
+                for y in 0..new_size[1] as usize {
+                    let color = colors[x + y * new_size[0] as usize];
+                    let value = (color[0] | color[1]) as f32 / 255.0;
+                    chunk.set(x, y, 0, value);
+                }
+            }
+            let mut result = vec![];
+            result.push(chunk);
+            let mut meshes = vec![];
+            for chunk in result.iter() {
+                let mesh = HeightMapBaker::bake(chunk);
+                if let Some(mesh) = mesh {
+                    meshes.push((mesh, chunk.position()));
+                }
+            }
+            export(meshes, &format!("test"), zero_point);
+            /*convert to chunk*/
+            /*give data to gaiku-3d*/
+            Ok(())
+        }
+    }
+
     const EXTENSION: &'static str = "fits";
 }
 
@@ -462,6 +590,100 @@ fn write_to_file_as_debug<P: AsRef<Path>, T: fmt::Debug>(path: P, t: &T) -> io::
 fn write_to_file_as_bytes<P: AsRef<Path>>(path: P, buf: &[u8]) -> io::Result<()> {
     let mut file = fs::File::create(path)?;
     file.write_all(buf)
+}
+fn to_obj(mesh: &Mesh, position: &Point3<f64>, name: &str) -> Object {
+    let mut vertices = vec![];
+    let mut indices = vec![];
+
+    for vertex in mesh.vertices.iter() {
+        let x = vertex.x as f64 + position.x as f64;
+        let y = vertex.y as f64 + position.y as f64;
+        let z = vertex.z as f64 + position.z as f64;
+        vertices.push((x, y, z));
+    }
+
+    for i in (0..mesh.indices.len()).step_by(3) {
+        indices.push((mesh.indices[i], mesh.indices[i + 1], mesh.indices[i + 2]))
+    }
+
+    Object {
+        name: name.to_owned(),
+        vertices: vertices
+            .into_iter()
+            .map(|(x, y, z)| Vertex { x, y, z })
+            .collect(),
+        tex_vertices: vec![],
+        normals: vec![],
+        geometry: vec![Geometry {
+            material_name: Some("hoge".to_string()),
+            shapes: indices
+                .into_iter()
+                .map(|(x, y, z)| Shape {
+                    primitive: Primitive::Triangle(
+                        (x, None, None),
+                        (y, None, None),
+                        (z, None, None),
+                    ),
+                    groups: vec![],
+                    smoothing_groups: vec![],
+                })
+                .collect(),
+        }],
+    }
+}
+
+fn export(data: Vec<(Mesh, &Point3<f64>)>, name: &str, zero_point: u8) {
+    let mut objects = vec![];
+    let mut max = std::f64::MIN;
+    for (index, (mesh, position)) in data.iter().enumerate() {
+        for vc in mesh.vertices.iter() {
+            let mut it = vc.iter();
+            it.next();
+            let y = it.next().unwrap();
+            max = max.max(*y as f64);
+        }
+        let obj = to_obj(mesh, position, &format!("mesh_{}", index));
+        objects.push(obj);
+    }
+
+    let zero_ref = max * zero_point as f64 / 255.0;
+
+    objects.push(Object {
+        name: "ReferencePlane".to_owned(),
+        vertices: vec![
+            (0.0, zero_ref, 0.0),
+            (74.0, zero_ref, 0.0),
+            (74.0, zero_ref, 74.0),
+            (0.0, zero_ref, 74.0),
+        ]
+        .into_iter()
+        .map(|(x, y, z)| Vertex { x, y, z })
+        .collect(),
+        tex_vertices: vec![],
+        normals: vec![],
+        geometry: vec![Geometry {
+            material_name: None,
+            shapes: vec![(0, 1, 2), (0, 2, 3)]
+                .into_iter()
+                .map(|(x, y, z)| Shape {
+                    primitive: Primitive::Triangle(
+                        (x, None, None),
+                        (y, None, None),
+                        (z, None, None),
+                    ),
+                    groups: vec![],
+                    smoothing_groups: vec![],
+                })
+                .collect(),
+        }],
+    });
+
+    let set = ObjSet {
+        material_library: Some("hoge".to_string()),
+        objects,
+    };
+
+    obj_exporter::export_to_file(&set, format!("{}.obj", name)).unwrap();
 }
 
 #[derive(Debug)]
