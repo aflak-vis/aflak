@@ -24,6 +24,8 @@ glium = { version = "0.25", default-features = true }
 imgui = { path = "../imgui-rs", version = "0.3.0-pre" }
 imgui-glium-renderer = { path = "../imgui-rs/imgui-glium-renderer", version = "0.3.0-pre" }
 owning_ref = "0.4.0"
+gaiku-3d = "0.1.0"
+obj-exporter = { path = "../obj-exporter-rs"}
 
 [build-dependencies]
 clap = "2.32.0"
