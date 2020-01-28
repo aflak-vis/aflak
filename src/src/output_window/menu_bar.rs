@@ -13,9 +13,9 @@ use owning_ref::ArcRef;
 use aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
-    AxisTransform, InteractionIterMut, ValueIter,
+    AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
-use cake::OutputId;
+use cake::{OutputId, TransformIdx};
 use primitives::{
     self,
     fitrs::{Fits, Hdu},
@@ -30,6 +30,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
     pub output: OutputId,
     pub value: &'val ::std::sync::Arc<IOValue>,
     pub window: &'w mut OutputWindow,
+    pub copying: &'w mut Option<(InteractionId, TransformIdx)>,
     pub created_on: Instant,
     pub node_editor: &'ed mut AflakNodeEditor,
     pub gl_ctx: &'gl F,
@@ -305,7 +306,7 @@ impl MenuBar for primitives::WcsArray {
         }
     }
 
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -412,6 +413,8 @@ impl MenuBar for primitives::WcsArray {
                     x_transform.as_ref(),
                     y_transform.as_ref(),
                     state,
+                    &mut ctx.copying,
+                    &mut ctx.window.editable_values,
                 ) {
                     ui.text(format!("Error on drawing image! {}", e));
                 }
