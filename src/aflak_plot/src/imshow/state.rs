@@ -1,14 +1,16 @@
 use std::borrow::Borrow;
+use std::collections::HashMap;
 use std::time::Instant;
 
 use glium::backend::Facade;
 use imgui::{ComboBox, ImString, Image, MenuItem, MouseButton, MouseCursor, TextureId, Ui};
+use imshow::aflak_cake::TransformIdx;
 use ndarray::ArrayD;
 
 use super::image;
 use super::interactions::{
-    Circle, FinedGrainedROI, HorizontalLine, Interaction, InteractionIterMut, Interactions, Line,
-    ValueIter, VerticalLine,
+    Circle, FinedGrainedROI, HorizontalLine, Interaction, InteractionId, InteractionIterMut,
+    Interactions, Line, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -16,6 +18,8 @@ use super::util;
 use super::AxisTransform;
 use super::Error;
 use super::Textures;
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 /// Current state of the visualization of a 2D image
 pub struct State<I> {
@@ -307,6 +311,8 @@ where
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         max_size: (f32, f32),
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<([[f32; 2]; 2], f32), Error>
     where
         FX: Fn(f32) -> f32,
@@ -384,7 +390,6 @@ where
         }
 
         let draw_list = ui.get_window_draw_list();
-
         // Add interaction handlers
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
@@ -410,6 +415,24 @@ where
             if MenuItem::new(im_str!("Circle")).build(ui) {
                 let new = Interaction::Circle(Circle::new(self.circle_input.gen_id()));
                 self.interactions.insert(new);
+            }
+            if let Some((id, t_idx)) = *copying {
+                ui.text("Paste Line Options");
+                ui.separator();
+                if MenuItem::new(im_str!("Paste Line as Horizontal Line")).build(ui) {
+                    let new =
+                        Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1.round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                    *copying = None;
+                }
+                if MenuItem::new(im_str!("Paste Line as Vertical Line")).build(ui) {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                    *copying = None;
+                }
             }
         });
 
@@ -454,6 +477,14 @@ where
                         if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
+                        if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                            if store.contains_key(id) {
+                                let t_idx = *store.get(id).unwrap();
+                                *copying = Some((*id, t_idx));
+                            } else {
+                                println!("copy failued");
+                            }
+                        }
                     });
                 }
                 Interaction::VerticalLine(VerticalLine { x_pos, moving }) => {
@@ -488,6 +519,14 @@ where
                     ui.popup(im_str!("edit-vertical-line"), || {
                         if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
+                        }
+                        if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                            if store.contains_key(id) {
+                                let t_idx = *store.get(id).unwrap();
+                                *copying = Some((*id, t_idx));
+                            } else {
+                                println!("copy failued");
+                            }
                         }
                     });
                 }

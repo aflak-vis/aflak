@@ -10,6 +10,7 @@ glium = { version = "0.25", default-features = true }
 imgui = { path = "../../imgui-rs", version = "0.3.0-pre" }
 imgui-glium-renderer = { path = "../../imgui-rs/imgui-glium-renderer", version = "0.3.0-pre" }
 ndarray = "0.12"
+aflak_cake = { path = "../aflak_cake" }
 
 [dev-dependencies]
 aflak_imgui_glium_support = { path = "../imgui_glium_support", version = "0.0.3" }

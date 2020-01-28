@@ -17,7 +17,7 @@ pub mod imshow;
 pub mod plot;
 
 mod err;
-mod interactions;
+pub mod interactions;
 mod lims;
 mod ticks;
 mod units;

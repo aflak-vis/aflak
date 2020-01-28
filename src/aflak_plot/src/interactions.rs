@@ -154,6 +154,10 @@ impl Interactions {
         self.0.insert(new_id, interaction)
     }
 
+    pub fn id(&mut self) -> InteractionId {
+        InteractionId(self.1)
+    }
+
     pub(crate) fn remove(&mut self, id: InteractionId) -> Option<Interaction> {
         self.0.remove(&id)
     }

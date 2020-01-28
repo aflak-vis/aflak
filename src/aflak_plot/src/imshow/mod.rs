@@ -1,14 +1,21 @@
 //! Draw 2D images.
+
+use std::collections::HashMap;
+
 mod hist;
 mod image;
 mod lut;
 mod state;
 
+extern crate aflak_cake;
+
+pub use self::interactions::InteractionId;
 pub use self::state::State;
 
 use std::borrow::Borrow;
 use std::rc::Rc;
 
+use self::aflak_cake::TransformIdx;
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, TextureId, Ui};
 use ndarray::ArrayD;
@@ -22,6 +29,8 @@ use super::AxisTransform;
 
 /// A handle to an OpenGL 2D texture.
 pub type Textures = imgui::Textures<Rc<Texture2d>>;
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input.
@@ -83,6 +92,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -102,9 +113,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size[0] - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size[1] - (cursor_pos[1] - window_pos[1]),
         );
-        let ([p, size], x_label_height) =
-            state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
-
+        let ([p, size], x_label_height) = state.show_image(
+            self,
+            texture_id,
+            vunit,
+            xaxis,
+            yaxis,
+            image_max_size,
+            &mut *copying,
+            &mut *store,
+        )?;
         state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
         let lut_bar_updated = state.show_bar(
             self,
@@ -135,6 +153,8 @@ pub trait UiImage2d {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         F: Facade,
