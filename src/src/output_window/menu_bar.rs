@@ -147,8 +147,13 @@ fn update_editor_from_state(
     store: &mut EditableValues,
     node_editor: &mut AflakNodeEditor,
 ) {
-    for (id, value) in value_iter {
-        use aflak_plot::Value;
+    for (id, interaction, value) in value_iter {
+        use aflak_plot::{Interaction, Value};
+        let changeflag = match interaction {
+            Interaction::HorizontalLine(h) => h.moving,
+            Interaction::VerticalLine(v) => v.moving,
+            _ => true,
+        };
         let val = match value {
             Value::Integer(i) => IOValue::Integer(i),
             Value::Float(f) => IOValue::Float(f),
@@ -159,8 +164,10 @@ fn update_editor_from_state(
             Value::Circle(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
         };
         if store.contains_key(id) {
-            let t_idx = *store.get(id).unwrap();
-            node_editor.update_constant_node(t_idx, val);
+            if changeflag {
+                let t_idx = *store.get(id).unwrap();
+                node_editor.update_constant_node(t_idx, val);
+            }
         } else {
             let t_idx = node_editor.create_constant_node(val);
             store.insert(*id, t_idx);

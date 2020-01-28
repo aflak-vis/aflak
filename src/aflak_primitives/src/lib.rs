@@ -454,7 +454,6 @@ fn run_fits_to_image(
 fn run_slice_one_frame(input_img: &WcsArray, frame_idx: i64) -> Result<IOValue, IOErr> {
     let frame_idx = try_into_unsigned!(frame_idx)?;
     is_sliceable!(input_img, frame_idx)?;
-
     let image_val = input_img.scalar();
     let out = image_val.index_axis(Axis(0), frame_idx);
 
