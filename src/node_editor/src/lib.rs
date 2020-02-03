@@ -135,17 +135,36 @@ where
 impl<T, E> NodeEditor<T, E>
 where
     T: PartialEq + cake::VariantName,
+    T: std::clone::Clone,
 {
     /// Update the constant value of constant node with given `id` with given
     /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        if let Some(t) = self.dst.get_transform_mut(id) {
-            let mut new_value = false;
-            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant != val;
+        if let Some(macro_id) = id.macro_id() {
+            if let Some(macrohandle) = self.macros.macros().find(|h| h.id() == macro_id) {
+                if let Some(t) = macrohandle.write().dst_mut().get_transform_mut(id) {
+                    let mut new_value = false;
+                    if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                        new_value = *constant != val;
+                    }
+                    if new_value {
+                        t.set_constant(val);
+                    }
+                } else {
+                    eprintln!("not found macro transform from {:?}", id);
+                }
+            } else {
+                eprintln!("not found macrohandle");
             }
-            if new_value {
-                t.set_constant(val);
+        } else {
+            if let Some(t) = self.dst.get_transform_mut(id) {
+                let mut new_value = false;
+                if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                    new_value = *constant != val;
+                }
+                if new_value {
+                    t.set_constant(val);
+                }
             }
         }
     }
