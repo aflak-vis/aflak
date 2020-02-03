@@ -4,6 +4,7 @@ extern crate imgui;
 extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
+use std::collections::HashMap;
 
 use std::path::PathBuf;
 use std::time::Instant;
@@ -12,6 +13,7 @@ use aflak_plot::{
     imshow::{self, UiImage2d},
     AxisTransform,
 };
+use imshow::node_editor::NodeEditor;
 
 fn main() {
     let config = support::AppConfig {
@@ -48,6 +50,9 @@ fn main() {
                 Some(&AxisTransform::new("X Axis", "m", |x| x)),
                 Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                 &mut state,
+                &mut None,
+                &mut HashMap::new(),
+                &NodeEditor::default(),
             )
             .expect("Image2d failed");
         });

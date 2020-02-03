@@ -4,6 +4,8 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
+use std::collections::HashMap;
+
 use aflak_plot::{
     plot::{self, UiImage1d},
     AxisTransform,
@@ -32,6 +34,8 @@ fn main() -> Result<(), support::Error> {
                 "m",
                 Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
                 &mut state,
+                &mut None,
+                &mut HashMap::new(),
             )
             .expect("Image1d failed");
         });
