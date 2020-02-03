@@ -417,6 +417,7 @@ where
                 self.interactions.insert(new);
             }
             if let Some((id, t_idx)) = *copying {
+                ui.separator();
                 ui.text("Paste Line Options");
                 ui.separator();
                 if MenuItem::new(im_str!("Paste Line as Horizontal Line")).build(ui) {

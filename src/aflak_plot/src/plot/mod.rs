@@ -3,6 +3,9 @@ mod state;
 
 use imgui::Ui;
 use ndarray::{ArrayBase, Data, Ix1};
+use std::collections::HashMap;
+
+extern crate aflak_cake;
 
 use super::interactions;
 use super::lims;
@@ -11,7 +14,11 @@ use super::util;
 use super::AxisTransform;
 use super::Error;
 
+pub use self::aflak_cake::TransformIdx;
+pub use self::interactions::InteractionId;
 pub use self::state::State;
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 /// Implementation of a UI to visualize a 1D image with ImGui using a plot.
 pub trait UiImage1d {
@@ -22,6 +29,8 @@ pub trait UiImage1d {
         vunit: &str,
         axis: Option<&AxisTransform<F>>,
         state: &mut State,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -40,6 +49,8 @@ impl<'ui> UiImage1d for Ui<'ui> {
         vunit: &str,
         axis: Option<&AxisTransform<F>>,
         state: &mut State,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -49,6 +60,6 @@ impl<'ui> UiImage1d for Ui<'ui> {
         let window_pos = self.window_pos();
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
-        state.plot(self, image, vtype, vunit, axis, p, size)
+        state.plot(self, image, vtype, vunit, axis, p, size, copying, store)
     }
 }
