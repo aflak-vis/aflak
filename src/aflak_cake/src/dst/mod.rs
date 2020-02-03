@@ -1,4 +1,5 @@
 use boow::Bow;
+pub extern crate uuid;
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -14,6 +15,7 @@ mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
 pub use self::node::{Node, NodeId};
+use uuid::Uuid;
 
 /// Dynamic Syntax Tree
 ///
@@ -274,7 +276,7 @@ impl InputList {
 
 /// Identify a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct TransformIdx(usize);
+pub struct TransformIdx(usize, Option<Uuid>);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct OutputIdx(usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -326,10 +328,16 @@ impl From<InputIdx> for usize {
 
 impl TransformIdx {
     fn incr(self) -> Self {
-        TransformIdx(self.0 + 1)
+        TransformIdx(self.0 + 1, self.1)
+    }
+    pub fn macro_id(self) -> Option<Uuid> {
+        self.1
     }
     pub fn id(self) -> usize {
         self.0
+    }
+    pub fn set_macro(self, macro_id: Uuid) -> Self {
+        TransformIdx(self.0, Some(macro_id))
     }
 }
 
