@@ -8,6 +8,8 @@ mod lut;
 mod state;
 
 extern crate aflak_cake;
+pub extern crate aflak_primitives;
+pub extern crate node_editor;
 
 pub use self::interactions::InteractionId;
 pub use self::state::State;
@@ -16,6 +18,8 @@ use std::borrow::Borrow;
 use std::rc::Rc;
 
 use self::aflak_cake::TransformIdx;
+use self::aflak_primitives::{IOErr, IOValue};
+use self::node_editor::NodeEditor;
 use glium::{backend::Facade, Texture2d};
 use imgui::{self, TextureId, Ui};
 use ndarray::ArrayD;
@@ -31,6 +35,7 @@ use super::AxisTransform;
 pub type Textures = imgui::Textures<Rc<Texture2d>>;
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input.
@@ -94,6 +99,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -122,6 +128,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             image_max_size,
             &mut *copying,
             &mut *store,
+            &node_editor,
         )?;
         state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
         let lut_bar_updated = state.show_bar(
@@ -155,6 +162,7 @@ pub trait UiImage2d {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,

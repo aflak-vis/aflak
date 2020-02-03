@@ -4,7 +4,9 @@ use std::time::Instant;
 
 use glium::backend::Facade;
 use imgui::{ComboBox, ImString, Image, MenuItem, MouseButton, MouseCursor, TextureId, Ui};
-use imshow::aflak_cake::TransformIdx;
+use imshow::aflak_cake::{Transform, TransformIdx};
+use imshow::aflak_primitives::{IOErr, IOValue};
+use imshow::node_editor::NodeEditor;
 use ndarray::ArrayD;
 
 use super::image;
@@ -20,6 +22,7 @@ use super::Error;
 use super::Textures;
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Current state of the visualization of a 2D image
 pub struct State<I> {
@@ -313,6 +316,7 @@ where
         max_size: (f32, f32),
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<([[f32; 2]; 2], f32), Error>
     where
         FX: Fn(f32) -> f32,
