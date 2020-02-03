@@ -122,19 +122,41 @@ fn update_state_from_editor(
     for (id, interaction) in interactions {
         if editable_values.contains_key(id) {
             let t_idx = editable_values.get(id).unwrap();
-            if let Some(value) = node_editor.constant_node_value(*t_idx) {
-                if let Err(e) = match value {
-                    IOValue::Integer(i) => interaction.set_value(*i),
-                    IOValue::Float(f) => interaction.set_value(*f),
-                    IOValue::Float2(f) => interaction.set_value(*f),
-                    IOValue::Float3(f) => interaction.set_value(*f),
-                    IOValue::Roi(_) => Ok(()),
-                    value => Err(format!("Cannot convert value '{:?}'", value)),
-                } {
-                    eprintln!("Could not update state from editor: {}", e);
+            if let Some(macro_id) = t_idx.macro_id() {
+                if let Some(macr) = node_editor.macros.get_macro(macro_id) {
+                    let macr = macr.read();
+                    if let Some(value) = macr.get_constant_value(*t_idx) {
+                        if let Err(e) = match value {
+                            IOValue::Integer(i) => interaction.set_value(*i),
+                            IOValue::Float(f) => interaction.set_value(*f),
+                            IOValue::Float2(f) => interaction.set_value(*f),
+                            IOValue::Float3(f) => interaction.set_value(*f),
+                            IOValue::Roi(_) => Ok(()),
+                            value => Err(format!("Cannot convert value '{:?}'", value)),
+                        } {
+                            eprintln!("Could not update state from editor: {}", e);
+                        }
+                    } else {
+                        eprintln!("No constant node found for transform '{:?}'", t_idx);
+                    }
+                } else {
+                    eprintln!("Could not find macro from {:?}", macro_id);
                 }
             } else {
-                eprintln!("No constant node found for transform '{:?}'", t_idx);
+                if let Some(value) = node_editor.constant_node_value(*t_idx) {
+                    if let Err(e) = match value {
+                        IOValue::Integer(i) => interaction.set_value(*i),
+                        IOValue::Float(f) => interaction.set_value(*f),
+                        IOValue::Float2(f) => interaction.set_value(*f),
+                        IOValue::Float3(f) => interaction.set_value(*f),
+                        IOValue::Roi(_) => Ok(()),
+                        value => Err(format!("Cannot convert value '{:?}'", value)),
+                    } {
+                        eprintln!("Could not update state from editor: {}", e);
+                    }
+                } else {
+                    eprintln!("No constant node found for transform '{:?}'", t_idx);
+                }
             }
         } else {
             eprintln!("'{:?}' not found in store", id);
