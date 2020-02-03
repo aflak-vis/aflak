@@ -1,3 +1,4 @@
+use dst::TransformIdx;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::ops;
@@ -181,6 +182,15 @@ impl<'t, T, E> Macro<'t, T, E> {
 
     pub fn dst_mut(&mut self) -> &mut DST<'t, T, E> {
         &mut self.dst
+    }
+
+    pub fn get_constant_value(&self, id: TransformIdx) -> Option<&T> {
+        let tr = self.dst.get_transform(id).unwrap();
+        if let Algorithm::Constant(ref constant) = tr.algorithm() {
+            Some(constant)
+        } else {
+            None
+        }
     }
 
     fn input_types(&self) -> Vec<TypeId> {
