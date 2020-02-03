@@ -273,9 +273,9 @@ impl<'t, T, E> Macro<'t, T, E> {
         let mut cache = HashMap::new();
 
         let mut dst = self.dst.clone();
-
         for (arg, input) in args.into_iter().zip(&self.inputs) {
-            let t_idx = dst.add_owned_transform(Transform::new_constant((*arg).clone()));
+            let t_idx =
+                dst.add_owned_transform(Transform::new_constant((*arg).clone()), Some(self.id));
             let output = Output::new(t_idx, 0);
             match input.slot {
                 InputSlot::Output(output_id) => dst.update_output(output_id, output),

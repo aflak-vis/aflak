@@ -204,19 +204,37 @@ where
     T: Clone,
 {
     /// Add a borrowed transform and return its identifier [`TransformIdx`].
-    pub fn add_transform(&mut self, t: &'t Transform<'t, T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Borrowed(t))
+    pub fn add_transform(
+        &mut self,
+        t: &'t Transform<'t, T, E>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
+        self.add_transform_impl(Bow::Borrowed(t), macro_id)
     }
 
     /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transform<'t, T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Owned(t))
+    pub fn add_owned_transform(
+        &mut self,
+        t: Transform<'t, T, E>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
+        self.add_transform_impl(Bow::Owned(t), macro_id)
     }
 
-    fn add_transform_impl(&mut self, t: Bow<'t, Transform<'t, T, E>>) -> TransformIdx {
+    fn add_transform_impl(
+        &mut self,
+        t: Bow<'t, Transform<'t, T, E>>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
         let idx = self.new_transform_idx();
-        self.transforms.insert(idx, MetaTransform::new(t));
-        idx
+        if let Some(macro_id) = macro_id {
+            let idx = idx.set_macro(macro_id);
+            self.transforms.insert(idx, MetaTransform::new(t));
+            idx
+        } else {
+            self.transforms.insert(idx, MetaTransform::new(t));
+            idx
+        }
     }
 }
 
