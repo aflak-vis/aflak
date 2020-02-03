@@ -128,7 +128,7 @@ where
     /// Return the ID if the new node.
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
         self.dst
-            .add_owned_transform(cake::Transform::new_constant(t))
+            .add_owned_transform(cake::Transform::new_constant(t), None)
     }
 }
 
@@ -278,11 +278,11 @@ where
                     for event in events {
                         if let event::RenderEvent::AddNewMacro = event {
                             let new_macr = macros.create_macro().clone();
-                            node_edit
-                                .handle
-                                .write()
-                                .dst_mut()
-                                .add_owned_transform(cake::Transform::from_macro(new_macr));
+                            let macro_id = new_macr.id();
+                            node_edit.handle.write().dst_mut().add_owned_transform(
+                                cake::Transform::from_macro(new_macr),
+                                Some(macro_id),
+                            );
                         } else if let event::RenderEvent::EditNode(node_id) = event {
                             if let cake::NodeId::Transform(t_idx) = node_id {
                                 if let Some(t) = node_edit.handle.read().dst().get_transform(t_idx)
@@ -459,14 +459,14 @@ where
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
-        self.dst.add_transform(t);
+        self.dst.add_transform(t, None);
     }
     fn create_output(&mut self) {
         self.dst.create_output();
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
-        self.dst.add_owned_transform(constant);
+        self.dst.add_owned_transform(constant, None);
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         if let Some(t) = self.dst.get_transform_mut(t_idx) {
@@ -503,13 +503,14 @@ where
         }
     }
     fn add_new_macro(&mut self) {
-        self.dst.add_owned_transform(cake::Transform::from_macro(
-            self.macros.create_macro().clone(),
-        ));
+        self.dst.add_owned_transform(
+            cake::Transform::from_macro(self.macros.create_macro().clone()),
+            None,
+        );
     }
     fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
         self.dst
-            .add_owned_transform(cake::Transform::from_macro(handle));
+            .add_owned_transform(cake::Transform::from_macro(handle), None);
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         if let cake::NodeId::Transform(t_idx) = node_id {
@@ -549,14 +550,20 @@ where
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
-        self.handle.write().dst_mut().add_transform(t);
+        self.handle
+            .write()
+            .dst_mut()
+            .add_transform(t, Some(self.handle.id()));
     }
     fn create_output(&mut self) {
         self.handle.write().dst_mut().create_output();
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
-        self.handle.write().dst_mut().add_owned_transform(constant);
+        self.handle
+            .write()
+            .dst_mut()
+            .add_owned_transform(constant, Some(self.handle.id()));
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         let mut lock = self.handle.write();
@@ -607,7 +614,7 @@ where
             self.handle
                 .write()
                 .dst_mut()
-                .add_owned_transform(cake::Transform::from_macro(handle));
+                .add_owned_transform(cake::Transform::from_macro(handle), Some(self.handle.id()));
         }
     }
     fn edit_node(&mut self, _: cake::NodeId) {
