@@ -141,7 +141,7 @@ where
     /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
         if let Some(macro_id) = id.macro_id() {
-            if let Some(macrohandle) = self.macros.macros().find(|h| h.id() == macro_id) {
+            if let Some(macrohandle) = self.macros.get_macro(macro_id) {
                 if let Some(t) = macrohandle.write().dst_mut().get_transform_mut(id) {
                     let mut new_value = false;
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
