@@ -50,6 +50,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// extern crate aflak_imgui_glium_support as support;
     /// extern crate ndarray;
     /// extern crate aflak_plot;
+    /// use std::collections::HashMap;
     ///
     /// use std::time::Instant;
     ///
@@ -59,6 +60,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     imshow::{self, UiImage2d},
     ///     AxisTransform,
     /// };
+    /// use imshow::node_editor::NodeEditor;
     ///
     /// fn main() {
     ///     let mut state = imshow::State::default();
@@ -79,6 +81,9 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///             AxisTransform::none(),
     ///             AxisTransform::none(),
     ///             &mut state,
+    ///             &mut None,
+    ///             &mut HashMap::new(),
+    ///             &NodeEditor::default(),
     ///         ) {
     ///             eprintln!("{:?}", e);
     ///             false
