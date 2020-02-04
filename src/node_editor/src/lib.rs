@@ -569,20 +569,22 @@ where
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
+        let handle_id = self.handle.id();
         self.handle
             .write()
             .dst_mut()
-            .add_transform(t, Some(self.handle.id()));
+            .add_transform(t, Some(handle_id));
     }
     fn create_output(&mut self) {
         self.handle.write().dst_mut().create_output();
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
+        let handle_id = self.handle.id();
         self.handle
             .write()
             .dst_mut()
-            .add_owned_transform(constant, Some(self.handle.id()));
+            .add_owned_transform(constant, Some(handle_id));
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         let mut lock = self.handle.write();
