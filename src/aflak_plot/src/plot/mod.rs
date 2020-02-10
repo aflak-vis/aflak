@@ -17,8 +17,11 @@ use super::Error;
 pub use self::aflak_cake::TransformIdx;
 pub use self::interactions::InteractionId;
 pub use self::state::State;
+use imshow::aflak_primitives::{IOErr, IOValue};
+use imshow::node_editor::NodeEditor;
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Implementation of a UI to visualize a 1D image with ImGui using a plot.
 pub trait UiImage1d {
@@ -31,6 +34,7 @@ pub trait UiImage1d {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -51,6 +55,7 @@ impl<'ui> UiImage1d for Ui<'ui> {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -60,6 +65,17 @@ impl<'ui> UiImage1d for Ui<'ui> {
         let window_pos = self.window_pos();
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
-        state.plot(self, image, vtype, vunit, axis, p, size, copying, store)
+        state.plot(
+            self,
+            image,
+            vtype,
+            vunit,
+            axis,
+            p,
+            size,
+            copying,
+            store,
+            node_editor,
+        )
     }
 }

@@ -10,10 +10,13 @@ use super::ticks::XYTicks;
 use super::util;
 use super::AxisTransform;
 use super::Error;
+use imshow::aflak_primitives::{IOErr, IOValue};
+use imshow::node_editor::NodeEditor;
 
-use plot::aflak_cake::TransformIdx;
+use plot::aflak_cake::{Transform, TransformIdx};
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Current state of a plot UI.
 #[derive(Debug)]
@@ -56,6 +59,7 @@ impl State {
         size: [f32; 2],
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         D: Data<Elem = f32>,
@@ -244,9 +248,31 @@ impl State {
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if MenuItem::new(im_str!("Vertical Line")).build(ui) {
-                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
-                self.interactions.insert(new);
+            if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
+                if MenuItem::new(im_str!("to main editor")).build(ui) {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                }
+                for macr in node_editor.macros.macros() {
+                    if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
+                        let new =
+                            Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                        self.interactions.insert(new);
+                        let macro_id = macr.id();
+                        let mut dstw = macr.write();
+                        let t_idx = dstw.dst_mut().add_owned_transform(
+                            Transform::new_constant(aflak_primitives::IOValue::Float(
+                                self.mouse_pos[0].round(),
+                            )),
+                            Some(macro_id),
+                        );
+                        drop(dstw);
+                        let t_idx = t_idx.set_macro(macro_id);
+                        store.insert(self.interactions.id(), t_idx);
+                    }
+                }
+                menu.end(ui);
             }
             if let Some((id, t_idx)) = *copying {
                 ui.separator();
