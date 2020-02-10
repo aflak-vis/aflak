@@ -15,6 +15,8 @@ use imgui::Window;
 use std::f32;
 use std::path::PathBuf;
 
+use aflak_plot::imshow::node_editor::NodeEditor;
+
 fn main() -> Result<(), support::Error> {
     let config = support::AppConfig {
         title: "Example sin.rs".to_owned(),
@@ -36,6 +38,7 @@ fn main() -> Result<(), support::Error> {
                 &mut state,
                 &mut None,
                 &mut HashMap::new(),
+                &NodeEditor::default(),
             )
             .expect("Image1d failed");
         });
