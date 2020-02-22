@@ -1,0 +1,16 @@
+[package]
+name = "obj-exporter"
+version = "0.2.0"
+authors = ["Adam Rzepka <adam@simteract.com>"]
+description = "Wavefront obj exporter for Rust"
+repository = "https://github.com/Simteract/obj-exporter-rs"
+keywords = ["obj", "wavefront", "exporter", "3d"]
+categories = ["games", "rendering::data-formats", "visualization"]
+license = "MIT"
+
+[badges]
+travis-ci = { repository = "Simteract/obj-exporter-rs", branch = "master" }
+
+[dependencies]
+wavefront_obj = "5.1.0"
+lazy_static = "1.0"
