@@ -695,7 +695,7 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
     let mut wave = Vec::with_capacity(wave_size);
     for i in 0..wave_size {
         let mut res = 0.0;
-        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
+        for (_, val) in roi.filterx(image_val.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
