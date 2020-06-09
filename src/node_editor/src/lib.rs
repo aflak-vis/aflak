@@ -301,6 +301,7 @@ where
                     }
                 });
                 node_edit.opened = opened;
+                node_edit.layout.is_macro = true;
             }
 
             for error in node_edit.error_stack.drain(..) {
@@ -486,9 +487,12 @@ where
         self.dst.remove_node(&node_id);
     }
     fn import(&mut self) {
-        if let Err(e) = self.import_from_file(EDITOR_EXPORT_FILE) {
-            eprintln!("Error on import! {}", e);
-            self.error_stack.push(Box::new(e));
+        if let Some(path) = self.layout.import_path.take() {
+            if let Err(e) = self.import_from_file(path) {
+                eprintln!("Error on import! {}", e);
+                self.error_stack.push(Box::new(e));
+            }
+            self.layout.import_path = None;
         }
     }
     fn export(&mut self) {

@@ -12,6 +12,7 @@ use cake::{self, InputSlot, Transform, VariantName, DST};
 use constant_editor::ConstantEditor;
 use event::RenderEvent;
 use id_stack::GetId;
+use imgui_file_explorer::UiFileExplorer;
 use node_state::NodeStates;
 use scrolling::Scrolling;
 use vec2::Vec2;
@@ -31,6 +32,9 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     show_connection_names: bool,
     scrolling: Scrolling,
     show_grid: bool,
+    import_opened: bool,
+    pub import_path: Option<std::path::PathBuf>,
+    pub is_macro: bool,
 
     // Used at runtime to aggregate events
     events: Vec<RenderEvent<T, E>>,
@@ -53,6 +57,9 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             show_connection_names: true,
             scrolling: Default::default(),
             show_grid: true,
+            import_opened: false,
+            import_path: None,
+            is_macro: false,
 
             events: vec![],
         }
@@ -255,12 +262,57 @@ where
                 ui.text(im_str!("Scroll with Ctrl+LMB or Alt+LMB."));
                 ui.same_line(ui.window_size()[0] - 240.0);
                 if ui.button(im_str!("Import"), [0.0, 0.0]) {
-                    self.events.push(RenderEvent::Import);
+                    if !self.is_macro {
+                        self.import_opened = true;
+                    } else {
+                        self.events.push(RenderEvent::Import);
+                    }
                 }
                 if ui.is_item_hovered() {
-                    ui.tooltip(|| {
-                        ui.text(im_str!("Import editor from '{}'.", EDITOR_EXPORT_FILE));
-                    });
+                    if self.is_macro {
+                        ui.tooltip(|| {
+                            ui.text(im_str!("Import macro"));
+                        });
+                    } else {
+                        ui.tooltip(|| {
+                            ui.text(im_str!("Import editor from '{}'.", EDITOR_EXPORT_FILE));
+                        });
+                    }
+                }
+                if !self.is_macro {
+                    let mut selected_path = None;
+                    let mut cancelled = false;
+                    let mouse_pos = ui.io().mouse_pos;
+                    if self.import_opened {
+                        imgui::Window::new(&imgui::ImString::new(format!("Import .ron")))
+                            .opened(&mut self.import_opened)
+                            .save_settings(false)
+                            .position(mouse_pos, imgui::Condition::Appearing)
+                            .size([400.0, 410.0], imgui::Condition::Appearing)
+                            .build(ui, || {
+                                imgui::ChildWindow::new(im_str!("edit"))
+                                    .size([0.0, 350.0])
+                                    .horizontal_scrollbar(true)
+                                    .build(ui, || {
+                                        if let Ok(Some(path)) = ui.file_explorer(
+                                            imgui_file_explorer::TOP_FOLDER,
+                                            &["ron"],
+                                        ) {
+                                            selected_path = Some(path);
+                                        }
+                                    });
+                                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                                    cancelled = true;
+                                }
+                            });
+                    }
+                    if cancelled {
+                        self.import_opened = false;
+                    } else if let Some(path) = selected_path.take() {
+                        self.events.push(RenderEvent::Import);
+                        self.import_path = Some(path);
+                        self.import_opened = false;
+                    }
                 }
                 ui.same_line(ui.window_size()[0] - 180.0);
                 if ui.button(im_str!("Export"), [0.0, 0.0]) {
