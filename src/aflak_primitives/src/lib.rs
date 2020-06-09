@@ -354,13 +354,6 @@ Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * si
                     vec![run_gaussian_mean(image, *start, *end)]
                 }
             ),
-            cake_transform!("
-            Down Sampling. Parameter: image, n",
-            1, 0, 0,
-            down_sampling<IOValue, IOErr>(image: Image, n: Integer = 1) -> Image {
-                vec![run_down_sampling(image, *n)]
-            }
-        ),
         ]
     };
 }
