@@ -316,6 +316,8 @@ impl MenuBar for primitives::WcsArray {
                 if !has_wcs_data && ui.is_item_hovered() {
                     ui.tooltip_text("Data has no WCS metadata attached.");
                 }
+                MenuItem::new(im_str!("Approx Line"))
+                    .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
             }
             _ => {}
         }
