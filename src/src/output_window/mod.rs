@@ -73,6 +73,7 @@ impl OutputWindow {
                     IOValue::Float3(floats) => floats.draw(ctx, window),
                     IOValue::Bool(b) => b.draw(ctx, window),
                     IOValue::Image(ref image) => image.draw(ctx, window),
+                    IOValue::Roi(ref roi) => roi.draw(ctx, window),
                     IOValue::Fits(ref fits) => {
                         fits.draw(ui, window);
                         vec![]

@@ -2,7 +2,10 @@ use std::borrow::Borrow;
 use std::time::Instant;
 
 use glium::backend::Facade;
-use imgui::{ComboBox, ImString, Image, MenuItem, MouseButton, MouseCursor, TextureId, Ui};
+use imgui::{
+    ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
+    Ui, Window,
+};
 use ndarray::ArrayD;
 
 use super::image;
@@ -30,6 +33,7 @@ pub struct State<I> {
     roi_input: RoiInputState,
     circle_input: CircleInputState,
     image: image::Image<I>,
+    pub show_approx_line: bool,
 }
 
 #[derive(Default)]
@@ -87,6 +91,7 @@ impl<I> Default for State<I> {
             roi_input: Default::default(),
             circle_input: Default::default(),
             image: Default::default(),
+            show_approx_line: false,
         }
     }
 }
@@ -385,6 +390,57 @@ where
 
         let draw_list = ui.get_window_draw_list();
 
+        if self.show_approx_line {
+            let mut maxpoints = Vec::<(usize, usize)>::new();
+            for i in 0..self.image.dim().1 {
+                let mut maxv = std::f32::MIN;
+                let mut maxy = 0;
+                for j in 0..self.image.dim().0 {
+                    let index = [self.image.dim().0 - 1 - j, i];
+                    if let Some(val) = self.image.get(index) {
+                        if maxv < val {
+                            maxy = j;
+                            maxv = val;
+                        }
+                    }
+                }
+                maxpoints.push((i, maxy));
+                let x0 = p[0] + (i as f32) / tex_size.0 as f32 * size[0];
+                let y0 = p[1] + size[1] - ((maxy + 1) as f32) / tex_size.1 as f32 * size[1];
+                draw_list
+                    .add_rect(
+                        [x0, y0],
+                        [x0 + size[0] / tex_size.0, y0 + size[1] / tex_size.1],
+                        0x8000_00FF,
+                    )
+                    .filled(true)
+                    .build();
+            }
+            let mut sigma_xy: isize = 0;
+            let mut sigma_x: isize = 0;
+            let mut sigma_y: isize = 0;
+            let mut sigma_xx: isize = 0;
+            let n: isize = maxpoints.len() as isize;
+            for (x, y) in maxpoints {
+                sigma_xy += (x * y) as isize;
+                sigma_x += x as isize;
+                sigma_y += y as isize;
+                sigma_xx += (x * x) as isize;
+            }
+            let slope = ((n * sigma_xy - sigma_x * sigma_y) as f32
+                / (n * sigma_xx - sigma_x * sigma_x) as f32) as f32;
+            let y_intercept = ((sigma_xx * sigma_y - sigma_xy * sigma_x) as f32
+                / (n * sigma_xx - sigma_x * sigma_x) as f32) as f32;
+            let line_x0 = p[0];
+            let line_y0 = p[1] + size[1] - y_intercept / tex_size.1 as f32 * size[1];
+            let line_x1 = p[0] + n as f32 / tex_size.0 as f32 * size[0];
+            let line_y1 = p[1] + size[1]
+                - (slope * n as f32 + y_intercept as f32) / tex_size.1 as f32 * size[1];
+            draw_list
+                .add_line([line_x0, line_y0], [line_x1, line_y1], 0x8000_00FF)
+                .build();
+        }
+
         // Add interaction handlers
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
@@ -532,11 +588,14 @@ where
                 }
                 Interaction::Line(Line {
                     endpoints,
+                    endpoints_zero,
                     endpointsfill,
                     pixels,
                     pre_mousepos,
                     allmoving,
                     edgemoving,
+                    show_rotate,
+                    degree,
                 }) => {
                     const CLICKABLE_WIDTH: f32 = 5.0;
                     if is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
@@ -765,8 +824,66 @@ where
                         ui.popup(im_str!("edit-line"), || {
                             if MenuItem::new(im_str!("Delete Line")).build(ui) {
                                 line_marked_for_deletion = Some(*id);
+                            } else if MenuItem::new(im_str!("Rotate Line")).build(ui) {
+                                *show_rotate = true;
                             }
                         });
+                        if *show_rotate {
+                            Window::new(&ImString::new(format!("Rotate #{:?}", id)))
+                                .size([300.0, 50.0], Condition::Appearing)
+                                .resizable(false)
+                                .build(ui, || {
+                                    Slider::new(im_str!("Degree"), -180..=180).build(ui, degree);
+                                });
+                            if !*allmoving && !edgemoving.0 && !edgemoving.1 {
+                                if *degree == 0 {
+                                    *endpoints_zero = *endpoints;
+                                }
+                                let midpoint = (
+                                    ((endpoints_zero.0).0 + (endpoints_zero.1).0) / 2.0,
+                                    ((endpoints_zero.0).1 + (endpoints_zero.1).1) / 2.0,
+                                );
+                                let vector1 = (
+                                    (endpoints_zero.0).0 - midpoint.0,
+                                    (endpoints_zero.0).1 - midpoint.1,
+                                );
+                                let vector2 = (
+                                    (endpoints_zero.1).0 - midpoint.0,
+                                    (endpoints_zero.1).1 - midpoint.1,
+                                );
+                                let new_endpoint1 = (
+                                    midpoint.0
+                                        + vector1.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos()
+                                        - vector1.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin(),
+                                    midpoint.1
+                                        + vector1.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin()
+                                        + vector1.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos(),
+                                );
+                                let new_endpoint2 = (
+                                    midpoint.0
+                                        + vector2.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos()
+                                        - vector2.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin(),
+                                    midpoint.1
+                                        + vector2.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin()
+                                        + vector2.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos(),
+                                );
+                                endpoints.0 = new_endpoint1;
+                                endpoints.1 = new_endpoint2;
+                                pixels.clear();
+                                get_pixels_of_line(pixels, *endpoints, tex_size);
+                            } else {
+                                *show_rotate = false;
+                                *degree = 0;
+                            }
+                        }
                     } else if endpointsfill.0 {
                         draw_list
                             .add_line([x0, y0], [mousepos.0, mousepos.1], LINE_COLOR)

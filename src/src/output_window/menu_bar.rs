@@ -289,6 +289,22 @@ impl MenuBar for Path {
     const EXTENSION: &'static str = "txt";
 }
 
+impl MenuBar for ROI {
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    where
+        F: glium::backend::Facade,
+    {
+        ctx.ui.text_wrapped(&im_str!("{:?}", self));
+    }
+
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
+        write_to_file_as_display(path, &format!("{:?}", self))?;
+        Ok(())
+    }
+
+    const EXTENSION: &'static str = "txt";
+}
+
 impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
         match self.scalar().ndim() {
@@ -300,6 +316,8 @@ impl MenuBar for primitives::WcsArray {
                 if !has_wcs_data && ui.is_item_hovered() {
                     ui.tooltip_text("Data has no WCS metadata attached.");
                 }
+                MenuItem::new(im_str!("Approx Line"))
+                    .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
             }
             _ => {}
         }
