@@ -64,11 +64,14 @@ pub struct FinedGrainedROI {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Line {
     pub endpoints: ((f32, f32), (f32, f32)),
+    pub endpoints_zero: ((f32, f32), (f32, f32)),
     pub endpointsfill: (bool, bool),
     pub pixels: Vec<(usize, usize)>,
     pub pre_mousepos: (f32, f32),
     pub allmoving: bool,
     pub edgemoving: (bool, bool),
+    pub show_rotate: bool,
+    pub degree: i32,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Circle {
@@ -107,11 +110,14 @@ impl Line {
     pub fn new() -> Self {
         Self {
             endpoints: ((0.0, 0.0), (0.0, 0.0)),
+            endpoints_zero: ((0.0, 0.0), (0.0, 0.0)),
             endpointsfill: (false, false),
             pixels: vec![],
             pre_mousepos: (0.0, 0.0),
             allmoving: false,
             edgemoving: (false, false),
+            show_rotate: false,
+            degree: 0,
         }
     }
 }

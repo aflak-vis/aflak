@@ -2,7 +2,10 @@ use std::borrow::Borrow;
 use std::time::Instant;
 
 use glium::backend::Facade;
-use imgui::{ComboBox, ImString, Image, MenuItem, MouseButton, MouseCursor, TextureId, Ui};
+use imgui::{
+    ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
+    Ui, Window,
+};
 use ndarray::ArrayD;
 
 use super::image;
@@ -532,11 +535,14 @@ where
                 }
                 Interaction::Line(Line {
                     endpoints,
+                    endpoints_zero,
                     endpointsfill,
                     pixels,
                     pre_mousepos,
                     allmoving,
                     edgemoving,
+                    show_rotate,
+                    degree,
                 }) => {
                     const CLICKABLE_WIDTH: f32 = 5.0;
                     if is_image_hovered && ui.is_mouse_clicked(MouseButton::Left) {
@@ -765,8 +771,66 @@ where
                         ui.popup(im_str!("edit-line"), || {
                             if MenuItem::new(im_str!("Delete Line")).build(ui) {
                                 line_marked_for_deletion = Some(*id);
+                            } else if MenuItem::new(im_str!("Rotate Line")).build(ui) {
+                                *show_rotate = true;
                             }
                         });
+                        if *show_rotate {
+                            Window::new(&ImString::new(format!("Rotate #{:?}", id)))
+                                .size([300.0, 50.0], Condition::Appearing)
+                                .resizable(false)
+                                .build(ui, || {
+                                    Slider::new(im_str!("Degree"), -180..=180).build(ui, degree);
+                                });
+                            if !*allmoving && !edgemoving.0 && !edgemoving.1 {
+                                if *degree == 0 {
+                                    *endpoints_zero = *endpoints;
+                                }
+                                let midpoint = (
+                                    ((endpoints_zero.0).0 + (endpoints_zero.1).0) / 2.0,
+                                    ((endpoints_zero.0).1 + (endpoints_zero.1).1) / 2.0,
+                                );
+                                let vector1 = (
+                                    (endpoints_zero.0).0 - midpoint.0,
+                                    (endpoints_zero.0).1 - midpoint.1,
+                                );
+                                let vector2 = (
+                                    (endpoints_zero.1).0 - midpoint.0,
+                                    (endpoints_zero.1).1 - midpoint.1,
+                                );
+                                let new_endpoint1 = (
+                                    midpoint.0
+                                        + vector1.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos()
+                                        - vector1.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin(),
+                                    midpoint.1
+                                        + vector1.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin()
+                                        + vector1.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos(),
+                                );
+                                let new_endpoint2 = (
+                                    midpoint.0
+                                        + vector2.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos()
+                                        - vector2.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin(),
+                                    midpoint.1
+                                        + vector2.0
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).sin()
+                                        + vector2.1
+                                            * (*degree as f32 / 180.0 * std::f32::consts::PI).cos(),
+                                );
+                                endpoints.0 = new_endpoint1;
+                                endpoints.1 = new_endpoint2;
+                                pixels.clear();
+                                get_pixels_of_line(pixels, *endpoints, tex_size);
+                            } else {
+                                *show_rotate = false;
+                                *degree = 0;
+                            }
+                        }
                     } else if endpointsfill.0 {
                         draw_list
                             .add_line([x0, y0], [mousepos.0, mousepos.1], LINE_COLOR)
