@@ -24,6 +24,7 @@ extern crate aflak_cake as cake;
 pub extern crate fitrs;
 #[macro_use]
 pub extern crate ndarray;
+extern crate nalgebra;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -43,6 +44,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use nalgebra::{Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use variant_name::VariantName;
 
@@ -344,6 +346,21 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                     vec![run_range_specification(image, *start, *end)]
                 }
             ),
+            cake_transform!(
+            "Gaussian. Parameter: image, start, end
+Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * sigma ^ 2))",
+                0, 1, 0,
+                gaussian<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_gaussian_mean(image, *start, *end)]
+                }
+            ),
+            cake_transform!("
+            Down Sampling. Parameter: image, n",
+            1, 0, 0,
+            down_sampling<IOValue, IOErr>(image: Image, n: Integer = 1) -> Image {
+                vec![run_down_sampling(image, *n)]
+            }
+        ),
         ]
     };
 }
@@ -965,6 +982,67 @@ fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
     }
 
     Ok(IOValue::Image(out))
+}
+
+fn run_gaussian_mean(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
+    let mut flag = false;
+
+    is_sliceable!(image, start, end)?;
+
+    let image_val = image.scalar();
+
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+
+    let img = ArrayD::from_shape_fn(new_size, |index| {
+        let mut sums = vec![0.0, 0.0, 0.0, 0.0];
+        let mut lns = vec![0.0, 0.0, 0.0];
+        let n = end - start + 1;
+        // Caruanas Algorithm
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let y = slice[&index];
+            let x = k as f32;
+            sums[0] += x;
+            sums[1] += x * x;
+            sums[2] += x * x * x;
+            sums[3] += x * x * x * x;
+            lns[0] += y.ln();
+            lns[1] += x * y.ln();
+            lns[2] += x * x * y.ln();
+        }
+        let a = Matrix3::new(
+            n as f32, sums[0], sums[1], sums[0], sums[1], sums[2], sums[1], sums[2], sums[3],
+        );
+        let b = Vector3::new(lns[0], lns[1], lns[2]);
+        let decomp = a.lu();
+        let x = decomp.solve(&b);
+        let mut sol = Vector3::from([0.0, 0.0, 0.0]);
+        match x {
+            Some(vector) => sol = vector,
+            None => flag = true,
+        };
+        let _a = &sol[0]; //not used this time.
+        let b = &sol[1];
+        let c = &sol[2];
+        let mean = -b / (2.0 * c) + start as f32;
+        let out = match image.pix2world(2, mean as f32) {
+            Some(value) => value,
+            None => (mean + start as f32),
+        };
+        out
+    });
+    match flag {
+        // maybe some IOErr enum (presenting computation failure)is necessary
+        true => Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string())),
+        false => Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+            img,
+            Unit::None,
+        )))),
+    }
 }
 
 #[cfg(test)]
