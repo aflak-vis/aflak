@@ -33,6 +33,7 @@ pub struct State<I> {
     roi_input: RoiInputState,
     circle_input: CircleInputState,
     image: image::Image<I>,
+    pub show_approx_line: bool,
 }
 
 #[derive(Default)]
@@ -90,6 +91,7 @@ impl<I> Default for State<I> {
             roi_input: Default::default(),
             circle_input: Default::default(),
             image: Default::default(),
+            show_approx_line: false,
         }
     }
 }
@@ -387,6 +389,57 @@ where
         }
 
         let draw_list = ui.get_window_draw_list();
+
+        if self.show_approx_line {
+            let mut maxpoints = Vec::<(usize, usize)>::new();
+            for i in 0..self.image.dim().1 {
+                let mut maxv = std::f32::MIN;
+                let mut maxy = 0;
+                for j in 0..self.image.dim().0 {
+                    let index = [self.image.dim().0 - 1 - j, i];
+                    if let Some(val) = self.image.get(index) {
+                        if maxv < val {
+                            maxy = j;
+                            maxv = val;
+                        }
+                    }
+                }
+                maxpoints.push((i, maxy));
+                let x0 = p[0] + (i as f32) / tex_size.0 as f32 * size[0];
+                let y0 = p[1] + size[1] - ((maxy + 1) as f32) / tex_size.1 as f32 * size[1];
+                draw_list
+                    .add_rect(
+                        [x0, y0],
+                        [x0 + size[0] / tex_size.0, y0 + size[1] / tex_size.1],
+                        0x8000_00FF,
+                    )
+                    .filled(true)
+                    .build();
+            }
+            let mut sigma_xy: isize = 0;
+            let mut sigma_x: isize = 0;
+            let mut sigma_y: isize = 0;
+            let mut sigma_xx: isize = 0;
+            let n: isize = maxpoints.len() as isize;
+            for (x, y) in maxpoints {
+                sigma_xy += (x * y) as isize;
+                sigma_x += x as isize;
+                sigma_y += y as isize;
+                sigma_xx += (x * x) as isize;
+            }
+            let slope = ((n * sigma_xy - sigma_x * sigma_y) as f32
+                / (n * sigma_xx - sigma_x * sigma_x) as f32) as f32;
+            let y_intercept = ((sigma_xx * sigma_y - sigma_xy * sigma_x) as f32
+                / (n * sigma_xx - sigma_x * sigma_x) as f32) as f32;
+            let line_x0 = p[0];
+            let line_y0 = p[1] + size[1] - y_intercept / tex_size.1 as f32 * size[1];
+            let line_x1 = p[0] + n as f32 / tex_size.0 as f32 * size[0];
+            let line_y1 = p[1] + size[1]
+                - (slope * n as f32 + y_intercept as f32) / tex_size.1 as f32 * size[1];
+            draw_list
+                .add_line([line_x0, line_y0], [line_x1, line_y1], 0x8000_00FF)
+                .build();
+        }
 
         // Add interaction handlers
         ui.popup(im_str!("add-interaction-handle"), || {
