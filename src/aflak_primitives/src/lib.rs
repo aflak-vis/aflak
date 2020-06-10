@@ -182,8 +182,8 @@ for 0 <= i < n and 0 <= j < m",
 Takes two parameters: a threshold and a bool.
 If bool value is checked, then replaces the values above the threshold with NaN, else replace the values below the threshold with NaN.",
                 1, 0, 0,
-                clip_image<IOValue, IOErr>(image: Image, threshold: Float = 0.0, above: Bool = false) -> Image {
-                    vec![run_clip(image, *threshold, *above)]
+                clip_image<IOValue, IOErr>(image: Image, ceiling_threshold: Float = 0.0, ceiling: Bool = false, floor_threshold: Float = 0.0, floor: Bool = false) -> Image {
+                    vec![run_clip(image, *ceiling_threshold, *ceiling, *floor_threshold, *floor)]
                 }
             ),
             cake_transform!("Replace all NaN values in image with the provided value.",
@@ -747,11 +747,17 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     ))))
 }
 
-fn run_clip(image: &WcsArray, threshold: f32, above: bool) -> Result<IOValue, IOErr> {
+fn run_clip(
+    image: &WcsArray,
+    ceiling_threshold: f32,
+    ceiling: bool,
+    floor_threshold: f32,
+    floor: bool,
+) -> Result<IOValue, IOErr> {
     let mut image = image.clone();
 
     for f in image.scalar_mut().iter_mut() {
-        if (above && *f >= threshold) || (!above && *f <= threshold) {
+        if (ceiling && *f >= ceiling_threshold) || (floor && *f <= floor_threshold) {
             *f = ::std::f32::NAN;
         }
     }
