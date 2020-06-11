@@ -300,6 +300,16 @@ Note: output wavelength values are discrete. indices for start and end start fro
                 }
             ),
             cake_transform!(
+                "peak-based_wavelength_range.
+Parameter: image, start, end, range, is_min (start <= end)
+Output [argmax - range, argmax + range] [argmin - range, argmin + range] map of flux; wavelength
+Note: output wavelength values are discrete. indices for start and end start from 0",
+                0, 1, 0,
+                peak_based_wavelength_range<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1, range: Integer = 1, is_min: Bool = false) -> Image, Image {
+                    vec![run_create_argmap(image, *start, *end, -*range, *is_min, false), run_create_argmap(image, *start, *end, *range, *is_min, false)]
+                }
+            ),
+            cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
 Parameter: image (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
@@ -836,7 +846,14 @@ fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
     }
 }
 
-fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+fn run_create_argmap(
+    image: &WcsArray,
+    start: i64,
+    end: i64,
+    range: i64,
+    is_min: bool,
+    is_actual_value: bool,
+) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
     is_sliceable!(image, start, end)?;
@@ -858,10 +875,14 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             if (!is_min && slice[&index] > value) || (is_min && slice[&index] < value) {
                 value = slice[&index];
-                out = match image.pix2world(2, (k + start) as f32) {
-                    Some(value) => value,
-                    None => (k + start) as f32,
-                };
+                if is_actual_value {
+                    out = match image.pix2world(2, ((k + start) as i64 + range) as f32) {
+                        Some(value) => value,
+                        None => ((k + start) as i64 + range) as f32,
+                    };
+                } else {
+                    out = ((k + start) as i64 + range) as f32;
+                }
             }
         }
         out
@@ -877,6 +898,10 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
         waveimg,
         Unit::None,
     ))))
+}
+
+fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    run_create_argmap(image, start, end, 0, is_min, true)
 }
 
 fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
