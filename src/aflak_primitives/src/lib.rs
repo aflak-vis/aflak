@@ -373,6 +373,14 @@ Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * si
                     vec![run_gaussian_mean(image, *start, *end)]
                 }
             ),
+            cake_transform!(
+                "Gaussian with mask. Parameter: image, start_mask, end_mask
+Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * sigma ^ 2))",
+                0, 1, 0,
+                gaussian_with_mask<IOValue, IOErr>(image: Image, start_mask: Image, end_mask: Image) -> Image {
+                    vec![run_gaussian_mean_with_mask(image, start_mask, end_mask)]
+                }
+            ),
         ]
     };
 }
@@ -1084,6 +1092,68 @@ fn run_gaussian_mean(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, 
     let img = ArrayD::from_shape_fn(new_size, |index| {
         let mut sums = vec![0.0, 0.0, 0.0, 0.0];
         let mut lns = vec![0.0, 0.0, 0.0];
+        let n = end - start + 1;
+        // Caruanas Algorithm
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let y = slice[&index];
+            let x = k as f32;
+            sums[0] += x;
+            sums[1] += x * x;
+            sums[2] += x * x * x;
+            sums[3] += x * x * x * x;
+            lns[0] += y.ln();
+            lns[1] += x * y.ln();
+            lns[2] += x * x * y.ln();
+        }
+        let a = Matrix3::new(
+            n as f32, sums[0], sums[1], sums[0], sums[1], sums[2], sums[1], sums[2], sums[3],
+        );
+        let b = Vector3::new(lns[0], lns[1], lns[2]);
+        let decomp = a.lu();
+        let x = decomp.solve(&b);
+        let mut sol = Vector3::from([0.0, 0.0, 0.0]);
+        match x {
+            Some(vector) => sol = vector,
+            None => flag = true,
+        };
+        let _a = &sol[0]; //not used this time.
+        let b = &sol[1];
+        let c = &sol[2];
+        let mean = -b / (2.0 * c) + start as f32;
+        let out = match image.pix2world(2, mean as f32) {
+            Some(value) => value,
+            None => (mean + start as f32),
+        };
+        out
+    });
+    match flag {
+        // maybe some IOErr enum (presenting computation failure)is necessary
+        true => Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string())),
+        false => Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+            img,
+            Unit::None,
+        )))),
+    }
+}
+
+fn run_gaussian_mean_with_mask(
+    image: &WcsArray,
+    start_mask: &WcsArray,
+    end_mask: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    let image_val = image.scalar();
+    let start_mask_val = start_mask.scalar();
+    let end_mask_val = end_mask.scalar();
+    let dim = image_val.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+    let mut flag = false;
+    let img = ArrayD::from_shape_fn(new_size, |index| {
+        let mut sums = vec![0.0, 0.0, 0.0, 0.0];
+        let mut lns = vec![0.0, 0.0, 0.0];
+        let start = start_mask_val[&index] as usize;
+        let end = end_mask_val[&index] as usize;
+        let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
         let n = end - start + 1;
         // Caruanas Algorithm
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
