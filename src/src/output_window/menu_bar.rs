@@ -66,6 +66,7 @@ pub trait MenuBar {
     }
 
     fn file_submenu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn other_menu(&self, _: &Ui, _: &mut OutputWindow) {}
 
     fn file_name(&self, output: OutputId) -> String {
         format!("output-{}.{}", output.id(), Self::EXTENSION)
@@ -94,6 +95,7 @@ pub trait MenuBar {
                 self.file_submenu(ui, window);
                 menu.end(ui);
             }
+            self.other_menu(ui, window);
         });
 
         if output_saved_success_popup {
@@ -316,8 +318,19 @@ impl MenuBar for primitives::WcsArray {
                 if !has_wcs_data && ui.is_item_hovered() {
                     ui.tooltip_text("Data has no WCS metadata attached.");
                 }
-                MenuItem::new(im_str!("Approx Line"))
-                    .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
+            }
+            _ => {}
+        }
+    }
+
+    fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        match self.scalar().ndim() {
+            2 => {
+                if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                    MenuItem::new(im_str!("Approx Line"))
+                        .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
+                    menu.end(ui);
+                }
             }
             _ => {}
         }
