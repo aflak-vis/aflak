@@ -300,6 +300,16 @@ Note: output wavelength values are discrete. indices for start and end start fro
                 }
             ),
             cake_transform!(
+                "peak-based_wavelength_range.
+Parameter: image, start, end, range, is_min (start <= end)
+Output [argmax - range, argmax + range] [argmin - range, argmin + range] map of flux; wavelength
+Note: output wavelength values are discrete. indices for start and end start from 0",
+                0, 1, 0,
+                peak_based_wavelength_range<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1, range: Integer = 1, is_min: Bool = false) -> Image, Image {
+                    vec![run_create_argmap(image, *start, *end, -*range, *is_min, false), run_create_argmap(image, *start, *end, *range, *is_min, false)]
+                }
+            ),
+            cake_transform!(
                 "Extract centrobaric wavelength value of each pixel.
 Parameter: image (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
@@ -307,6 +317,15 @@ Note: indices for start and end start from 0",
                 0, 1, 0,
                 extract_centrobaric_wavelength<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_centroid(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Extract centrobaric wavelength value of each pixel with mask.
+Parameter: image (which has wavelength value w_i and flux f_i), start_mask, end_mask
+Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
+                0, 1, 0,
+                extract_centrobaric_wavelength_with_mask<IOValue, IOErr>(image: Image, start_mask: Image, end_mask: Image) -> Image {
+                    vec![run_centroid_with_mask(image, start_mask, end_mask)]
                 }
             ),
             cake_transform!(
@@ -352,6 +371,14 @@ Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * si
                 0, 1, 0,
                 gaussian<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_gaussian_mean(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Gaussian with mask. Parameter: image, start_mask, end_mask
+Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * sigma ^ 2))",
+                0, 1, 0,
+                gaussian_with_mask<IOValue, IOErr>(image: Image, start_mask: Image, end_mask: Image) -> Image {
+                    vec![run_gaussian_mean_with_mask(image, start_mask, end_mask)]
                 }
             ),
         ]
@@ -836,7 +863,14 @@ fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IO
     }
 }
 
-fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+fn run_create_argmap(
+    image: &WcsArray,
+    start: i64,
+    end: i64,
+    range: i64,
+    is_min: bool,
+    is_actual_value: bool,
+) -> Result<IOValue, IOErr> {
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
     is_sliceable!(image, start, end)?;
@@ -858,10 +892,14 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             if (!is_min && slice[&index] > value) || (is_min && slice[&index] < value) {
                 value = slice[&index];
-                out = match image.pix2world(2, (k + start) as f32) {
-                    Some(value) => value,
-                    None => (k + start) as f32,
-                };
+                if is_actual_value {
+                    out = match image.pix2world(2, ((k + start) as i64 + range) as f32) {
+                        Some(value) => value,
+                        None => ((k + start) as i64 + range) as f32,
+                    };
+                } else {
+                    out = ((k + start) as i64 + range) as f32;
+                }
             }
         }
         out
@@ -877,6 +915,10 @@ fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result
         waveimg,
         Unit::None,
     ))))
+}
+
+fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
+    run_create_argmap(image, start, end, 0, is_min, true)
 }
 
 fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
@@ -903,6 +945,62 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
 
     let waveimg = ArrayD::from_shape_fn(new_size_2, |index| {
         let mut out = 0.0;
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            let wavelength = match image.pix2world(2, (k + start) as f32) {
+                Some(value) => value,
+                None => (k + start) as f32,
+            };
+            out += flux * wavelength;
+        }
+        out
+    });
+
+    let result = waveimg / flux_sum;
+
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // 'waveimg' must have [flux * wavelength], 'flux_sum' must have [flux]
+    // 'result' = waveimg / flux_sum   must have [wavelength]
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
+}
+
+fn run_centroid_with_mask(
+    image: &WcsArray,
+    start_mask: &WcsArray,
+    end_mask: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    let image_val = image.scalar();
+    let start_mask_val = start_mask.scalar();
+    let end_mask_val = end_mask.scalar();
+    let dim = image_val.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+    let new_size2 = new_size.clone();
+    let flux_sum = ArrayD::from_shape_fn(new_size, |index| {
+        let mut out = 0.0;
+        let start = start_mask_val[&index] as usize;
+        let end = end_mask_val[&index] as usize;
+        let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+
+        for (_, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let flux = slice[&index];
+            out += flux;
+        }
+        out
+    });
+
+    let waveimg = ArrayD::from_shape_fn(new_size2, |index| {
+        let mut out = 0.0;
+        let start = start_mask_val[&index] as usize;
+        let end = end_mask_val[&index] as usize;
+        let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             let flux = slice[&index];
             let wavelength = match image.pix2world(2, (k + start) as f32) {
@@ -994,6 +1092,68 @@ fn run_gaussian_mean(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, 
     let img = ArrayD::from_shape_fn(new_size, |index| {
         let mut sums = vec![0.0, 0.0, 0.0, 0.0];
         let mut lns = vec![0.0, 0.0, 0.0];
+        let n = end - start + 1;
+        // Caruanas Algorithm
+        for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            let y = slice[&index];
+            let x = k as f32;
+            sums[0] += x;
+            sums[1] += x * x;
+            sums[2] += x * x * x;
+            sums[3] += x * x * x * x;
+            lns[0] += y.ln();
+            lns[1] += x * y.ln();
+            lns[2] += x * x * y.ln();
+        }
+        let a = Matrix3::new(
+            n as f32, sums[0], sums[1], sums[0], sums[1], sums[2], sums[1], sums[2], sums[3],
+        );
+        let b = Vector3::new(lns[0], lns[1], lns[2]);
+        let decomp = a.lu();
+        let x = decomp.solve(&b);
+        let mut sol = Vector3::from([0.0, 0.0, 0.0]);
+        match x {
+            Some(vector) => sol = vector,
+            None => flag = true,
+        };
+        let _a = &sol[0]; //not used this time.
+        let b = &sol[1];
+        let c = &sol[2];
+        let mean = -b / (2.0 * c) + start as f32;
+        let out = match image.pix2world(2, mean as f32) {
+            Some(value) => value,
+            None => (mean + start as f32),
+        };
+        out
+    });
+    match flag {
+        // maybe some IOErr enum (presenting computation failure)is necessary
+        true => Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string())),
+        false => Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+            img,
+            Unit::None,
+        )))),
+    }
+}
+
+fn run_gaussian_mean_with_mask(
+    image: &WcsArray,
+    start_mask: &WcsArray,
+    end_mask: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    let image_val = image.scalar();
+    let start_mask_val = start_mask.scalar();
+    let end_mask_val = end_mask.scalar();
+    let dim = image_val.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+    let mut flag = false;
+    let img = ArrayD::from_shape_fn(new_size, |index| {
+        let mut sums = vec![0.0, 0.0, 0.0, 0.0];
+        let mut lns = vec![0.0, 0.0, 0.0];
+        let start = start_mask_val[&index] as usize;
+        let end = end_mask_val[&index] as usize;
+        let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
         let n = end - start + 1;
         // Caruanas Algorithm
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
