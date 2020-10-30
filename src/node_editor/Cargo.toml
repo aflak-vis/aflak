@@ -9,6 +9,6 @@ license = "GPL-3.0-only"
 imgui = { path = "../../imgui-rs", version = "0.3.0-pre" }
 imgui_file_explorer = { path = "../imgui_file_explorer", version = "0.0.3" }
 aflak_cake = { path = "../aflak_cake", version = "0.0.3" }
-ron = "0.2"
+ron = "0.6"
 serde = "1.0"
 serde_derive = "1.0"

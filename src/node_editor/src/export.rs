@@ -3,11 +3,11 @@ use std::fmt;
 use std::io;
 
 use cake;
-use ron::{de, ser};
+use ron::{de, error as ser_error};
 
 #[derive(Debug)]
 pub enum ExportError {
-    SerializationError(ser::Error),
+    SerializationError(ser_error::Error),
     IOError(io::Error),
 }
 
@@ -32,8 +32,8 @@ impl From<io::Error> for ExportError {
     }
 }
 
-impl From<ser::Error> for ExportError {
-    fn from(serial_error: ser::Error) -> Self {
+impl From<ser_error::Error> for ExportError {
+    fn from(serial_error: ser_error::Error) -> Self {
         ExportError::SerializationError(serial_error)
     }
 }
