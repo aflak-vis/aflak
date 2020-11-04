@@ -469,8 +469,8 @@ impl MenuBar for primitives::WcsArray {
                             "There are still many problems in BPT diagram, including:
 1.output node can only recognize one input of Wcsarray type, while BPT diagram may need three or more inputs. Should output node be modified?
 2.BPT diagram is essentially a combination of scatter plot and line plot. Does it need to develop independent scatter plot and line plot and more common drawing methods?
-3.A toolkit named "Implot" has been found in crate of Rust language, which can realize many drawing methods. Wonder if it can be directly introduced into aflak.",
-                            self.scalar().ndim()
+3.A toolkit named \"Implot\" has been found in crate of Rust language, which can realize many drawing methods. Wonder if it can be directly introduced into aflak.",
+                            //self.scalar().ndim()
                         ));
                     }
                     _ => {
