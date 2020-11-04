@@ -342,121 +342,144 @@ impl MenuBar for primitives::WcsArray {
     {
         use primitives::ndarray::Dimension;
         let ui = &ctx.ui;
-        match self.scalar().dim().ndim() {
-            0 => {
-                let arr = self.array();
-                let val = arr.scalar()[[]];
-                let unit = arr.unit().repr();
-                ui.text(format!("{} {}", val, unit));
-            }
-            1 => {
-                let state = &mut ctx.window.image1d_state;
-                update_state_from_editor(
-                    state.stored_values_mut(),
-                    &ctx.window.editable_values,
-                    ctx.node_editor,
-                );
-                let unit = self.array().unit().repr();
-                let transform = if ctx.window.show_pixels {
-                    None
-                } else {
-                    match (self.axes(), self.wcs()) {
-                        (Some(axes), Some(wcs)) => {
-                            let axis = &axes[0];
-                            Some(AxisTransform::new(axis.name(), axis.unit(), move |t| {
-                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                            }))
-                        }
-                        _ => None,
+        match &self.visualization{
+            None =>{
+                match self.scalar().dim().ndim() {
+                    0 => {
+                        let arr = self.array();
+                        let val = arr.scalar()[[]];
+                        let unit = arr.unit().repr();
+                        ui.text(format!("{} {}", val, unit));
                     }
-                };
-                if let Err(e) = ui.image1d(&self.scalar1(), "", unit, transform.as_ref(), state) {
-                    ui.text(format!("Error on drawing plot! {}", e))
-                }
-                update_editor_from_state(
-                    state.stored_values(),
-                    &mut ctx.window.editable_values,
-                    ctx.node_editor,
-                );
-            }
-            2 => {
-                let state = &mut ctx.window.image2d_state;
-                update_state_from_editor(
-                    state.stored_values_mut(),
-                    &ctx.window.editable_values,
-                    &ctx.node_editor,
-                );
-                let texture_id = TextureId::from(hash_outputid(ctx.output));
-                let (x_transform, y_transform) = if ctx.window.show_pixels {
-                    (None, None)
-                } else {
-                    match (self.axes(), self.wcs()) {
-                        (Some(axes), Some(wcs)) => {
-                            let axis0 = &axes[0];
-                            let axis1 = &axes[1];
-                            (
-                                Some({
-                                    AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
-                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                                    })
-                                }),
-                                Some(AxisTransform::new(axis0.name(), axis1.unit(), {
-                                    let max_height =
-                                        (self.scalar().dim().as_array_view().first().unwrap() - 1)
-                                            as f32;
-                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
-                                })),
-                            )
-                        }
-                        _ => (None, None),
-                    }
-                };
-                let unit = self.array().unit().repr();
-                let new_incoming_image = match state.image_created_on() {
-                    Some(image_created_on) => ctx.created_on > image_created_on,
-                    None => true,
-                };
-                if new_incoming_image {
-                    let value_ref: ArcRef<_> = ctx.value.clone().into();
-                    let image_ref = value_ref.map(|value| {
-                        if let IOValue::Image(image) = value {
-                            image.scalar()
+                    1 => {
+                        let state = &mut ctx.window.image1d_state;
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
+                        let unit = self.array().unit().repr();
+                        let transform = if ctx.window.show_pixels {
+                        None
                         } else {
-                            unreachable!("Expect an Image")
+                            match (self.axes(), self.wcs()) {
+                                (Some(axes), Some(wcs)) => {
+                                    let axis = &axes[0];
+                                    Some(AxisTransform::new(axis.name(), axis.unit(), move |t| {
+                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                    }))
+                                }
+                                _ => None,
+                            }
+                        };
+                        if let Err(e) = ui.image1d(&self.scalar1(), "", unit, transform.as_ref(), state) {
+                            ui.text(format!("Error on drawing plot! {}", e))
                         }
-                    });
-                    if let Err(e) = state.set_image(
-                        image_ref,
-                        ctx.created_on,
-                        ctx.gl_ctx,
-                        texture_id,
-                        ctx.textures,
-                    ) {
-                        ui.text(format!("Error on creating image! {}", e));
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
+                    }
+                    2 => {
+                        let state = &mut ctx.window.image2d_state;
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            &ctx.node_editor,
+                        );
+                        let texture_id = TextureId::from(hash_outputid(ctx.output));
+                        let (x_transform, y_transform) = if ctx.window.show_pixels {
+                            (None, None)
+                        } else {
+                            match (self.axes(), self.wcs()) {
+                                (Some(axes), Some(wcs)) => {
+                                    let axis0 = &axes[0];
+                                    let axis1 = &axes[1];
+                                    (
+                                        Some({
+                                            AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
+                                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                            })
+                                        }),
+                                        Some(AxisTransform::new(axis0.name(), axis1.unit(), {
+                                            let max_height =
+                                                (self.scalar().dim().as_array_view().first().unwrap() - 1)
+                                                    as f32;
+                                            move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                        })),
+                                    )
+                                }
+                                _ => (None, None),
+                            }
+                        };
+                        let unit = self.array().unit().repr();
+                        let new_incoming_image = match state.image_created_on() {
+                            Some(image_created_on) => ctx.created_on > image_created_on,
+                            None => true,
+                        };
+                        if new_incoming_image {
+                            let value_ref: ArcRef<_> = ctx.value.clone().into();
+                            let image_ref = value_ref.map(|value| {
+                                if let IOValue::Image(image) = value {
+                                    image.scalar()
+                                } else {
+                                    unreachable!("Expect an Image")
+                                }
+                            });
+                            if let Err(e) = state.set_image(
+                                image_ref,
+                                ctx.created_on,
+                                ctx.gl_ctx,
+                                texture_id,
+                                ctx.textures,
+                            ) {
+                                ui.text(format!("Error on creating image! {}", e));
+                            }
+                        }
+                        if let Err(e) = ui.image2d(
+                            ctx.gl_ctx,
+                            ctx.textures,
+                            texture_id,
+                            unit,
+                            x_transform.as_ref(),
+                            y_transform.as_ref(),
+                            state,
+                        ) {
+                            ui.text(format!("Error on drawing image! {}", e));
+                        }
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
+                    }
+                    _ => {
+                        ui.text(format!(
+                            "Unimplemented for image of dimension {}",
+                            self.scalar().ndim()
+                        ));
                     }
                 }
-                if let Err(e) = ui.image2d(
-                    ctx.gl_ctx,
-                    ctx.textures,
-                    texture_id,
-                    unit,
-                    x_transform.as_ref(),
-                    y_transform.as_ref(),
-                    state,
-                ) {
-                    ui.text(format!("Error on drawing image! {}", e));
-                }
-                update_editor_from_state(
-                    state.stored_values(),
-                    &mut ctx.window.editable_values,
-                    ctx.node_editor,
-                );
             }
-            _ => {
-                ui.text(format!(
-                    "Unimplemented for image of dimension {}",
-                    self.scalar().ndim()
-                ));
+            Some(tag) => {
+                match tag.as_ref(){
+                    "BPT" =>  {
+                        ui.text(format!(
+                            "There are still many problems in BPT diagram, including:
+1.output node can only recognize one input of Wcsarray type, while BPT diagram may need three or more inputs. Should output node be modified?
+2.BPT diagram is essentially a combination of scatter plot and line plot. Does it need to develop independent scatter plot and line plot and more common drawing methods?
+3.A toolkit named "Implot" has been found in crate of Rust language, which can realize many drawing methods. Wonder if it can be directly introduced into aflak.",
+                            self.scalar().ndim()
+                        ));
+                    }
+                    _ => {
+                        ui.text(format!(
+                            "Unimplemented for visualization method {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                }
             }
         }
     }
