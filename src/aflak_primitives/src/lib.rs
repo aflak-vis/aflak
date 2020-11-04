@@ -381,6 +381,44 @@ Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * si
                     vec![run_gaussian_mean_with_mask(image, start_mask, end_mask)]
                 }
             ),
+            cake_transform!(
+                "Create Emission line map from off-band and on-band.
+Parameters i_off, i_on, onband-width, min, is_emission.
+Compute value = (i1 - i2) * fl (if is_emission is true, the sign of this value turns over).Integral
+if value > max, value changes to 0.",
+                0, 1, 0,
+                create_emission_line_map<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
+                    vec![run_create_emission_line_map(i_off, i_on, *fl, *max, *is_emission)]
+                }
+            ),
+            cake_transform!(
+                "Calculate the logarithm of the ratio of the intensities of the four emission lines.
+Compare them with the ideal curve.
+Parameters: element_1, element_2, element_3, element_4.
+Compute log(element_1 / element_2) and log(element_3 / element_4).
+BPT map could be plotted by directly connecting output node.
+The visualization tag should be changed if BPT diagram is wanted.
+" ,
+                0, 1, 0,
+                bpt_diagram <IOValue, IOErr>(element_1: Image, element_2: Image, element_3: Image, element_4: Image)
+                -> Image {
+                    vec![run_bpt_map(element_1, element_2, element_3, element_4)]
+                }
+            ),
+            cake_transform!(
+                "Reset the calculation result of infinity caused by missing data or other reasons in the data set to 0",
+                1, 0, 0,
+                set_to_zero<IOValue, IOErr>(image: Image) -> Image {
+                    vec![run_set_to_zero(image)]
+                }
+            ),
+            cake_transform!(
+                "Change the visualization tag to BPT, maybe can also be used to realize more tags",
+                1, 0, 0,
+                change_tag<IOValue, IOErr>(image: Image) -> Image {
+                    vec![run_change_tag(image)]
+                }
+            ),
         ]
     };
 }
@@ -1202,6 +1240,73 @@ fn run_gaussian_mean_with_mask(
             Unit::None,
         )))),
     }
+}
+
+fn run_create_emission_line_map(
+    i_off: &WcsArray,
+    i_on: &WcsArray,
+    fl: f32,
+    max: f32,
+    is_emission: bool,
+) -> Result<IOValue, IOErr> {
+    let i_off_integral = i_off.scalar();
+    let i_on_integral = i_on.scalar();
+    let out = (i_off_integral - i_on_integral) * fl * (if is_emission { -1.0 } else { 1.0 });
+    let result = out.map(|v| if *v > max { 0.0 } else { *v });
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
+}
+
+fn run_bpt_map(
+    element_1: &WcsArray,
+    element_2: &WcsArray,
+    element_3: &WcsArray,
+    element_4: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    let element_1_intensity = element_1.scalar();
+    let element_2_intensity = element_2.scalar();
+    let element_3_intensity = element_3.scalar();
+    let element_4_intensity = element_4.scalar();
+    let ratio_axis_y = (element_1_intensity / element_2_intensity).map(|v| (*v).log10());
+    let ratio_axis_x = (element_3_intensity / element_4_intensity).map(|v| (*v).log10());
+    let ratio_ideal = 0.61 / (ratio_axis_x - 0.47) + 1.19;
+    let ratio_compare = ratio_axis_y - ratio_ideal;
+
+    let result = ratio_compare.map(|v| {
+        if (*v).is_nan() {
+            1.0
+        } else if *v > 0.0 {
+            3.0
+        } else {
+            2.0
+        }
+    });
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
+}
+
+fn run_set_to_zero(image: &WcsArray) -> Result<IOValue, IOErr> {
+    let mut out = image.clone();
+    for v in out.scalar_mut().iter_mut() {
+        if *v < 0.0 {
+            *v = -0.01
+        };
+    }
+
+    Ok(IOValue::Image(out))
+}
+
+fn run_change_tag(data_in: &WcsArray) -> Result<IOValue, IOErr> {
+    let mut out = data_in.clone();
+    out.visualization = Some(String::from("BPT"));
+
+    Ok(IOValue::Image(out))
 }
 
 #[cfg(test)]
