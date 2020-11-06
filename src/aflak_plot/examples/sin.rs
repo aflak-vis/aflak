@@ -8,12 +8,12 @@ use aflak_plot::{
     plot::{self, UiImage1d},
     AxisTransform,
 };
-use imgui::Window;
+use imgui::{Condition, Window};
 
 use std::f32;
 use std::path::PathBuf;
 
-fn main() -> Result<(), support::Error> {
+fn main() {
     let config = support::AppConfig {
         title: "Example sin.rs".to_owned(),
         ini_filename: Some(PathBuf::from("sin.ini")),
@@ -23,18 +23,20 @@ fn main() -> Result<(), support::Error> {
 
     const MAX: f32 = 4.0 * f32::consts::PI;
     let sin = ndarray::Array1::linspace(0.0, MAX, 100).mapv_into(f32::sin);
-
-    support::run(config, |ui, _, _| {
-        Window::new(im_str!("Sin")).build(ui, || {
-            ui.image1d(
-                &sin,
-                "sin(x)",
-                "m",
-                Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
-                &mut state,
-            )
-            .expect("Image1d failed");
-        });
+    let system = support::init(config.clone());
+    system.main_loop(config, move |_run, ui, _, _| {
+        Window::new(im_str!("Sin"))
+            .size([430.0, 450.0], Condition::FirstUseEver)
+            .build(ui, || {
+                ui.image1d(
+                    &sin,
+                    "sin(x)",
+                    "m",
+                    Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
+                    &mut state,
+                )
+                .expect("Image1d failed");
+            });
         true
     })
 }
