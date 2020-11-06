@@ -21,6 +21,7 @@ fn main() {
     };
     let mut state = imshow::State::default();
     let texture_id = imgui::TextureId::from(1);
+    let system = support::init(config.clone());
 
     support::init(config).main_loop(move |ui, gl_ctx, textures| {
         if state.image_created_on().is_none() {
