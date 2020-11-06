@@ -34,10 +34,7 @@ use aflak::Aflak;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
-fn main() -> support::Result<()> {
-    let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
-    let transformations = transformations_ref.as_slice();
-
+fn main() {
     let matches = cli::build_cli().version(version()).get_matches();
 
     let import_data = match open_buffer(&matches) {
@@ -69,7 +66,11 @@ fn main() -> support::Result<()> {
         maximized: true,
         ..Default::default()
     };
-    support::run(config, |ui, gl_ctx, textures| {
+    let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
+
+    let system = support::init(config.clone());
+    system.main_loop(config, move |_run, ui, gl_ctx, textures| {
+        let transformations = transformations_ref.as_slice();
         aflak.main_menu_bar(ui);
         aflak.node_editor(ui, transformations);
         aflak.output_windows(ui, gl_ctx, textures);
