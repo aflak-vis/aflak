@@ -2,8 +2,8 @@ use collections::HashSet;
 use std::error::Error;
 
 use imgui::{
-    ChildWindow, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable, StyleColor,
-    StyleVar, Ui, WindowDrawList, WindowFocusedFlags,
+    ChildWindow, CollapsingHeader, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable,
+    StyleColor, StyleVar, Ui, WindowDrawList, WindowFocusedFlags,
 };
 use serde::{Deserialize, Serialize};
 
@@ -146,10 +146,9 @@ where
             .build(ui, || {
                 ui.spacing();
                 ui.separator();
-                if ui
-                    .collapsing_header(im_str!("Node List##node_list_1"))
+                if CollapsingHeader::new(im_str!("Node List##node_list_1"))
                     .default_open(true)
-                    .build()
+                    .build(&ui)
                 {
                     ui.separator();
                     self.show_node_list(ui, dst);
@@ -158,10 +157,9 @@ where
                 if let Some(node_id) = self.active_node {
                     ui.spacing();
                     ui.separator();
-                    if ui
-                        .collapsing_header(im_str!("Active Node##activeNode"))
+                    if CollapsingHeader::new(im_str!("Active Node##activeNode"))
                         .default_open(true)
-                        .build()
+                        .build(&ui)
                     {
                         ui.separator();
                         let node = dst.get_node(&node_id).expect("Failed to get active node");
