@@ -99,9 +99,9 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                 if let Some(dirname) = dirname.to_str() {
                     let im_dirname = ImString::new(dirname);
                     let open = default_dir.starts_with(&i);
-                    ui.tree_node(&im_dirname)
+                    TreeNode::new(&im_dirname)
                         .opened(open, Condition::Once)
-                        .build(|| {
+                        .build(&ui, || {
                             let out = view_dirs(ui, &i, extensions, default_dir);
                             match ret {
                                 // Do not overwrite return value when it is already set
