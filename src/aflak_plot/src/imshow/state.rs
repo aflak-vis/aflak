@@ -833,7 +833,9 @@ where
                                 .size([300.0, 50.0], Condition::Appearing)
                                 .resizable(false)
                                 .build(ui, || {
-                                    Slider::new(im_str!("Degree"), -180..=180).build(ui, degree);
+                                    Slider::new(im_str!("Degree"))
+                                        .range(-180..=180)
+                                        .build(ui, degree);
                                 });
                             if !*allmoving && !edgemoving.0 && !edgemoving.1 {
                                 if *degree == 0 {
