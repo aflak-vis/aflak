@@ -3,7 +3,7 @@ mod state;
 
 use imgui::Ui;
 use implot::PlotUi;
-use ndarray::{ArrayBase, Data, IxDyn};
+use ndarray::{ArrayBase, Data, Ix2};
 
 use super::interactions;
 use super::AxisTransform;
@@ -15,14 +15,14 @@ pub use self::state::State;
 pub trait UiScatter {
     fn scatter<S, FX, FY>(
         &self,
-        image: &ArrayBase<S, IxDyn>,
+        image: &ArrayBase<S, Ix2>,
         plot_ui: &PlotUi,
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
-        S: Data<Elem = f64>,
+        S: Data<Elem = f32>,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32;
 }
@@ -34,14 +34,14 @@ impl<'ui> UiScatter for Ui<'ui> {
     /// interaction with the window.
     fn scatter<S, FX, FY>(
         &self,
-        image: &ArrayBase<S, IxDyn>,
+        image: &ArrayBase<S, Ix2>,
         plot_ui: &PlotUi,
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State,
     ) -> Result<(), Error>
     where
-        S: Data<Elem = f64>,
+        S: Data<Elem = f32>,
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
@@ -49,6 +49,6 @@ impl<'ui> UiScatter for Ui<'ui> {
         let window_pos = self.window_pos();
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
-        state.plot(self, image, plot_ui, xaxis, yaxis)
+        state.plot(self, image, plot_ui, xaxis, yaxis, size)
     }
 }
