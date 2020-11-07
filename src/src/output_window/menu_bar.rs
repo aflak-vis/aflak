@@ -19,8 +19,11 @@ use crate::primitives::{
 use aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
+    scatter_lineplot::UiScatter,
     AxisTransform, InteractionIterMut, ValueIter,
 };
+
+use implot::Context;
 
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
 
@@ -480,25 +483,36 @@ impl MenuBar for primitives::WcsArray {
                     ));
                 }
             },
-            Some(tag) => {
-                match tag.as_ref() {
-                    "BPT" => {
-                        ui.text(format!(
-                            "There are still many problems in BPT diagram, including:
-1.output node can only recognize one input of Wcsarray type, while BPT diagram may need three or more inputs. Should output node be modified?
-2.BPT diagram is essentially a combination of scatter plot and line plot. Does it need to develop independent scatter plot and line plot and more common drawing methods?
-3.A toolkit named \"Implot\" has been found in crate of Rust language, which can realize many drawing methods. Wonder if it can be directly introduced into aflak.",
-                            //self.scalar().ndim()
-                        ));
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().dim().ndim() {
+                    2 => {
+                        let state = &mut ctx.window.scatter_lineplot_state;
+                        let plotcontext = Context::create();
+                        let plot_ui = plotcontext.get_plot_ui();
+                        if let Err(e) = ui.scatter(
+                            &self.scalar2(),
+                            &plot_ui,
+                            Some(&AxisTransform::new("X Axis", "m", |x| x)),
+                            Some(&AxisTransform::new("Y Axis", "m", |y| y)),
+                            state,
+                        ) {
+                            ui.text(format!("Error on drawing plot! {}", e))
+                        }
                     }
                     _ => {
                         ui.text(format!(
-                            "Unimplemented for visualization method {}",
+                            "Unimplemented for scatter of dimension {}",
                             self.scalar().ndim()
                         ));
                     }
+                },
+                _ => {
+                    ui.text(format!(
+                        "Unimplemented for visualization method {}",
+                        self.scalar().ndim()
+                    ));
                 }
-            }
+            },
         }
     }
 
