@@ -30,7 +30,7 @@ fn main() {
 
     system.main_loop(config, move |_run, ui, _, _| {
         let plot_ui = plotcontext.get_plot_ui();
-        let mut image_data = {
+        let image_data = {
             const WIDTH: usize = 10;
             const HEIGHT: usize = 10;
             let mut image_data = Vec::with_capacity(WIDTH * HEIGHT);
@@ -43,7 +43,7 @@ fn main() {
             }
             ndarray::Array::from_shape_vec(vec![WIDTH * HEIGHT, 3], image_data).unwrap()
         };
-        let mut image_data = image_data.slice(s![.., ..]);
+        let image_data = image_data.slice(s![.., ..]);
         Window::new(im_str!("Scatter plots example"))
             .size([430.0, 450.0], Condition::FirstUseEver)
             .build(ui, || {
