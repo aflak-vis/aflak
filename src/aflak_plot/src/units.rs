@@ -19,7 +19,7 @@ impl<'a, F> AxisTransform<'a, F> {
 
     /// Get axis label.
     pub fn label(&self) -> &str {
-        &self.unit
+        &self.label
     }
 
     /// Get axis unit.
