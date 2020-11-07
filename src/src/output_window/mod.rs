@@ -12,7 +12,7 @@ use crate::cake::{OutputId, TransformIdx};
 use crate::primitives::{ndarray, IOValue, SuccessOut};
 use aflak_plot::{
     imshow::{self, Textures},
-    plot, InteractionId,
+    plot, scatter_lineplot, InteractionId,
 };
 
 use self::menu_bar::MenuBar;
@@ -23,6 +23,7 @@ use crate::aflak::AflakNodeEditor;
 pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
+    scatter_lineplot_state: scatter_lineplot::State,
     editable_values: EditableValues,
     show_pixels: bool,
 }
