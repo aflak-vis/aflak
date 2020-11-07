@@ -13,8 +13,11 @@ extern crate imgui_glium_renderer;
 #[macro_use]
 extern crate ndarray;
 
+extern crate implot;
+
 pub mod imshow;
 pub mod plot;
+pub mod scatter_lineplot;
 
 mod err;
 mod interactions;
