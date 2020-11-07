@@ -53,7 +53,8 @@ fn main() {
                     Some(&AxisTransform::new("X Axis", "m", |x| x)),
                     Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                     &mut state,
-                );
+                )
+                .expect("Scatter failed");
             });
         true
     });
