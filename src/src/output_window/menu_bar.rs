@@ -309,30 +309,48 @@ impl MenuBar for ROI {
 
 impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match self.scalar().ndim() {
-            1 | 2 => {
-                let has_wcs_data = self.wcs().is_some();
-                MenuItem::new(im_str!("Show pixels"))
-                    .enabled(has_wcs_data)
-                    .build_with_ref(ui, &mut window.show_pixels);
-                if !has_wcs_data && ui.is_item_hovered() {
-                    ui.tooltip_text("Data has no WCS metadata attached.");
+        match &self.visualization {
+            None => match self.scalar().ndim() {
+                1 | 2 => {
+                    let has_wcs_data = self.wcs().is_some();
+                    MenuItem::new(im_str!("Show pixels"))
+                        .enabled(has_wcs_data)
+                        .build_with_ref(ui, &mut window.show_pixels);
+                    if !has_wcs_data && ui.is_item_hovered() {
+                        ui.tooltip_text("Data has no WCS metadata attached.");
+                    }
                 }
-            }
-            _ => {}
+                _ => {}
+            },
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().ndim() {
+                    2 => {}
+                    _ => {}
+                },
+                _ => {}
+            },
         }
     }
 
     fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match self.scalar().ndim() {
-            2 => {
-                if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
-                    MenuItem::new(im_str!("Approx Line"))
-                        .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
-                    menu.end(ui);
+        match &self.visualization {
+            None => match self.scalar().ndim() {
+                2 => {
+                    if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                        MenuItem::new(im_str!("Approx Line"))
+                            .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
+                        menu.end(ui);
+                    }
                 }
-            }
-            _ => {}
+                _ => {}
+            },
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().ndim() {
+                    2 => {}
+                    _ => {}
+                },
+                _ => {}
+            },
         }
     }
 
