@@ -26,6 +26,7 @@ dependencies = [
  "imgui 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui-glium-renderer 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui_file_explorer 0.0.3",
+ "implot 0.2.0",
  "node_editor 0.0.3",
  "owning_ref 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
