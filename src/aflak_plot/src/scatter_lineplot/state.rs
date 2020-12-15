@@ -98,8 +98,10 @@ impl State {
                             .index_axis(Axis(1), 1)
                             .slice(s![0..data_points])
                             .to_vec();
-                        let x_positions = x_positions.iter().map(|n| **n as f64).collect();
-                        let y_positions = y_positions.iter().map(|n| **n as f64).collect();
+                        let x_positions = x_positions.iter().map(|&&n| n as f64).collect::<Vec<f64>>();
+                        let y_positions = y_positions.iter().map(|&&n| n as f64).collect::<Vec<f64>>();
+                        //let x_positions = x_positions.iter().map(|n| **n as f64).collect();
+                        //let y_positions = y_positions.iter().map(|n| std::f64::from(**n)).collect();
                         if i == 0 {
                             let marker_choice =
                                 push_style_var_i32(&StyleVar::Marker, Marker::Circle as i32);
