@@ -10,7 +10,7 @@ use glium::{
 };
 use imgui::TextureId;
 use imgui_glium_renderer::Texture;
-use ndarray::{ArrayBase, ArrayD, ArrayView2, Data, Dimension, Ix2};
+use ndarray::{ArrayBase, ArrayD, ArrayView2, ArrayView3, Data, Dimension, Ix2, Ix3, Axis};
 
 use super::hist;
 use super::lut::ColorLUT;
@@ -36,6 +36,39 @@ where
             data.push(r);
             data.push(g);
             data.push(b);
+        }
+        Ok(RawImage2d {
+            data: Cow::Owned(data),
+            width: n as u32,
+            height: m as u32,
+            format: ClientFormat::U8U8U8,
+        })
+    } else {
+        Err(Error::Msg("vmin, vmax not set"))
+    }
+}
+
+fn make_raw_image_RGB<S>(
+    image: &ArrayBase<S, Ix3>,
+    vmin: f32,
+    vmax: f32,
+    lut: &ColorLUT,
+) -> Result<RawImage2d<'static, u8>, Error>
+where
+    S: Data<Elem = f32>,
+{
+    let (c, m, n) = image.dim();
+    let mut data = Vec::with_capacity(3 * n * m);
+    if !vmin.is_nan() && !vmax.is_nan() {
+        for (i, slice) in image.axis_iter(Axis(1)).enumerate() {
+            for (j, channel) in slice.axis_iter(Axis(1)).enumerate(){
+                let r = channel[0] / 65535.0 * 255.0;
+                let g = channel[1] / 65535.0 * 255.0;
+                let b = channel[2] / 65535.0 * 255.0;
+                data.push(r as u8);
+                data.push(g as u8);
+                data.push(b as u8);
+            }
         }
         Ok(RawImage2d {
             data: Cow::Owned(data),
@@ -79,6 +112,14 @@ where
     image.slice(s![.., ..])
 }
 
+fn coerce_to_array_view3<I, A>(image: &I) -> ArrayView3<'_, A>
+where
+    I: Borrow<ArrayD<A>>,
+{
+    let image = image.borrow();
+    image.slice(s![.., .., ..])
+}
+
 impl<I> Image<I>
 where
     I: Borrow<ArrayD<f32>>,
@@ -114,6 +155,51 @@ where
             );
 
             let hist = hist::histogram(&image, vmin, vmax);
+            (vmin, vmax, tex_size, hist)
+        };
+
+        Ok(Image {
+            vmin,
+            vmax,
+            tex_size,
+            created_on: Some(created_on),
+            data: Some(image),
+            hist,
+        })
+    }
+
+    pub fn color_new<F>(
+        image: I,
+        created_on: Instant,
+        ctx: &F,
+        texture_id: TextureId,
+        textures: &mut Textures,
+        lut: &ColorLUT,
+    ) -> Result<Image<I>, Error>
+    where
+        F: Facade,
+    {
+        let (vmin, vmax, tex_size, hist) = {
+            let image = coerce_to_array_view3(&image);
+            let vmin = lims::get_vmin(&image)?;
+            let vmax = lims::get_vmax(&image)?;
+
+            let raw = make_raw_image_RGB(&image, vmin, vmax, lut)?;
+            let gl_texture = Texture2d::new(ctx, raw)?;
+            let tex_size = gl_texture.dimensions();
+            let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
+            println!("{:?}", tex_size);
+            textures.replace(
+                texture_id,
+                Texture {
+                    texture: Rc::new(gl_texture),
+                    sampler: SamplerBehavior {
+                        ..Default::default()
+                    },
+                },
+            );
+
+            let hist = hist::histogram_color(&image, vmin, vmax);
             (vmin, vmax, tex_size, hist)
         };
 
