@@ -76,6 +76,9 @@ fn main() {
         aflak.output_windows(ui, gl_ctx, textures);
         aflak.show_errors(ui);
         aflak.file_dialog(ui);
+        if aflak.show_metrics {
+            ui.show_metrics_window(&mut aflak.show_metrics);
+        }
         !aflak.quit
     })
 }

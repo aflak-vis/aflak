@@ -25,6 +25,7 @@ pub struct Aflak {
     pub quit: bool,
     file_dialog: Option<FileDialog>,
     recent_files: Vec<PathBuf>,
+    pub show_metrics: bool,
 }
 
 impl Aflak {
@@ -37,12 +38,13 @@ impl Aflak {
             quit: false,
             file_dialog: None,
             recent_files: vec![],
+            show_metrics: false,
         }
     }
 
     pub fn main_menu_bar(&mut self, ui: &Ui) {
         let mut new_editor = false;
-
+        
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
             if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
                 if MenuItem::new(im_str!("New")).build(ui) {
@@ -62,6 +64,9 @@ impl Aflak {
                     menu.end(ui);
                 }
                 ui.separator();
+                if MenuItem::new(im_str!("Metrics")).build(ui) {
+                    self.show_metrics = !self.show_metrics;
+                }
                 if MenuItem::new(im_str!("Quit"))
                     .shortcut(im_str!("Alt+F4"))
                     .build(ui)
