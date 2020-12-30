@@ -415,8 +415,8 @@ The visualization tag should be changed if BPT diagram is wanted.
             cake_transform!(
                 "Change the visualization tag to BPT, maybe can also be used to realize more tags",
                 1, 0, 0,
-                change_tag<IOValue, IOErr>(image: Image) -> Image {
-                    vec![run_change_tag(image)]
+                change_tag<IOValue, IOErr>(image: Image, tag: Str = "".to_owned()) -> Image {
+                    vec![run_change_tag(image, tag)]
                 }
             ),
         ]
@@ -1302,9 +1302,9 @@ fn run_set_to_zero(image: &WcsArray) -> Result<IOValue, IOErr> {
     Ok(IOValue::Image(out))
 }
 
-fn run_change_tag(data_in: &WcsArray) -> Result<IOValue, IOErr> {
+fn run_change_tag(data_in: &WcsArray, tag: &str) -> Result<IOValue, IOErr> {
     let mut out = data_in.clone();
-    out.visualization = Some(String::from("BPT"));
+    out.visualization = Some(String::from(tag));
 
     Ok(IOValue::Image(out))
 }
