@@ -34,6 +34,8 @@ pub struct State<I> {
     circle_input: CircleInputState,
     image: image::Image<I>,
     pub show_approx_line: bool,
+    zoom: [f32; 2],
+    offset: [f32; 2],
 }
 
 #[derive(Default)]
@@ -92,6 +94,8 @@ impl<I> Default for State<I> {
             circle_input: Default::default(),
             image: Default::default(),
             show_approx_line: false,
+            zoom: [1.0, 1.0],
+            offset: [0.0, 0.0],
         }
     }
 }
@@ -363,6 +367,21 @@ where
 
         Image::new(texture_id, size).build(ui);
         let is_image_hovered = ui.is_item_hovered();
+
+        // Zoom along X-axis
+        let wheel_delta = ui.io().mouse_wheel;
+        let mouse_x = ui.io().mouse_pos[0];
+        let xvlims = (0.0, tex_size.0 as f32);
+
+        if wheel_delta != 0.0 {
+            const ZOOM_SPEED: f32 = 0.5;
+
+            let zoom_before = self.zoom[0];
+            self.zoom[0] *= 1.0 - wheel_delta * ZOOM_SPEED;
+            // Correct offset value so that the zoom be centered on the mouse position
+            self.offset[0] -= (self.zoom[0] - zoom_before)
+                * (xvlims.0 + (mouse_x - p[0]) / size[0] * (xvlims.1 - xvlims.0));
+        }
 
         let abs_mouse_pos = ui.io().mouse_pos;
         let mouse_pos = (abs_mouse_pos[0] - p[0], -abs_mouse_pos[1] + p[1] + size[1]);
