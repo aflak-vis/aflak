@@ -123,6 +123,21 @@ where
         Ok(())
     }
 
+    pub fn set_color_image<F>(
+        &mut self,
+        image: I,
+        created_on: Instant,
+        ctx: &F,
+        texture_id: TextureId,
+        textures: &mut Textures,
+    ) -> Result<(), Error>
+    where
+        F: Facade,
+    {
+        self.image = image::Image::color_new(image, created_on, ctx, texture_id, textures, &self.lut)?;
+        Ok(())
+    }
+
     pub fn image_created_on(&self) -> Option<Instant> {
         self.image.created_on()
     }
