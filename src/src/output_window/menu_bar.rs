@@ -506,6 +506,78 @@ impl MenuBar for primitives::WcsArray {
                         ));
                     }
                 },
+                "color_image" => match self.scalar().dim().ndim() {
+                    3 => {
+                        let state = &mut ctx.window.image2d_state;
+                        let texture_id = TextureId::from(hash_outputid(ctx.output));
+                        let (x_transform, y_transform) = if ctx.window.show_pixels {
+                            (None, None)
+                        } else {
+                            match (self.axes(), self.wcs()) {
+                                (Some(axes), Some(wcs)) => {
+                                    let axis0 = &axes[0];
+                                    let axis1 = &axes[1];
+                                    (
+                                        Some({
+                                            AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
+                                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                            })
+                                        }),
+                                        Some(AxisTransform::new(axis1.name(), axis1.unit(), {
+                                            let max_height =
+                                                (self.scalar().dim().as_array_view().first().unwrap()
+                                                    - 1)
+                                                    as f32;
+                                            move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                        })),
+                                    )
+                                }
+                                _ => (None, None),
+                            }
+                        };
+                        let unit = self.array().unit().repr();
+                        let new_incoming_image = match state.image_created_on() {
+                            Some(image_created_on) => ctx.created_on > image_created_on,
+                            None => true,
+                        };
+                        if new_incoming_image {
+                        let value_ref: ArcRef<_> = ctx.value.clone().into();
+                        let image_ref = value_ref.map(|value| {
+                            if let IOValue::Image(image) = value {
+                                image.scalar()
+                            } else {
+                                unreachable!("Expect an Image")
+                            }
+                        });
+                        if let Err(e) = state.set_color_image(
+                            image_ref,
+                            ctx.created_on,
+                            ctx.gl_ctx,
+                            texture_id,
+                            ctx.textures,
+                        ) {
+                            ui.text(format!("Error on creating image! {}", e));
+                        }
+                    }
+                        if let Err(e) = ui.color_image(
+                            ctx.gl_ctx,
+                            ctx.textures,
+                            texture_id,
+                            unit,
+                            x_transform.as_ref(),
+                            y_transform.as_ref(),
+                            state,
+                        ) {
+                            ui.text(format!("Error on drawing image! {}", e));
+                        }
+                    },
+                    _ => {
+                        ui.text(format!(
+                            "Unimplemented for color image of dimension {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                }
                 _ => {
                     ui.text(format!(
                         "Unimplemented for visualization method {}",
