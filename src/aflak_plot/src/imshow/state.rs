@@ -1,12 +1,11 @@
-use std::borrow::Borrow;
-use std::time::Instant;
-
 use glium::backend::Facade;
 use imgui::{
-    ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
-    Ui, Window,
+    ChildWindow, ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider,
+    TextureId, Ui, Window,
 };
 use ndarray::ArrayD;
+use std::borrow::Borrow;
+use std::time::Instant;
 
 use super::image;
 use super::interactions::{
@@ -138,7 +137,8 @@ where
     where
         F: Facade,
     {
-        self.image = image::Image::color_new(image, created_on, ctx, texture_id, textures, &self.lut)?;
+        self.image =
+            image::Image::color_new(image, created_on, ctx, texture_id, textures, &self.lut)?;
         Ok(())
     }
 

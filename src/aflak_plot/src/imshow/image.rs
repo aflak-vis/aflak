@@ -10,7 +10,7 @@ use glium::{
 };
 use imgui::TextureId;
 use imgui_glium_renderer::Texture;
-use ndarray::{ArrayBase, ArrayD, ArrayView2, ArrayView3, Data, Dimension, Ix2, Ix3, Axis};
+use ndarray::{ArrayBase, ArrayD, ArrayView2, ArrayView3, Axis, Data, Dimension, Ix2, Ix3};
 
 use super::hist;
 use super::lut::ColorLUT;
@@ -48,20 +48,20 @@ where
     }
 }
 
-fn make_raw_image_RGB<S>(
+fn make_raw_image_rgb<S>(
     image: &ArrayBase<S, Ix3>,
     vmin: f32,
     vmax: f32,
-    lut: &ColorLUT,
+    _lut: &ColorLUT,
 ) -> Result<RawImage2d<'static, u8>, Error>
 where
     S: Data<Elem = f32>,
 {
-    let (c, m, n) = image.dim();
+    let (_c, m, n) = image.dim();
     let mut data = Vec::with_capacity(3 * n * m);
     if !vmin.is_nan() && !vmax.is_nan() {
-        for (i, slice) in image.axis_iter(Axis(1)).enumerate() {
-            for (j, channel) in slice.axis_iter(Axis(1)).enumerate(){
+        for (_, slice) in image.axis_iter(Axis(1)).enumerate() {
+            for (_, channel) in slice.axis_iter(Axis(1)).enumerate() {
                 let r = channel[0] / 65535.0 * 255.0;
                 let g = channel[1] / 65535.0 * 255.0;
                 let b = channel[2] / 65535.0 * 255.0;
@@ -184,7 +184,7 @@ where
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
 
-            let raw = make_raw_image_RGB(&image, vmin, vmax, lut)?;
+            let raw = make_raw_image_rgb(&image, vmin, vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
             let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
