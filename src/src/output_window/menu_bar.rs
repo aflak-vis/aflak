@@ -519,16 +519,24 @@ impl MenuBar for primitives::WcsArray {
                                     let axis1 = &axes[1];
                                     (
                                         Some({
-                                            AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
-                                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                                            })
+                                            AxisTransform::new(
+                                                axis0.name(),
+                                                axis0.unit(),
+                                                move |t| wcs.pix2world([t, 0.0, 0.0, 0.0])[0],
+                                            )
                                         }),
                                         Some(AxisTransform::new(axis1.name(), axis1.unit(), {
-                                            let max_height =
-                                                (self.scalar().dim().as_array_view().first().unwrap()
-                                                    - 1)
-                                                    as f32;
-                                            move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                            let max_height = (self
+                                                .scalar()
+                                                .dim()
+                                                .as_array_view()
+                                                .first()
+                                                .unwrap()
+                                                - 1)
+                                                as f32;
+                                            move |t| {
+                                                wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                            }
                                         })),
                                     )
                                 }
@@ -570,14 +578,14 @@ impl MenuBar for primitives::WcsArray {
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
-                    },
+                    }
                     _ => {
                         ui.text(format!(
                             "Unimplemented for color image of dimension {}",
                             self.scalar().ndim()
                         ));
                     }
-                }
+                },
                 _ => {
                     ui.text(format!(
                         "Unimplemented for visualization method {}",
