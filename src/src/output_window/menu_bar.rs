@@ -61,15 +61,20 @@ pub trait MenuBar {
         F: glium::backend::Facade,
     {
         let mut errors = vec![];
-        window.menu_bar(true).build(ctx.ui, || {
-            errors = MenuBar::menu_bar(self, ctx.ui, ctx.output, ctx.window);
-            MenuBar::visualize(self, ctx);
-        });
+        window
+            .menu_bar(true)
+            .scroll_bar(false)
+            .scrollable(false)
+            .build(ctx.ui, || {
+                errors = MenuBar::menu_bar(self, ctx.ui, ctx.output, ctx.window);
+                MenuBar::visualize(self, ctx);
+            });
         errors
     }
 
     fn file_submenu(&self, _: &Ui, _: &mut OutputWindow) {}
     fn other_menu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn zoom_menu(&self, _: &Ui, _: &mut OutputWindow) {}
 
     fn file_name(&self, output: OutputId) -> String {
         format!("output-{}.{}", output.id(), Self::EXTENSION)
@@ -339,6 +344,10 @@ impl MenuBar for primitives::WcsArray {
         match &self.visualization {
             None => match self.scalar().ndim() {
                 2 => {
+                    if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                        self.zoom_menu(ui, window);
+                        menu.end(ui);
+                    }
                     if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
                         MenuItem::new(im_str!("Approx Line"))
                             .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
@@ -352,8 +361,61 @@ impl MenuBar for primitives::WcsArray {
                     2 => {}
                     _ => {}
                 },
+                "color_image" => match self.scalar().ndim() {
+                    3 => {
+                        if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                            self.zoom_menu(ui, window);
+                            menu.end(ui);
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             },
+        }
+    }
+
+    fn zoom_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        if let Some(menu) = ui.begin_menu(im_str!("Zoom"), true) {
+            if MenuItem::new(im_str!("Fit"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[0])
+            {
+                if window.image2d_state.zoomkind[0] == true {
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[0] = true;
+                }
+            }
+            if MenuItem::new(im_str!("50%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[1])
+            {
+                if window.image2d_state.zoomkind[1] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                }
+            }
+            if MenuItem::new(im_str!("100%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[2])
+            {
+                if window.image2d_state.zoomkind[2] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                }
+            }
+            if MenuItem::new(im_str!("200%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[3])
+            {
+                if window.image2d_state.zoomkind[3] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                }
+            }
+            menu.end(ui);
         }
     }
 
@@ -441,6 +503,7 @@ impl MenuBar for primitives::WcsArray {
                         None => true,
                     };
                     if new_incoming_image {
+                        state.zoom_init();
                         let value_ref: ArcRef<_> = ctx.value.clone().into();
                         let image_ref = value_ref.map(|value| {
                             if let IOValue::Image(image) = value {
@@ -549,24 +612,25 @@ impl MenuBar for primitives::WcsArray {
                             None => true,
                         };
                         if new_incoming_image {
-                        let value_ref: ArcRef<_> = ctx.value.clone().into();
-                        let image_ref = value_ref.map(|value| {
-                            if let IOValue::Image(image) = value {
-                                image.scalar()
-                            } else {
-                                unreachable!("Expect an Image")
+                            state.zoom_init();
+                            let value_ref: ArcRef<_> = ctx.value.clone().into();
+                            let image_ref = value_ref.map(|value| {
+                                if let IOValue::Image(image) = value {
+                                    image.scalar()
+                                } else {
+                                    unreachable!("Expect an Image")
+                                }
+                            });
+                            if let Err(e) = state.set_color_image(
+                                image_ref,
+                                ctx.created_on,
+                                ctx.gl_ctx,
+                                texture_id,
+                                ctx.textures,
+                            ) {
+                                ui.text(format!("Error on creating image! {}", e));
                             }
-                        });
-                        if let Err(e) = state.set_color_image(
-                            image_ref,
-                            ctx.created_on,
-                            ctx.gl_ctx,
-                            texture_id,
-                            ctx.textures,
-                        ) {
-                            ui.text(format!("Error on creating image! {}", e));
                         }
-                    }
                         if let Err(e) = ui.color_image(
                             ctx.gl_ctx,
                             ctx.textures,
