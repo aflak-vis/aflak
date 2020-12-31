@@ -125,8 +125,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
 
     fn color_image<F, FX, FY, I>(
         &self,
-        ctx: &F,
-        textures: &mut Textures,
+        _ctx: &F,
+        _textures: &mut Textures,
         texture_id: TextureId,
         vunit: &str,
         xaxis: Option<&AxisTransform<FX>>,
@@ -151,7 +151,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size[0] - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size[1] - (cursor_pos[1] - window_pos[1]),
         );
-        let ([p, size], x_label_height) =
+        let ([_p, _size], _x_label_height) =
             state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
 
         /*state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
@@ -192,18 +192,18 @@ pub trait UiImage2d {
         I: Borrow<ArrayD<f32>>;
 
     fn color_image<F, FX, FY, I>(
-            &self,
-            ctx: &F,
-            textures: &mut Textures,
-            texture_id: TextureId,
-            vunit: &str,
-            xaxis: Option<&AxisTransform<FX>>,
-            yaxis: Option<&AxisTransform<FY>>,
-            state: &mut State<I>,
-        ) -> Result<(), Error>
-        where
-            F: Facade,
-            FX: Fn(f32) -> f32,
-            FY: Fn(f32) -> f32,
-            I: Borrow<ArrayD<f32>>;
+        &self,
+        ctx: &F,
+        textures: &mut Textures,
+        texture_id: TextureId,
+        vunit: &str,
+        xaxis: Option<&AxisTransform<FX>>,
+        yaxis: Option<&AxisTransform<FY>>,
+        state: &mut State<I>,
+    ) -> Result<(), Error>
+    where
+        F: Facade,
+        FX: Fn(f32) -> f32,
+        FY: Fn(f32) -> f32,
+        I: Borrow<ArrayD<f32>>;
 }
