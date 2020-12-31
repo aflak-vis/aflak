@@ -1130,6 +1130,63 @@ where
             format!("{}\n{}", xy_str, val_str)
         }
     }
+
+    fn make_tooltip_for_color(
+        &self,
+        (x_p, y_p): (usize, usize),
+        x: Option<Measurement>,
+        y: Option<Measurement>,
+        rval: Measurement,
+        gval: Measurement,
+        bval: Measurement,
+    ) -> String {
+        let xy_str = format!(
+            "(X, Y): ({}, {})",
+            if let Some(x) = x {
+                if x.unit.is_empty() {
+                    format!("{:.2}", x.v)
+                } else {
+                    format!("{:.2} {}", x.v, x.unit)
+                }
+            } else {
+                format!("{}", x_p)
+            },
+            if let Some(y) = y {
+                if y.unit.is_empty() {
+                    format!("{:.2}", y.v)
+                } else {
+                    format!("{:.2} {}", y.v, y.unit)
+                }
+            } else {
+                format!("{}", y_p)
+            },
+        );
+
+        let rval_str = if rval.unit.is_empty() {
+            format!("RVAL:    {:.2}", rval.v)
+        } else {
+            format!("RVAL:    {:.2} {}", rval.v, rval.unit)
+        };
+        let gval_str = if gval.unit.is_empty() {
+            format!("GVAL:    {:.2}", gval.v)
+        } else {
+            format!("GVAL:    {:.2} {}", gval.v, gval.unit)
+        };
+        let bval_str = if bval.unit.is_empty() {
+            format!("BVAL:    {:.2}", bval.v)
+        } else {
+            format!("BVAL:    {:.2} {}", bval.v, bval.unit)
+        };
+
+        if x.is_some() || y.is_some() {
+            format!(
+                "{} [at point ({}, {})]\n{}\n{}\n{}",
+                xy_str, x_p, y_p, rval_str, gval_str, bval_str
+            )
+        } else {
+            format!("{}\n{}\n{}\n{}", xy_str, rval_str, gval_str, bval_str)
+        }
+    }
 }
 
 #[derive(Copy, Clone)]

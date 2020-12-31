@@ -247,10 +247,22 @@ where
             .cloned()
     }
 
+    pub fn get_color(&self, index: [usize; 3]) -> Option<f32> {
+        self.data
+            .as_ref()
+            .and_then(|data| data.borrow().get(index))
+            .cloned()
+    }
+
     pub fn dim(&self) -> (usize, usize) {
         let dim = self.data.as_ref().expect("Image is cached").borrow().dim();
         let dim_view = dim.as_array_view();
         (dim_view[0], dim_view[1])
+    }
+
+    pub fn ndim(&self) -> usize {
+        let ndim = self.data.as_ref().expect("Image is cached").borrow().ndim();
+        ndim
     }
 
     pub fn hist(&self) -> &[hist::Bin] {
