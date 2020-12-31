@@ -462,7 +462,7 @@ where
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
         match input_slot {
             cake::InputSlot::Transform(input) => self.dst.disconnect(&output, &input),
-            cake::InputSlot::Output(output_id) => self.dst.detach_output(&output_id),
+            cake::InputSlot::Output(output_id) => self.dst.detach_output(&output, &output_id),
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
@@ -566,7 +566,7 @@ where
         let dst = lock.dst_mut();
         match input_slot {
             cake::InputSlot::Transform(input) => dst.disconnect(&output, &input),
-            cake::InputSlot::Output(output_id) => dst.detach_output(&output_id),
+            cake::InputSlot::Output(output_id) => dst.detach_output(&output, &output_id),
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
