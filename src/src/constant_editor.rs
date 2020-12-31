@@ -123,7 +123,7 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
                     .size([size[0].max(400.0), 150.0])
                     .horizontal_scrollbar(true)
                     .build(ui, || {
-                        ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit"]);
+                        ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit", "fts"]);
                     });
                 if let Ok(Some(new_file)) = ret {
                     if *file != new_file {
