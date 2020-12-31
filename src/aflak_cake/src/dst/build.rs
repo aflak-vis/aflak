@@ -340,15 +340,23 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Attach an already registered output somewhere else
     pub fn update_output(&mut self, output_id: OutputId, output: Output) {
         self.outputs.insert(output_id, Some(output));
+        self.transforms
+            .get_mut(&output.t_idx)
+            .unwrap()
+            .updated_now();
     }
 
     /// Detach output with given ID. Does nothing if output does not exist or
     /// is already detached.
-    pub fn detach_output<O>(&mut self, output_id: &O)
+    pub fn detach_output<O>(&mut self, output: &Output, output_id: &O)
     where
         OutputId: Borrow<O>,
         O: Ord,
     {
+        self.transforms
+            .get_mut(&output.t_idx)
+            .unwrap()
+            .updated_now();
         if let Some(output) = self.outputs.get_mut(output_id) {
             *output = None;
         }
