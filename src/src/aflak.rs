@@ -44,7 +44,7 @@ impl Aflak {
 
     pub fn main_menu_bar(&mut self, ui: &Ui) {
         let mut new_editor = false;
-        
+
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
             if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
                 if MenuItem::new(im_str!("New")).build(ui) {
