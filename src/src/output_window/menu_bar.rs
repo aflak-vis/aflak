@@ -20,7 +20,7 @@ use cake::OutputId;
 use primitives::{
     self,
     fitrs::{Fits, Hdu},
-    IOValue, ROI,
+    IOValue, PATHS, ROI,
 };
 
 use implot::Context;
@@ -283,16 +283,16 @@ impl MenuBar for bool {
     const EXTENSION: &'static str = "txt";
 }
 
-impl MenuBar for Path {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+impl MenuBar for PATHS {
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
-        ctx.ui.text(format!("{:?}", self));
+        ctx.ui.text_wrapped(&im_str!("{:?}", self));
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
-        write_to_file_as_display(path, &self.to_string_lossy())?;
+        write_to_file_as_display(path, &format!("{:?}", self))?;
         Ok(())
     }
 
