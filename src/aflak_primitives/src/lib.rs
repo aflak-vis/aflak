@@ -271,6 +271,41 @@ Note: indices for a and b start from 0",
                 }
             ),
             cake_transform!(
+                "Variance for Image. Parameters: a=start, b=end (a <= b).",
+                1, 0, 0,
+                variance<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
+                    vec![run_variance(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Stddev for Image. Parameters: a=start, b=end (a <= b).",
+                1, 0, 0,
+                stddev<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
+                    vec![run_stddev(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Median for Image. Parameters: a=start, b=end (a <= b).",
+                1, 0, 0,
+                median<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
+                    vec![run_median(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Convert 2d image to 1d list.",
+                1, 0, 0,
+                convert_to_1d_image<IOValue, IOErr>(image: Image) -> Image{
+                    vec![run_convert_to_1d(image)]
+                }
+            ),
+            cake_transform!(
+                "Create scatterplots from two 1D image data.",
+                1, 0, 0,
+                create_scatter<IOValue, IOErr>(xaxis: Image, yaxis: Image) -> Image{
+                    vec![run_create_scatter(xaxis, yaxis)]
+                }
+            ),
+            cake_transform!(
                 "Create Equivalent-Width map from off-band and on-band.
 Parameters i_off, i_on, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
@@ -286,6 +321,13 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 1, 0, 0,
                 convert_to_logscale<IOValue, IOErr>(image: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(image, *a, *v_min, *v_max)]
+                }
+            ),
+            cake_transform!(
+                "Convert to log10",
+                1, 0, 0,
+                log10<IOValue, IOErr>(image: Image) -> Image {
+                    vec![run_log10(image)]
                 }
             ),
             cake_transform!(
@@ -953,6 +995,54 @@ fn run_average(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr>
     reduce_array_slice(image, start, end, |slices| slices.mean_axis(Axis(0)))
 }
 
+fn run_variance(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(image, start, end, |slices| slices.var_axis(Axis(0), 1.0))
+}
+
+fn run_stddev(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice(image, start, end, |slices| slices.std_axis(Axis(0), 1.0))
+}
+
+fn run_median(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
+    is_sliceable!(image, start, end)?;
+
+    let image_val = image.scalar();
+
+    let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let dim = slices.dim();
+    let size = dim.as_array_view();
+    let new_size: Vec<_> = size.iter().skip(1).cloned().collect();
+
+    let result = ArrayD::from_shape_fn(new_size, |index| {
+        let mut vals = Vec::new();
+        for (_, slice) in slices.axis_iter(Axis(0)).enumerate() {
+            vals.push(slice[&index]);
+        }
+        //consider NaN!
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let n = vals.len();
+        if n % 2 == 1 {
+            vals[(n - 1) / 2]
+        } else {
+            (vals[n / 2] + vals[n / 2 - 1]) / 2.0
+        }
+    });
+
+    // FIXME: Unit support
+    // unit of index(Axis 0) should be adobped
+    //
+    // in above program...
+    // 'waveimg' must have [flux * wavelength], 'flux_sum' must have [flux]
+    // 'result' = waveimg / flux_sum   must have [wavelength]
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        result,
+        Unit::None,
+    ))))
+}
+
 fn run_minmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
     if !is_min {
         reduce_array_slice(image, start, end, |slices| {
@@ -1171,6 +1261,15 @@ fn run_convert_to_logscale(
     for v in out.scalar_mut().iter_mut() {
         *v = (*v - v_min) / (v_max - v_min);
         *v = (a * *v + 1.0).ln() / a.ln();
+    }
+
+    Ok(IOValue::Image(out))
+}
+
+fn run_log10(image: &WcsArray) -> Result<IOValue, IOErr> {
+    let mut out = image.clone();
+    for v in out.scalar_mut().iter_mut() {
+        *v = v.log10();
     }
 
     Ok(IOValue::Image(out))
