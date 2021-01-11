@@ -893,6 +893,81 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
     ))
 }
 
+fn run_convert_to_1d(image: &WcsArray) -> Result<IOValue, IOErr> {
+    dim_is!(image, 2)?;
+    let image_val = image.scalar();
+
+    let wave_size = *image_val.dim().as_array_view().first().unwrap();
+    let mut wave = Vec::with_capacity(wave_size);
+    for i in 0..wave_size {
+        for val in image_val.slice(s![i, ..]) {
+            wave.push(*val);
+        }
+    }
+    Ok(IOValue::Image(
+        image.make_slice(
+            &[(2, 0.0, 1.0)],
+            image
+                .array()
+                .with_new_value(Array1::from_vec(wave).into_dyn()),
+        ),
+    ))
+}
+
+fn run_create_scatter(xaxis: &WcsArray, yaxis: &WcsArray) -> Result<IOValue, IOErr> {
+    dim_is!(xaxis, 1)?;
+    dim_is!(yaxis, 1)?;
+    are_same_dim!(xaxis, yaxis)?;
+    let image_val = xaxis.scalar();
+    let width = image_val.len();
+    let mut img = Vec::with_capacity(2 * width);
+    for i in 0..width {
+        for val in image_val.slice(s![i]) {
+            img.push(*val);
+        }
+    }
+    let image_val = yaxis.scalar();
+    for i in 0..width {
+        for val in image_val.slice(s![i]) {
+            img.push(*val);
+        }
+    }
+    let mut datapoints = Vec::new();
+    for i in 0..width {
+        datapoints.push((img[i], img[i + width], 0.0));
+    }
+    datapoints.retain(|x| (x.0.is_finite() && x.1.is_finite()));
+    let mut center = (0.0, 0.0);
+    let datalen = datapoints.len();
+    for i in 0..datalen {
+        let vector = (datapoints[i].0 - center.0, datapoints[i].1 - center.1);
+        center.0 += vector.0 / (i + 1) as f32;
+        center.1 += vector.1 / (i + 1) as f32;
+    }
+    for i in 0..datalen {
+        let distance = ((datapoints[i].0 - center.0) * (datapoints[i].0 - center.0)
+            + (datapoints[i].1 - center.1) * (datapoints[i].1 - center.1))
+            .sqrt();
+        datapoints[i].2 = distance;
+    }
+    datapoints.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+    let mut res = Vec::with_capacity(3 * datalen);
+    for i in 0..datalen {
+        res.push(datapoints[i].0);
+    }
+    for i in 0..datalen {
+        res.push(datapoints[i].1);
+    }
+    for i in 0..datalen {
+        res.push(datapoints[i].2);
+    }
+    let img = Array::from_shape_vec((3, datalen), res).unwrap();
+    Ok(IOValue::Image(WcsArray::from_array_and_tag(
+        Dimensioned::new(img.into_dyn(), Unit::None),
+        Some(String::from("scatter")),
+    )))
+}
+
 fn run_range_specification(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
     reduce_array_slice(image, start, end, |slices| slices.to_owned())
 }
