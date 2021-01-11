@@ -166,6 +166,17 @@ impl WcsArray {
         }
     }
 
+    pub fn from_array_and_tag(
+        array: Dimensioned<ArrayD<f32>>,
+        visualization: Option<String>,
+    ) -> Self {
+        Self {
+            meta: None,
+            array,
+            visualization,
+        }
+    }
+
     /// Get reference to contained *n*-dimensional array.
     pub fn scalar(&self) -> &ArrayD<f32> {
         self.array.scalar()
