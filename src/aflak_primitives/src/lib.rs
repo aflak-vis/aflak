@@ -14,7 +14,6 @@
 //! To add a new transformation, add a new `Transform<IOValue, IOErr>` item to
 //! the [TRANSFORMATIONS](struct.TRANSFORMATIONS.html) struct defined using
 //! the lazy_static crate.
-#[macro_use]
 extern crate lazy_static;
 extern crate variant_name;
 #[macro_use]
@@ -28,6 +27,8 @@ extern crate nalgebra;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate rawloader;
 
 mod fits;
 #[macro_use]
@@ -98,6 +99,7 @@ impl PartialEq for IOValue {
 #[derive(Debug)]
 pub enum IOErr {
     IoError(io::Error, String),
+    RawLoaderError(String),
     FITSErr(String),
     UnexpectedInput(String),
     ShapeError(ndarray::ShapeError, String),
@@ -109,6 +111,7 @@ impl fmt::Display for IOErr {
 
         match self {
             IoError(e, s) => write!(f, "I/O error! {}. This was caused by '{}'.", s, e),
+            RawLoaderError(s) => write!(f, "RawLoader-related error! {}", s),
             FITSErr(s) => write!(f, "FITS-related error! {}", s),
             UnexpectedInput(s) => write!(f, "Unexpected input! {}", s),
             ShapeError(e, s) => write!(f, "Shape error! {}. This was caused by '{}'.", s, e),
@@ -130,10 +133,19 @@ lazy_static! {
     pub static ref TRANSFORMATIONS: Vec<cake::Transform<'static, IOValue, IOErr>> = {
         vec![
             cake_transform!(
-                "Open FITS file from a Path.",
+                "Open FITS file from a Paths.",
                 1, 0, 0,
-                open_fits<IOValue, IOErr>(path: Path) -> Fits {
-                    vec![run_open_fits(path)]
+                open_fits<IOValue, IOErr>(path: Paths, n: Integer = 0) -> Fits {
+                    let PATHS::FileList(path) = path;
+                    vec![run_open_fits(path.to_vec(), *n)]
+                }
+            ),
+            cake_transform!(
+                "Open RAW file from a Paths.",
+                0, 1, 0,
+                open_raw<IOValue, IOErr>(path: Paths, n: Integer = 0) -> Image {
+                    let PATHS::FileList(path) = path;
+                    vec![run_open_raw(path.to_vec(), *n)]
                 }
             ),
             cake_transform!(
@@ -494,11 +506,60 @@ fn float_to_integer(from: &IOValue) -> IOValue {
 }
 
 /// Open FITS file
-fn run_open_fits<P: AsRef<Path>>(path: P) -> Result<IOValue, IOErr> {
+fn run_open_fits<P: AsRef<Path>>(path: Vec<P>, n: i64) -> Result<IOValue, IOErr> {
+    let pathlist_len = path.len();
+    let n = n as usize;
+    precheck!(pathlist_len > n)?;
+    let path = &path[n];
     let path = path.as_ref();
     fitrs::Fits::open(path)
         .map(|fits| IOValue::Fits(Arc::new(fits)))
         .map_err(|err| IOErr::IoError(err, format!("Could not open file {:?}", path)))
+}
+
+fn run_open_raw<P: AsRef<Path>>(path: Vec<P>, n: i64) -> Result<IOValue, IOErr> {
+    let pathlist_len = path.len();
+    let n = n as usize;
+    precheck!(pathlist_len > n)?;
+    let mut imagecount = 0;
+    let mut width = 0;
+    let mut height = 0;
+    let mut img = Vec::new();
+    let mut openresult: Result<IOValue, IOErr> = Ok(IOValue::Integer(0));
+    for single_path in path {
+        let image = rawloader::decode_file(single_path);
+        match image {
+            Ok(image) => {
+                if imagecount == 0 {
+                    width = image.width;
+                    height = image.height;
+                } else if width != image.width || height != image.height {
+                    eprintln!("Couldn't load images with different size images.\n");
+                    break;
+                }
+                if let rawloader::RawImageData::Integer(data) = image.data {
+                    for pix in data {
+                        img.push(pix as f32);
+                    }
+                } else {
+                    eprintln!("Don't know how to process non-integer raw files");
+                    break;
+                }
+            }
+            Err(err) => openresult = Err(IOErr::RawLoaderError(format!("{:?}", err))),
+        }
+        imagecount += 1;
+    }
+    match openresult {
+        Ok(_) => {
+            let img = Array::from_shape_vec((pathlist_len, height, width), img).unwrap();
+            Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+                img.into_dyn(),
+                Unit::None,
+            ))))
+        }
+        Err(_) => openresult,
+    }
 }
 
 /// Turn a FITS file into an image
@@ -1317,17 +1378,26 @@ fn run_change_tag(data_in: &WcsArray, tag: &str) -> Result<IOValue, IOErr> {
 #[cfg(test)]
 mod test {
     use super::{run_fits_to_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
+    use std::path::PathBuf;
+    use PATHS;
     #[test]
     fn test_open_fits() {
-        let path = "test/test.fits";
-        if let IOValue::Fits(fits) = run_open_fits(path).unwrap() {
-            if let IOValue::Image(image) = run_fits_to_image(&fits, 0, "").unwrap() {
-                if let IOValue::Map2dTo3dCoords(map) =
-                    run_make_plane3d(&[0.0, 0.0, 0.0], &[1.0, 0.5, 0.0], &[0.0, 0.5, 1.0], 10, 20)
-                        .unwrap()
-                {
-                    let _sliced_image = run_slice_3d_to_2d(&image, &map);
-                    return;
+        let path = PATHS::FileList(vec![PathBuf::from("test/test.fits")]);
+        if let PATHS::FileList(path) = path {
+            if let IOValue::Fits(fits) = run_open_fits(path.to_vec(), 0).unwrap() {
+                if let IOValue::Image(image) = run_fits_to_image(&fits, 0, "").unwrap() {
+                    if let IOValue::Map2dTo3dCoords(map) = run_make_plane3d(
+                        &[0.0, 0.0, 0.0],
+                        &[1.0, 0.5, 0.0],
+                        &[0.0, 0.5, 1.0],
+                        10,
+                        20,
+                    )
+                    .unwrap()
+                    {
+                        let _sliced_image = run_slice_3d_to_2d(&image, &map);
+                        return;
+                    }
                 }
             }
         }
