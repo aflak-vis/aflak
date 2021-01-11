@@ -551,8 +551,28 @@ impl MenuBar for primitives::WcsArray {
                 "BPT" => match self.scalar().dim().ndim() {
                     2 => {
                         let state = &mut ctx.window.scatter_lineplot_state;
-                        let plotcontext = Context::create();
-                        let plot_ui = plotcontext.get_plot_ui();
+                        let plot_ui = ctx.plotcontext.get_plot_ui();
+                        if let Err(e) = ui.scatter(
+                            &self.scalar2(),
+                            &plot_ui,
+                            Some(&AxisTransform::new("X Axis", "m", |x| x)),
+                            Some(&AxisTransform::new("Y Axis", "m", |y| y)),
+                            state,
+                        ) {
+                            ui.text(format!("Error on drawing plot! {}", e))
+                        }
+                    }
+                    _ => {
+                        ui.text(format!(
+                            "Unimplemented for scatter of dimension {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                },
+                "scatter" => match self.scalar().dim().ndim() {
+                    2 => {
+                        let state = &mut ctx.window.scatter_lineplot_state;
+                        let plot_ui = ctx.plotcontext.get_plot_ui();
                         if let Err(e) = ui.scatter(
                             &self.scalar2(),
                             &plot_ui,
