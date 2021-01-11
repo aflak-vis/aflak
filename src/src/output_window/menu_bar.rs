@@ -34,7 +34,7 @@ use implot::Context;
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
 
 /// Catch-all object for variables used by output window during render
-pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
+pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, 'p, F: 'gl> {
     pub ui: &'ui Ui<'ui>,
     pub output: OutputId,
     pub value: &'val ::std::sync::Arc<IOValue>,
@@ -43,6 +43,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
     pub node_editor: &'ed mut AflakNodeEditor,
     pub gl_ctx: &'gl F,
     pub textures: &'tex mut Textures,
+    pub plotcontext: &'p Context,
 }
 
 /// Similar to Visualizable, excepts that the types that implements this trait
@@ -50,7 +51,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
 /// The can be exported to disk and display options can be included in a menu
 /// bar.
 pub trait MenuBar {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade;
 
@@ -60,7 +61,7 @@ pub trait MenuBar {
 
     fn draw<'ui, F>(
         &self,
-        ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, F>,
+        ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, '_, F>,
         window: Window<'_>,
     ) -> Vec<Box<dyn error::Error>>
     where
@@ -194,7 +195,7 @@ fn hash_outputid(id: OutputId) -> usize {
 }
 
 impl MenuBar for String {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -210,7 +211,7 @@ impl MenuBar for String {
 }
 
 impl MenuBar for i64 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -226,7 +227,7 @@ impl MenuBar for i64 {
 }
 
 impl MenuBar for f32 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -242,7 +243,7 @@ impl MenuBar for f32 {
 }
 
 impl MenuBar for [f32; 2] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -258,7 +259,7 @@ impl MenuBar for [f32; 2] {
 }
 
 impl MenuBar for [f32; 3] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -274,7 +275,7 @@ impl MenuBar for [f32; 3] {
 }
 
 impl MenuBar for bool {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -306,7 +307,7 @@ impl MenuBar for PATHS {
 }
 
 impl MenuBar for ROI {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
@@ -425,7 +426,7 @@ impl MenuBar for primitives::WcsArray {
         }
     }
 
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
