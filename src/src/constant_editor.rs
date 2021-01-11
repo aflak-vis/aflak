@@ -111,28 +111,57 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
                 None
             }
         }
-        IOValue::Path(ref file) => {
-            ui.text(file.to_str().unwrap_or("Unrepresentable path"));
-            if read_only {
-                None
-            } else {
-                let size = ui.item_rect_size();
-
-                let mut ret = Ok(None);
-                ChildWindow::new(im_str!("edit"))
-                    .size([size[0].max(400.0), 150.0])
-                    .horizontal_scrollbar(true)
-                    .build(ui, || {
-                        ret = ui.file_explorer(TOP_FOLDER, &["fits", "fit", "fts"]);
-                    });
-                if let Ok(Some(new_file)) = ret {
-                    if *file != new_file {
-                        Some(IOValue::Path(new_file))
-                    } else {
+        IOValue::Paths(ref file) => {
+            match file {
+                primitives::PATHS::FileList(file) => {
+                    if read_only {
                         None
+                    } else {
+                        let size = ui.item_rect_size();
+                        let mut ret = Ok(None);
+                        ChildWindow::new(im_str!("edit"))
+                            .size([size[0].max(400.0), 150.0])
+                            .horizontal_scrollbar(true)
+                            .build(ui, || {
+                                ret = ui.file_explorer(
+                                    TOP_FOLDER,
+                                    &[
+                                        "fits", "fit", "fts", "cr2", "CR2", "RW2", "rw2", "nef",
+                                        "NEF",
+                                    ],
+                                );
+                            });
+                        ui.text(im_str!("Selected Files:"));
+                        for single_file in file {
+                            ui.text(single_file.to_str().unwrap_or("Unrepresentable path"));
+                        }
+                        if let Ok(Some(new_file)) = ret {
+                            let mut already_exist = false;
+                            let mut key = 0;
+                            for single_file in file {
+                                if *single_file == new_file {
+                                    already_exist = true;
+                                    break;
+                                }
+                                key += 1;
+                            }
+                            if already_exist {
+                                let mut new_files = file.clone();
+                                new_files.remove(key);
+                                Some(IOValue::Paths(primitives::PATHS::FileList(
+                                    new_files.to_vec(),
+                                )))
+                            } else {
+                                let mut new_files = file.clone();
+                                new_files.push(new_file);
+                                Some(IOValue::Paths(primitives::PATHS::FileList(
+                                    new_files.to_vec(),
+                                )))
+                            }
+                        } else {
+                            None
+                        }
                     }
-                } else {
-                    None
                 }
             }
         }

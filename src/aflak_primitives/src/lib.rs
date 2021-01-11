@@ -48,6 +48,11 @@ use nalgebra::{Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use variant_name::VariantName;
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PATHS {
+    FileList(Vec<PathBuf>),
+}
+
 /// Value used for I/O in astronomical transforms.
 ///
 /// If new use cases arise, please add a new variant to this enumeration.
@@ -59,13 +64,13 @@ pub enum IOValue {
     Float3([f32; 3]),
     Str(String),
     Bool(bool),
-    Path(PathBuf),
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     Fits(Arc<fitrs::Fits>),
     Image(WcsArray),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
+    Paths(PATHS),
 }
 
 impl PartialEq for IOValue {
@@ -81,7 +86,7 @@ impl PartialEq for IOValue {
             (Image(i1), Image(i2)) => i1 == i2,
             (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
             (Roi(r1), Roi(r2)) => r1 == r2,
-            (Path(p1), Path(p2)) => p1 == p2,
+            (Paths(p1), Paths(p2)) => p1 == p2,
             _ => false,
         }
     }
@@ -444,7 +449,7 @@ impl cake::DefaultFor for IOValue {
             "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
             "Bool" => IOValue::Bool(false),
-            "Path" => IOValue::Path(PathBuf::from("/")),
+            "Paths" => IOValue::Paths(PATHS::FileList(vec![])),
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
     }
@@ -453,7 +458,7 @@ impl cake::DefaultFor for IOValue {
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
         &[
-            "Integer", "Float", "Float2", "Float3", "Roi", "Str", "Bool", "Path",
+            "Integer", "Float", "Float2", "Float3", "Roi", "Str", "Bool", "Paths",
         ]
     }
 }

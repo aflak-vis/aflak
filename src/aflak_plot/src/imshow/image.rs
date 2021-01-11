@@ -188,7 +188,6 @@ where
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
             let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
-            println!("{:?}", tex_size);
             textures.replace(
                 texture_id,
                 Texture {
