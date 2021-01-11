@@ -33,6 +33,8 @@ use node_editor::NodeEditor;
 
 use aflak::Aflak;
 
+use implot::Context;
+
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
 fn main() {
@@ -70,11 +72,12 @@ fn main() {
     let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
 
     let system = support::init(config.clone());
+    let plotcontext = Context::create();
     system.main_loop(config, move |_run, ui, gl_ctx, textures| {
         let transformations = transformations_ref.as_slice();
         aflak.main_menu_bar(ui);
         aflak.node_editor(ui, transformations);
-        aflak.output_windows(ui, gl_ctx, textures);
+        aflak.output_windows(ui, gl_ctx, textures, &plotcontext);
         aflak.show_errors(ui);
         aflak.file_dialog(ui);
         if aflak.show_metrics {

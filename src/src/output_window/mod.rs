@@ -13,6 +13,7 @@ use aflak_plot::{
     plot, scatter_lineplot, InteractionId,
 };
 use cake::{OutputId, TransformIdx};
+use implot::Context;
 use primitives::{ndarray, IOValue, SuccessOut};
 
 use self::menu_bar::MenuBar;
@@ -39,6 +40,7 @@ impl OutputWindow {
         node_editor: &mut AflakNodeEditor,
         gl_ctx: &F,
         textures: &mut Textures,
+        plotcontext: &Context,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
@@ -65,6 +67,7 @@ impl OutputWindow {
                     node_editor,
                     gl_ctx,
                     textures,
+                    plotcontext,
                 };
                 match &*value {
                     IOValue::Str(ref string) => string.draw(ctx, window),

@@ -12,6 +12,7 @@ use primitives::{IOErr, IOValue};
 
 use constant_editor::MyConstantEditor;
 use file_dialog::{FileDialog, FileDialogEvent};
+use implot::Context;
 use layout::{Layout, LayoutEngine};
 use output_window::OutputWindow;
 
@@ -112,8 +113,13 @@ impl Aflak {
         self.node_editor.render_popups(ui);
     }
 
-    pub fn output_windows<F>(&mut self, ui: &Ui, gl_ctx: &F, textures: &mut Textures)
-    where
+    pub fn output_windows<F>(
+        &mut self,
+        ui: &Ui,
+        gl_ctx: &F,
+        textures: &mut Textures,
+        plotcontext: &Context,
+    ) where
         F: glium::backend::Facade,
     {
         let outputs = self.node_editor.outputs();
@@ -130,8 +136,15 @@ impl Aflak {
                     .position(position, Condition::FirstUseEver)
                     .size(size, Condition::FirstUseEver);
             }
-            let new_errors =
-                output_window.draw(ui, output, window, &mut self.node_editor, gl_ctx, textures);
+            let new_errors = output_window.draw(
+                ui,
+                output,
+                window,
+                &mut self.node_editor,
+                gl_ctx,
+                textures,
+                &plotcontext,
+            );
             self.error_alerts.extend(new_errors);
         }
     }
