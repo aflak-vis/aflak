@@ -13,7 +13,11 @@ pub trait UiFileExplorer {
     /// Can filter over several extensions.
     /// Anything that can be treated as a reference to a string `AsRef<str>` can be used as argument!
     /// Return the selected path, if any.
-    fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
+    fn file_explorer<T, S>(
+        &self,
+        target: T,
+        extensions: &[S],
+    ) -> io::Result<Option<PathBuf>>
     where
         T: AsRef<Path>,
         S: AsRef<str>;
@@ -53,7 +57,11 @@ cfg_if! {
 
 /// Ui extends
 impl<'ui> UiFileExplorer for Ui<'ui> {
-    fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
+    fn file_explorer<T, S>(
+        &self,
+        target: T,
+        extensions: &[S],
+    ) -> io::Result<Option<PathBuf>>
     where
         T: AsRef<Path>,
         S: AsRef<str>,
