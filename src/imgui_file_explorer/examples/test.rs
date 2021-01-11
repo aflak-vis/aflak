@@ -22,7 +22,8 @@ fn test(ui: &Ui) {
 }
 
 fn main() {
-    support::init("imgui-file-explorer-test").main_loop(|_run, ui| {
+    support::init("imgui-file-explorer-test").main_loop(|_run, ui, _, _| {
         test(ui);
+        true
     });
 }
