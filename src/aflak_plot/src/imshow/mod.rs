@@ -47,6 +47,9 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// };
     ///
     /// fn main() {
+    ///     let config = support::AppConfig {
+    ///         ..Default::default()
+    ///     };
     ///     let mut state = imshow::State::default();
     ///     support::init(Default::default()).main_loop(move |ui, gl_ctx, textures| {
     ///         let texture_id = TextureId::from(1);
