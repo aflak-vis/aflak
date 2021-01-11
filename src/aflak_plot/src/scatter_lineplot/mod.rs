@@ -49,6 +49,6 @@ impl<'ui> UiScatter for Ui<'ui> {
         let window_pos = self.window_pos();
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
-        state.plot(self, image, plot_ui, xaxis, yaxis, size)
+        state.simple_plot(self, image, &plot_ui, xaxis, yaxis, size)
     }
 }

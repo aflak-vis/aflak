@@ -1,5 +1,8 @@
 use imgui::Ui;
-use implot::{push_style_var_i32, Marker, Plot, PlotScatter, PlotUi, StyleVar};
+use implot::{
+    get_plot_limits, push_style_var_i32, Condition, ImPlotLimits, ImPlotRange,
+    Marker, Plot, PlotScatter, PlotUi, StyleVar, YAxisChoice,
+};
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 
 use super::interactions::Interactions;
@@ -13,6 +16,10 @@ pub struct State {
     zoom: [f32; 2],
     mouse_pos: [f32; 2],
     interactions: Interactions,
+    plot_limits: [f64; 4],
+    limit_changed: bool,
+    xaxis: Vec<f64>,
+    yaxis: Vec<f64>,
 }
 
 impl Default for State {
@@ -23,12 +30,16 @@ impl Default for State {
             zoom: [1.0, 1.0],
             mouse_pos: [f32::NAN, f32::NAN],
             interactions: Interactions::new(),
+            plot_limits: [0.0, 1.0, 0.0, 1.0],
+            limit_changed: true,
+            xaxis: vec![],
+            yaxis: vec![],
         }
     }
 }
 
 impl State {
-    pub(crate) fn plot<S, FX, FY>(
+    pub(crate) fn _plot<S, FX, FY>(
         &mut self,
         ui: &Ui,
         image: &ArrayBase<S, Ix2>,
@@ -122,5 +133,119 @@ impl State {
                 });
             Ok(())
         }
+    }
+    pub(crate) fn simple_plot<S, FX, FY>(
+        &mut self,
+        ui: &Ui,
+        image: &ArrayBase<S, Ix2>,
+        plot_ui: &PlotUi,
+        horizontal_axis: Option<&AxisTransform<FX>>,
+        vertical_axis: Option<&AxisTransform<FY>>,
+        size: [f32; 2],
+    ) -> Result<(), Error>
+    where
+        S: Data<Elem = f32>,
+        FX: Fn(f32) -> f32,
+        FY: Fn(f32) -> f32,
+    {
+        let mut haxisname = "";
+        let mut vaxisname = "";
+        let mut haxisunit = "";
+        let mut vaxisunit = "";
+        if let Some(haxistrans) = horizontal_axis {
+            haxisname = haxistrans.label();
+            haxisunit = haxistrans.unit();
+        }
+        if let Some(vaxistrans) = vertical_axis {
+            vaxisname = vaxistrans.label();
+            vaxisunit = vaxistrans.unit();
+        }
+        let haxislabel = format!("{} ({})", haxisname, haxisunit);
+        let vaxislabel = format!("{} ({})", vaxisname, vaxisunit);
+        let size = [size[0] - 15.0, size[1] - 15.0];
+        let xaxis = image.slice(s![0, ..]).to_vec();
+        let yaxis = image.slice(s![1, ..]).to_vec();
+        let distances = image.slice(s![2, ..]).to_vec();
+        let mut datapoints = Vec::new();
+        for i in 0..xaxis.len() {
+            datapoints.push((xaxis[i], yaxis[i], distances[i]));
+        }
+        let content_width = ui.window_content_region_width();
+        let mut plot_limits: Option<ImPlotLimits> = None;
+        if self.limit_changed {
+            self.xaxis.clear();
+            self.yaxis.clear();
+            let (xmin, xmax, ymin, ymax) = (
+                self.plot_limits[0],
+                self.plot_limits[1],
+                self.plot_limits[2],
+                self.plot_limits[3],
+            );
+            datapoints.retain(|&data| {
+                xmin <= data.0 as f64
+                    && data.0 as f64 <= xmax
+                    && ymin <= data.1 as f64
+                    && data.1 as f64 <= ymax
+            });
+            let xstep = ((xmax - xmin) / content_width as f64 * 5.0) as f64;
+            let ystep = ((ymax - ymin) / size[1] as f64 * 5.0) as f64;
+            let standard_distance = xstep * xstep + ystep * ystep;
+            datapoints.dedup_by(|x, y| {
+                ((x.0 - y.0).abs() as f64) < xstep && ((x.1 - y.1).abs() as f64) < ystep
+            });
+            loop {
+                if datapoints.first() == None {
+                    break;
+                }
+                let first = datapoints.first().unwrap().clone();
+                datapoints.retain(|x| {
+                    x.2 > first.2 * 2.0
+                        || ((x.0 - first.0) * (x.0 - first.0) + (x.1 - first.1) * (x.1 - first.1))
+                            as f64
+                            > standard_distance
+                });
+                self.xaxis.push(first.0 as f64);
+                self.yaxis.push(first.1 as f64);
+            }
+            self.limit_changed = false;
+        }
+
+        Plot::new("Simple Plot")
+            .size(content_width, size[1])
+            .x_label(&haxislabel)
+            .y_label(&vaxislabel)
+            .x_limits(
+                &ImPlotRange {
+                    Min: self.plot_limits[0],
+                    Max: self.plot_limits[1],
+                },
+                Condition::FirstUseEver,
+            )
+            .y_limits(
+                &ImPlotRange {
+                    Min: self.plot_limits[2],
+                    Max: self.plot_limits[3],
+                },
+                YAxisChoice::First,
+                Condition::FirstUseEver,
+            )
+            .build(plot_ui, || {
+                plot_limits = Some(get_plot_limits(None));
+                if let Some(plot) = plot_limits {
+                    if self.plot_limits[0] != plot.X.Min
+                        || self.plot_limits[1] != plot.X.Max
+                        || self.plot_limits[2] != plot.Y.Min
+                        || self.plot_limits[3] != plot.Y.Max
+                    {
+                        self.plot_limits[0] = plot.X.Min;
+                        self.plot_limits[1] = plot.X.Max;
+                        self.plot_limits[2] = plot.Y.Min;
+                        self.plot_limits[3] = plot.Y.Max;
+                        self.limit_changed = true;
+                    }
+                }
+                PlotScatter::new("data point").plot(&self.xaxis, &self.yaxis);
+            });
+        Ok(())
     }
 }
