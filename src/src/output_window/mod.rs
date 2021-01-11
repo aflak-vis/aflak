@@ -68,6 +68,7 @@ impl OutputWindow {
                 };
                 match &*value {
                     IOValue::Str(ref string) => string.draw(ctx, window),
+                    IOValue::Paths(ref files) => files.draw(ctx, window),
                     IOValue::Integer(integer) => integer.draw(ctx, window),
                     IOValue::Float(float) => float.draw(ctx, window),
                     IOValue::Float2(floats) => floats.draw(ctx, window),
