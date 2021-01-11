@@ -21,8 +21,9 @@ fn main() {
     };
     let mut state = imshow::State::default();
     let texture_id = imgui::TextureId::from(1);
+    let system = support::init(config.clone());
 
-    support::run(config, |ui, gl_ctx, textures| {
+    system.main_loop(config, move |_run, ui, gl_ctx, textures| {
         if state.image_created_on().is_none() {
             const WIDTH: usize = 200;
             const HEIGHT: usize = 100;
@@ -55,6 +56,5 @@ fn main() {
             .expect("Image2d failed");
         });
         true
-    })
-    .unwrap();
+    });
 }

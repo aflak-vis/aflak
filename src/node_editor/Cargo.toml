@@ -6,7 +6,7 @@ description = "Node editor UI using imgui-rs as backend, made for aflak project"
 license = "GPL-3.0-only"
 
 [dependencies]
-imgui = { path = "../../imgui-rs", version = "0.3.0-pre" }
+imgui = { version = "0.5.0" }
 imgui_file_explorer = { path = "../imgui_file_explorer", version = "0.0.3" }
 aflak_cake = { path = "../aflak_cake", version = "0.0.3" }
 ron = "0.6"

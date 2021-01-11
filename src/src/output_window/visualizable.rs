@@ -1,6 +1,6 @@
 use std::fmt;
 
-use imgui::{ImString, Ui, Window};
+use imgui::{ImString, TreeNode, Ui, Window};
 
 use cake;
 use primitives::fitrs::Fits;
@@ -69,7 +69,7 @@ impl Visualizable for Fits {
             };
 
             let id_stack = ui.push_id(i as i32);
-            ui.tree_node(&tree_name).build(|| {
+            TreeNode::new(&tree_name).build(&ui, || {
                 for (key, value) in &hdu {
                     ui.text(key);
                     if let Some(value) = value {
