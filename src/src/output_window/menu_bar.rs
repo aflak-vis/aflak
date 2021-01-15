@@ -76,6 +76,7 @@ pub trait MenuBar {
     fn file_submenu(&self, _: &Ui, _: &mut OutputWindow) {}
     fn other_menu(&self, _: &Ui, _: &mut OutputWindow) {}
     fn zoom_menu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn histogram_menu(&self, _: &Ui, _: &mut OutputWindow) {}
 
     fn file_name(&self, output: OutputId) -> String {
         format!("output-{}.{}", output.id(), Self::EXTENSION)
@@ -348,6 +349,9 @@ impl MenuBar for primitives::WcsArray {
                     if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
                         self.zoom_menu(ui, window);
                         menu.end(ui);
+                    } else if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                        self.histogram_menu(ui, window);
+                        menu.end(ui);
                     }
                     if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
                         MenuItem::new(im_str!("Approx Line"))
@@ -366,6 +370,9 @@ impl MenuBar for primitives::WcsArray {
                     3 => {
                         if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
                             self.zoom_menu(ui, window);
+                            menu.end(ui);
+                        } else if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                            self.histogram_menu(ui, window);
                             menu.end(ui);
                         }
                     }
@@ -414,10 +421,17 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[0] = false;
                     window.image2d_state.zoomkind[1] = false;
                     window.image2d_state.zoomkind[2] = false;
+                } else {
+                    window.image2d_state.zoomkind[3] = true;
                 }
             }
             menu.end(ui);
         }
+    }
+
+    fn histogram_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        MenuItem::new(im_str!("Logscale"))
+            .build_with_ref(ui, &mut window.image2d_state.hist_logscale);
     }
 
     fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
