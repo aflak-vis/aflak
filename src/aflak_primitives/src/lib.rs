@@ -26,6 +26,7 @@ extern crate imgui_tone_curve;
 #[macro_use]
 pub extern crate ndarray;
 extern crate nalgebra;
+extern crate ndarray_parallel;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -50,6 +51,7 @@ use std::sync::Arc;
 use imgui_tone_curve::ToneCurveState;
 use nalgebra::{Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
+use ndarray_parallel::prelude::*;
 use variant_name::VariantName;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
