@@ -478,6 +478,20 @@ The visualization tag should be changed if BPT diagram is wanted.
                     vec![run_change_tag(image, tag)]
                 }
             ),
+            cake_transform!(
+                "Generate hsv channel from rgb image",
+                1, 0, 0,
+                color_image_to_hsv<IOValue, IOErr>(image: Image) -> Image {
+                    vec![run_color_image_to_hsv(image)]
+                }
+            ),
+            cake_transform!(
+                "Generate color image from rgb channels",
+                1, 0, 0,
+                color_image_from_rgb<IOValue, IOErr>(image_r: Image, image_g: Image, image_b: Image) -> Image {
+                    vec![run_generate_color_image_from_channel(image_r, image_g, image_b)]
+                }
+            ),
         ]
     };
 }
@@ -1549,6 +1563,68 @@ fn run_change_tag(data_in: &WcsArray, tag: &str) -> Result<IOValue, IOErr> {
     Ok(IOValue::Image(out))
 }
 
+fn run_color_image_to_hsv(image: &WcsArray) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image = image.scalar();
+    let mut out = image.clone();
+    for (j, slice) in image.axis_iter(Axis(1)).enumerate() {
+        for (i, data) in slice.axis_iter(Axis(1)).enumerate() {
+            let mut hue = 0.0;
+            let max = data[0].max(data[1]).max(data[2]);
+            let min = data[0].min(data[1]).min(data[2]);
+            if data[0] >= data[1] && data[0] >= data[2] {
+                hue = 60.0 * ((data[1] - data[2]) / (max - min));
+            } else if data[1] >= data[0] && data[1] >= data[2] {
+                hue = 60.0 * ((data[2] - data[0]) / (max - min)) + 120.0;
+            } else if data[2] >= data[0] && data[2] >= data[1] {
+                hue = 60.0 * ((data[0] - data[1]) / (max - min)) + 240.0;
+            } else {
+                println!("Unreachable");
+            }
+            if hue < 0.0 {
+                hue += 360.0;
+            }
+            hue = hue / 360.0 * 65535.0;
+            out[[0, j, i]] = hue;
+            out[[1, j, i]] = (max - min) / max * 65535.0;
+            out[[2, j, i]] = max;
+        }
+    }
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
+}
+
+fn run_generate_color_image_from_channel(
+    image_r: &WcsArray,
+    image_g: &WcsArray,
+    image_b: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    dim_is!(image_r, 2)?;
+    dim_is!(image_g, 2)?;
+    dim_is!(image_b, 2)?;
+    are_same_dim!(image_r, image_b)?;
+    are_same_dim!(image_b, image_g)?;
+    let dim = image_r.scalar().dim();
+    let dim = dim.as_array_view();
+    let mut colorimage = Vec::with_capacity(3 * dim[0] * dim[1]);
+    for &data in image_r.scalar().iter() {
+        colorimage.push(data);
+    }
+    for &data in image_g.scalar().iter() {
+        colorimage.push(data);
+    }
+    for &data in image_b.scalar().iter() {
+        colorimage.push(data);
+    }
+    let img = Array::from_shape_vec((3, dim[0], dim[1]), colorimage).unwrap();
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        img.into_dyn(),
+        Unit::None,
+    ))))
+}
 #[cfg(test)]
 mod test {
     use super::{run_fits_to_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
