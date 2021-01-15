@@ -499,6 +499,20 @@ The visualization tag should be changed if BPT diagram is wanted.
                     vec![run_generate_color_image_from_channel(image_r, image_g, image_b)]
                 }
             ),
+            cake_transform!(
+                "Apply tone curve to image",
+                1,0,0,
+                apply_tone_curve<IOValue, IOErr>(image: Image, tone_curve: ToneCurve) -> Image {
+                    vec![run_apply_tone_curve(image, tone_curve.clone())]
+                }
+            ),
+            cake_transform!(
+                "Downsample the image. The width and height of size will be 1/n",
+                1,0,0,
+                down_sampling<IOValue, IOErr>(image: Image, n: Integer = 1) -> Image {
+                    vec![run_down_sampling(image, *n)]
+                }
+            ),
         ]
     };
 }
@@ -1641,6 +1655,57 @@ fn run_generate_color_image_from_channel(
         Unit::None,
     ))))
 }
+
+fn run_apply_tone_curve(image: &WcsArray, tone_curve: ToneCurveState) -> Result<IOValue, IOErr> {
+    let mut image_arr = image.scalar().clone();
+    let table = tone_curve.array();
+    let table_size = table.len() - 1;
+    image_arr.par_map_inplace(|v| {
+        let key = (*v * table_size as f32 / 65535.0) as usize;
+        let value = 65535.0 * table[key] / table_size as f32;
+        *v = value;
+    });
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        image_arr,
+        Unit::None,
+    ))))
+}
+
+fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
+    dim_is!(image, 2)?;
+    precheck!(
+        n > 0,
+        "{}",
+        format!("n should be greater than 0, {} > 0", n)
+    )?;
+    let dim = image.scalar().dim();
+    let size = dim.as_array_view();
+    let mut out = image.clone();
+    let mut new_size = ((size[0]) / (n as usize), (size[1]) / (n as usize));
+    if size[0] % (n as usize) != 0 {
+        new_size.0 += 1;
+    }
+    if size[1] % (n as usize) != 0 {
+        new_size.1 += 1;
+    }
+    let mut new_image = Vec::with_capacity(new_size.0 * new_size.1);
+    let mut counter = 0;
+    for v in out.scalar_mut().iter_mut() {
+        let coord = (counter % size[1], counter / size[1]);
+        if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
+            new_image.push(*v);
+        }
+        counter += 1;
+    }
+
+    let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out.into_dyn(),
+        Unit::None,
+    ))))
+}
+
 #[cfg(test)]
 mod test {
     use super::{run_fits_to_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
