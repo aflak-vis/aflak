@@ -13,6 +13,7 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate aflak_primitives as primitives;
 extern crate imgui_file_explorer;
+extern crate imgui_tone_curve;
 extern crate node_editor;
 
 mod aflak;

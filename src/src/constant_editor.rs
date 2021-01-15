@@ -1,14 +1,22 @@
 use crate::primitives::{self, IOValue};
 use imgui_file_explorer::{UiFileExplorer, TOP_FOLDER};
+use imgui_tone_curve::UiToneCurve;
 use node_editor::ConstantEditor;
 
-use imgui::{ChildWindow, Id, ImString, Ui};
+use imgui::{ChildWindow, Id, ImString, Ui, WindowDrawList};
 
 #[derive(Default)]
 pub struct MyConstantEditor;
 
 impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
-    fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I, read_only: bool) -> Option<IOValue>
+    fn editor<'a, I>(
+        &self,
+        ui: &Ui,
+        constant: &IOValue,
+        id: I,
+        read_only: bool,
+        draw_list: &WindowDrawList,
+    ) -> Option<IOValue>
     where
         I: Into<Id<'a>>,
     {
@@ -16,7 +24,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
 
         let mut some_new_value = None;
 
-        ui.group(|| some_new_value = inner_editor(ui, constant, read_only));
+        ui.group(|| some_new_value = inner_editor(ui, constant, read_only, &draw_list));
 
         if read_only && ui.is_item_hovered() {
             ui.tooltip_text("Read only, value is set by input!");
@@ -28,7 +36,12 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
     }
 }
 
-fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue> {
+fn inner_editor(
+    ui: &Ui,
+    constant: &IOValue,
+    read_only: bool,
+    draw_list: &WindowDrawList,
+) -> Option<IOValue> {
     match *constant {
         IOValue::Str(ref string) => {
             let mut out = ImString::with_capacity(1024);
@@ -91,6 +104,23 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
                 None
             }
         }
+        IOValue::ToneCurve(ref state) => {
+            let mut state_ret = None;
+            ChildWindow::new(im_str!("edit"))
+                .size([430.0, 430.0])
+                .horizontal_scrollbar(true)
+                .movable(false)
+                .build(ui, || {
+                    let result = ui.tone_curve(&mut state.clone(), &draw_list.clone());
+                    if let Ok(next_state) = result {
+                        let next_state = next_state.unwrap();
+                        if &next_state != state {
+                            state_ret = Some(IOValue::ToneCurve(next_state));
+                        }
+                    }
+                });
+            state_ret
+        }
         IOValue::Float3(ref floats) => {
             let mut f3 = *floats;
             if ui
@@ -111,60 +141,57 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
                 None
             }
         }
-        IOValue::Paths(ref file) => {
-            match file {
-                primitives::PATHS::FileList(file) => {
-                    if read_only {
-                        None
-                    } else {
-                        let size = ui.item_rect_size();
-                        let mut ret = Ok(None);
-                        ChildWindow::new(im_str!("edit"))
-                            .size([size[0].max(400.0), 150.0])
-                            .horizontal_scrollbar(true)
-                            .build(ui, || {
-                                ret = ui.file_explorer(
-                                    TOP_FOLDER,
-                                    &[
-                                        "fits", "fit", "fts", "cr2", "CR2", "RW2", "rw2", "nef",
-                                        "NEF",
-                                    ],
-                                );
-                            });
-                        ui.text(im_str!("Selected Files:"));
+        IOValue::Paths(ref file) => match file {
+            primitives::PATHS::FileList(file) => {
+                if read_only {
+                    None
+                } else {
+                    let size = ui.item_rect_size();
+                    let mut ret = Ok(None);
+                    ChildWindow::new(im_str!("edit"))
+                        .size([size[0].max(400.0), 150.0])
+                        .horizontal_scrollbar(true)
+                        .build(ui, || {
+                            ret = ui.file_explorer(
+                                TOP_FOLDER,
+                                &[
+                                    "fits", "fit", "fts", "cr2", "CR2", "RW2", "rw2", "nef", "NEF",
+                                ],
+                            );
+                        });
+                    ui.text(im_str!("Selected Files:"));
+                    for single_file in file {
+                        ui.text(single_file.to_str().unwrap_or("Unrepresentable path"));
+                    }
+                    if let Ok(Some(new_file)) = ret {
+                        let mut already_exist = false;
+                        let mut key = 0;
                         for single_file in file {
-                            ui.text(single_file.to_str().unwrap_or("Unrepresentable path"));
+                            if *single_file == new_file {
+                                already_exist = true;
+                                break;
+                            }
+                            key += 1;
                         }
-                        if let Ok(Some(new_file)) = ret {
-                            let mut already_exist = false;
-                            let mut key = 0;
-                            for single_file in file {
-                                if *single_file == new_file {
-                                    already_exist = true;
-                                    break;
-                                }
-                                key += 1;
-                            }
-                            if already_exist {
-                                let mut new_files = file.clone();
-                                new_files.remove(key);
-                                Some(IOValue::Paths(primitives::PATHS::FileList(
-                                    new_files.to_vec(),
-                                )))
-                            } else {
-                                let mut new_files = file.clone();
-                                new_files.push(new_file);
-                                Some(IOValue::Paths(primitives::PATHS::FileList(
-                                    new_files.to_vec(),
-                                )))
-                            }
+                        if already_exist {
+                            let mut new_files = file.clone();
+                            new_files.remove(key);
+                            Some(IOValue::Paths(primitives::PATHS::FileList(
+                                new_files.to_vec(),
+                            )))
                         } else {
-                            None
+                            let mut new_files = file.clone();
+                            new_files.push(new_file);
+                            Some(IOValue::Paths(primitives::PATHS::FileList(
+                                new_files.to_vec(),
+                            )))
                         }
+                    } else {
+                        None
                     }
                 }
             }
-        }
+        },
         IOValue::Roi(ref roi) => {
             match roi {
                 primitives::ROI::All => ui.text("Whole image"),
