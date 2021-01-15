@@ -403,6 +403,8 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[0] = false;
                     window.image2d_state.zoomkind[2] = false;
                     window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[1] = true;
                 }
             }
             if MenuItem::new(im_str!("100%"))
@@ -412,6 +414,8 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[0] = false;
                     window.image2d_state.zoomkind[1] = false;
                     window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[2] = true;
                 }
             }
             if MenuItem::new(im_str!("200%"))
