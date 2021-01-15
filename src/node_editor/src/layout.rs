@@ -975,7 +975,9 @@ where
             if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform(t_idx) {
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                        if let Some(new_value) = constant_editor.editor(ui, &constant, 0, false) {
+                        if let Some(new_value) =
+                            constant_editor.editor(ui, &constant, 0, false, &draw_list)
+                        {
                             events.push(RenderEvent::SetConstant(t_idx, Box::new(new_value)));
                         }
                     }
@@ -988,7 +990,7 @@ where
                         let read_only = some_output.is_some();
                         if let Some(val) = default_input {
                             if let Some(new_value) =
-                                constant_editor.editor(ui, &val, i as i32, read_only)
+                                constant_editor.editor(ui, &val, i as i32, read_only, &draw_list)
                             {
                                 events.push(RenderEvent::WriteDefaultInput {
                                     t_idx,

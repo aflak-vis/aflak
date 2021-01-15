@@ -1,4 +1,4 @@
-use imgui::{self, Ui};
+use imgui::{self, Ui, WindowDrawList};
 
 /// Trait to define how to draw constant editor.
 ///
@@ -7,7 +7,14 @@ use imgui::{self, Ui};
 /// in the node editor can be manually edited.
 pub trait ConstantEditor<T>: Default {
     /// Build editor for constant T and return new value if value changed
-    fn editor<'a, I>(&self, ui: &Ui, constant: &T, id: I, read_only: bool) -> Option<T>
+    fn editor<'a, I>(
+        &self,
+        ui: &Ui,
+        constant: &T,
+        id: I,
+        read_only: bool,
+        draw_list: &WindowDrawList,
+    ) -> Option<T>
     where
         I: Into<imgui::Id<'a>>;
 }
