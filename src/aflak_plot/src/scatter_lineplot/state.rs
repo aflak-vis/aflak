@@ -1,7 +1,7 @@
 use imgui::Ui;
 use implot::{
-    get_plot_limits, push_style_var_i32, Condition, ImPlotLimits, ImPlotRange,
-    Marker, Plot, PlotScatter, PlotUi, StyleVar, YAxisChoice,
+    get_plot_limits, push_style_var_i32, Condition, ImPlotLimits, ImPlotRange, Marker, Plot,
+    PlotScatter, PlotUi, StyleVar, YAxisChoice,
 };
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 
