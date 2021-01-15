@@ -146,7 +146,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         let window_pos = self.window_pos();
         let cursor_pos = self.cursor_screen_pos();
         let window_size = self.window_size();
-        const HIST_WIDTH: f32 = 40.0;
+        const HIST_WIDTH: f32 = 300.0;
         const BAR_WIDTH: f32 = 20.0;
 
         const RIGHT_PADDING: f32 = 100.0;
@@ -155,23 +155,23 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size[0] - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size[1] - (cursor_pos[1] - window_pos[1]),
         );
-        let ([_p, _size], _x_label_height) =
+        let ([p, size], x_label_height) =
             state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
 
-        /*state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
-        //let lut_bar_updated = state.show_bar(
+        state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
+        let _lut_bar_updated = state.show_bar(
             self,
             [p[0] + size[0] + HIST_WIDTH, p[1]],
             [BAR_WIDTH, size[1]],
         );
-        if lut_bar_updated {
+        /*if lut_bar_updated {
             state
                 .image()
                 .update_texture(ctx, texture_id, textures, &state.lut)?;
-        }
+        }*/
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);
-        state.show_roi_selector(self);*/
+        state.show_roi_selector(self);
 
         Ok(())
     }
