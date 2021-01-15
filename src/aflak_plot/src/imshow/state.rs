@@ -1228,6 +1228,56 @@ where
         } // TODO show error
     }
 
+    pub(crate) fn show_hist_color(&self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) {
+        let vmin = 0.0;
+        let vmax = 65535.0;
+
+        const FILL_COLOR_R: u32 = 0x5500_00FF;
+        const FILL_COLOR_G: u32 = 0x5500_FF00;
+        const FILL_COLOR_B: u32 = 0x55FF_0000;
+        const BORDER_COLOR: u32 = 0xFF00_0000;
+        let hist = self.image.hist_color();
+        if let Some((max_count_r, max_count_g, max_count_b)) = hist
+            .iter()
+            .map(|bin| (bin[0].count, bin[1].count, bin[2].count))
+            .max()
+        {
+            let draw_list = ui.get_window_draw_list();
+            let max_count = max_count_r.max(max_count_g).max(max_count_b);
+            let x_pos = pos[0];
+            for i in 0..3 {
+                for bin in hist {
+                    let y_pos = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].start);
+                    let y_pos_end = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].end);
+                    let length = size[0]
+                        * if self.hist_logscale {
+                            (bin[i].count as f32).log10() / (max_count as f32).log10()
+                        } else {
+                            (bin[i].count as f32) / (max_count as f32)
+                        };
+                    draw_list
+                        .add_rect(
+                            [x_pos + size[0] - length, y_pos],
+                            [x_pos + size[0], y_pos_end],
+                            if i == 0 {
+                                FILL_COLOR_R
+                            } else if i == 1 {
+                                FILL_COLOR_G
+                            } else {
+                                FILL_COLOR_B
+                            },
+                        )
+                        .filled(true)
+                        .build();
+                }
+            }
+            draw_list
+                .add_rect(pos, [pos[0] + size[0], pos[1] + size[1]], BORDER_COLOR)
+                .build();
+            // TODO show error
+        }
+    }
+
     pub(crate) fn show_roi_selector(&mut self, ui: &Ui) {
         let any_roi = self.interactions.iter_mut().filter_roi().any(|_| true);
         if any_roi {

@@ -88,6 +88,7 @@ pub struct Image<I> {
     created_on: Option<Instant>,
     data: Option<I>,
     hist: Vec<hist::Bin>,
+    hist_color: Vec<[hist::Bin; 3]>,
 }
 
 impl<I> Default for Image<I> {
@@ -100,6 +101,7 @@ impl<I> Default for Image<I> {
             created_on: None,
             data: None,
             hist: vec![],
+            hist_color: vec![],
         }
     }
 }
@@ -165,6 +167,7 @@ where
             created_on: Some(created_on),
             data: Some(image),
             hist,
+            hist_color: vec![],
         })
     }
 
@@ -179,7 +182,7 @@ where
     where
         F: Facade,
     {
-        let (vmin, vmax, tex_size, hist) = {
+        let (vmin, vmax, tex_size, hist_color) = {
             let image = coerce_to_array_view3(&image);
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
@@ -198,7 +201,7 @@ where
                 },
             );
 
-            let hist = hist::histogram_color(&image, vmin, vmax);
+            let hist = hist::histogram_color(&image, 0.0, 65535.0);
             (vmin, vmax, tex_size, hist)
         };
 
@@ -208,7 +211,8 @@ where
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
-            hist,
+            hist: vec![],
+            hist_color,
         })
     }
 
@@ -266,6 +270,10 @@ where
 
     pub fn hist(&self) -> &[hist::Bin] {
         &self.hist
+    }
+
+    pub fn hist_color(&self) -> &[[hist::Bin; 3]] {
+        &self.hist_color
     }
 
     pub fn vmin(&self) -> f32 {
