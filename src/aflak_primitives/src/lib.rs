@@ -21,6 +21,8 @@ extern crate variant_name_derive;
 #[macro_use]
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
+extern crate imgui_tone_curve;
+
 #[macro_use]
 pub extern crate ndarray;
 extern crate nalgebra;
@@ -45,6 +47,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use imgui_tone_curve::ToneCurveState;
 use nalgebra::{Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use variant_name::VariantName;
@@ -72,6 +75,7 @@ pub enum IOValue {
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
     Paths(PATHS),
+    ToneCurve(ToneCurveState),
 }
 
 impl PartialEq for IOValue {
@@ -81,6 +85,7 @@ impl PartialEq for IOValue {
             (Integer(i1), Integer(i2)) => i1 == i2,
             (Float(f1), Float(f2)) => f1 == f2,
             (Float2(f1), Float2(f2)) => f1 == f2,
+            (ToneCurve(t1), ToneCurve(t2)) => t1 == t2,
             (Float3(f1), Float3(f2)) => f1 == f2,
             (Str(s1), Str(s2)) => s1 == s2,
             (Bool(b1), Bool(b2)) => b1 == b2,
@@ -513,6 +518,7 @@ impl cake::DefaultFor for IOValue {
             "Integer" => IOValue::Integer(0),
             "Float" => IOValue::Float(0.0),
             "Float2" => IOValue::Float2([0.0; 2]),
+            "ToneCurve" => IOValue::ToneCurve(ToneCurveState::default()),
             "Float3" => IOValue::Float3([0.0; 3]),
             "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
@@ -526,7 +532,15 @@ impl cake::DefaultFor for IOValue {
 impl cake::EditableVariants for IOValue {
     fn editable_variants() -> &'static [&'static str] {
         &[
-            "Integer", "Float", "Float2", "Float3", "Roi", "Str", "Bool", "Paths",
+            "Integer",
+            "Float",
+            "Float2",
+            "Float3",
+            "Roi",
+            "Str",
+            "Bool",
+            "Paths",
+            "ToneCurve",
         ]
     }
 }
