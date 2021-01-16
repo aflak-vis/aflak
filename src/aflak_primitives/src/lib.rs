@@ -331,10 +331,17 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Convert to log10",
+                "Calculating log10 of input data.",
                 1, 0, 0,
                 log10<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_log10(image)]
+                }
+            ),
+            cake_transform!(
+                "Calculating division between two WcsArray(image).",
+                1, 0, 0,
+                image_division<IOValue, IOErr>(image_dividend: Image, image_divisor: Image) -> Image {
+                    vec![run_image_division(image_dividend, image_divisor)]
                 }
             ),
             cake_transform!(
@@ -1392,6 +1399,18 @@ fn run_log10(image: &WcsArray) -> Result<IOValue, IOErr> {
     }
 
     Ok(IOValue::Image(out))
+}
+
+fn run_image_division(
+    image_dividend: &WcsArray,
+    image_divisor: &WcsArray,
+) -> Result<IOValue, IOErr> {
+    let out = image_dividend.scalar() / image_divisor.scalar();
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
 }
 
 fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
