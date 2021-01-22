@@ -14,6 +14,7 @@ extern crate imgui_glium_renderer;
 extern crate ndarray;
 
 extern crate implot;
+extern crate meval;
 
 pub mod imshow;
 pub mod plot;

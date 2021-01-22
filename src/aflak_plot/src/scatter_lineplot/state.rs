@@ -1,9 +1,11 @@
-use imgui::Ui;
+use imgui::{ImString, Ui, Window};
 use implot::{
-    get_plot_limits, push_style_var_i32, Condition, ImPlotLimits, ImPlotRange, Marker, Plot,
-    PlotScatter, PlotUi, StyleVar, YAxisChoice,
+    get_plot_limits, get_plot_mouse_position, is_plot_hovered, push_style_var_i32, Condition,
+    ImPlotLimits, ImPlotPoint, ImPlotRange, Marker, Plot, PlotLine, PlotScatter, PlotUi, StyleVar,
+    YAxisChoice,
 };
 use ndarray::{ArrayBase, Axis, Data, Ix2};
+use std::collections::HashMap;
 
 use super::interactions::Interactions;
 use super::AxisTransform;
@@ -18,8 +20,14 @@ pub struct State {
     interactions: Interactions,
     plot_limits: [f64; 4],
     limit_changed: bool,
-    xaxis: Vec<f64>,
-    yaxis: Vec<f64>,
+    datapoints: HashMap<Vec<bool>, (Vec<f64>, Vec<f64>, Vec<Vec<f32>>)>,
+    class: Vec<usize>,
+    pub show_graph_editor: bool,
+    show_graph: Vec<bool>,
+    expr: Vec<ImString>,
+    bind: Vec<ImString>,
+    graph_points: Vec<Vec<f64>>,
+    graph_removing: Option<usize>,
 }
 
 impl Default for State {
@@ -32,8 +40,14 @@ impl Default for State {
             interactions: Interactions::new(),
             plot_limits: [0.0, 1.0, 0.0, 1.0],
             limit_changed: true,
-            xaxis: vec![],
-            yaxis: vec![],
+            datapoints: HashMap::new(),
+            class: vec![],
+            show_graph_editor: false,
+            show_graph: vec![false],
+            expr: vec![ImString::from(im_str!(""))],
+            bind: vec![ImString::from(im_str!(""))],
+            graph_points: vec![vec![]],
+            graph_removing: None,
         }
     }
 }
@@ -166,22 +180,91 @@ impl State {
         let xaxis = image.slice(s![0, ..]).to_vec();
         let yaxis = image.slice(s![1, ..]).to_vec();
         let distances = image.slice(s![2, ..]).to_vec();
+        let index_size = image.dim().0 - 3;
+        let mut indexes = Vec::new();
+        for i in 0..index_size {
+            indexes.push(image.slice(s![i + 3, ..]).to_vec());
+        }
         let mut datapoints = Vec::new();
         for i in 0..xaxis.len() {
-            datapoints.push((xaxis[i], yaxis[i], distances[i]));
+            let mut index = Vec::new();
+            for j in 0..index_size {
+                index.push(indexes[j][i]);
+            }
+            datapoints.push((xaxis[i], yaxis[i], distances[i], index));
         }
         let content_width = ui.window_content_region_width();
         let mut plot_limits: Option<ImPlotLimits> = None;
-        if self.limit_changed {
-            self.xaxis.clear();
-            self.yaxis.clear();
+        let mut hover_pos_plot: Option<ImPlotPoint> = None;
+        let mut graph_changed = false;
+        if self.show_graph_editor {
+            Window::new(&ImString::new(format!("Graph Editor")))
+                .size([300.0, 500.0], Condition::Appearing)
+                .resizable(false)
+                .build(ui, || {
+                    for i in 0..self.show_graph.len() {
+                        let p = ui.cursor_screen_pos();
+                        let mut out_expr = ImString::with_capacity(1024);
+                        out_expr.push_str(self.expr[i].to_str());
+                        ui.text("y = ");
+                        ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
+                        let changed = ui.input_text(&im_str!("expr_{}", i), &mut out_expr).build();
+                        if changed {
+                            graph_changed = true;
+                            self.expr[i] = out_expr;
+                        }
+                        let p = ui.cursor_screen_pos();
+                        let mut out_bind = ImString::with_capacity(1024);
+                        out_bind.push_str(self.bind[i].to_str());
+                        ui.text("bind:");
+                        ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
+                        let changed = ui.input_text(&im_str!("bind_{}", i), &mut out_bind).build();
+                        if changed {
+                            graph_changed = true;
+                            self.bind[i] = out_bind;
+                        }
+                        if ui.checkbox(&im_str!("Show graph {}", i), &mut self.show_graph[i]) {
+                            graph_changed = true;
+                        }
+                        if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
+                            if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+                                self.graph_points[i] = (0..300 + 1)
+                                    .map(|i| {
+                                        let minx = self.plot_limits[0];
+                                        let maxx = self.plot_limits[1];
+                                        let computex = minx + (maxx - minx) / 300.0 * i as f64;
+                                        func(computex)
+                                    })
+                                    .collect();
+                            } else {
+                                self.graph_points[i].clear();
+                            }
+                        } else {
+                            self.graph_points[i].clear();
+                        }
+                        if ui.button(&im_str!("Delete Function {}", i), [0.0, 0.0]) {
+                            self.graph_removing = Some(i);
+                        }
+                    }
+                    if ui.button(im_str!("Add Function"), [0.0, 0.0]) {
+                        self.show_graph.push(false);
+                        self.expr.push(ImString::from(im_str!("")));
+                        self.bind.push(ImString::from(im_str!("")));
+                        self.graph_points.push(vec![]);
+                    }
+                    if ui.button(im_str!("Add Functions to node editor"), [0.0, 0.0]) {}
+                });
+        }
+        if self.limit_changed || graph_changed {
+            self.datapoints.clear();
+            self.datapoints.clear();
             let (xmin, xmax, ymin, ymax) = (
                 self.plot_limits[0],
                 self.plot_limits[1],
                 self.plot_limits[2],
                 self.plot_limits[3],
             );
-            datapoints.retain(|&data| {
+            datapoints.retain(|data| {
                 xmin <= data.0 as f64
                     && data.0 as f64 <= xmax
                     && ymin <= data.1 as f64
@@ -204,12 +287,51 @@ impl State {
                             as f64
                             > standard_distance
                 });
-                self.xaxis.push(first.0 as f64);
-                self.yaxis.push(first.1 as f64);
+                let key = {
+                    let mut t = Vec::new();
+                    for i in 0..self.show_graph.len() {
+                        if self.show_graph[i] {
+                            if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
+                                if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+                                    if func(first.0 as f64) > first.1 as f64 {
+                                        t.push(true);
+                                    } else {
+                                        t.push(false);
+                                    }
+                                }
+                            }
+                        } else {
+                            t.push(false);
+                        }
+                    }
+                    t
+                };
+                let mut inserted = false;
+                for (k, v) in self.datapoints.iter_mut() {
+                    if *k == key {
+                        v.0.push(first.0 as f64);
+                        v.1.push(first.1 as f64);
+                        v.2.push(first.3.clone());
+                        inserted = true;
+                        break;
+                    }
+                }
+                if !inserted {
+                    self.datapoints.insert(
+                        key,
+                        (vec![first.0 as f64], vec![first.1 as f64], vec![first.3]),
+                    );
+                }
             }
             self.limit_changed = false;
         }
-
+        if let Some(key) = self.graph_removing {
+            self.show_graph.remove(key);
+            self.expr.remove(key);
+            self.bind.remove(key);
+            self.graph_points.remove(key);
+            self.graph_removing = None;
+        }
         Plot::new("Simple Plot")
             .size(content_width, size[1])
             .x_label(&haxislabel)
@@ -231,6 +353,29 @@ impl State {
             )
             .build(plot_ui, || {
                 plot_limits = Some(get_plot_limits(None));
+                if is_plot_hovered() {
+                    hover_pos_plot = Some(get_plot_mouse_position(None));
+                }
+                if let Some(ImPlotPoint { x, y }) = hover_pos_plot {
+                    let mut mindistance =
+                        (self.plot_limits[1] - self.plot_limits[0]) * 5.0 / content_width as f64;
+                    let mut minindex = vec![];
+                    for d in self.datapoints.values() {
+                        for idx in 0..d.0.len() {
+                            if (d.0[idx] - x) * (d.0[idx] - x) + (d.1[idx] - y) * (d.1[idx] - y)
+                                < mindistance * mindistance
+                            {
+                                minindex.clear();
+                                minindex = d.2[idx].clone();
+                                mindistance = (d.0[idx] - x) * (d.0[idx] - x)
+                                    + (d.1[idx] - y) * (d.1[idx] - y);
+                            }
+                        }
+                    }
+                    if !minindex.is_empty() {
+                        ui.tooltip_text(format!("This datapoint comes from pixel {:?}", minindex));
+                    }
+                }
                 if let Some(plot) = plot_limits {
                     if self.plot_limits[0] != plot.X.Min
                         || self.plot_limits[1] != plot.X.Max
@@ -244,7 +389,29 @@ impl State {
                         self.limit_changed = true;
                     }
                 }
-                PlotScatter::new("data point").plot(&self.xaxis, &self.yaxis);
+                let mut counter = 0;
+                for (_, (xaxis, yaxis, _)) in self.datapoints.iter() {
+                    PlotScatter::new(format!("data points {}", counter).as_str())
+                        .plot(&xaxis, &yaxis);
+                    counter += 1;
+                }
+
+                (0..self.show_graph.len())
+                    .map(|i| {
+                        if self.show_graph[i] {
+                            let x_positions: Vec<_> = (0..300 + 1)
+                                .map(|i| {
+                                    let minx = self.plot_limits[0];
+                                    let maxx = self.plot_limits[1];
+                                    let computex = minx + (maxx - minx) / 300.0 * i as f64;
+                                    computex
+                                })
+                                .collect();
+                            PlotLine::new(format!("graph {}", i).as_str())
+                                .plot(&x_positions, &self.graph_points[i]);
+                        }
+                    })
+                    .count();
             });
         Ok(())
     }
