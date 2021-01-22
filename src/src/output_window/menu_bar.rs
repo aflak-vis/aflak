@@ -355,7 +355,8 @@ impl MenuBar for primitives::WcsArray {
                     if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
                         self.zoom_menu(ui, window);
                         menu.end(ui);
-                    } else if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                    }
+                    if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
                         self.histogram_menu(ui, window);
                         menu.end(ui);
                     }
@@ -377,7 +378,8 @@ impl MenuBar for primitives::WcsArray {
                         if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
                             self.zoom_menu(ui, window);
                             menu.end(ui);
-                        } else if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                        }
+                        if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
                             self.histogram_menu(ui, window);
                             menu.end(ui);
                         }
