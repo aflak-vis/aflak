@@ -978,7 +978,7 @@ fn run_create_scatter(xaxis: &WcsArray, yaxis: &WcsArray) -> Result<IOValue, IOE
         index_size = idx.ndim();
         indexes.push(idx);
     }
-    for (idx, d) in y_axis.indexed_iter() {
+    for (_, d) in y_axis.indexed_iter() {
         imgy.push(*d);
     }
     let mut datapoints = Vec::new();
@@ -1011,8 +1011,8 @@ fn run_create_scatter(xaxis: &WcsArray, yaxis: &WcsArray) -> Result<IOValue, IOE
     for i in 0..datalen {
         res.push(datapoints[i].2);
     }
-    for i in 0..datalen {
-        for j in 0..index_size {
+    for j in 0..index_size {
+        for i in 0..datalen {
             res.push(datapoints[i].3[j] as f32);
         }
     }
