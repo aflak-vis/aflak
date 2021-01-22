@@ -370,7 +370,15 @@ impl MenuBar for primitives::WcsArray {
             },
             Some(tag) => match tag.as_ref() {
                 "BPT" => match self.scalar().ndim() {
-                    2 => {}
+                    2 => {
+                        if let Some(menu) = ui.begin_menu(im_str!("Graph"), true) {
+                            MenuItem::new(im_str!("Graph Editor")).build_with_ref(
+                                ui,
+                                &mut window.scatter_lineplot_state.show_graph_editor,
+                            );
+                            menu.end(ui);
+                        }
+                    }
                     _ => {}
                 },
                 "color_image" => match self.scalar().ndim() {
