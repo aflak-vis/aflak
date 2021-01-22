@@ -380,11 +380,6 @@ where
             [original_size.0 * zoom, original_size.1 * zoom]
         };
 
-        let p = ui.cursor_screen_pos();
-        ui.set_cursor_screen_pos([p[0] + y_labels_width, p[1] + IMAGE_TOP_PADDING]);
-        let p = ui.cursor_screen_pos();
-
-        let draw_list = ui.get_window_draw_list();
         let mut s = [0.0, 0.0];
 
         ChildWindow::new(im_str!("scrolling_region"))
@@ -394,6 +389,8 @@ where
             .scrollable(false)
             .horizontal_scrollbar(false)
             .build(ui, || {
+                let draw_list = ui.get_window_draw_list();
+                let p = ui.cursor_screen_pos();
                 if !self.zoomkind[0] == true {
                     self.offset[0] -= self.scrolling[0];
                     self.offset[1] -= self.scrolling[1];
@@ -411,10 +408,12 @@ where
                     self.parent_offset = p;
                     self.offset = ui.cursor_screen_pos();
                 }
-                let p = ui.cursor_screen_pos();
                 s = p;
-                ticks.draw(&draw_list, p, size);
+                let p = ui.cursor_screen_pos();
+                ui.set_cursor_screen_pos([p[0] + y_labels_width, p[1] + IMAGE_TOP_PADDING]);
+                let p = ui.cursor_screen_pos();
                 Image::new(texture_id, size).build(ui);
+                ticks.draw(&draw_list, p, size);
                 const MIN_WIDTH: f32 = 100.0;
                 const MIN_HEIGHT: f32 = 100.0;
                 let available_size = (
@@ -708,7 +707,7 @@ where
                                     roi_color,
                                     roi_color,
                                     roi_color,
-                                )
+                                );
                             }
 
                             if selected
