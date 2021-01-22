@@ -1377,28 +1377,23 @@ fn run_convert_to_logscale(
     v_max: f32,
 ) -> Result<IOValue, IOErr> {
     let mut out = image.clone();
-    for v in out.scalar_mut().iter_mut() {
-        *v = (*v - v_min) / (v_max - v_min);
-        *v = (a * *v + 1.0).ln() / a.ln();
-    }
+    out.scalar_mut().par_iter_mut().for_each(|v| {
+        let d = (*v - v_min) / (v_max - v_min);
+        *v = (a * d + 1.0).ln() / a.ln();
+    });
 
     Ok(IOValue::Image(out))
 }
 
 fn run_log10(image: &WcsArray) -> Result<IOValue, IOErr> {
     let mut out = image.clone();
-    for v in out.scalar_mut().iter_mut() {
-        *v = v.log10();
-    }
-
+    out.scalar_mut().par_iter_mut().for_each(|v| *v = v.log10());
     Ok(IOValue::Image(out))
 }
 
 fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
     let mut out = image.clone();
-    for v in out.scalar_mut().iter_mut() {
-        *v = -*v;
-    }
+    out.scalar_mut().par_iter_mut().for_each(|v| *v = -*v);
 
     Ok(IOValue::Image(out))
 }
