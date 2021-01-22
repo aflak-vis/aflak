@@ -966,27 +966,26 @@ fn run_convert_to_1d(image: &WcsArray) -> Result<IOValue, IOErr> {
 }
 
 fn run_create_scatter(xaxis: &WcsArray, yaxis: &WcsArray) -> Result<IOValue, IOErr> {
-    dim_is!(xaxis, 1)?;
-    dim_is!(yaxis, 1)?;
     are_same_dim!(xaxis, yaxis)?;
-    let image_val = xaxis.scalar();
-    let width = image_val.len();
-    let mut img = Vec::with_capacity(2 * width);
-    for i in 0..width {
-        for val in image_val.slice(s![i]) {
-            img.push(*val);
-        }
+    let x_axis = xaxis.scalar();
+    let y_axis = yaxis.scalar();
+    let mut imgx = Vec::new();
+    let mut imgy = Vec::new();
+    let mut indexes = Vec::new();
+    let mut index_size = 0;
+    for (idx, d) in x_axis.indexed_iter() {
+        imgx.push(*d);
+        index_size = idx.ndim();
+        indexes.push(idx);
     }
-    let image_val = yaxis.scalar();
-    for i in 0..width {
-        for val in image_val.slice(s![i]) {
-            img.push(*val);
-        }
+    for (idx, d) in y_axis.indexed_iter() {
+        imgy.push(*d);
     }
     let mut datapoints = Vec::new();
-    for i in 0..width {
-        datapoints.push((img[i], img[i + width], 0.0));
+    for i in 0..imgx.len() {
+        datapoints.push((imgx[i], imgy[i], 0.0, indexes[i].clone()));
     }
+
     datapoints.retain(|x| (x.0.is_finite() && x.1.is_finite()));
     let mut center = (0.0, 0.0);
     let datalen = datapoints.len();
@@ -1012,7 +1011,12 @@ fn run_create_scatter(xaxis: &WcsArray, yaxis: &WcsArray) -> Result<IOValue, IOE
     for i in 0..datalen {
         res.push(datapoints[i].2);
     }
-    let img = Array::from_shape_vec((3, datalen), res).unwrap();
+    for i in 0..datalen {
+        for j in 0..index_size {
+            res.push(datapoints[i].3[j] as f32);
+        }
+    }
+    let img = Array::from_shape_vec((3 + index_size, datalen), res).unwrap();
     Ok(IOValue::Image(WcsArray::from_array_and_tag(
         Dimensioned::new(img.into_dyn(), Unit::None),
         Some(String::from("scatter")),
@@ -1109,7 +1113,6 @@ where
         &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
         image.array().with_new_value(raw),
     );
-
     Ok(IOValue::Image(wrap_with_unit))
 }
 
