@@ -5,7 +5,7 @@ use std::time::Instant;
 use glium::{
     backend::Facade,
     texture::{ClientFormat, RawImage2d},
-    uniforms::SamplerBehavior,
+    uniforms::{MagnifySamplerFilter, SamplerBehavior},
     Texture2d,
 };
 use imgui::TextureId;
@@ -151,6 +151,7 @@ where
                 Texture {
                     texture: Rc::new(gl_texture),
                     sampler: SamplerBehavior {
+                        magnify_filter: MagnifySamplerFilter::Nearest,
                         ..Default::default()
                     },
                 },
@@ -196,6 +197,7 @@ where
                 Texture {
                     texture: Rc::new(gl_texture),
                     sampler: SamplerBehavior {
+                        magnify_filter: MagnifySamplerFilter::Nearest,
                         ..Default::default()
                     },
                 },
@@ -235,6 +237,7 @@ where
                 Texture {
                     texture: Rc::new(gl_texture),
                     sampler: SamplerBehavior {
+                        magnify_filter: MagnifySamplerFilter::Nearest,
                         ..Default::default()
                     },
                 },
