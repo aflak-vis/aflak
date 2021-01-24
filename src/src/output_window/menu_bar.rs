@@ -427,6 +427,15 @@ impl MenuBar for primitives::WcsArray {
                             );
                             menu.end(ui);
                         }
+                        if let Some(menu) = ui.begin_menu(im_str!("Option"), true) {
+                            if MenuItem::new(im_str!("Show all data points")).build_with_ref(
+                                ui,
+                                &mut window.scatter_lineplot_state.show_all_point,
+                            ) {
+                                window.scatter_lineplot_state.editor_changed = true;
+                            }
+                            menu.end(ui);
+                        }
                     }
                     _ => {}
                 },
