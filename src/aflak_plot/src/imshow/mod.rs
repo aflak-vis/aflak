@@ -142,7 +142,6 @@ impl<'ui> UiImage2d for Ui<'ui> {
         }
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);
-        state.show_roi_selector(self);
 
         Ok(())
     }
@@ -205,7 +204,6 @@ impl<'ui> UiImage2d for Ui<'ui> {
         }*/
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);
-        state.show_roi_selector(self);
 
         Ok(())
     }

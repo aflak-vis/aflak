@@ -1261,6 +1261,9 @@ where
                 if let Some(line_id) = line_marked_for_deletion {
                     self.interactions.remove(line_id);
                 }
+                let p = ui.cursor_screen_pos();
+                ui.set_cursor_screen_pos([p[0] + y_labels_width, p[1] + 25.0]);
+                self.show_roi_selector(ui);
             });
         ui.set_cursor_screen_pos(s);
         let p = ui.cursor_screen_pos();
