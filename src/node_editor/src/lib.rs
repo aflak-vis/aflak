@@ -23,7 +23,7 @@ mod vec2;
 
 use std::{collections, error, fmt, fs, io, path};
 
-use crate::cake::Future;
+use crate::cake::{Future, TransformIdx};
 use imgui::ImString;
 use imgui_file_explorer::UiFileExplorer;
 
@@ -33,7 +33,7 @@ use crate::layout::NodeEditorLayout;
 
 /// The node editor instance.
 pub struct NodeEditor<T: 'static, E: 'static> {
-    dst: cake::DST<'static, T, E>,
+    pub dst: cake::DST<'static, T, E>,
     output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
     cache: cake::Cache<T, cake::compute::ComputeError<E>>,
     macros: cake::macros::MacroManager<'static, T, E>,
@@ -183,12 +183,18 @@ where
         ui: &imgui::Ui,
         addable_nodes: &[&'static cake::Transform<T, E>],
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
-        let events =
-            self.layout
-                .render(ui, &self.dst, addable_nodes, &self.macros, constant_editor);
+        let events = self.layout.render(
+            ui,
+            &self.dst,
+            addable_nodes,
+            &self.macros,
+            constant_editor,
+            attaching,
+        );
         for event in events {
             self.apply_event(event);
         }
@@ -244,6 +250,7 @@ where
         ui: &imgui::Ui,
         addable_nodes: &[&'static cake::Transform<T, E>],
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -271,9 +278,14 @@ where
                     let events = {
                         let lock = node_edit.handle.read();
                         let dst = lock.dst();
-                        node_edit
-                            .layout
-                            .render(ui, dst, addable_nodes, macros, constant_editor)
+                        node_edit.layout.render(
+                            ui,
+                            dst,
+                            addable_nodes,
+                            macros,
+                            constant_editor,
+                            attaching,
+                        )
                     };
                     for event in events {
                         if let event::RenderEvent::AddNewMacro = event {
