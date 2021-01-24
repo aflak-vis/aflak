@@ -5,6 +5,7 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate ndarray;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -52,6 +53,8 @@ fn main() {
                 Some(&AxisTransform::new("X Axis", "m", |x| x)),
                 Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                 &mut state,
+                &mut None,
+                &mut HashMap::new(),
             )
             .expect("Image2d failed");
         });

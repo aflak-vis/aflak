@@ -1,15 +1,18 @@
-use imgui::{ImString, Ui, Window};
+use super::interactions::{
+    FinedGrainedROI, Interaction, InteractionId, InteractionIterMut, Interactions, ValueIter,
+};
+use super::AxisTransform;
+use super::Error;
+use imgui::{ImString, MenuItem, MouseButton, Ui, Window};
 use implot::{
     get_plot_limits, get_plot_mouse_position, is_plot_hovered, push_style_var_i32, Condition,
     ImPlotLimits, ImPlotPoint, ImPlotRange, Marker, Plot, PlotLine, PlotScatter, PlotUi, StyleVar,
     YAxisChoice,
 };
+use imshow::cake::{OutputId, TransformIdx};
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 use std::collections::HashMap;
-
-use super::interactions::Interactions;
-use super::AxisTransform;
-use super::Error;
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 /// Current state of a plot UI.
 #[derive(Debug)]
@@ -156,6 +159,8 @@ impl State {
         horizontal_axis: Option<&AxisTransform<FX>>,
         vertical_axis: Option<&AxisTransform<FY>>,
         size: [f32; 2],
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
