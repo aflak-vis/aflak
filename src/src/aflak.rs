@@ -27,6 +27,7 @@ pub struct Aflak {
     file_dialog: Option<FileDialog>,
     recent_files: Vec<PathBuf>,
     pub show_metrics: bool,
+    pub show_bind_manager: bool,
     copying: Option<(InteractionId, TransformIdx)>,
     attaching: Option<(OutputId, TransformIdx, usize)>,
 }
@@ -42,6 +43,7 @@ impl Aflak {
             file_dialog: None,
             recent_files: vec![],
             show_metrics: false,
+            show_bind_manager: false,
             copying: None,
             attaching: None,
         }
@@ -69,14 +71,20 @@ impl Aflak {
                     menu.end(ui);
                 }
                 ui.separator();
-                if MenuItem::new(im_str!("Metrics")).build(ui) {
-                    self.show_metrics = !self.show_metrics;
-                }
                 if MenuItem::new(im_str!("Quit"))
                     .shortcut(im_str!("Alt+F4"))
                     .build(ui)
                 {
                     self.quit = true;
+                }
+                menu.end(ui);
+            }
+            if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                if MenuItem::new(im_str!("Metrics")).build(ui) {
+                    self.show_metrics = !self.show_metrics;
+                }
+                if MenuItem::new(im_str!("Bind manager")).build(ui) {
+                    self.show_bind_manager = !self.show_bind_manager;
                 }
                 menu.end(ui);
             }
@@ -192,5 +200,26 @@ impl Aflak {
                 None => {}
             }
         }
+    }
+
+    pub fn bind_manager(&mut self, ui: &Ui) {
+        Window::new(im_str!("Bind Manager")).build(ui, || {
+            ui.text("Bindings:");
+            let outputs = self.node_editor.outputs();
+            let dst = &self.node_editor.dst;
+            for output in outputs {
+                let output_window = self.output_windows.entry(output).or_default();
+                let editable_values = output_window.editable_values.clone();
+                for (interaction_id, transformidx) in editable_values.iter() {
+                    for (nodeid, node) in dst.nodes_iter() {
+                        if let NodeId::Transform(t_idx) = nodeid {
+                            if t_idx == *transformidx {
+                                ui.text(im_str!("{:?} <--> {:?}", output, node.name(&nodeid)));
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 }
