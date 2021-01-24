@@ -31,6 +31,7 @@ pub struct State {
     bind: Vec<ImString>,
     graph_points: Vec<Vec<f64>>,
     graph_removing: Option<usize>,
+    pub show_all_point: bool,
 }
 
 impl Default for State {
@@ -51,6 +52,7 @@ impl Default for State {
             bind: vec![ImString::from(im_str!(""))],
             graph_points: vec![vec![]],
             graph_removing: None,
+            show_all_point: true,
         }
     }
 }
@@ -291,29 +293,34 @@ impl State {
                 self.plot_limits[2],
                 self.plot_limits[3],
             );
-            datapoints.retain(|data| {
-                xmin <= data.0 as f64
-                    && data.0 as f64 <= xmax
-                    && ymin <= data.1 as f64
-                    && data.1 as f64 <= ymax
-            });
             let xstep = ((xmax - xmin) / content_width as f64 * 5.0) as f64;
             let ystep = ((ymax - ymin) / size[1] as f64 * 5.0) as f64;
             let standard_distance = xstep * xstep + ystep * ystep;
-            datapoints.dedup_by(|x, y| {
-                ((x.0 - y.0).abs() as f64) < xstep && ((x.1 - y.1).abs() as f64) < ystep
-            });
+            if !self.show_all_point {
+                datapoints.retain(|data| {
+                    xmin <= data.0 as f64
+                        && data.0 as f64 <= xmax
+                        && ymin <= data.1 as f64
+                        && data.1 as f64 <= ymax
+                });
+                datapoints.dedup_by(|x, y| {
+                    ((x.0 - y.0).abs() as f64) < xstep && ((x.1 - y.1).abs() as f64) < ystep
+                });
+            }
             loop {
                 if datapoints.first() == None {
                     break;
                 }
                 let first = datapoints.first().unwrap().clone();
-                datapoints.retain(|x| {
-                    x.2 > first.2 * 2.0
-                        || ((x.0 - first.0) * (x.0 - first.0) + (x.1 - first.1) * (x.1 - first.1))
-                            as f64
-                            > standard_distance
-                });
+                if !self.show_all_point {
+                    datapoints.retain(|x| {
+                        x.2 > first.2 * 2.0
+                            || ((x.0 - first.0) * (x.0 - first.0)
+                                + (x.1 - first.1) * (x.1 - first.1))
+                                as f64
+                                > standard_distance
+                    });
+                }
                 let key = {
                     let mut t = Vec::new();
                     for i in 0..self.show_graph.len() {
@@ -348,6 +355,9 @@ impl State {
                         key,
                         (vec![first.0 as f64], vec![first.1 as f64], vec![first.3]),
                     );
+                }
+                if self.show_all_point {
+                    datapoints.remove(0);
                 }
             }
             self.limit_changed = false;
