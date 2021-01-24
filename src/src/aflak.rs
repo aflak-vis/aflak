@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use glium;
 use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
 
-use aflak_plot::imshow::Textures;
-use cake::{OutputId, Transform};
+use aflak_plot::{imshow::Textures, interactions::InteractionId};
+use cake::{NodeId, OutputId, Transform, TransformIdx};
 use node_editor::NodeEditor;
 use primitives::{IOErr, IOValue};
 
@@ -27,6 +27,7 @@ pub struct Aflak {
     file_dialog: Option<FileDialog>,
     recent_files: Vec<PathBuf>,
     pub show_metrics: bool,
+    copying: Option<(InteractionId, TransformIdx)>,
 }
 
 impl Aflak {
@@ -40,6 +41,7 @@ impl Aflak {
             file_dialog: None,
             recent_files: vec![],
             show_metrics: false,
+            copying: None,
         }
     }
 
@@ -144,6 +146,7 @@ impl Aflak {
                 gl_ctx,
                 textures,
                 &plotcontext,
+                &mut self.copying,
             );
             self.error_alerts.extend(new_errors);
         }

@@ -14,9 +14,9 @@ use aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
     scatter_lineplot::UiScatter,
-    AxisTransform, InteractionIterMut, ValueIter,
+    AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
-use cake::OutputId;
+use cake::{OutputId, TransformIdx};
 use primitives::{
     self,
     fitrs::{Fits, Hdu},
@@ -38,6 +38,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, 'p, F: 'gl> {
     pub gl_ctx: &'gl F,
     pub textures: &'tex mut Textures,
     pub plotcontext: &'p Context,
+    pub copying: &'w mut Option<(InteractionId, TransformIdx)>,
 }
 
 /// Similar to Visualizable, excepts that the types that implements this trait
@@ -483,8 +484,15 @@ impl MenuBar for primitives::WcsArray {
                             _ => None,
                         }
                     };
-                    if let Err(e) = ui.image1d(&self.scalar1(), "", unit, transform.as_ref(), state)
-                    {
+                    if let Err(e) = ui.image1d(
+                        &self.scalar1(),
+                        "",
+                        unit,
+                        transform.as_ref(),
+                        state,
+                        &mut ctx.copying,
+                        &mut ctx.window.editable_values,
+                    ) {
                         ui.text(format!("Error on drawing plot! {}", e))
                     }
                     update_editor_from_state(
@@ -559,6 +567,8 @@ impl MenuBar for primitives::WcsArray {
                         x_transform.as_ref(),
                         y_transform.as_ref(),
                         state,
+                        &mut ctx.copying,
+                        &mut ctx.window.editable_values,
                     ) {
                         ui.text(format!("Error on drawing image! {}", e));
                     }
@@ -580,15 +590,27 @@ impl MenuBar for primitives::WcsArray {
                     2 => {
                         let state = &mut ctx.window.scatter_lineplot_state;
                         let plot_ui = ctx.plotcontext.get_plot_ui();
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            &ctx.node_editor,
+                        );
                         if let Err(e) = ui.scatter(
                             &self.scalar2(),
                             &plot_ui,
                             Some(&AxisTransform::new("X Axis", "m", |x| x)),
                             Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                             state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
                         ) {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
                     }
                     _ => {
                         ui.text(format!(
@@ -607,6 +629,8 @@ impl MenuBar for primitives::WcsArray {
                             Some(&AxisTransform::new("X Axis", "m", |x| x)),
                             Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                             state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
                         ) {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
@@ -688,6 +712,8 @@ impl MenuBar for primitives::WcsArray {
                             x_transform.as_ref(),
                             y_transform.as_ref(),
                             state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
