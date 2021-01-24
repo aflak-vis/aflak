@@ -1440,6 +1440,29 @@ fn run_log10(image: &WcsArray) -> Result<IOValue, IOErr> {
     Ok(IOValue::Image(out))
 }
 
+fn run_image_multiplier(
+    i1: &WcsArray,
+    i2: &WcsArray,
+    coef1: f32,
+    coef2: f32,
+) -> Result<IOValue, IOErr> {
+    are_same_dim!(i1, i2)?;
+    let mut i1 = i1.clone();
+    let mut i2 = i2.clone();
+    i1.scalar_mut()
+        .par_iter_mut()
+        .for_each(|v| *v = (*v).powf(coef1));
+    i2.scalar_mut()
+        .par_iter_mut()
+        .for_each(|v| *v = (*v).powf(coef2));
+    let out = i1.scalar() * i2.scalar();
+
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
+}
+
 fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
     let mut out = image.clone();
     out.scalar_mut().par_iter_mut().for_each(|v| *v = -*v);
