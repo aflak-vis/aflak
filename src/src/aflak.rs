@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use glium;
 use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
 
-use crate::cake::{OutputId, Transform};
+use crate::aflak_plot::{imshow::Textures, interactions::InteractionId};
+use crate::cake::{NodeId, OutputId, Transform, TransformIdx};
 use crate::primitives::{IOErr, IOValue};
-use aflak_plot::imshow::Textures;
 use node_editor::NodeEditor;
 
 use crate::constant_editor::MyConstantEditor;
@@ -26,6 +26,7 @@ pub struct Aflak {
     file_dialog: Option<FileDialog>,
     recent_files: Vec<PathBuf>,
     pub show_metrics: bool,
+    copying: Option<(InteractionId, TransformIdx)>,
 }
 
 impl Aflak {
@@ -39,6 +40,7 @@ impl Aflak {
             file_dialog: None,
             recent_files: vec![],
             show_metrics: false,
+            copying: None,
         }
     }
 
@@ -145,6 +147,7 @@ impl Aflak {
                 gl_ctx,
                 textures,
                 &plotcontext,
+                &mut self.copying,
             );
             self.error_alerts.extend(new_errors);
         }
