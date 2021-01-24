@@ -27,7 +27,7 @@ pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
     scatter_lineplot_state: scatter_lineplot::State,
-    editable_values: EditableValues,
+    pub editable_values: EditableValues,
     show_pixels: bool,
 }
 
@@ -43,6 +43,7 @@ impl OutputWindow {
         gl_ctx: &F,
         textures: &mut Textures,
         plotcontext: &Context,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
@@ -70,6 +71,7 @@ impl OutputWindow {
                     gl_ctx,
                     textures,
                     plotcontext,
+                    copying,
                 };
                 match &*value {
                     IOValue::Str(ref string) => string.draw(ctx, window),
