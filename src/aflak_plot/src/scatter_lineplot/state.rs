@@ -161,6 +161,8 @@ impl State {
         size: [f32; 2],
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -202,6 +204,26 @@ impl State {
         let mut plot_limits: Option<ImPlotLimits> = None;
         let mut hover_pos_plot: Option<ImPlotPoint> = None;
         let mut graph_changed = false;
+        if let Some((o, t_idx, kind)) = *attaching {
+            if o == outputid && kind == 2 {
+                let mut already_insert = false;
+                for d in store.iter() {
+                    if *d.1 == t_idx {
+                        already_insert = true;
+                        break;
+                    }
+                }
+                if !already_insert {
+                    let new = Interaction::FinedGrainedROI(FinedGrainedROI::new(self.roi_cnt));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                    self.roi_cnt += 1;
+                } else {
+                    eprintln!("{:?} is already bound", t_idx)
+                }
+                *attaching = None;
+            }
+        }
         if self.show_graph_editor {
             Window::new(&ImString::new(format!("Graph Editor")))
                 .size([300.0, 500.0], Condition::Appearing)

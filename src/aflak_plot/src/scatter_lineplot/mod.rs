@@ -25,6 +25,8 @@ pub trait UiScatter {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -46,6 +48,8 @@ impl<'ui> UiScatter for Ui<'ui> {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -65,6 +69,8 @@ impl<'ui> UiScatter for Ui<'ui> {
             size,
             &mut *copying,
             &mut *store,
+            &mut *attaching,
+            outputid,
         )
     }
 }

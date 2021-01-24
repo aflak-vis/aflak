@@ -30,6 +30,8 @@ pub trait UiImage1d {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -50,6 +52,8 @@ impl<'ui> UiImage1d for Ui<'ui> {
         state: &mut State,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -60,7 +64,7 @@ impl<'ui> UiImage1d for Ui<'ui> {
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
         state.plot(
-            self, image, vtype, vunit, axis, p, size, copying, store,
+            self, image, vtype, vunit, axis, p, size, copying, store, attaching, outputid,
         )
     }
 }

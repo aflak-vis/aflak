@@ -14,6 +14,8 @@ use aflak_plot::{
     AxisTransform,
 };
 
+use imshow::cake::OutputId;
+
 fn main() {
     let config = support::AppConfig {
         title: "Example wide_rectangle.rs".to_owned(),
@@ -53,6 +55,8 @@ fn main() {
                 &mut state,
                 &mut None,
                 &mut HashMap::new(),
+                &mut None,
+                OutputId::new(0),
             )
             .expect("Image2d failed");
         });

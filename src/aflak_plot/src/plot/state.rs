@@ -56,6 +56,8 @@ impl State {
         size: [f32; 2],
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
     ) -> Result<(), Error>
     where
         D: Data<Elem = f32>,
@@ -266,6 +268,26 @@ impl State {
                 self.offset = [0.0, 0.0];
             }
         });
+        if let Some((o, t_idx, kind)) = *attaching {
+            if kind == 1 && o == outputid {
+                let mut already_insert = false;
+                for d in store.iter() {
+                    if *d.1 == t_idx {
+                        already_insert = true;
+                        break;
+                    }
+                }
+                if !already_insert {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                } else {
+                    eprintln!("{:?} is already bound", t_idx)
+                }
+                *attaching = None;
+            }
+        }
 
         Ok(())
     }
