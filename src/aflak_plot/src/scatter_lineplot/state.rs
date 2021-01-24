@@ -391,8 +391,30 @@ impl State {
             .build(plot_ui, || {
                 plot_limits = Some(get_plot_limits(None));
                 if is_plot_hovered() {
+                    if ui.is_mouse_clicked(MouseButton::Right) {
+                        ui.open_popup(im_str!("add-node"));
+                    }
                     hover_pos_plot = Some(get_plot_mouse_position(None));
                 }
+                ui.popup(im_str!("add-node"), || {
+                    let mut counter = 0;
+                    for (_, (_, _, idx)) in self.datapoints.iter() {
+                        if MenuItem::new(&im_str!("Add data points {}", counter)).build(ui) {
+                            let mut datavec: Vec<(usize, usize)> = Vec::new();
+                            for d in idx {
+                                if d.len() == 2 {
+                                    datavec.push((d[0] as usize, d[1] as usize));
+                                }
+                            }
+                            let new = Interaction::FinedGrainedROI(FinedGrainedROI::from_vec(
+                                counter, datavec,
+                            ));
+                            self.interactions.insert(new);
+                            self.roi_cnt += 1;
+                        }
+                        counter += 1;
+                    }
+                });
                 if let Some(ImPlotPoint { x, y }) = hover_pos_plot {
                     let mut mindistance =
                         (self.plot_limits[1] - self.plot_limits[0]) * 5.0 / content_width as f64;
