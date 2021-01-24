@@ -42,6 +42,7 @@ impl OutputWindow {
         textures: &mut Textures,
         plotcontext: &Context,
         copying: &mut Option<(InteractionId, TransformIdx)>,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
@@ -70,6 +71,7 @@ impl OutputWindow {
                     textures,
                     plotcontext,
                     copying,
+                    attaching,
                 };
                 match &*value {
                     IOValue::Str(ref string) => string.draw(ctx, window),

@@ -39,6 +39,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, 'p, F: 'gl> {
     pub textures: &'tex mut Textures,
     pub plotcontext: &'p Context,
     pub copying: &'w mut Option<(InteractionId, TransformIdx)>,
+    pub attaching: &'w mut Option<(OutputId, TransformIdx, usize)>,
 }
 
 /// Similar to Visualizable, excepts that the types that implements this trait
@@ -198,10 +199,15 @@ fn hash_outputid(id: OutputId) -> usize {
 }
 
 impl MenuBar for String {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"String");
+            }
+        }
         ctx.ui.text(self);
     }
 
@@ -214,10 +220,15 @@ impl MenuBar for String {
 }
 
 impl MenuBar for i64 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Integer");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -230,10 +241,15 @@ impl MenuBar for i64 {
 }
 
 impl MenuBar for f32 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -246,10 +262,15 @@ impl MenuBar for f32 {
 }
 
 impl MenuBar for [f32; 2] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float2");
+            }
+        }
         ctx.ui.text(format!("{:?}", self));
     }
 
@@ -262,10 +283,15 @@ impl MenuBar for [f32; 2] {
 }
 
 impl MenuBar for [f32; 3] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float3");
+            }
+        }
         ctx.ui.text(format!("{:?}", self));
     }
 
@@ -278,10 +304,15 @@ impl MenuBar for [f32; 3] {
 }
 
 impl MenuBar for bool {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Bool");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -294,10 +325,15 @@ impl MenuBar for bool {
 }
 
 impl MenuBar for PATHS {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Paths");
+            }
+        }
         ctx.ui.text_wrapped(&im_str!("{:?}", self));
     }
 
@@ -310,10 +346,15 @@ impl MenuBar for PATHS {
 }
 
 impl MenuBar for ROI {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Roi");
+            }
+        }
         ctx.ui.text_wrapped(&im_str!("{:?}", self));
     }
 
@@ -456,21 +497,36 @@ impl MenuBar for primitives::WcsArray {
             .build_with_ref(ui, &mut window.image2d_state.hist_logscale);
     }
 
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
         use primitives::ndarray::Dimension;
-        let ui = &ctx.ui;
         match &self.visualization {
             None => match self.scalar().dim().ndim() {
                 0 => {
+                    if let Some(attaching) = ctx.attaching {
+                        if attaching.0 == ctx.output {
+                            attach_failued(&mut ctx, &"String");
+                        }
+                    }
                     let arr = self.array();
                     let val = arr.scalar()[[]];
                     let unit = arr.unit().repr();
+                    let ui = &ctx.ui;
                     ui.text(format!("{} {}", val, unit));
                 }
                 1 => {
+                    let attaching = &ctx.attaching;
+                    let output = &ctx.output;
+                    if let Some(attaching) = attaching {
+                        if attaching.0 == *output {
+                            if attaching.2 != 1 {
+                                attach_failued(&mut ctx, &"1D plot");
+                            }
+                        }
+                    }
+                    let ui = &ctx.ui;
                     let state = &mut ctx.window.image1d_state;
                     update_state_from_editor(
                         state.stored_values_mut(),
@@ -499,6 +555,8 @@ impl MenuBar for primitives::WcsArray {
                         state,
                         &mut ctx.copying,
                         &mut ctx.window.editable_values,
+                        &mut ctx.attaching,
+                        ctx.output,
                     ) {
                         ui.text(format!("Error on drawing plot! {}", e))
                     }
@@ -509,6 +567,16 @@ impl MenuBar for primitives::WcsArray {
                     );
                 }
                 2 => {
+                    let attaching = &ctx.attaching;
+                    let output = &ctx.output;
+                    if let Some(attaching) = attaching {
+                        if attaching.0 == *output {
+                            if attaching.2 != 0 && attaching.2 != 1 {
+                                attach_failued(&mut ctx, &"2D Image");
+                            }
+                        }
+                    }
+                    let ui = &ctx.ui;
                     let state = &mut ctx.window.image2d_state;
                     update_state_from_editor(
                         state.stored_values_mut(),
@@ -576,6 +644,8 @@ impl MenuBar for primitives::WcsArray {
                         state,
                         &mut ctx.copying,
                         &mut ctx.window.editable_values,
+                        &mut ctx.attaching,
+                        ctx.output,
                     ) {
                         ui.text(format!("Error on drawing image! {}", e));
                     }
@@ -586,6 +656,7 @@ impl MenuBar for primitives::WcsArray {
                     );
                 }
                 _ => {
+                    let ui = &ctx.ui;
                     ui.text(format!(
                         "Unimplemented for image of dimension {}",
                         self.scalar().ndim()
@@ -595,6 +666,7 @@ impl MenuBar for primitives::WcsArray {
             Some(tag) => match tag.as_ref() {
                 "BPT" => match self.scalar().dim().ndim() {
                     2 => {
+                        let ui = &ctx.ui;
                         let state = &mut ctx.window.scatter_lineplot_state;
                         let plot_ui = ctx.plotcontext.get_plot_ui();
                         update_state_from_editor(
@@ -610,6 +682,8 @@ impl MenuBar for primitives::WcsArray {
                             state,
                             &mut ctx.copying,
                             &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
                         ) {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
@@ -620,6 +694,7 @@ impl MenuBar for primitives::WcsArray {
                         );
                     }
                     _ => {
+                        let ui = &ctx.ui;
                         ui.text(format!(
                             "Unimplemented for scatter of dimension {}",
                             self.scalar().ndim()
@@ -628,6 +703,7 @@ impl MenuBar for primitives::WcsArray {
                 },
                 "scatter" => match self.scalar().dim().ndim() {
                     2 => {
+                        let ui = &ctx.ui;
                         let state = &mut ctx.window.scatter_lineplot_state;
                         let plot_ui = ctx.plotcontext.get_plot_ui();
                         if let Err(e) = ui.scatter(
@@ -638,11 +714,14 @@ impl MenuBar for primitives::WcsArray {
                             state,
                             &mut ctx.copying,
                             &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
                         ) {
                             ui.text(format!("Error on drawing plot! {}", e))
                         }
                     }
                     _ => {
+                        let ui = &ctx.ui;
                         ui.text(format!(
                             "Unimplemented for scatter of dimension {}",
                             self.scalar().ndim()
@@ -651,6 +730,7 @@ impl MenuBar for primitives::WcsArray {
                 },
                 "color_image" => match self.scalar().dim().ndim() {
                     3 => {
+                        let ui = &ctx.ui;
                         let state = &mut ctx.window.image2d_state;
                         let texture_id = TextureId::from(hash_outputid(ctx.output));
                         let (x_transform, y_transform) = if ctx.window.show_pixels {
@@ -721,11 +801,14 @@ impl MenuBar for primitives::WcsArray {
                             state,
                             &mut ctx.copying,
                             &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
                     }
                     _ => {
+                        let ui = &ctx.ui;
                         ui.text(format!(
                             "Unimplemented for color image of dimension {}",
                             self.scalar().ndim()
@@ -733,6 +816,7 @@ impl MenuBar for primitives::WcsArray {
                     }
                 },
                 _ => {
+                    let ui = &ctx.ui;
                     ui.text(format!(
                         "Unimplemented for visualization method {}",
                         self.scalar().ndim()
@@ -774,6 +858,29 @@ fn write_to_file_as_debug<P: AsRef<Path>, T: fmt::Debug>(path: P, t: &T) -> io::
 fn write_to_file_as_bytes<P: AsRef<Path>>(path: P, buf: &[u8]) -> io::Result<()> {
     let mut file = fs::File::create(path)?;
     file.write_all(buf)
+}
+
+fn attach_failued<F>(ctx: &mut OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>, viztype: &str)
+where
+    F: glium::backend::Facade,
+{
+    ctx.ui.open_popup(im_str!("Attach failued"));
+    ctx.ui.popup_modal(im_str!("Attach failued")).build(|| {
+        let kind = match ctx.attaching.unwrap().2 {
+            0 => "horizontal line",
+            1 => "vertical line",
+            2 => "Region Of Interest",
+            _ => "Unimplemented Interaction",
+        };
+        ctx.ui.text(format!(
+            "Attach failued, {} cannot be used in {}",
+            kind, viztype
+        ));
+        if ctx.ui.button(im_str!("Close"), [0.0, 0.0]) {
+            *ctx.attaching = None;
+            ctx.ui.close_current_popup();
+        }
+    });
 }
 
 #[derive(Debug)]
