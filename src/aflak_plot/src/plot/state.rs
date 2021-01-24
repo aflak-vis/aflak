@@ -1,12 +1,19 @@
 use imgui::{MenuItem, MouseButton, MouseCursor, Ui};
 use ndarray::{ArrayBase, Data, Ix1};
+use std::collections::HashMap;
 
-use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine};
+use super::interactions::{
+    Interaction, InteractionId, InteractionIterMut, Interactions, ValueIter, VerticalLine,
+};
 use super::lims;
 use super::ticks::XYTicks;
 use super::util;
 use super::AxisTransform;
 use super::Error;
+
+use plot::cake::{OutputId, TransformIdx};
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 /// Current state of a plot UI.
 #[derive(Debug)]
@@ -47,6 +54,8 @@ impl State {
         axis: Option<&AxisTransform<F>>,
         pos: [f32; 2],
         size: [f32; 2],
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
     ) -> Result<(), Error>
     where
         D: Data<Elem = f32>,
@@ -206,6 +215,14 @@ impl State {
                         if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
+                        if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                            if store.contains_key(id) {
+                                let t_idx = *store.get(id).unwrap();
+                                *copying = Some((*id, t_idx));
+                            } else {
+                                println!("copy failued");
+                            }
+                        }
                     });
                 }
                 // Unused in plot
@@ -230,6 +247,18 @@ impl State {
             if MenuItem::new(im_str!("Vertical Line")).build(ui) {
                 let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
                 self.interactions.insert(new);
+            }
+            if let Some((_, t_idx)) = *copying {
+                ui.separator();
+                ui.text("Paste Line Options");
+                ui.separator();
+                if MenuItem::new(im_str!("Paste Line as Vertical Line")).build(ui) {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                    *copying = None;
+                }
             }
             ui.separator();
             if MenuItem::new(im_str!("Reset view")).build(ui) {

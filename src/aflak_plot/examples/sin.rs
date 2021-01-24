@@ -10,6 +10,7 @@ use aflak_plot::{
 };
 use imgui::{Condition, Window};
 
+use std::collections::HashMap;
 use std::f32;
 use std::path::PathBuf;
 
@@ -33,6 +34,8 @@ fn main() {
                     "m",
                     Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
                     &mut state,
+                    &mut None,
+                    &mut HashMap::new(),
                 )
                 .expect("Image1d failed");
             });
