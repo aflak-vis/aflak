@@ -452,4 +452,12 @@ impl State {
             });
         Ok(())
     }
+
+    pub fn stored_values(&self) -> ValueIter {
+        self.interactions.value_iter()
+    }
+
+    pub fn stored_values_mut(&mut self) -> InteractionIterMut {
+        self.interactions.iter_mut()
+    }
 }
