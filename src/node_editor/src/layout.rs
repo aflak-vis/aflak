@@ -1,4 +1,5 @@
 use collections::HashSet;
+use std::collections::BTreeMap;
 use std::error::Error;
 
 use imgui::{
@@ -924,12 +925,27 @@ where
             ui.text("Add node");
             color_stack.pop(ui);
             ui.separator();
-            for (i, node) in addable_nodes.iter().enumerate() {
-                let id_stack = ui.push_id(i as i32);
-                if MenuItem::new(&ImString::new(node.name())).build(ui) {
-                    self.events.push(RenderEvent::AddTransform(node));
+            let mut addable_nodes_class = BTreeMap::<String, Vec<&&Transform<T, E>>>::new();
+            for node in addable_nodes.iter() {
+                let kind = node.kind().into_owned();
+                let kind = kind.as_str();
+                if let Some(v) = addable_nodes_class.get_mut(kind) {
+                    v.push(node);
+                } else {
+                    addable_nodes_class.insert(kind.to_string(), vec![node]);
                 }
-                id_stack.pop(ui);
+            }
+            for (k, v) in addable_nodes_class.iter() {
+                if let Some(menu) = ui.begin_menu(&ImString::new(k.clone()), true) {
+                    for (i, n) in v.iter().enumerate() {
+                        let id_stack = ui.push_id(i as i32);
+                        if MenuItem::new(&ImString::new(n.name())).build(ui) {
+                            self.events.push(RenderEvent::AddTransform(*n));
+                        }
+                        id_stack.pop(ui);
+                    }
+                    menu.end(ui);
+                }
             }
             ui.separator();
             if MenuItem::new(im_str!("Create new macro")).build(ui) {
