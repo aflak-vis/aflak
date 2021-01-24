@@ -27,6 +27,7 @@ pub struct Aflak {
     recent_files: Vec<PathBuf>,
     pub show_metrics: bool,
     copying: Option<(InteractionId, TransformIdx)>,
+    attaching: Option<(OutputId, TransformIdx, usize)>,
 }
 
 impl Aflak {
@@ -41,6 +42,7 @@ impl Aflak {
             recent_files: vec![],
             show_metrics: false,
             copying: None,
+            attaching: None,
         }
     }
 
@@ -107,10 +109,14 @@ impl Aflak {
             .size(size, Condition::FirstUseEver)
             .build(ui, || {
                 self.node_editor
-                    .render(ui, addable_nodes, &MyConstantEditor);
+                    .render(ui, addable_nodes, &MyConstantEditor, &mut self.attaching);
             });
-        self.node_editor
-            .inner_editors_render(ui, addable_nodes, &MyConstantEditor);
+        self.node_editor.inner_editors_render(
+            ui,
+            addable_nodes,
+            &MyConstantEditor,
+            &mut self.attaching,
+        );
         self.node_editor.render_popups(ui);
     }
 
@@ -148,6 +154,7 @@ impl Aflak {
                 textures,
                 &plotcontext,
                 &mut self.copying,
+                &mut self.attaching,
             );
             self.error_alerts.extend(new_errors);
         }
