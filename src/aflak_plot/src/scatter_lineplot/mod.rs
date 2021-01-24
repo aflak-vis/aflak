@@ -4,11 +4,14 @@ mod state;
 use imgui::Ui;
 use implot::PlotUi;
 use ndarray::{ArrayBase, Data, Ix2};
+use std::collections::HashMap;
 
+pub use self::interactions::InteractionId;
 use super::interactions;
 use super::AxisTransform;
 use super::Error;
-
+use imshow::cake::{OutputId, TransformIdx};
+type EditabaleValues = HashMap<InteractionId, TransformIdx>;
 pub use self::state::State;
 
 /// Implementation of a UI to visualize a 1D image with ImGui using a plot.
@@ -20,6 +23,8 @@ pub trait UiScatter {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -39,6 +44,8 @@ impl<'ui> UiScatter for Ui<'ui> {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -49,6 +56,15 @@ impl<'ui> UiScatter for Ui<'ui> {
         let window_pos = self.window_pos();
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
-        state.simple_plot(self, image, &plot_ui, xaxis, yaxis, size)
+        state.simple_plot(
+            self,
+            image,
+            &plot_ui,
+            xaxis,
+            yaxis,
+            size,
+            &mut *copying,
+            &mut *store,
+        )
     }
 }

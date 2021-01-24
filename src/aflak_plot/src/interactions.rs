@@ -160,6 +160,10 @@ impl Interactions {
         self.0.insert(new_id, interaction)
     }
 
+    pub fn id(&mut self) -> InteractionId {
+        InteractionId(self.1)
+    }
+
     pub(crate) fn remove(&mut self, id: InteractionId) -> Option<Interaction> {
         self.0.remove(&id)
     }
@@ -233,9 +237,9 @@ pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 pub struct InteractionIterMut<'a>(btree_map::IterMut<'a, InteractionId, Interaction>);
 
 impl<'a> Iterator for ValueIter<'a> {
-    type Item = (&'a InteractionId, Value);
+    type Item = (&'a InteractionId, &'a Interaction, Value);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(id, inter)| (id, inter.value()))
+        self.0.next().map(|(id, inter)| (id, inter, inter.value()))
     }
 }
 

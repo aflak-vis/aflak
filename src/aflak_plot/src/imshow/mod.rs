@@ -4,10 +4,15 @@ mod image;
 mod lut;
 mod state;
 
+pub extern crate aflak_cake as cake;
+
+pub use self::interactions::InteractionId;
 pub use self::state::State;
 
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
+use self::cake::TransformIdx;
 use glium::backend::Facade;
 use imgui::{self, TextureId, Ui};
 use imgui_glium_renderer::Texture;
@@ -22,6 +27,7 @@ use super::AxisTransform;
 
 /// A handle to an OpenGL 2D texture.
 pub type Textures = imgui::Textures<Texture>;
+type EditabaleValues = HashMap<InteractionId, TransformIdx>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input.
@@ -87,6 +93,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -106,8 +114,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size[0] - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size[1] - (cursor_pos[1] - window_pos[1]),
         );
-        let ([p, size], x_label_height) =
-            state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
+        let ([p, size], x_label_height) = state.show_image(
+            self,
+            texture_id,
+            vunit,
+            xaxis,
+            yaxis,
+            image_max_size,
+            &mut *copying,
+            &mut *store,
+        )?;
 
         state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
         let lut_bar_updated = state.show_bar(
@@ -136,6 +152,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -155,8 +173,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
             window_size[0] - HIST_WIDTH - BAR_WIDTH - RIGHT_PADDING,
             window_size[1] - (cursor_pos[1] - window_pos[1]),
         );
-        let ([p, size], x_label_height) =
-            state.show_image(self, texture_id, vunit, xaxis, yaxis, image_max_size)?;
+        let ([p, size], x_label_height) = state.show_image(
+            self,
+            texture_id,
+            vunit,
+            xaxis,
+            yaxis,
+            image_max_size,
+            &mut *copying,
+            &mut *store,
+        )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
         let _lut_bar_updated = state.show_bar(
@@ -188,6 +214,8 @@ pub trait UiImage2d {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -204,6 +232,8 @@ pub trait UiImage2d {
         xaxis: Option<&AxisTransform<FX>>,
         yaxis: Option<&AxisTransform<FY>>,
         state: &mut State<I>,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditabaleValues,
     ) -> Result<(), Error>
     where
         F: Facade,
