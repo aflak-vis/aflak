@@ -348,6 +348,8 @@ where
         max_size: (f32, f32),
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
     ) -> Result<([[f32; 2]; 2], f32), Error>
     where
         FX: Fn(f32) -> f32,
@@ -626,6 +628,37 @@ where
                         }
                     }
                 });
+                if let Some((o, t_idx, kind)) = *attaching {
+                    if o == outputid && (kind == 0 || kind == 1 || kind == 2) {
+                        let mut already_insert = false;
+                        for d in store.iter() {
+                            if *d.1 == t_idx {
+                                already_insert = true;
+                                break;
+                            }
+                        }
+                        if !already_insert {
+                            let new = if kind == 0 {
+                                Interaction::HorizontalLine(HorizontalLine::new(
+                                    self.mouse_pos.1.round(),
+                                ))
+                            } else if kind == 1 {
+                                Interaction::VerticalLine(VerticalLine::new(
+                                    self.mouse_pos.0.round(),
+                                ))
+                            } else {
+                                Interaction::FinedGrainedROI(FinedGrainedROI::new(
+                                    self.roi_input.gen_id(),
+                                ))
+                            };
+                            self.interactions.insert(new);
+                            store.insert(self.interactions.id(), t_idx);
+                        } else {
+                            eprintln!("{:?} is already bound", t_idx)
+                        }
+                        *attaching = None;
+                    }
+                }
 
                 let mut line_marked_for_deletion = None;
                 for (id, interaction) in self.interactions.iter_mut() {

@@ -94,6 +94,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -122,6 +124,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
             image_max_size,
             &mut *copying,
             &mut *store,
+            &mut *attaching,
+            outputid,
         )?;
 
         state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
@@ -153,6 +157,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -181,6 +187,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
             image_max_size,
             &mut *copying,
             &mut *store,
+            &mut *attaching,
+            outputid,
         )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
@@ -215,6 +223,8 @@ pub trait UiImage2d {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -233,6 +243,8 @@ pub trait UiImage2d {
         state: &mut State<I>,
         copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditabaleValues,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
+        outputid: cake::OutputId,
     ) -> Result<(), Error>
     where
         F: Facade,
