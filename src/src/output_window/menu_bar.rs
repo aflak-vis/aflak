@@ -132,6 +132,8 @@ fn update_state_from_editor(
     editable_values: &EditableValues,
     node_editor: &AflakNodeEditor,
 ) {
+    use aflak_plot::Interaction;
+
     for (id, interaction) in interactions {
         if editable_values.contains_key(id) {
             let t_idx = editable_values.get(id).unwrap();
@@ -141,7 +143,16 @@ fn update_state_from_editor(
                     IOValue::Float(f) => interaction.set_value(*f),
                     IOValue::Float2(f) => interaction.set_value(*f),
                     IOValue::Float3(f) => interaction.set_value(*f),
-                    IOValue::Roi(_) => Ok(()),
+                    IOValue::Roi(r) => match r {
+                        primitives::ROI::All => Ok(()),
+                        primitives::ROI::PixelList(p) => match interaction {
+                            Interaction::FinedGrainedROI(r) => {
+                                let changed = r.changed;
+                                interaction.set_value(((*p).clone(), changed))
+                            }
+                            _ => Ok(()),
+                        },
+                    },
                     value => Err(format!("Cannot convert value '{:?}'", value)),
                 } {
                     eprintln!("Could not update state from editor: {}", e);
@@ -165,6 +176,7 @@ fn update_editor_from_state(
         let change_flag = match interaction {
             Interaction::HorizontalLine(h) => h.moving,
             Interaction::VerticalLine(v) => v.moving,
+            Interaction::FinedGrainedROI(r) => r.changed,
             _ => true,
         };
         let val = match value {
@@ -172,7 +184,7 @@ fn update_editor_from_state(
             Value::Float(f) => IOValue::Float(f),
             Value::Float2(f) => IOValue::Float2(f),
             Value::Float3(f) => IOValue::Float3(f),
-            Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
+            Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels.0)),
             Value::Line(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             Value::Circle(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
         };
