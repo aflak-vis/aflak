@@ -757,7 +757,11 @@ where
                                 }
                             });
                         }
-                        Interaction::FinedGrainedROI(FinedGrainedROI { id, pixels }) => {
+                        Interaction::FinedGrainedROI(FinedGrainedROI {
+                            id,
+                            pixels,
+                            changed,
+                        }) => {
                             let selected = self.roi_input.is_selected(*id);
 
                             let pixel_size_x = size[0] / tex_size.0 as f32;
@@ -798,6 +802,9 @@ where
                                 } else {
                                     pixels.push(pixel);
                                 }
+                                *changed = true;
+                            } else {
+                                *changed = false;
                             }
                         }
                         Interaction::Line(Line {
