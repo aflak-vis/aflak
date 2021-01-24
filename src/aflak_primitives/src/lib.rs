@@ -299,13 +299,6 @@ Note: indices for a and b start from 0",
                 }
             ),
             cake_transform!(
-                "Convert 2d image to 1d list.",
-                1, 0, 0,
-                convert_to_1d_image<IOValue, IOErr>(image: Image) -> Image{
-                    vec![run_convert_to_1d(image)]
-                }
-            ),
-            cake_transform!(
                 "Create scatterplots from two 1D image data.",
                 1, 0, 0,
                 create_scatter<IOValue, IOErr>(xaxis: Image, yaxis: Image) -> Image{
@@ -462,27 +455,6 @@ if value > max, value changes to 0.",
                 0, 1, 0,
                 create_emission_line_map<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
                     vec![run_create_emission_line_map(i_off, i_on, *fl, *max, *is_emission)]
-                }
-            ),
-            cake_transform!(
-                "Calculate the logarithm of the ratio of the intensities of the four emission lines.
-Compare them with the ideal curve.
-Parameters: element_1, element_2, element_3, element_4.
-Compute log(element_1 / element_2) and log(element_3 / element_4).
-BPT map could be plotted by directly connecting output node.
-The visualization tag should be changed if BPT diagram is wanted.
-" ,
-                0, 1, 0,
-                bpt_diagram <IOValue, IOErr>(element_1: Image, element_2: Image, element_3: Image, element_4: Image)
-                -> Image {
-                    vec![run_bpt_map(element_1, element_2, element_3, element_4)]
-                }
-            ),
-            cake_transform!(
-                "Reset the calculation result of infinity caused by missing data or other reasons in the data set to 0",
-                1, 0, 0,
-                set_to_zero<IOValue, IOErr>(image: Image) -> Image {
-                    vec![run_set_to_zero(image)]
                 }
             ),
             cake_transform!(
@@ -933,27 +905,6 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
             res += val;
         }
         wave.push(res);
-    }
-    Ok(IOValue::Image(
-        image.make_slice(
-            &[(2, 0.0, 1.0)],
-            image
-                .array()
-                .with_new_value(Array1::from_vec(wave).into_dyn()),
-        ),
-    ))
-}
-
-fn run_convert_to_1d(image: &WcsArray) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
-    let image_val = image.scalar();
-
-    let wave_size = *image_val.dim().as_array_view().first().unwrap();
-    let mut wave = Vec::with_capacity(wave_size);
-    for i in 0..wave_size {
-        for val in image_val.slice(s![i, ..]) {
-            wave.push(*val);
-        }
     }
     Ok(IOValue::Image(
         image.make_slice(
@@ -1559,48 +1510,6 @@ fn run_create_emission_line_map(
         result,
         Unit::None,
     ))))
-}
-
-fn run_bpt_map(
-    element_1: &WcsArray,
-    element_2: &WcsArray,
-    element_3: &WcsArray,
-    element_4: &WcsArray,
-) -> Result<IOValue, IOErr> {
-    let element_1_intensity = element_1.scalar();
-    let element_2_intensity = element_2.scalar();
-    let element_3_intensity = element_3.scalar();
-    let element_4_intensity = element_4.scalar();
-    let ratio_axis_y = (element_1_intensity / element_2_intensity).map(|v| (*v).log10());
-    let ratio_axis_x = (element_3_intensity / element_4_intensity).map(|v| (*v).log10());
-    let ratio_ideal = 0.61 / (ratio_axis_x - 0.47) + 1.19;
-    let ratio_compare = ratio_axis_y - ratio_ideal;
-
-    let result = ratio_compare.map(|v| {
-        if (*v).is_nan() {
-            1.0
-        } else if *v > 0.0 {
-            3.0
-        } else {
-            2.0
-        }
-    });
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        result,
-        Unit::None,
-    ))))
-}
-
-fn run_set_to_zero(image: &WcsArray) -> Result<IOValue, IOErr> {
-    let mut out = image.clone();
-    for v in out.scalar_mut().iter_mut() {
-        if *v < 0.0 {
-            *v = -0.01
-        };
-    }
-
-    Ok(IOValue::Image(out))
 }
 
 fn run_change_tag(data_in: &WcsArray, tag: &str) -> Result<IOValue, IOErr> {
