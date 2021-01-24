@@ -171,7 +171,7 @@ macro_rules! cake_fn {
 /// ```
 #[macro_export]
 macro_rules! cake_transform {
-    ($description: expr, $major: expr, $minor: expr, $patch: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
+    ($description: expr, $kind:expr, $major: expr, $minor: expr, $patch: expr, $fn_name: ident<$enum_name: ident, $err_type: ty>($($x: ident: $x_type: ident $(= $x_default_val: expr), *),*) -> $($out_type: ident),* $fn_block: block) => {{
         cake_fn!{$fn_name<$enum_name, $err_type>($($x: $x_type),*) $fn_block}
 
         $crate::Transform::from_algorithm($crate::Algorithm::Function {
@@ -182,6 +182,7 @@ macro_rules! cake_transform {
                     minor: $minor,
                     patch: $patch
                 },
+                kind: $kind,
                 description: $description,
                 inputs: vec![$(
                     $crate::TransformInputSlot {

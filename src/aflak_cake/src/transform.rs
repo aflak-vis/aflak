@@ -39,6 +39,7 @@ pub enum Algorithm<'t, T: 't, E: 't> {
         id: FnTransformId,
         /// Version of the transform
         version: Version,
+        kind: &'static str,
         description: &'static str,
         /// Inputs of the transformation, may include a default value
         inputs: Vec<TransformInputSlot<T>>,
@@ -99,6 +100,7 @@ where
                 f,
                 id,
                 version,
+                kind,
                 description,
                 ref inputs,
                 ref outputs,
@@ -106,6 +108,7 @@ where
                 f,
                 id,
                 version,
+                kind,
                 description,
                 inputs: inputs.clone(),
                 outputs: outputs.clone(),
@@ -292,6 +295,14 @@ where
     pub fn name(&self) -> Cow<'static, str> {
         match self.algorithm {
             Algorithm::Function { id, .. } => Cow::Borrowed(id.name()),
+            Algorithm::Constant(ref t) => Cow::Borrowed(t.variant_name()),
+            Algorithm::Macro { ref handle } => Cow::Owned(handle.name()),
+        }
+    }
+
+    pub fn kind(&self) -> Cow<'static, str> {
+        match self.algorithm {
+            Algorithm::Function { kind, .. } => Cow::Borrowed(kind),
             Algorithm::Constant(ref t) => Cow::Borrowed(t.variant_name()),
             Algorithm::Macro { ref handle } => Cow::Owned(handle.name()),
         }
