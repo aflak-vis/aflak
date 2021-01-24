@@ -82,6 +82,9 @@ fn main() {
         if aflak.show_metrics {
             ui.show_metrics_window(&mut aflak.show_metrics);
         }
+        if aflak.show_bind_manager {
+            aflak.bind_manager(ui);
+        }
         !aflak.quit
     })
 }
