@@ -14,6 +14,8 @@ use std::collections::HashMap;
 use std::f32;
 use std::path::PathBuf;
 
+use aflak_plot::imshow::cake::OutputId;
+
 fn main() {
     let config = support::AppConfig {
         title: "Example sin.rs".to_owned(),
@@ -37,6 +39,8 @@ fn main() {
                     &mut state,
                     &mut None,
                     &mut HashMap::new(),
+                    &mut None,
+                    OutputId::new(0),
                 )
                 .expect("Image1d failed");
             });

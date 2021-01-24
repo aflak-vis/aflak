@@ -21,7 +21,7 @@ pub mod plot;
 pub mod scatter_lineplot;
 
 mod err;
-mod interactions;
+pub mod interactions;
 mod lims;
 mod ticks;
 mod units;
