@@ -32,6 +32,8 @@ pub struct State {
     graph_points: Vec<Vec<f64>>,
     graph_removing: Option<usize>,
     pub show_all_point: bool,
+    pub editor_changed: bool,
+    pub roi_cnt: usize,
 }
 
 impl Default for State {
@@ -53,6 +55,8 @@ impl Default for State {
             graph_points: vec![vec![]],
             graph_removing: None,
             show_all_point: true,
+            editor_changed: false,
+            roi_cnt: 0,
         }
     }
 }
@@ -255,22 +259,6 @@ impl State {
                         if ui.checkbox(&im_str!("Show graph {}", i), &mut self.show_graph[i]) {
                             graph_changed = true;
                         }
-                        if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
-                            if let Ok(func) = expr.bind(self.bind[i].to_str()) {
-                                self.graph_points[i] = (0..300 + 1)
-                                    .map(|i| {
-                                        let minx = self.plot_limits[0];
-                                        let maxx = self.plot_limits[1];
-                                        let computex = minx + (maxx - minx) / 300.0 * i as f64;
-                                        func(computex)
-                                    })
-                                    .collect();
-                            } else {
-                                self.graph_points[i].clear();
-                            }
-                        } else {
-                            self.graph_points[i].clear();
-                        }
                         if ui.button(&im_str!("Delete Function {}", i), [0.0, 0.0]) {
                             self.graph_removing = Some(i);
                         }
@@ -281,11 +269,50 @@ impl State {
                         self.bind.push(ImString::from(im_str!("")));
                         self.graph_points.push(vec![]);
                     }
-                    if ui.button(im_str!("Add Functions to node editor"), [0.0, 0.0]) {}
                 });
         }
-        if self.limit_changed || graph_changed {
-            self.datapoints.clear();
+        let is_any_graph_show = {
+            let mut res = false;
+            for t in self.show_graph.iter() {
+                res |= t;
+            }
+            res
+        };
+        for i in 0..self.show_graph.len() {
+            if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
+                if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+                    self.graph_points[i] = (0..300 + 1)
+                        .map(|i| {
+                            let minx = self.plot_limits[0];
+                            let maxx = self.plot_limits[1];
+                            let computex = minx + (maxx - minx) / 300.0 * i as f64;
+                            func(computex)
+                        })
+                        .collect();
+                } else {
+                    self.graph_points[i].clear();
+                }
+            } else {
+                self.graph_points[i].clear();
+            }
+        }
+        let is_roi_changed = {
+            let mut res = false;
+            for (_id, interaction) in self.interactions.iter_mut() {
+                match interaction {
+                    Interaction::FinedGrainedROI(FinedGrainedROI {
+                        id,
+                        pixels,
+                        changed,
+                    }) => {
+                        res |= *changed;
+                    }
+                    _ => {}
+                }
+            }
+            res
+        };
+        if self.limit_changed || graph_changed || is_roi_changed || self.editor_changed {
             self.datapoints.clear();
             let (xmin, xmax, ymin, ymax) = (
                 self.plot_limits[0],
@@ -322,23 +349,49 @@ impl State {
                     });
                 }
                 let key = {
-                    let mut t = Vec::new();
-                    for i in 0..self.show_graph.len() {
-                        if self.show_graph[i] {
-                            if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
-                                if let Ok(func) = expr.bind(self.bind[i].to_str()) {
-                                    if func(first.0 as f64) > first.1 as f64 {
-                                        t.push(true);
-                                    } else {
-                                        t.push(false);
+                    if is_any_graph_show {
+                        let mut t = Vec::new();
+                        for i in 0..self.show_graph.len() {
+                            if self.show_graph[i] {
+                                if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
+                                    if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+                                        if func(first.0 as f64) > first.1 as f64 {
+                                            t.push(true);
+                                        } else {
+                                            t.push(false);
+                                        }
                                     }
                                 }
+                            } else {
+                                t.push(false);
                             }
-                        } else {
-                            t.push(false);
                         }
+                        t
+                    } else {
+                        let mut t = Vec::new();
+                        for (_id, interaction) in self.interactions.iter_mut() {
+                            match interaction {
+                                Interaction::FinedGrainedROI(FinedGrainedROI {
+                                    id,
+                                    pixels,
+                                    changed,
+                                }) => {
+                                    let idx = first.3.clone();
+                                    if idx.len() != 2 {
+                                        t.push(false);
+                                    }
+                                    for pixel in pixels {
+                                        if idx[0] as usize == pixel.0 && idx[1] as usize == pixel.1
+                                        {
+                                            t.push(true);
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            };
+                        }
+                        t
                     }
-                    t
                 };
                 let mut inserted = false;
                 for (k, v) in self.datapoints.iter_mut() {
@@ -361,6 +414,7 @@ impl State {
                 }
             }
             self.limit_changed = false;
+            self.editor_changed = false;
         }
         if let Some(key) = self.graph_removing {
             self.show_graph.remove(key);
