@@ -7,7 +7,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, InputSlot, Transform, VariantName, DST};
+use cake::{self, InputSlot, Transform, TransformIdx, VariantName, DST};
 
 use constant_editor::ConstantEditor;
 use event::RenderEvent;
@@ -96,6 +96,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) -> Vec<RenderEvent<T, E>>
     where
         ED: ConstantEditor<T>,
@@ -118,7 +119,14 @@ where
         if self.show_left_pane {
             self.render_left_pane(ui, dst);
         }
-        self.render_graph_node(ui, dst, addable_nodes, addable_macros, constant_editor);
+        self.render_graph_node(
+            ui,
+            dst,
+            addable_nodes,
+            addable_macros,
+            constant_editor,
+            attaching,
+        );
 
         if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
             && !ui.io().want_capture_keyboard
@@ -240,6 +248,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -349,6 +358,7 @@ where
                         addable_nodes,
                         addable_macros,
                         constant_editor,
+                        attaching,
                     );
                 });
             color_stack.pop(ui);
@@ -363,6 +373,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -479,7 +490,57 @@ where
                     .rounding(NODE_ROUNDING)
                     .filled(true)
                     .build();
-
+                if ui.is_item_hovered() && ui.is_mouse_double_clicked(MouseButton::Left) {
+                    ui.open_popup(im_str!("attach-to-output"));
+                }
+                ui.popup(im_str!("attach-to-output"), || {
+                    let mut name = String::from("");
+                    if let cake::NodeId::Transform(t_idx) = idx {
+                        if let Some(t) = dst.get_transform(t_idx) {
+                            if let cake::Algorithm::Constant(_) = t.algorithm() {
+                                name = t.name().to_string();
+                            }
+                        }
+                    }
+                    match name.as_str() {
+                        "Float" => {
+                            for (i, o) in dst.outputs_iter().enumerate() {
+                                let id_stack = ui.push_id(i as i32);
+                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                    if MenuItem::new(im_str!("As horizontal line")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 0));
+                                        }
+                                    }
+                                    if MenuItem::new(im_str!("As vertical line")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 1));
+                                        }
+                                    }
+                                    menu.end(ui);
+                                }
+                                id_stack.pop(ui);
+                            }
+                        }
+                        "Roi" => {
+                            for (i, o) in dst.outputs_iter().enumerate() {
+                                let id_stack = ui.push_id(i as i32);
+                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                    if MenuItem::new(im_str!("Roi")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 2));
+                                        }
+                                    }
+                                    menu.end(ui);
+                                }
+                                id_stack.pop(ui);
+                            }
+                        }
+                        _ => {
+                            ui.close_current_popup();
+                        }
+                    };
+                });
                 // Display frame
                 let line_thickness = if node_states.get_state(&idx, |s| s.selected) {
                     3.0
@@ -859,7 +920,6 @@ where
         }
         ui.popup(im_str!("add-new-node"), || {
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
-
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
             ui.text("Add node");
             color_stack.pop(ui);
