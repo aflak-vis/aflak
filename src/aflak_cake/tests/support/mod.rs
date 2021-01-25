@@ -20,19 +20,19 @@ impl fmt::Display for E {
 }
 
 pub fn get_plus1_transform() -> Transform<'static, AlgoIO, E> {
-    cake_transform!("Add 1", 1, 0, 0, plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
+    cake_transform!("Add 1", "Arithmetic", 1, 0, 0, plus1<AlgoIO, E>(i: Integer = 0) -> Integer {
         vec![Ok(AlgoIO::Integer(i + 1))]
     })
 }
 
 pub fn get_minus1_transform() -> Transform<'static, AlgoIO, E> {
-    cake_transform!("Substract 1", 1, 0, 0, minus1<AlgoIO, E>(i: Integer) -> Integer {
+    cake_transform!("Substract 1", "Arithmetic", 1, 0, 0, minus1<AlgoIO, E>(i: Integer) -> Integer {
         vec![Ok(AlgoIO::Integer(i - 1))]
     })
 }
 
 pub fn get_divide_by_10_transform() -> Transform<'static, AlgoIO, E> {
-    cake_transform!("Divide by 10", 1, 0, 0, divide_by_10<AlgoIO, E>(f: Float) -> Float {
+    cake_transform!("Divide by 10", "Arithmetic", 1, 0, 0, divide_by_10<AlgoIO, E>(f: Float) -> Float {
         vec![Ok(AlgoIO::Float(f / 10.0))]
     })
 }
