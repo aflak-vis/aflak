@@ -6,6 +6,8 @@ extern crate implot;
 #[macro_use(s)]
 extern crate ndarray;
 
+use aflak_plot::imshow::cake::OutputId;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use aflak_plot::{
@@ -53,6 +55,10 @@ fn main() {
                     Some(&AxisTransform::new("X Axis", "m", |x| x)),
                     Some(&AxisTransform::new("Y Axis", "m", |y| y)),
                     &mut state,
+                    &mut None,
+                    &mut HashMap::new(),
+                    &mut None,
+                    OutputId::new(0),
                 )
                 .expect("Scatter failed");
             });
