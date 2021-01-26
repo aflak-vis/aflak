@@ -147,7 +147,7 @@ fn inner_editor(
                     None
                 } else {
                     let size = ui.item_rect_size();
-                    let mut ret = Ok(None);
+                    let mut ret = Ok((None, None));
                     ChildWindow::new(im_str!("edit"))
                         .size([size[0].max(400.0), 150.0])
                         .horizontal_scrollbar(true)
@@ -163,7 +163,7 @@ fn inner_editor(
                     for single_file in file {
                         ui.text(single_file.to_str().unwrap_or("Unrepresentable path"));
                     }
-                    if let Ok(Some(new_file)) = ret {
+                    if let Ok((Some(new_file), _)) = ret {
                         let mut already_exist = false;
                         let mut key = 0;
                         for single_file in file {
