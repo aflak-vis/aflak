@@ -299,7 +299,7 @@ where
                         });
                     } else {
                         ui.tooltip(|| {
-                            ui.text(im_str!("Import editor from '{}'.", EDITOR_EXPORT_FILE));
+                            ui.text(im_str!("Import editor from *.ron files."));
                         });
                     }
                 }
