@@ -165,7 +165,7 @@ impl State {
         horizontal_axis: Option<&AxisTransform<FX>>,
         vertical_axis: Option<&AxisTransform<FY>>,
         size: [f32; 2],
-        copying: &mut Option<(InteractionId, TransformIdx)>,
+        _copying: &mut Option<(InteractionId, TransformIdx)>,
         store: &mut EditableValues,
         attaching: &mut Option<(OutputId, TransformIdx, usize)>,
         outputid: OutputId,
@@ -301,8 +301,8 @@ impl State {
             for (_id, interaction) in self.interactions.iter_mut() {
                 match interaction {
                     Interaction::FinedGrainedROI(FinedGrainedROI {
-                        id,
-                        pixels,
+                        id: _,
+                        pixels: _,
                         changed,
                     }) => {
                         res |= *changed;
@@ -372,9 +372,9 @@ impl State {
                         for (_id, interaction) in self.interactions.iter_mut() {
                             match interaction {
                                 Interaction::FinedGrainedROI(FinedGrainedROI {
-                                    id,
+                                    id: _,
                                     pixels,
-                                    changed,
+                                    changed: _,
                                 }) => {
                                     let idx = first.3.clone();
                                     if idx.len() != 2 {
