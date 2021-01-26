@@ -347,7 +347,7 @@ where
                     .size([0.0, 350.0])
                     .horizontal_scrollbar(true)
                     .build(ui, || {
-                        if let Ok(Some(path)) =
+                        if let Ok((Some(path), _)) =
                             ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
                         {
                             selected_path = Some(path);
