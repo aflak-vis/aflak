@@ -442,8 +442,6 @@ fn open_macro_editor<T, E>(
     }
 }
 
-const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
-
 impl<T, E> ApplyRenderEvent<T, E> for NodeEditor<T, E>
 where
     T: Clone
@@ -508,14 +506,16 @@ where
         }
     }
     fn export(&mut self) {
-        if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
-            eprintln!("Error on export! {}", e);
-            self.error_stack.push(Box::new(e));
-        } else {
-            self.success_stack.push(ImString::new(format!(
-                "Editor content was exported with success to '{}'!",
-                EDITOR_EXPORT_FILE
-            )));
+        if let Some(path) = self.layout.export_path.take() {
+            if let Err(e) = self.export_to_file(path.clone()) {
+                eprintln!("Error on export! {}", e);
+                self.error_stack.push(Box::new(e));
+            } else {
+                self.success_stack.push(ImString::new(format!(
+                    "Editor content was exported with success to '{:?}'!",
+                    path
+                )));
+            }
         }
     }
     fn add_new_macro(&mut self) {
