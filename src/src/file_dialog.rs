@@ -68,7 +68,7 @@ impl FileDialog {
                         ChildWindow::new(im_str!("file-explorer"))
                             .size([0.0, 512.0])
                             .build(ui, || {
-                                if let Ok(path) = ui.file_explorer("/", &["fits"]) {
+                                if let Ok((path, _)) = ui.file_explorer("/", &["fits"]) {
                                     some_path = path;
                                 }
                             })
