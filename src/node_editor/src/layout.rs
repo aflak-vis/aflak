@@ -319,7 +319,7 @@ where
                                     .horizontal_scrollbar(true)
                                     .build(ui, || {
                                         if let Ok((Some(path), _)) = ui.file_explorer(
-                                            imgui_file_explorer::TOP_FOLDER,
+                                            imgui_file_explorer::CURRENT_FOLDER,
                                             &["ron"],
                                         ) {
                                             selected_path = Some(path);
