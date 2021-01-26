@@ -211,7 +211,7 @@ impl Aflak {
             for output in outputs {
                 let output_window = self.output_windows.entry(output).or_default();
                 let editable_values = output_window.editable_values.clone();
-                for (interaction_id, transformidx) in editable_values.iter() {
+                for (_interaction_id, transformidx) in editable_values.iter() {
                     for (nodeid, node) in dst.nodes_iter() {
                         if let NodeId::Transform(t_idx) = nodeid {
                             if t_idx == *transformidx {
