@@ -1,6 +1,7 @@
 use crate::collections::HashSet;
 use std::collections::BTreeMap;
 use std::error::Error;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use imgui::{
     ChildWindow, CollapsingHeader, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable,
@@ -34,7 +35,11 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     scrolling: Scrolling,
     show_grid: bool,
     import_opened: bool,
+    export_opened: bool,
     pub import_path: Option<std::path::PathBuf>,
+    pub export_path: Option<std::path::PathBuf>,
+    selected_dir: Option<std::path::PathBuf>,
+    filename: ImString,
     pub is_macro: bool,
     adding_new_node_pos: Option<Vec2>,
     // Used at runtime to aggregate events
@@ -59,7 +64,11 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             scrolling: Default::default(),
             show_grid: true,
             import_opened: false,
+            export_opened: false,
             import_path: None,
+            export_path: None,
+            selected_dir: None,
+            filename: ImString::with_capacity(256),
             is_macro: false,
             adding_new_node_pos: None,
             events: vec![],
@@ -340,7 +349,11 @@ where
                 }
                 ui.same_line(ui.window_size()[0] - 180.0);
                 if ui.button(im_str!("Export"), [0.0, 0.0]) {
-                    self.events.push(RenderEvent::Export);
+                    if !self.is_macro {
+                        self.export_opened = true;
+                    } else {
+                        self.events.push(RenderEvent::Export);
+                    }
                 }
                 if ui.is_item_hovered() {
                     ui.tooltip(|| {
@@ -349,6 +362,83 @@ where
                             EDITOR_EXPORT_FILE
                         ));
                     });
+                }
+                if !self.is_macro {
+                    let mut selected_dir;
+                    let mut cancelled = false;
+                    let mut try_save = false;
+                    let mouse_pos = ui.io().mouse_pos;
+                    let mut filename = ImString::with_capacity(256);
+                    selected_dir = self.selected_dir.clone();
+                    if self.export_opened {
+                        imgui::Window::new(&imgui::ImString::new(format!("Export .ron")))
+                            .opened(&mut self.export_opened)
+                            .save_settings(false)
+                            .position(mouse_pos, imgui::Condition::Appearing)
+                            .size([400.0, 410.0], imgui::Condition::Appearing)
+                            .build(ui, || {
+                                imgui::ChildWindow::new(im_str!("edit"))
+                                    .size([0.0, 350.0])
+                                    .horizontal_scrollbar(true)
+                                    .build(ui, || {
+                                        if let Ok((_, dir)) = ui.file_explorer(
+                                            imgui_file_explorer::CURRENT_FOLDER,
+                                            &[""],
+                                        ) {
+                                            if dir != None {
+                                                selected_dir = dir;
+                                            }
+                                        }
+                                    });
+                                if let Some(s) = selected_dir.clone() {
+                                    ui.text(im_str!("target directory: {:?}", s));
+                                } else {
+                                    ui.text(im_str!("target directory:"));
+                                }
+                                ui.input_text(im_str!("File name"), &mut filename).build();
+                                if ui.button(im_str!("Save"), [0.0, 0.0]) {
+                                    try_save = true;
+                                }
+                                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                                    cancelled = true;
+                                }
+                            });
+                    }
+                    if filename.to_str() != "" {
+                        self.filename = filename;
+                    }
+                    if let Some(_) = selected_dir {
+                        self.selected_dir = selected_dir;
+                    }
+                    if cancelled {
+                        self.export_opened = false;
+                    } else if try_save {
+                        if self.filename.to_str() == "" {
+                            ui.open_popup(im_str!("Blank filename"));
+                        } else {
+                            self.events.push(RenderEvent::Export);
+                            let dir = if let Some(dir) = self.selected_dir.clone() {
+                                dir
+                            } else {
+                                PathBuf::from("./")
+                            };
+                            let fullpath = Some(
+                                [dir, PathBuf::from(self.filename.to_string())]
+                                    .iter()
+                                    .collect(),
+                            );
+                            self.export_path = fullpath;
+                            self.export_opened = false;
+                        }
+                    }
+                    ui.popup_modal(im_str!("Blank filename"))
+                        .always_auto_resize(true)
+                        .build(|| {
+                            ui.text(im_str!("Please fill in the File name"));
+                            if ui.button(im_str!("OK"), [0.0, 0.0]) {
+                                ui.close_current_popup();
+                            }
+                        });
                 }
                 ui.same_line(ui.window_size()[0] - 120.0);
                 ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
