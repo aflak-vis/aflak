@@ -50,8 +50,10 @@ fn is_hidden<P: AsRef<Path>>(path: P) -> bool {
 cfg_if! {
     if #[cfg(unix)] {
         pub const TOP_FOLDER: &str = "/";
+        pub const CURRENT_FOLDER: &str = "./";
     } else {
         pub const TOP_FOLDER: &str = "C:";
+        pub const CURRENT_FOLDER: &str = "./";
     }
 }
 
@@ -67,6 +69,12 @@ impl<'ui> UiFileExplorer for Ui<'ui> {
         S: AsRef<str>,
     {
         let current_dir = env::current_dir().unwrap_or_else(|_| target.as_ref().to_owned());
+        TreeNode::new(im_str!("./"))
+            .opened(false, Condition::Always)
+            .build(&self, || {});
+        if self.is_item_clicked(MouseButton::Left) {
+            return Ok((None, Some(PathBuf::from("./"))));
+        }
         view_dirs(&self, target, extensions, &current_dir)
     }
 }
