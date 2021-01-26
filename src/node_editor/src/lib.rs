@@ -348,7 +348,7 @@ where
                     .horizontal_scrollbar(true)
                     .build(ui, || {
                         if let Ok((Some(path), _)) =
-                            ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
+                            ui.file_explorer(imgui_file_explorer::CURRENT_FOLDER, &["macro"])
                         {
                             selected_path = Some(path);
                         }

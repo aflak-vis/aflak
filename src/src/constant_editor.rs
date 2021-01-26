@@ -1,5 +1,5 @@
 use crate::primitives::{self, IOValue};
-use imgui_file_explorer::{UiFileExplorer, TOP_FOLDER};
+use imgui_file_explorer::{UiFileExplorer, CURRENT_FOLDER};
 use imgui_tone_curve::UiToneCurve;
 use node_editor::ConstantEditor;
 
@@ -153,7 +153,7 @@ fn inner_editor(
                         .horizontal_scrollbar(true)
                         .build(ui, || {
                             ret = ui.file_explorer(
-                                TOP_FOLDER,
+                                CURRENT_FOLDER,
                                 &[
                                     "fits", "fit", "fts", "cr2", "CR2", "RW2", "rw2", "nef", "NEF",
                                 ],
