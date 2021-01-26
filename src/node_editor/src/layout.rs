@@ -260,8 +260,6 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
-
         ChildWindow::new(im_str!("GraphNodeChildWindow")).build(ui, || {
             if self.show_top_pane {
                 const TOP_PANE_DESIGN: [StyleVar; 2] = [
@@ -339,10 +337,7 @@ where
                 }
                 if ui.is_item_hovered() {
                     ui.tooltip(|| {
-                        ui.text(im_str!(
-                            "Export editor content to '{}'.",
-                            EDITOR_EXPORT_FILE
-                        ));
+                        ui.text(im_str!("Export editor content *.ron files.",));
                     });
                 }
                 if !self.is_macro {
