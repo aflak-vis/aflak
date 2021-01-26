@@ -15,7 +15,7 @@ fn test(ui: &Ui) {
     window.build(ui, || {
         ui.push_item_width(-140.0);
         let file = ui.file_explorer("/", &["fits", "csv"]);
-        if let Ok(Some(file)) = file {
+        if let Ok((Some(file), _)) = file {
             println!("{:?}", file);
         }
     });
