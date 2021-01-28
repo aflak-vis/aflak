@@ -158,8 +158,8 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
     ret = match ret {
         // Do not overwrite return value when it is already set
         Ok((Some(s), Some(c))) => Ok((Some(s), Some(c))),
-        Ok((s, None)) => Ok((s, clicked_dir)),
-        Ok((None, c)) => Ok((selected_path, c)),
+        Ok((Some(s), None)) => Ok((Some(s), clicked_dir)),
+        Ok((None, Some(c))) => Ok((selected_path, Some(c))),
         _ => Ok((selected_path, clicked_dir)),
     };
     ret
