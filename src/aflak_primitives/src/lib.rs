@@ -141,7 +141,7 @@ lazy_static! {
         vec![
             cake_transform!(
                 "Open FITS file from a Paths.",
-                "Open File",
+                "01. Open File",
                 1, 0, 0,
                 open_fits<IOValue, IOErr>(path: Paths, n: Integer = 0) -> Fits {
                     let PATHS::FileList(path) = path;
@@ -150,7 +150,7 @@ lazy_static! {
             ),
             cake_transform!(
                 "Open RAW file from a Paths.",
-                "Open File",
+                "01. Open File",
                 0, 1, 0,
                 open_raw<IOValue, IOErr>(path: Paths, n: Integer = 0) -> Image {
                     let PATHS::FileList(path) = path;
@@ -159,7 +159,7 @@ lazy_static! {
             ),
             cake_transform!(
                 "Extract dataset from FITS file.",
-                "Extract part of data",
+                "04. Extract part of data",
                 1, 0, 0,
                 fits_to_image<IOValue, IOErr>(fits: Fits, hdu_idx: Integer = 0, extension: Str = "".to_owned()) -> Image {
                     vec![run_fits_to_image(fits, *hdu_idx, extension)]
@@ -167,7 +167,7 @@ lazy_static! {
             ),
             cake_transform!(
                 "range specification",
-                "Extract part of data",
+                "04. Extract part of data",
                 0, 1, 0,
                 range_specification<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_range_specification(image, *start, *end)]
@@ -176,7 +176,7 @@ lazy_static! {
             cake_transform!(
                 "Image's min and max value. Parameter: image.
 Compute v_min(first), v_max(second)",
-                "Extract part of data",
+                "04. Extract part of data",
                 1, 0, 0,
                 image_min_max<IOValue, IOErr>(image: Image) -> Float, Float {
                     let mut min = std::f32::MAX;
@@ -193,7 +193,7 @@ Compute v_min(first), v_max(second)",
             ),
             cake_transform!(
                 "Make a Float3 from 3 float values.",
-                "Make new data",
+                "02. Make new data",
                 1, 0, 0,
                 make_float3<IOValue, IOErr>(f1: Float = 0.0, f2: Float = 0.0, f3: Float = 0.0) -> Float3 {
                     vec![run_make_float3(*f1, *f2, *f3)]
@@ -213,7 +213,7 @@ With the above parameters, a 2D mesh with the points as below:
   y + i * d1_y + j * d2_y,
   z + i * d1_z + j * d2_z )
 for 0 <= i < n and 0 <= j < m",
-                "Make new data",
+                "02. Make new data",
                 1, 0, 0,
                 make_plane3d<IOValue, IOErr>(p0: Float3 = [0.0; 3], dir1: Float3 = [0.0, 0.0, 1.0], dir2: Float3 = [0.0, 1.0, 0.0], count1: Integer = 1, count2: Integer = 1) -> Map2dTo3dCoords {
                     vec![run_make_plane3d(p0, dir1, dir2, *count1, *count2)]
@@ -223,7 +223,7 @@ for 0 <= i < n and 0 <= j < m",
                 "Ratio from bands' center wavelength.
 Parameters: z(on-band's center wavelength), z1, z2(off-bands' centerwavelength) (z1 < z < z2).
 Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 - z1)",
-                "Make new data",
+                "02. Make new data",
                 1, 0, 0,
                 ratio_from_bands<IOValue, IOErr>(z: Float, z1: Float, z2: Float) -> Float, Float {
                     if !(z1 < z && z < z2) {
@@ -242,7 +242,7 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
             ),
             cake_transform!(
                 "Create scatterplots from two 1D image data.",
-                "Make new data",
+                "02. Make new data",
                 1, 0, 0,
                 create_scatter<IOValue, IOErr>(xaxis: Image, yaxis: Image) -> Image{
                     vec![run_create_scatter(xaxis, yaxis)]
@@ -251,14 +251,14 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
             cake_transform!("Replace all values above or below a threshold in a image with NaN.
 Takes two parameters: a threshold and a bool.
 If bool value is checked, then replaces the values above the threshold with NaN, else replace the values below the threshold with NaN.",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 clip_image<IOValue, IOErr>(image: Image, ceiling_threshold: Float = 0.0, ceiling: Bool = false, floor_threshold: Float = 0.0, floor: Bool = false) -> Image {
                     vec![run_clip(image, *ceiling_threshold, *ceiling, *floor_threshold, *floor)]
                 }
             ),
             cake_transform!("Replace all NaN values in image with the provided value.",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 replace_nan_image<IOValue, IOErr>(image: Image, placeholder: Float = 0.0) -> Image {
                     vec![run_replace_nan_image(image, *placeholder)]
@@ -267,7 +267,7 @@ If bool value is checked, then replaces the values above the threshold with NaN,
             cake_transform!(
                 "Convert to log-scale. Parameter: image, a, v_min, v_max.
 Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 convert_to_logscale<IOValue, IOErr>(image: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
                     vec![run_convert_to_logscale(image, *a, *v_min, *v_max)]
@@ -275,7 +275,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             ),
             cake_transform!(
                 "Calculating log10 of input data.",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 log10<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_log10(image)]
@@ -283,7 +283,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             ),
             cake_transform!(
                 "Negation. Parameter: image. Compute -i.",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 negation<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_negation(image)]
@@ -291,7 +291,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             ),
             cake_transform!(
                 "Apply tone curve to image",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 apply_tone_curve<IOValue, IOErr>(image: Image, tone_curve: ToneCurve) -> Image {
                     vec![run_apply_tone_curve(image, tone_curve.clone())]
@@ -299,7 +299,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             ),
             cake_transform!(
                 "Change the visualization tag to BPT, maybe can also be used to realize more tags",
-                "Convert data",
+                "05. Convert data",
                 1, 0, 0,
                 change_tag<IOValue, IOErr>(image: Image, tag: Str = "".to_owned()) -> Image {
                     vec![run_change_tag(image, tag)]
@@ -308,7 +308,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             cake_transform!(
                 "Compose 2 vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
-                "Arithmetic",
+                "06. Arithmetic",
                 1, 0, 0,
                 linear_composition<IOValue, IOErr>(u: Image, v: Image, a: Float = 1.0, b: Float = 1.0) -> Image {
                     vec![run_linear_composition(u, v, *a, *b)]
@@ -316,7 +316,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Calculating division between two WcsArray(image).",
-                "Arithmetic",
+                "06. Arithmetic",
                 1, 0, 0,
                 image_multiplier<IOValue, IOErr>(i1: Image, i2: Image, coef1: Float = 1.0, coef2: Float = 1.0) -> Image {
                     vec![run_image_multiplier(i1, i2, *coef1, *coef2)]
@@ -324,7 +324,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Slice one frame of a n-dimensional dataset turning it into an (n-1)-dimensional dataset.",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 1, 0, 0,
                 slice_one_frame<IOValue, IOErr>(image: Image, frame: Integer = 0) -> Image {
                     vec![run_slice_one_frame(image, *frame)]
@@ -332,7 +332,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Slice an arbitrary plane through a 3D dataset and return the slice.",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 0, 1, 0,
                 slice_3d_to_2d<IOValue, IOErr>(image: Image, map: Map2dTo3dCoords) -> Image {
                     vec![run_slice_3d_to_2d(image, map)]
@@ -340,7 +340,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Extrude along the wavelength",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 0, 1, 0,
                 extrude<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
                     vec![run_extrude(image, roi)]
@@ -348,7 +348,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Extract waveform from image with the provided region of interest.",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 1, 0, 0,
                 extract_wave<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
                     vec![run_extract_wave(image, roi)]
@@ -360,7 +360,7 @@ Compute Sum[k, {a, b}]image[k]. image[k] is k-th slice of image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
-"Dimensionality reduction",
+"07. Reduce dimension",
                 1, 0, 0,
                 integral<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
@@ -374,7 +374,7 @@ Compute (Sum[k, {a, b}]image[k]) / (b - a). image[k] is k-th slice of image.
 Second output contains (a + b) / 2
 Third output contains (b - a)
 Note: indices for a and b start from 0",
-"Dimensionality reduction",
+"07. Reduce dimension",
                 1, 0, 0,
                 average<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image, Float, Float {
                     let middle = (*start as f32 + *end as f32) / 2.0;
@@ -384,7 +384,7 @@ Note: indices for a and b start from 0",
             ),
             cake_transform!(
                 "Variance for Image. Parameters: a=start, b=end (a <= b).",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 1, 0, 0,
                 variance<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
                     vec![run_variance(image, *start, *end)]
@@ -392,7 +392,7 @@ Note: indices for a and b start from 0",
             ),
             cake_transform!(
                 "Stddev for Image. Parameters: a=start, b=end (a <= b).",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 1, 0, 0,
                 stddev<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
                     vec![run_stddev(image, *start, *end)]
@@ -400,7 +400,7 @@ Note: indices for a and b start from 0",
             ),
             cake_transform!(
                 "Median for Image. Parameters: a=start, b=end (a <= b).",
-                "Dimensionality reduction",
+                "07. Reduce dimension",
                 1, 0, 0,
                 median<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image{
                     vec![run_median(image, *start, *end)]
@@ -461,7 +461,7 @@ Parameter: image, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
 Second output contains max/min flux map
 Note: output wavelength values are discrete. indices for start and end start from 0",
-"Dimensionality reduction (index)",
+"08. Reduce dimension (index)",
                 0, 1, 0,
                 extract_argmin_max_wavelength<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1, is_min: Bool = false) -> Image, Image {
                     vec![run_argminmax(image, *start, *end, *is_min), run_minmax(image, *start, *end, *is_min)]
@@ -472,7 +472,7 @@ Note: output wavelength values are discrete. indices for start and end start fro
 Parameter: image, start, end, range, is_min (start <= end)
 Output [argmax - range, argmax + range] [argmin - range, argmin + range] map of flux; wavelength
 Note: output wavelength values are discrete. indices for start and end start from 0",
-"Dimensionality reduction (index)",
+"08. Reduce dimension (index)",
                 0, 1, 0,
                 peak_based_wavelength_range<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1, range: Integer = 1, is_min: Bool = false) -> Image, Image {
                     vec![run_create_argmap(image, *start, *end, -*range, *is_min, false), run_create_argmap(image, *start, *end, *range, *is_min, false)]
@@ -483,7 +483,7 @@ Note: output wavelength values are discrete. indices for start and end start fro
 Parameter: image (which has wavelength value w_i and flux f_i), start, end
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))
 Note: indices for start and end start from 0",
-"Dimensionality reduction (index)",
+"08. Reduce dimension (index)",
                 0, 1, 0,
                 extract_centrobaric_wavelength<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
                     vec![run_centroid(image, *start, *end)]
@@ -493,7 +493,7 @@ Note: indices for start and end start from 0",
                 "Extract centrobaric wavelength value of each pixel with mask.
 Parameter: image (which has wavelength value w_i and flux f_i), start_mask, end_mask
 Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
-"Dimensionality reduction (index)",
+"08. Reduce dimension (index)",
                 0, 1, 0,
                 extract_centrobaric_wavelength_with_mask<IOValue, IOErr>(image: Image, start_mask: Image, end_mask: Image) -> Image {
                     vec![run_centroid_with_mask(image, start_mask, end_mask)]
@@ -502,7 +502,7 @@ Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
             cake_transform!(
                 "Gaussian. Parameter: image, start, end
     Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * sigma ^ 2))",
-    "Dimensionality reduction (index)",
+    "08. Reduce dimension (index)",
                     0, 1, 0,
                     gaussian<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
                         vec![run_gaussian_mean(image, *start, *end)]
@@ -511,7 +511,7 @@ Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
                 cake_transform!(
                     "Gaussian with mask. Parameter: image, start_mask, end_mask
     Compute mean, when the (x, y) is fitted as y = A * exp(-(x - mean) ^ 2 / (2 * sigma ^ 2))",
-    "Dimensionality reduction (index)",
+    "08. Reduce dimension (index)",
                     0, 1, 0,
                     gaussian_with_mask<IOValue, IOErr>(image: Image, start_mask: Image, end_mask: Image) -> Image {
                         vec![run_gaussian_mean_with_mask(image, start_mask, end_mask)]
@@ -522,7 +522,7 @@ Compute Sum[k, (start, end)](f_k * w_k) / Sum(k, (start, end)(f_k))",
 Parameters i_off, i_on, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
 if value > max, value changes to 0.",
-                "Create Astronomy-specific map",
+                "10. Create astronomy-specific map",
                 0, 1, 0,
                 create_equivalent_width<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
                     vec![run_create_equivalent_width(i_off, i_on, *fl, *max, *is_emission)]
@@ -532,7 +532,7 @@ if value > max, value changes to 0.",
                 "Create velocity field map
 Parameter: image (which has wavelength value w_i in each pixel), representative wavelength w_0
 Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
-"Create Astronomy-specific map",
+"10. Create astronomy-specific map",
                 1, 0, 0,
                 create_velocity_field_map<IOValue, IOErr>(image: Image, w_0: Float = 0.0) -> Image {
                     let c = 3e5;
@@ -550,7 +550,7 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
 Parameters i_off, i_on, onband-width, min, is_emission.
 Compute value = (i1 - i2) * fl (if is_emission is true, the sign of this value turns over).Integral
 if value > max, value changes to 0.",
-"Create Astronomy-specific map",
+"10. Create astronomy-specific map",
                 0, 1, 0,
                 create_emission_line_map<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
                     vec![run_create_emission_line_map(i_off, i_on, *fl, *max, *is_emission)]
@@ -558,7 +558,7 @@ if value > max, value changes to 0.",
             ),
             cake_transform!(
                 "Generate hsv channel from rgb image",
-                "Dimensionality reduction (color image)",
+                "09. Reduce dimension (color image)",
                 1, 0, 0,
                 color_image_to_hsv<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_color_image_to_hsv(image)]
@@ -566,7 +566,7 @@ if value > max, value changes to 0.",
             ),
             cake_transform!(
                 "Generate color image from rgb channels",
-                "Make new data (color)",
+                "03. Make new data (color)",
                 1, 0, 0,
                 color_image_from_rgb<IOValue, IOErr>(image_r: Image, image_g: Image, image_b: Image) -> Image {
                     vec![run_generate_color_image_from_channel(image_r, image_g, image_b)]
@@ -574,7 +574,7 @@ if value > max, value changes to 0.",
             ),
             cake_transform!(
                 "Downsample the image. The width and height of size will be 1/n",
-                "Make new data",
+                "02. Make new data",
                 1, 0, 0,
                 down_sampling<IOValue, IOErr>(image: Image, n: Integer = 1) -> Image {
                     vec![run_down_sampling(image, *n)]
