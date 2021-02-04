@@ -346,6 +346,8 @@ where
                     let mut try_save = false;
                     let mouse_pos = ui.io().mouse_pos;
                     let mut filename = ImString::with_capacity(256);
+                    let mut changed = false;
+                    filename.push_str(self.filename.to_str());
                     selected_dir = self.selected_dir.clone();
                     if self.export_opened {
                         imgui::Window::new(&imgui::ImString::new(format!("Export .ron")))
@@ -372,7 +374,8 @@ where
                                 } else {
                                     ui.text(im_str!("target directory:"));
                                 }
-                                ui.input_text(im_str!("File name"), &mut filename).build();
+                                changed =
+                                    ui.input_text(im_str!("File name"), &mut filename).build();
                                 if ui.button(im_str!("Save"), [0.0, 0.0]) {
                                     try_save = true;
                                 }
@@ -381,7 +384,7 @@ where
                                 }
                             });
                     }
-                    if filename.to_str() != "" {
+                    if changed {
                         self.filename = filename;
                     }
                     if let Some(_) = selected_dir {
