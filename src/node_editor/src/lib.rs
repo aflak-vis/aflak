@@ -36,11 +36,10 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     pub dst: cake::DST<'static, T, E>,
     output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
     cache: cake::Cache<T, cake::compute::ComputeError<E>>,
-    macros: cake::macros::MacroManager<'static, T, E>,
+    pub macros: cake::macros::MacroManager<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<dyn error::Error>>,
     success_stack: Vec<ImString>,
-
     nodes_edit: Vec<InnerNodeEditor<T, E>>,
     import_macro: Option<cake::macros::MacroHandle<'static, T, E>>,
 }
