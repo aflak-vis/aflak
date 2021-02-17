@@ -3,7 +3,9 @@ use imgui::{
     ChildWindow, ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider,
     TextureId, Ui, Window,
 };
-use imshow::cake::{OutputId, TransformIdx};
+use super::cake::{OutputId, TransformIdx, Transform};
+use super::node_editor::NodeEditor;
+use super::primitives::{IOErr, IOValue};
 use ndarray::ArrayD;
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -22,6 +24,7 @@ use super::Error;
 use super::Textures;
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Current state of the visualization of a 2D image
 pub struct State<I> {
@@ -350,6 +353,7 @@ where
         store: &mut EditableValues,
         attaching: &mut Option<(OutputId, TransformIdx, usize)>,
         outputid: OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<([[f32; 2]; 2], f32), Error>
     where
         FX: Fn(f32) -> f32,
