@@ -211,10 +211,27 @@ impl Aflak {
                 let output_window = self.output_windows.entry(output).or_default();
                 let editable_values = output_window.editable_values.clone();
                 for (_interaction_id, transformidx) in editable_values.iter() {
-                    for (nodeid, node) in dst.nodes_iter() {
-                        if let NodeId::Transform(t_idx) = nodeid {
-                            if t_idx == *transformidx {
-                                ui.text(im_str!("{:?} <--> {:?}", output, node.name(&nodeid)));
+                    if let Some(macro_id) = transformidx.macro_id() {
+                        if let Some(macr) = &self.node_editor.macros.get_macro(macro_id) {
+                            for (nodeid, node) in macr.read().dst().nodes_iter() {
+                                if let NodeId::Transform(t_idx) = nodeid {
+                                    if t_idx == *transformidx {
+                                        ui.text(im_str!(
+                                            "{:?} <--> {:?} in Macro {:?}",
+                                            output,
+                                            node.name(&nodeid),
+                                            macr.name(),
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        for (nodeid, node) in dst.nodes_iter() {
+                            if let NodeId::Transform(t_idx) = nodeid {
+                                if t_idx == *transformidx {
+                                    ui.text(im_str!("{:?} <--> {:?}", output, node.name(&nodeid)));
+                                }
                             }
                         }
                     }
