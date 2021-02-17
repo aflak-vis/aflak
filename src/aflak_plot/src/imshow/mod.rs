@@ -5,6 +5,8 @@ mod lut;
 mod state;
 
 pub extern crate aflak_cake as cake;
+pub extern crate aflak_primitives as primitives;
+pub extern crate node_editor;
 
 pub use self::interactions::InteractionId;
 pub use self::state::State;
@@ -12,7 +14,9 @@ pub use self::state::State;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 
-use self::cake::TransformIdx;
+use super::cake::TransformIdx;
+use super::node_editor::NodeEditor;
+use super::primitives::{IOErr, IOValue};
 use glium::backend::Facade;
 use imgui::{self, TextureId, Ui};
 use imgui_glium_renderer::Texture;
@@ -28,6 +32,7 @@ use super::AxisTransform;
 /// A handle to an OpenGL 2D texture.
 pub type Textures = imgui::Textures<Texture>;
 type EditabaleValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 impl<'ui> UiImage2d for Ui<'ui> {
     /// Show image given as input.
@@ -97,6 +102,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         store: &mut EditabaleValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -127,6 +133,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             &mut *store,
             &mut *attaching,
             outputid,
+            &node_editor,
         )?;
 
         state.show_hist(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
@@ -159,6 +166,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         store: &mut EditabaleValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -189,6 +197,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
             &mut *store,
             &mut *attaching,
             outputid,
+            &node_editor,
         )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
@@ -224,6 +233,7 @@ pub trait UiImage2d {
         store: &mut EditabaleValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,
@@ -244,6 +254,7 @@ pub trait UiImage2d {
         store: &mut EditabaleValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         F: Facade,

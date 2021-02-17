@@ -667,6 +667,7 @@ impl MenuBar for primitives::WcsArray {
                         &mut ctx.window.editable_values,
                         &mut ctx.attaching,
                         ctx.output,
+                        &ctx.node_editor,
                     ) {
                         ui.text(format!("Error on drawing image! {}", e));
                     }
@@ -824,6 +825,7 @@ impl MenuBar for primitives::WcsArray {
                             &mut ctx.window.editable_values,
                             &mut ctx.attaching,
                             ctx.output,
+                            &ctx.node_editor,
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
