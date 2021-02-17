@@ -159,7 +159,7 @@ macro_rules! cake_fn {
 /// pub enum E {}
 ///                                       //   _______ MAJOR/MINOR/PATCH version numbers
 /// let plus_one_trans = cake_transform!( //  /  /  /
-///     "Long description of the transform", 1, 0, 0,
+///     "Long description of the transform", "kind", 1, 0, 0,
 /// // key identifying transformation   Input arguments with default value (optional)
 /// //   \  In/Out types /- Error type  /        _ Output type(s)
 /// //    \       /     / /------------/        /

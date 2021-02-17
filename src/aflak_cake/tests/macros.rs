@@ -24,10 +24,10 @@ fn make_macro() -> aflak_cake::macros::MacroHandle<'static, AlgoIO, E> {
         //EMPTY                            c, plus1 -> d, plus1 -> OUT1
         // \-> b, minus1 -> OUT2            \-> e, plus1
         let mut dst = DST::new();
-        let b = dst.add_transform(&minus1);
-        let c = dst.add_transform(&plus1);
-        let d = dst.add_transform(&plus1);
-        let e = dst.add_transform(&plus1);
+        let b = dst.add_transform(&minus1, None);
+        let c = dst.add_transform(&plus1, None);
+        let d = dst.add_transform(&plus1, None);
+        let e = dst.add_transform(&plus1, None);
         let _out1 = dst.attach_output(Output::new(d, 0)).unwrap();
         let _out2 = dst.attach_output(Output::new(b, 0)).unwrap();
         dst.connect(Output::new(c, 0), Input::new(e, 0)).unwrap();
@@ -78,8 +78,9 @@ fn test_macro_inputs() {
 #[test]
 fn test_macro_inputs_overwrite_correct_type() {
     let macr = make_macro();
+    let macr_id = macr.id();
     let mut dst = DST::new();
-    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr));
+    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr), Some(macr_id));
     {
         let mut inputs = dst.get_default_inputs_mut(t_idx).unwrap();
         inputs.write(1, AlgoIO::Integer(2));
@@ -95,8 +96,9 @@ fn test_macro_inputs_overwrite_correct_type() {
 #[test]
 fn test_macro_inputs_overwrite_wrong_type() {
     let macr = make_macro();
+    let macr_id = macr.id();
     let mut dst = DST::new();
-    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr));
+    let t_idx = dst.add_owned_transform(aflak_cake::Transform::from_macro(macr), Some(macr_id));
     {
         let mut inputs = dst.get_default_inputs_mut(t_idx).unwrap();
         inputs.write(1, AlgoIO::Image2d(vec![]));
@@ -127,12 +129,14 @@ fn test_macro_standalone_serde() {
 fn test_nested_macro_standalone_serde() {
     let macr = make_macro();
     {
+        let macr_id = macr.id();
         let nested_macro = aflak_cake::macros::MacroManager::new()
             .create_macro()
             .clone();
-        macr.write()
-            .dst_mut()
-            .add_owned_transform(aflak_cake::Transform::from_macro(nested_macro));
+        macr.write().dst_mut().add_owned_transform(
+            aflak_cake::Transform::from_macro(nested_macro),
+            Some(macr_id),
+        );
     }
 
     let serde = aflak_cake::macros::SerdeMacroStandAlone::from(&macr);
