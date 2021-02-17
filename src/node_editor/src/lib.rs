@@ -127,24 +127,42 @@ where
     /// Return the ID if the new node.
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
         self.dst
-            .add_owned_transform(cake::Transform::new_constant(t))
+            .add_owned_transform(cake::Transform::new_constant(t), None)
     }
 }
 
 impl<T, E> NodeEditor<T, E>
 where
-    T: PartialEq + cake::VariantName,
+    T: PartialEq + cake::VariantName + std::clone::Clone,
 {
     /// Update the constant value of constant node with given `id` with given
     /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        if let Some(t) = self.dst.get_transform_mut(id) {
-            let mut new_value = false;
-            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant != val;
+        if let Some(macro_id) = id.macro_id() {
+            if let Some(macro_handle) = self.macros.get_macro(macro_id) {
+                if let Some(t) = macro_handle.write().dst_mut().get_transform_mut(id) {
+                    let mut new_value = false;
+                    if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                        new_value = *constant != val;
+                    }
+                    if new_value {
+                        t.set_constant(val);
+                    }
+                } else {
+                    eprintln!("not found macro transform from {:?}", id);
+                }
+            } else {
+                eprintln!("not found macro handle");
             }
-            if new_value {
-                t.set_constant(val);
+        } else {
+            if let Some(t) = self.dst.get_transform_mut(id) {
+                let mut new_value = false;
+                if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                    new_value = *constant != val;
+                }
+                if new_value {
+                    t.set_constant(val);
+                }
             }
         }
     }
