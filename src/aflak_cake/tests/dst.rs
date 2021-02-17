@@ -51,11 +51,11 @@ fn test_make_dst_and_iterate_dependencies() {
     // a, get1 -------------------> c, plus1 -> d, plus1 -> OUT1
     // \-> b, minus1 -> OUT2        \-> e, plus1
     let mut dst = DST::new();
-    let a = dst.add_transform(&get1);
-    let b = dst.add_transform(&minus1);
-    let c = dst.add_transform(&plus1);
-    let d = dst.add_transform(&plus1);
-    let e = dst.add_transform(&plus1);
+    let a = dst.add_transform(&get1, None);
+    let b = dst.add_transform(&minus1, None);
+    let c = dst.add_transform(&plus1, None);
+    let d = dst.add_transform(&plus1, None);
+    let e = dst.add_transform(&plus1, None);
     let out1 = dst.attach_output(Output::new(d, 0)).unwrap();
     let out2 = dst.attach_output(Output::new(b, 0)).unwrap();
     dst.connect(Output::new(a, 0), Input::new(c, 0)).unwrap();
@@ -82,8 +82,8 @@ fn test_connect_wrong_types() {
     // a, image
     // \-> b, plus1 -> OUT1
     let mut dst = DST::new();
-    let a = dst.add_transform(&image);
-    let b = dst.add_transform(&plus1);
+    let a = dst.add_transform(&image, None);
+    let b = dst.add_transform(&plus1, None);
     let _out1 = dst.attach_output(Output::new(b, 0)).unwrap();
     if let Err(DSTError::IncompatibleTypes(_)) = dst.connect(Output::new(a, 0), Input::new(b, 0)) {
         assert!(true);
@@ -101,8 +101,8 @@ fn test_connect_convertible_types() {
     // a, get1
     // \-> b, divide10 -> OUT1
     let mut dst = DST::new();
-    let a = dst.add_transform(&get1);
-    let b = dst.add_transform(&divide10);
+    let a = dst.add_transform(&get1, None);
+    let b = dst.add_transform(&divide10, None);
     let _out1 = dst.attach_output(Output::new(b, 0)).unwrap();
     assert!(
         dst.connect(Output::new(a, 0), Input::new(b, 0)).is_ok(),
@@ -121,11 +121,11 @@ fn test_cache_reset() {
     // a, get1 -------------------> c, plus1 -> d, plus1 -> OUT1
     // \-> b, minus1 -> OUT2        \-> e, plus1
     let mut dst = DST::new();
-    let a = dst.add_transform(&get1);
-    let b = dst.add_transform(&minus1);
-    let c = dst.add_transform(&plus1);
-    let d = dst.add_transform(&plus1);
-    let e = dst.add_transform(&plus1);
+    let a = dst.add_transform(&get1, None);
+    let b = dst.add_transform(&minus1, None);
+    let c = dst.add_transform(&plus1, None);
+    let d = dst.add_transform(&plus1, None);
+    let e = dst.add_transform(&plus1, None);
     let out1 = dst.attach_output(Output::new(d, 0)).unwrap();
     let _out2 = dst.attach_output(Output::new(b, 0)).unwrap();
 
@@ -150,11 +150,11 @@ fn test_remove_node() {
     // \-> b, minus1 -> OUT2        \-> e, plus1
 
     let mut dst = DST::new();
-    let a = dst.add_transform(&get1);
-    let b = dst.add_transform(&minus1);
-    let c = dst.add_transform(&plus1);
-    let d = dst.add_transform(&plus1);
-    let e = dst.add_transform(&plus1);
+    let a = dst.add_transform(&get1, None);
+    let b = dst.add_transform(&minus1, None);
+    let c = dst.add_transform(&plus1, None);
+    let d = dst.add_transform(&plus1, None);
+    let e = dst.add_transform(&plus1, None);
 
     let d_out0 = Output::new(d, 0);
     let b_out0 = Output::new(b, 0);
