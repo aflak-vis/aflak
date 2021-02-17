@@ -106,12 +106,12 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                 cause,
                 t_idx,
                 t_name,
-            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
+            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.1, t_name),
             ArgumentError {
                 cause,
                 t_idx,
                 t_name,
-            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.0, t_name),
+            } => write!(f, "{}\n    in node #{} {}", cause, t_idx.1, t_name),
             NothingDoneYet => write!(f, "Nothing done yet!"),
             ErrorStack {
                 cause,
@@ -131,10 +131,10 @@ impl<E: fmt::Display> fmt::Display for ComputeError<E> {
                     error = cause;
                 }
                 if let Some((root_cause, t_idx, t_name)) = stack.pop() {
-                    write!(f, "{}\n    in node #{} {}", root_cause, t_idx.0, t_name)?;
+                    write!(f, "{}\n    in node #{} {}", root_cause, t_idx.1, t_name)?;
                 }
                 while let Some((_, t_idx, t_name)) = stack.pop() {
-                    write!(f, "\n    in node #{} {}", t_idx.0, t_name)?;
+                    write!(f, "\n    in node #{} {}", t_idx.1, t_name)?;
                 }
                 Ok(())
             }
