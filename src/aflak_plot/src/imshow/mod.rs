@@ -49,6 +49,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     /// extern crate aflak_plot;
     ///
     /// use std::time::Instant;
+    /// use std::collections::HashMap;
     ///
     /// use imgui::{TextureId, Ui};
     /// use ndarray::Array2;
@@ -56,6 +57,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///     imshow::{self, UiImage2d},
     ///     AxisTransform,
     /// };
+    /// use imshow::cake::OutputId;
+    /// use imshow::node_editor::NodeEditor;
     ///
     /// fn main() {
     ///     let config = support::AppConfig {
@@ -79,6 +82,11 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///             AxisTransform::none(),
     ///             AxisTransform::none(),
     ///             &mut state,
+    ///             &mut None,
+    ///             &mut HashMap::new(),
+    ///             &mut None,
+    ///             OutputId::new(0),
+    ///             &NodeEditor::default(),
     ///         ) {
     ///             eprintln!("{:?}", e);
     ///             false
