@@ -6,6 +6,8 @@ use ndarray::{ArrayBase, Data, Ix1};
 use std::collections::HashMap;
 
 extern crate aflak_cake as cake;
+pub extern crate aflak_primitives as primitives;
+pub extern crate node_editor;
 use super::interactions;
 use super::lims;
 use super::ticks;
@@ -16,8 +18,11 @@ use super::Error;
 pub use self::cake::TransformIdx;
 pub use self::interactions::InteractionId;
 pub use self::state::State;
+use super::node_editor::NodeEditor;
+use super::primitives::{IOErr, IOValue};
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Implementation of a UI to visualize a 1D image with ImGui using a plot.
 pub trait UiImage1d {
@@ -32,6 +37,7 @@ pub trait UiImage1d {
         store: &mut EditableValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -54,6 +60,7 @@ impl<'ui> UiImage1d for Ui<'ui> {
         store: &mut EditableValues,
         attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
         outputid: cake::OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         S: Data<Elem = f32>,
@@ -64,7 +71,18 @@ impl<'ui> UiImage1d for Ui<'ui> {
         let window_size = self.window_size();
         let size = [window_size[0], window_size[1] - (p[1] - window_pos[1])];
         state.plot(
-            self, image, vtype, vunit, axis, p, size, copying, store, attaching, outputid,
+            self,
+            image,
+            vtype,
+            vunit,
+            axis,
+            p,
+            size,
+            copying,
+            store,
+            attaching,
+            outputid,
+            node_editor,
         )
     }
 }
