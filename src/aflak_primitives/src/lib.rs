@@ -318,8 +318,8 @@ Compute a*u + b*v.",
                 "Calculating division between two WcsArray(image).",
                 "06. Calculate",
                 1, 0, 0,
-                image_multiplier<IOValue, IOErr>(i1: Image, i2: Image, coef1: Float = 1.0, coef2: Float = 1.0) -> Image {
-                    vec![run_image_multiplier(i1, i2, *coef1, *coef2)]
+                image_multiplier<IOValue, IOErr>(u: Image, v: Image, a: Float = 1.0, b: Float = 1.0) -> Image {
+                    vec![run_image_multiplier(u, v, *a, *b)]
                 }
             ),
             cake_transform!(
