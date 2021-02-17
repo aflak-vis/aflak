@@ -208,10 +208,12 @@ impl Aflak {
             ui.text("Bindings:");
             let outputs = self.node_editor.outputs();
             let dst = &self.node_editor.dst;
+            let mut bind_count = 0;
             for output in outputs {
                 let output_window = self.output_windows.entry(output).or_default();
                 let editable_values = output_window.editable_values.clone();
-                for (_interaction_id, transformidx) in editable_values.iter() {
+                let mut remove_id = None;
+                for (interaction_id, transformidx) in editable_values.iter() {
                     if let Some(macro_id) = transformidx.macro_id() {
                         if let Some(macr) = &self.node_editor.macros.get_macro(macro_id) {
                             for (nodeid, node) in macr.read().dst().nodes_iter() {
@@ -223,6 +225,20 @@ impl Aflak {
                                             node.name(&nodeid),
                                             macr.name(),
                                         ));
+                                        let p = ui.cursor_screen_pos();
+                                        ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
+                                        bind_count += 1;
+                                        if ui.button(
+                                            &ImString::new(format!("Remove bind {}", bind_count)),
+                                            [0.0, 0.0],
+                                        ) {
+                                            remove_id = Some(interaction_id);
+                                        }
+                                        if ui.is_item_hovered() {
+                                            ui.tooltip_text(im_str!(
+                                                "Remove this bind and create new bind"
+                                            ));
+                                        }
                                     }
                                 }
                             }
@@ -232,10 +248,27 @@ impl Aflak {
                             if let NodeId::Transform(t_idx) = nodeid {
                                 if t_idx == *transformidx {
                                     ui.text(im_str!("{:?} <--> {:?}", output, node.name(&nodeid)));
+                                    let p = ui.cursor_screen_pos();
+                                    ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
+                                    bind_count += 1;
+                                    if ui.button(
+                                        &ImString::new(format!("Remove bind {}", bind_count)),
+                                        [0.0, 0.0],
+                                    ) {
+                                        remove_id = Some(interaction_id);
+                                    }
+                                    if ui.is_item_hovered() {
+                                        ui.tooltip_text(im_str!(
+                                            "Remove this bind and create new bind"
+                                        ));
+                                    }
                                 }
                             }
                         }
                     }
+                }
+                if let Some(remove_id) = remove_id {
+                    output_window.editable_values.remove(remove_id);
                 }
             }
         });
