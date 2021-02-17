@@ -12,6 +12,7 @@ use crate::dst::{
 };
 use crate::dst::{MetaTransform, TransformAndDefaults};
 use crate::transform::Transform;
+use uuid::Uuid;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -402,7 +403,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         self.transforms
             .keys()
             .max()
-            .unwrap_or(&TransformIdx(0))
+            .unwrap_or(&TransformIdx(None, 0))
             .incr()
     }
 

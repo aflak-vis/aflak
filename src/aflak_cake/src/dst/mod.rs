@@ -1,4 +1,5 @@
 use boow::Bow;
+pub extern crate uuid;
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -14,6 +15,7 @@ mod iterators;
 mod node;
 pub use self::iterators::{Dependency, LinkIter, NodeIter};
 pub use self::node::{Node, NodeId};
+use uuid::Uuid;
 
 /// Dynamic Syntax Tree
 ///
@@ -242,13 +244,13 @@ impl Input {
 impl fmt::Display for Output {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let output_no = self.output_i.0 + 1;
-        write!(f, "output #{} of node #{}", output_no, self.t_idx.0)
+        write!(f, "output #{} of node #{}", output_no, self.t_idx.1)
     }
 }
 
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "input #{} of node #{}", self.input_i.0 + 1, self.t_idx.0)
+        write!(f, "input #{} of node #{}", self.input_i.0 + 1, self.t_idx.1)
     }
 }
 
@@ -274,7 +276,7 @@ impl InputList {
 
 /// Identify a transformation node
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct TransformIdx(usize);
+pub struct TransformIdx(Option<Uuid>, usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct OutputIdx(usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -326,10 +328,16 @@ impl From<InputIdx> for usize {
 
 impl TransformIdx {
     fn incr(self) -> Self {
-        TransformIdx(self.0 + 1)
+        TransformIdx(self.0, self.1 + 1)
+    }
+    pub fn macro_id(self) -> Option<Uuid> {
+        self.0
     }
     pub fn id(self) -> usize {
-        self.0
+        self.1
+    }
+    pub fn set_macro(self, macro_id: Uuid) -> Self {
+        TransformIdx(Some(macro_id), self.1)
     }
 }
 
