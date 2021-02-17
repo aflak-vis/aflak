@@ -308,7 +308,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
             cake_transform!(
                 "Compose 2 vectors. Parameters: u, v, a, b.
 Compute a*u + b*v.",
-                "06. Arithmetic",
+                "06. Calculate",
                 1, 0, 0,
                 linear_composition<IOValue, IOErr>(u: Image, v: Image, a: Float = 1.0, b: Float = 1.0) -> Image {
                     vec![run_linear_composition(u, v, *a, *b)]
@@ -316,7 +316,7 @@ Compute a*u + b*v.",
             ),
             cake_transform!(
                 "Calculating division between two WcsArray(image).",
-                "06. Arithmetic",
+                "06. Calculate",
                 1, 0, 0,
                 image_multiplier<IOValue, IOErr>(i1: Image, i2: Image, coef1: Float = 1.0, coef2: Float = 1.0) -> Image {
                     vec![run_image_multiplier(i1, i2, *coef1, *coef2)]
