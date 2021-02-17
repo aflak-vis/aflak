@@ -15,6 +15,7 @@ use aflak_plot::{
 };
 
 use imshow::cake::OutputId;
+use imshow::node_editor::NodeEditor;
 
 fn main() {
     let config = support::AppConfig {
@@ -59,6 +60,7 @@ fn main() {
                 &mut HashMap::new(),
                 &mut None,
                 OutputId::new(0),
+                &NodeEditor::default(),
             )
             .expect("Image2d failed");
         });
