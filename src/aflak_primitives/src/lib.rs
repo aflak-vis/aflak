@@ -166,7 +166,8 @@ lazy_static! {
                 }
             ),
             cake_transform!(
-                "range specification",
+                "Range specification. Parameter: image, start, end.
+Extract data where the 0th axis is from start to end",
                 "04. Extract part of data",
                 0, 1, 0,
                 range_specification<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
@@ -241,7 +242,9 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 }
             ),
             cake_transform!(
-                "Create scatterplots from two 1D image data.",
+                "Create scatterplots from two image data.
+Parameters: xaxis, yaxis.
+The data sizes for xaxis and yaxis must be the same.",
                 "02. Make new data",
                 1, 0, 0,
                 create_scatter<IOValue, IOErr>(xaxis: Image, yaxis: Image) -> Image{
@@ -274,7 +277,9 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Calculating log10 of input data.",
+                "Calculating log10 of input data.
+Parameter: image.
+Compute: log10(image)",
                 "05. Convert data",
                 1, 0, 0,
                 log10<IOValue, IOErr>(image: Image) -> Image {
@@ -282,7 +287,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Negation. Parameter: image. Compute -i.",
+                "Negation. Parameter: image. Compute -image.",
                 "05. Convert data",
                 1, 0, 0,
                 negation<IOValue, IOErr>(image: Image) -> Image {
@@ -290,7 +295,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Apply tone curve to image",
+                "Apply tone curve to image.",
                 "05. Convert data",
                 1, 0, 0,
                 apply_tone_curve<IOValue, IOErr>(image: Image, tone_curve: ToneCurve) -> Image {
@@ -298,7 +303,8 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Change the visualization tag to BPT, maybe can also be used to realize more tags",
+                "Change the visualization tag.
+Currently supported tags: \"BPT\", \"color_image\"",
                 "05. Convert data",
                 1, 0, 0,
                 change_tag<IOValue, IOErr>(image: Image, tag: Str = "".to_owned()) -> Image {
@@ -306,7 +312,7 @@ Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
                 }
             ),
             cake_transform!(
-                "Compose 2 vectors. Parameters: u, v, a, b.
+                "Compose 2 images. Parameters: u, v, a, b.
 Compute a*u + b*v.",
                 "06. Calculate",
                 1, 0, 0,
@@ -315,7 +321,8 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Calculating division between two WcsArray(image).",
+                "Compose 2 images. Parameters: u, v, a, b.
+Compute u^a * v^b.",
                 "06. Calculate",
                 1, 0, 0,
                 image_multiplier<IOValue, IOErr>(u: Image, v: Image, a: Float = 1.0, b: Float = 1.0) -> Image {
@@ -339,7 +346,7 @@ Compute a*u + b*v.",
                 }
             ),
             cake_transform!(
-                "Extrude along the wavelength",
+                "Extrude along the 0th axis (maybe wavelength).",
                 "07. Reduce dimension",
                 0, 1, 0,
                 extrude<IOValue, IOErr>(image: Image, roi: Roi = roi::ROI::All) -> Image {
