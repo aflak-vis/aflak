@@ -1,12 +1,8 @@
-extern crate glium;
+extern crate aflak_imgui_glium_support as support;
 extern crate imgui;
 extern crate imgui_file_explorer;
-extern crate imgui_glium_renderer;
-extern crate imgui_winit_support;
 use imgui::*;
 use imgui_file_explorer::UiFileExplorer;
-
-mod support;
 
 fn test(ui: &Ui) {
     let window = Window::new(im_str!("File Explorer"))
@@ -22,7 +18,13 @@ fn test(ui: &Ui) {
 }
 
 fn main() {
-    support::init("imgui-file-explorer-test").main_loop(|_run, ui| {
+    let config = support::AppConfig {
+        title: "Example file explorer".to_owned(),
+        ..Default::default()
+    };
+
+    support::init(config).main_loop(|ui, _, _| {
         test(ui);
+        true
     });
 }
