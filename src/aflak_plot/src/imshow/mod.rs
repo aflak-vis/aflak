@@ -48,7 +48,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///
     /// fn main() {
     ///     let mut state = imshow::State::default();
-    ///     support::run(Default::default(), |ui, gl_ctx, textures| {
+    ///     support::init(Default::default()).main_loop(move |ui, gl_ctx, textures| {
     ///         let texture_id = TextureId::from(1);
     ///         if state.image_created_on().is_none() {
     ///             let data = Array2::eye(10).into_dimensionality().unwrap();
@@ -71,7 +71,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
     ///         } else {
     ///             true
     ///         }
-    ///     }).unwrap()
+    ///     })
     /// }
     /// ```
     fn image2d<F, FX, FY, I>(
