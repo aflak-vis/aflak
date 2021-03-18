@@ -52,6 +52,7 @@ pub struct System {
     pub platform: WinitPlatform,
     pub renderer: Renderer,
     pub font_size: f32,
+    pub clear_color: [f32; 4],
 }
 
 pub fn init(config: AppConfig) -> System {
@@ -108,6 +109,7 @@ pub fn init(config: AppConfig) -> System {
         platform,
         renderer,
         font_size,
+        clear_color: config.clear_color,
     }
 }
 
@@ -116,7 +118,6 @@ impl System {
         F: FnMut(&mut Ui, &Rc<backend::Context>, &mut Textures<Texture>) -> bool + 'static,
     >(
         self,
-        config: AppConfig,
         mut run_ui: F,
     ) {
         let System {
@@ -125,6 +126,7 @@ impl System {
             mut imgui,
             mut platform,
             mut renderer,
+            clear_color,
             ..
         } = self;
         let mut last_frame = Instant::now();
@@ -153,10 +155,10 @@ impl System {
                 let gl_window = display.gl_window();
                 let mut target = display.draw();
                 target.clear_color(
-                    config.clear_color[0],
-                    config.clear_color[1],
-                    config.clear_color[2],
-                    config.clear_color[3],
+                    clear_color[0],
+                    clear_color[1],
+                    clear_color[2],
+                    clear_color[3],
                 );
                 platform.prepare_render(&ui, gl_window.window());
                 let draw_data = ui.render();
