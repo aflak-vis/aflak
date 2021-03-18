@@ -910,11 +910,15 @@ name = "node_editor"
 version = "0.0.3"
 dependencies = [
  "aflak_cake 0.0.3",
+ "aflak_imgui_glium_support 0.0.3",
  "imgui 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui_file_explorer 0.0.3",
+ "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ron 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.117 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.117 (registry+https://github.com/rust-lang/crates.io-index)",
+ "variant_name 0.0.1",
+ "variant_name_derive 0.0.1",
 ]
 
 [[package]]
