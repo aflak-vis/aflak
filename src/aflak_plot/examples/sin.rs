@@ -24,7 +24,7 @@ fn main() {
     const MAX: f32 = 4.0 * f32::consts::PI;
     let sin = ndarray::Array1::linspace(0.0, MAX, 100).mapv_into(f32::sin);
     let system = support::init(config.clone());
-    system.main_loop(config, move |_run, ui, _, _| {
+    system.main_loop(config, move |ui, _, _| {
         Window::new(im_str!("Sin"))
             .size([430.0, 450.0], Condition::FirstUseEver)
             .build(ui, || {

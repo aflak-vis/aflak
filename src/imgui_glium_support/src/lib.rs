@@ -113,7 +113,7 @@ pub fn init(config: AppConfig) -> System {
 
 impl System {
     pub fn main_loop<
-        F: FnMut(&mut bool, &mut Ui, &Rc<backend::Context>, &mut Textures<Texture>) -> bool + 'static,
+        F: FnMut(&mut Ui, &Rc<backend::Context>, &mut Textures<Texture>) -> bool + 'static,
     >(
         self,
         config: AppConfig,
@@ -145,13 +145,7 @@ impl System {
             Event::RedrawRequested(_) => {
                 let mut ui = imgui.frame();
 
-                let mut run = true;
-                run = run_ui(
-                    &mut run,
-                    &mut ui,
-                    display.get_context(),
-                    renderer.textures(),
-                );
+                let run = run_ui(&mut ui, display.get_context(), renderer.textures());
                 if !run {
                     *control_flow = ControlFlow::Exit;
                 }
