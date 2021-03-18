@@ -66,8 +66,6 @@ dependencies = [
  "glium 0.27.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui-glium-renderer 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "implot 0.2.0",
- "implot-sys 0.1.0",
  "ndarray 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -726,25 +724,6 @@ dependencies = [
  "imgui 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imgui-glium-renderer 0.3.0-pre",
  "imgui-winit-support 0.3.0-pre",
-]
-
-[[package]]
-name = "implot"
-version = "0.2.0"
-dependencies = [
- "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "imgui 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "implot-sys 0.1.0",
- "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "implot-sys"
-version = "0.1.0"
-dependencies = [
- "cc 1.0.61 (registry+https://github.com/rust-lang/crates.io-index)",
- "imgui-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
