@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use imgui::{ChildWindow, ComboBox, Condition, ImString, Ui, Window};
 use imgui_file_explorer::UiFileExplorer;
 
-use aflak::AflakNodeEditor;
-use templates;
+use crate::aflak::AflakNodeEditor;
+use crate::templates;
 
 pub struct FileDialog {
     selected_template: usize,

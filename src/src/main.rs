@@ -30,7 +30,7 @@ use std::process;
 
 use node_editor::NodeEditor;
 
-use aflak::Aflak;
+use crate::aflak::Aflak;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 

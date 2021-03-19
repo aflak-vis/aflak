@@ -8,16 +8,16 @@ use glium;
 use imgui::{Ui, Window};
 use owning_ref::ArcRef;
 
+use crate::cake::{OutputId, TransformIdx};
+use crate::primitives::{ndarray, IOValue, SuccessOut};
 use aflak_plot::{
     imshow::{self, Textures},
     plot, InteractionId,
 };
-use cake::{OutputId, TransformIdx};
-use primitives::{ndarray, IOValue, SuccessOut};
 
 use self::menu_bar::MenuBar;
 use self::visualizable::{Initializing, Unimplemented, Visualizable};
-use aflak::AflakNodeEditor;
+use crate::aflak::AflakNodeEditor;
 
 #[derive(Default)]
 pub struct OutputWindow {
