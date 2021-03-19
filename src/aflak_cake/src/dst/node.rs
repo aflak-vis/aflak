@@ -1,5 +1,5 @@
-use dst::{Output, OutputId, TransformIdx};
-use transform::{Transform, TypeId};
+use crate::dst::{Output, OutputId, TransformIdx};
+use crate::transform::{Transform, TypeId};
 use variant_name::VariantName;
 
 /// Identifies a [`Node`] in a [`DST`]. A node can either be a [`Transform`],

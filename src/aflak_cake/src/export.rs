@@ -10,9 +10,9 @@ use uuid::Uuid;
 use variant_name::VariantName;
 
 use super::ConvertibleVariants;
-use dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
-use macros::MacroManager;
-use transform::{Algorithm, Transform, Version};
+use crate::dst::{DSTError, Input, Output, OutputId, TransformIdx, DST};
+use crate::macros::MacroManager;
+use crate::transform::{Algorithm, Transform, Version};
 
 /// Trait that defines a function to get a [`Transform`] by its name.
 pub trait NamedAlgorithms<E>: Sized {

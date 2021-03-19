@@ -24,17 +24,17 @@ pub mod macros;
 mod timed;
 mod transform;
 
-pub use boow::Bow;
-pub use cache::Cache;
-pub use dst::{
+pub use crate::cache::Cache;
+pub use crate::dst::{
     compute, DSTError, Input, InputDefaultsMut, InputSlot, LinkIter, MetaTransform, Node, NodeId,
     NodeIter, Output, OutputId, TransformAndDefaults, TransformIdx, DST,
 };
-pub use export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
-pub use future::Task;
+pub use crate::export::{DeserDST, ImportError, NamedAlgorithms, SerialDST};
+pub use crate::future::Task;
+pub use crate::timed::Timed;
+pub use crate::transform::*;
+pub use boow::Bow;
 pub use futures::{future::Future, Async};
-pub use timed::Timed;
-pub use transform::*;
 
 pub use self::variant_name::VariantName;
 

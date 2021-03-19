@@ -10,7 +10,7 @@ extern crate ron;
 extern crate serde;
 
 mod support;
-use support::*;
+use crate::support::*;
 
 use aflak_cake::export::{DeserTransform, SerialTransform};
 use aflak_cake::macros::MacroManager;

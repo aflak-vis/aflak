@@ -12,8 +12,8 @@ use super::{
     Algorithm, ConvertibleVariants, InputSlot, Output, Transform, TransformInputSlot, TypeId,
     VariantName, DST,
 };
-use compute::ComputeError;
-use export::{DeserDST, ImportError, NamedAlgorithms};
+use crate::compute::ComputeError;
+use crate::export::{DeserDST, ImportError, NamedAlgorithms};
 
 pub struct MacroHandle<'t, T: 't, E: 't> {
     inner: Arc<RwLock<Macro<'t, T, E>>>,

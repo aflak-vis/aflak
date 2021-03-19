@@ -6,10 +6,12 @@ use boow::Bow;
 use variant_name::VariantName;
 
 use super::super::ConvertibleVariants;
-use dst::node::{Node, NodeId};
-use dst::{DSTError, Input, InputDefaultsMut, InputList, Output, OutputId, TransformIdx, DST};
-use dst::{MetaTransform, TransformAndDefaults};
-use transform::Transform;
+use crate::dst::node::{Node, NodeId};
+use crate::dst::{
+    DSTError, Input, InputDefaultsMut, InputList, Output, OutputId, TransformIdx, DST,
+};
+use crate::dst::{MetaTransform, TransformAndDefaults};
+use crate::transform::Transform;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where

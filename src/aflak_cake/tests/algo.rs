@@ -9,7 +9,7 @@ extern crate lazy_static;
 extern crate serde;
 
 mod support;
-use support::*;
+use crate::support::*;
 
 #[test]
 fn test_plus1() {
