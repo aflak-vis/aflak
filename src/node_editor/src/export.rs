@@ -2,7 +2,7 @@ use std::error;
 use std::fmt;
 use std::io;
 
-use cake;
+use crate::cake;
 use ron::{de, error as ser_error};
 
 #[derive(Debug)]

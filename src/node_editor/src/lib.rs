@@ -23,13 +23,13 @@ mod vec2;
 
 use std::{collections, error, fmt, fs, io, path};
 
-use cake::Future;
+use crate::cake::Future;
 use imgui::ImString;
 use imgui_file_explorer::UiFileExplorer;
 
-pub use constant_editor::ConstantEditor;
-use event::ApplyRenderEvent;
-use layout::NodeEditorLayout;
+pub use crate::constant_editor::ConstantEditor;
+use crate::event::ApplyRenderEvent;
+use crate::layout::NodeEditorLayout;
 
 /// The node editor instance.
 pub struct NodeEditor<T: 'static, E: 'static> {
@@ -628,7 +628,7 @@ enum InnerEditorError {
 
 impl fmt::Display for InnerEditorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use InnerEditorError::*;
+        use crate::InnerEditorError::*;
         match self {
             IncorrectNodeConnection(e) => write!(f, "{}", e),
             SelfDefiningMacro { name } => write!(f, "Cannot re-use macro '{}' in itself!", name),

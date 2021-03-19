@@ -1,8 +1,8 @@
 use std::collections::{btree_map, BTreeMap};
 
-use cake;
+use crate::cake;
 
-use vec2::Vec2;
+use crate::vec2::Vec2;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeState {

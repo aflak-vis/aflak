@@ -1,4 +1,4 @@
-use collections::HashSet;
+use crate::collections::HashSet;
 use std::error::Error;
 
 use imgui::{
@@ -7,15 +7,15 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use cake::{self, InputSlot, Transform, VariantName, DST};
+use crate::cake::{self, InputSlot, Transform, VariantName, DST};
 
-use constant_editor::ConstantEditor;
-use event::RenderEvent;
-use id_stack::GetId;
+use crate::constant_editor::ConstantEditor;
+use crate::event::RenderEvent;
+use crate::id_stack::GetId;
+use crate::node_state::NodeStates;
+use crate::scrolling::Scrolling;
+use crate::vec2::Vec2;
 use imgui_file_explorer::UiFileExplorer;
-use node_state::NodeStates;
-use scrolling::Scrolling;
-use vec2::Vec2;
 
 pub struct NodeEditorLayout<T: 'static, E: 'static> {
     node_states: NodeStates,
