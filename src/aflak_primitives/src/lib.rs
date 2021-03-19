@@ -35,8 +35,8 @@ mod precond;
 mod roi;
 mod unit;
 
-pub use roi::ROI;
-pub use unit::{Dimensioned, Unit, WcsArray};
+pub use crate::roi::ROI;
+pub use crate::unit::{Dimensioned, Unit, WcsArray};
 
 use std::error::Error;
 use std::fmt;
@@ -70,7 +70,7 @@ pub enum IOValue {
 
 impl PartialEq for IOValue {
     fn eq(&self, val: &Self) -> bool {
-        use IOValue::*;
+        use crate::IOValue::*;
         match (self, val) {
             (Integer(i1), Integer(i2)) => i1 == i2,
             (Float(f1), Float(f2)) => f1 == f2,
@@ -100,7 +100,7 @@ pub enum IOErr {
 
 impl fmt::Display for IOErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use IOErr::*;
+        use crate::IOErr::*;
 
         match self {
             IoError(e, s) => write!(f, "I/O error! {}. This was caused by '{}'.", s, e),
@@ -227,7 +227,7 @@ Compute off_ratio = 1 - (z - z1) / (z2 - z1), off_ratio_2 = 1 - (z2 - z) / (z2 -
                 1, 0, 0,
                 ratio_from_bands<IOValue, IOErr>(z: Float, z1: Float, z2: Float) -> Float, Float {
                     if !(z1 < z && z < z2) {
-                        use IOErr::UnexpectedInput;
+                        use crate::IOErr::UnexpectedInput;
                         let msg = format!(
                             "wrong magnitude correlation ({} < {} < {})",
                             z1, z, z2
