@@ -23,6 +23,6 @@ mod ticks;
 mod units;
 mod util;
 
-pub use err::Error;
-pub use interactions::{Interaction, InteractionId, InteractionIterMut, Value, ValueIter};
-pub use units::AxisTransform;
+pub use crate::err::Error;
+pub use crate::interactions::{Interaction, InteractionId, InteractionIterMut, Value, ValueIter};
+pub use crate::units::AxisTransform;

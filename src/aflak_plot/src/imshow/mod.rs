@@ -13,10 +13,10 @@ use imgui::{self, TextureId, Ui};
 use imgui_glium_renderer::Texture;
 use ndarray::ArrayD;
 
-use err::Error;
-use interactions;
-use ticks;
-use util;
+use crate::err::Error;
+use crate::interactions;
+use crate::ticks;
+use crate::util;
 
 use super::AxisTransform;
 
