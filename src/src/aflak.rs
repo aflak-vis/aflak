@@ -5,15 +5,15 @@ use std::path::PathBuf;
 use glium;
 use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
 
+use crate::cake::{OutputId, Transform};
+use crate::primitives::{IOErr, IOValue};
 use aflak_plot::imshow::Textures;
-use cake::{OutputId, Transform};
 use node_editor::NodeEditor;
-use primitives::{IOErr, IOValue};
 
-use constant_editor::MyConstantEditor;
-use file_dialog::{FileDialog, FileDialogEvent};
-use layout::{Layout, LayoutEngine};
-use output_window::OutputWindow;
+use crate::constant_editor::MyConstantEditor;
+use crate::file_dialog::{FileDialog, FileDialogEvent};
+use crate::layout::{Layout, LayoutEngine};
+use crate::output_window::OutputWindow;
 
 pub type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 

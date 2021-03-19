@@ -10,16 +10,16 @@ use glium;
 use imgui::{MenuItem, TextureId, Ui, Window};
 use owning_ref::ArcRef;
 
+use crate::cake::OutputId;
+use crate::primitives::{
+    self,
+    fitrs::{Fits, Hdu},
+    IOValue, ROI,
+};
 use aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
     AxisTransform, InteractionIterMut, ValueIter,
-};
-use cake::OutputId;
-use primitives::{
-    self,
-    fitrs::{Fits, Hdu},
-    IOValue, ROI,
 };
 
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
@@ -340,7 +340,7 @@ impl MenuBar for primitives::WcsArray {
     where
         F: glium::backend::Facade,
     {
-        use primitives::ndarray::Dimension;
+        use crate::primitives::ndarray::Dimension;
         let ui = &ctx.ui;
         match self.scalar().dim().ndim() {
             0 => {

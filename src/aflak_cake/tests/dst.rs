@@ -11,7 +11,7 @@ extern crate serde;
 extern crate ron;
 
 mod support;
-use support::*;
+use crate::support::*;
 
 use aflak_cake::Cache;
 use futures::{future::Future, Async};

@@ -5,8 +5,8 @@ use std::sync::{
 use std::thread;
 use std::time::Instant;
 
-use dst::{Output, TransformIdx};
-use timed::Timed;
+use crate::dst::{Output, TransformIdx};
+use crate::timed::Timed;
 
 use chashmap::CHashMap;
 

@@ -3,7 +3,7 @@ use std::{fmt, ops};
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
 use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
 
-use fits::{FitsArrayReadError, FitsDataToArray};
+use crate::fits::{FitsArrayReadError, FitsDataToArray};
 
 /// A unit of measurement.
 ///

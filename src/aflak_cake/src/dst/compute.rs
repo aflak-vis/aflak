@@ -9,11 +9,11 @@ use boow::Bow;
 use rayon;
 
 use super::super::ConvertibleVariants;
-use cache::{Cache, CacheRef};
-use dst::{Input, Output, OutputId, TransformIdx, DST};
-use future::Task;
-use timed::Timed;
-use transform::{ArgumentError, CallError};
+use crate::cache::{Cache, CacheRef};
+use crate::dst::{Input, Output, OutputId, TransformIdx, DST};
+use crate::future::Task;
+use crate::timed::Timed;
+use crate::transform::{ArgumentError, CallError};
 use variant_name::VariantName;
 
 /// The successful result of a computation.

@@ -5,7 +5,7 @@ use std::error::Error;
 use std::fmt;
 use std::time::Instant;
 
-use transform::{Algorithm, Transform};
+use crate::transform::{Algorithm, Transform};
 use variant_name::VariantName;
 
 mod build;
@@ -295,7 +295,7 @@ pub enum DSTError {
 
 impl fmt::Display for DSTError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use DSTError::*;
+        use crate::DSTError::*;
 
         match self {
             InvalidInput(s) => write!(f, "Invalid input! {}", s),

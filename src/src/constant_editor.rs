@@ -1,6 +1,6 @@
+use crate::primitives::{self, IOValue};
 use imgui_file_explorer::{UiFileExplorer, TOP_FOLDER};
 use node_editor::ConstantEditor;
-use primitives::{self, IOValue};
 
 use imgui::{ChildWindow, Id, ImString, Ui};
 

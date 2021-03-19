@@ -1,6 +1,6 @@
 use std::fmt;
 
-use cake::{macros, InputSlot, NodeId, Output, Transform, TransformIdx};
+use crate::cake::{macros, InputSlot, NodeId, Output, Transform, TransformIdx};
 
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
@@ -51,7 +51,7 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
 
 pub trait ApplyRenderEvent<T, E> {
     fn apply_event(&mut self, ev: RenderEvent<T, E>) {
-        use event::RenderEvent::*;
+        use crate::event::RenderEvent::*;
         match ev {
             Connect(output, input_slot) => self.connect(output, input_slot),
             Disconnect(output, input_slot) => self.disconnect(output, input_slot),

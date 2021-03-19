@@ -3,10 +3,10 @@ use std::ops;
 use std::slice;
 use std::vec;
 
-use dst::node::{Node, NodeId};
-use dst::MetaTransform;
-use dst::{Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
-use transform::Transform;
+use crate::dst::node::{Node, NodeId};
+use crate::dst::MetaTransform;
+use crate::dst::{Input, InputList, InputSlot, Output, OutputId, TransformIdx, DST};
+use crate::transform::Transform;
 use variant_name::VariantName;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E> {

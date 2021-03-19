@@ -14,7 +14,7 @@ extern crate boow;
 use boow::Bow;
 
 mod support;
-use support::*;
+use crate::support::*;
 
 fn make_macro() -> aflak_cake::macros::MacroHandle<'static, AlgoIO, E> {
     if let &[plus1, minus1, _, _, _] = *TRANSFORMATIONS_REF {

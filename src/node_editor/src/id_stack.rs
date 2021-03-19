@@ -1,4 +1,4 @@
-use cake::NodeId;
+use crate::cake::NodeId;
 
 /// Trait to get an i32 ID out of the implemented type.
 pub trait GetId {

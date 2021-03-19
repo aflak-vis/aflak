@@ -7,8 +7,8 @@ use std::vec;
 use boow::Bow;
 
 use super::ConvertibleVariants;
-use compute::ComputeError;
-use macros::MacroHandle;
+use crate::compute::ComputeError;
+use crate::macros::MacroHandle;
 use variant_name::VariantName;
 
 /// Static string that identifies a transformation.
@@ -93,7 +93,7 @@ where
     T: Clone,
 {
     fn clone(&self) -> Self {
-        use Algorithm::*;
+        use crate::Algorithm::*;
         match *self {
             Function {
                 f,

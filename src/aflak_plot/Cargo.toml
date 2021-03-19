@@ -3,6 +3,7 @@ name = "aflak_plot"
 version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Plotting library using imgui made for aflak"
+edition = "2018"
 license = "GPL-3.0-only"
 
 [dependencies]

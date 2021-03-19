@@ -820,7 +820,7 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
 
 #[cfg(test)]
 mod test {
-    use aflak::AflakNodeEditor;
+    use crate::aflak::AflakNodeEditor;
 
     use super::{
         show_equivalent_width, show_fits_cleaning, show_frame_and_wave, show_velocity_field,

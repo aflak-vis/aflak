@@ -2,8 +2,8 @@ use std::fmt;
 
 use imgui::{ImString, TreeNode, Ui, Window};
 
-use cake;
-use primitives::fitrs::Fits;
+use crate::cake;
+use crate::primitives::fitrs::Fits;
 
 pub trait Visualizable {
     fn visualize(&self, ui: &Ui);
@@ -52,7 +52,7 @@ impl Visualizable for Fits {
     fn visualize(&self, ui: &Ui) {
         let mut has_hdus = false;
         for (i, hdu) in self.iter().enumerate() {
-            use primitives::fitrs::HeaderValue::*;
+            use crate::primitives::fitrs::HeaderValue::*;
             use std::borrow::Cow;
 
             has_hdus = true;

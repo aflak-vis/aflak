@@ -15,7 +15,7 @@ use ndarray::{ArrayBase, ArrayD, ArrayView2, Data, Dimension, Ix2};
 use super::hist;
 use super::lut::ColorLUT;
 use super::{Error, Textures};
-use lims;
+use crate::lims;
 
 fn make_raw_image<S>(
     image: &ArrayBase<S, Ix2>,
