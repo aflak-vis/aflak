@@ -4,7 +4,6 @@
 
 ## Run
 ```sh
-git submodule update --init --recursive
 cargo run --example test
 ```
 
