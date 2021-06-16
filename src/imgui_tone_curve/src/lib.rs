@@ -51,7 +51,7 @@ impl PartialEq for ToneCurveState {
     fn eq(&self, val: &Self) -> bool {
         let cp1 = self.control_points();
         let cp2 = val.control_points();
-        cp1 == cp2
+        cp1 == cp2 && self.deleting == val.deleting
     }
 }
 
