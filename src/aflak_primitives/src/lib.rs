@@ -22,6 +22,7 @@ extern crate variant_name_derive;
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
 extern crate imgui_tone_curve;
+extern crate libm;
 
 #[macro_use]
 pub extern crate ndarray;
@@ -260,6 +261,15 @@ If bool value is checked, then replaces the values above the threshold with NaN,
                     vec![run_clip(image, *ceiling_threshold, *ceiling, *floor_threshold, *floor)]
                 }
             ),
+            cake_transform!("Normalize image",
+                "05. Convert data",
+                1, 0, 0,
+                normalize_image<IOValue, IOErr>(image: Image, min: Float = 0.0, max: Float = 1.0) -> Image {
+                    let mut out = image.clone();
+                    out.scalar_mut().par_iter_mut().for_each(|v| *v = (*v - min) / (max - min));
+                    vec![Ok(IOValue::Image(out))]
+                }
+            ),
             cake_transform!("Replace all NaN values in image with the provided value.",
                 "05. Convert data",
                 1, 0, 0,
@@ -300,6 +310,14 @@ Compute: log10(image)",
                 1, 0, 0,
                 apply_tone_curve<IOValue, IOErr>(image: Image, tone_curve: ToneCurve) -> Image {
                     vec![run_apply_tone_curve(image, tone_curve.clone())]
+                }
+            ),
+            cake_transform!(
+                "Apply arcsinh stretch to image.",
+                "05. Convert data",
+                0, 1, 0,
+                apply_arcsinh_stretch<IOValue, IOErr>(image: Image, beta: Float = 0.000000001) -> Image {
+                    vec![run_apply_arcsinh_stretch(image, *beta)]
                 }
             ),
             cake_transform!(
@@ -1699,6 +1717,29 @@ fn run_apply_tone_curve(image: &WcsArray, tone_curve: ToneCurveState) -> Result<
     });
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         image_arr,
+        Unit::None,
+    ))))
+}
+
+fn run_apply_arcsinh_stretch(
+    image: &WcsArray,
+    beta: f32,
+) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image = image.scalar();
+    let mut out = image.clone();
+    for (j, slice) in image.axis_iter(Axis(1)).enumerate() {
+        for (i, data) in slice.axis_iter(Axis(1)).enumerate() {
+            let l = (data[0] + data[1] + data[2] + 1.5) / 3.0;
+            let s_fact = libm::asinh((l * beta) as f64) / (l as f64 * libm::asinh(beta as f64));
+            let s_fact = s_fact as f32;
+            out[[0, j, i]] = s_fact * (data[0] + 0.5);
+            out[[1, j, i]] = s_fact * (data[1] + 0.5);
+            out[[2, j, i]] = s_fact * (data[2] + 0.5);
+        }
+    }
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out,
         Unit::None,
     ))))
 }
