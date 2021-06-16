@@ -8,11 +8,12 @@ use imgui_tone_curve::{ToneCurveState, UiToneCurve};
 
 mod support;
 
-fn test(ui: &Ui, mut state: &mut ToneCurveState, draw_list: WindowDrawList) {
+fn test(ui: &Ui, mut state: &mut ToneCurveState) {
     let window = Window::new(im_str!("Tone Curve"))
         .size([600.0, 400.0], Condition::Appearing)
         .position([200.0, 200.0], Condition::FirstUseEver);
     window.build(ui, || {
+        let draw_list = ui.get_window_draw_list();
         let vectors = ui.tone_curve(&mut state, &draw_list);
         if let Ok(vectors) = vectors {
             let vectors = vectors.unwrap();
@@ -25,8 +26,7 @@ fn test(ui: &Ui, mut state: &mut ToneCurveState, draw_list: WindowDrawList) {
 fn main() {
     let mut state = ToneCurveState::default();
     support::init("imgui-tone_curve-test").main_loop(move |_run, ui, _, _| {
-        let draw_list = ui.get_window_draw_list();
-        test(ui, &mut state, draw_list);
+        test(ui, &mut state);
         true
     });
 }
