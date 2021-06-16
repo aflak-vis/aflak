@@ -52,10 +52,7 @@ pub struct System {
     pub platform: WinitPlatform,
     pub renderer: Renderer,
     pub font_size: f32,
-<<<<<<< HEAD
     pub clear_color: [f32; 4],
-=======
->>>>>>> 916149c ([imgui_glium_support] Make this crate build (without considering error handling))
 }
 
 pub fn init(config: AppConfig) -> System {
