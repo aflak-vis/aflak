@@ -3,13 +3,13 @@ use super::interactions::{
 };
 use super::AxisTransform;
 use super::Error;
+use crate::imshow::cake::{OutputId, TransformIdx};
 use imgui::{ImString, MenuItem, MouseButton, Ui, Window};
 use implot::{
     get_plot_limits, get_plot_mouse_position, is_plot_hovered, push_style_var_i32, Condition,
     ImPlotLimits, ImPlotPoint, ImPlotRange, Marker, Plot, PlotLine, PlotScatter, PlotUi, StyleVar,
     YAxisChoice,
 };
-use imshow::cake::{OutputId, TransformIdx};
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 use std::collections::HashMap;
 type EditableValues = HashMap<InteractionId, TransformIdx>;

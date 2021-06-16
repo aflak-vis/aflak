@@ -10,20 +10,14 @@ use glium;
 use imgui::{MenuItem, TextureId, Ui, Window};
 use owning_ref::ArcRef;
 
-use crate::cake::OutputId;
-use crate::primitives::{
-    self,
-    fitrs::{Fits, Hdu},
-    IOValue, ROI,
-};
-use aflak_plot::{
+use crate::aflak_plot::{
     imshow::{Textures, UiImage2d},
     plot::UiImage1d,
     scatter_lineplot::UiScatter,
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
-use cake::{OutputId, TransformIdx};
-use primitives::{
+use crate::cake::{OutputId, TransformIdx};
+use crate::primitives::{
     self,
     fitrs::{Fits, Hdu},
     IOValue, PATHS, ROI,

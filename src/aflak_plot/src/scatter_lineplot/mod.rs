@@ -10,7 +10,7 @@ pub use self::interactions::InteractionId;
 use super::interactions;
 use super::AxisTransform;
 use super::Error;
-use imshow::cake::{OutputId, TransformIdx};
+use crate::imshow::cake::{OutputId, TransformIdx};
 type EditabaleValues = HashMap<InteractionId, TransformIdx>;
 pub use self::state::State;
 

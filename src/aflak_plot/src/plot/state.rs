@@ -13,7 +13,7 @@ use super::util;
 use super::AxisTransform;
 use super::Error;
 
-use plot::cake::{OutputId, Transform, TransformIdx};
+use crate::plot::cake::{OutputId, Transform, TransformIdx};
 
 type EditableValues = HashMap<InteractionId, TransformIdx>;
 type AflakNodeEditor = NodeEditor<IOValue, IOErr>;

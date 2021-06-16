@@ -1741,8 +1741,8 @@ fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
 #[cfg(test)]
 mod test {
     use super::{run_fits_to_image, run_make_plane3d, run_open_fits, run_slice_3d_to_2d, IOValue};
+    use crate::PATHS;
     use std::path::PathBuf;
-    use PATHS;
     #[test]
     fn test_open_fits() {
         let path = PATHS::FileList(vec![PathBuf::from("test/test.fits")]);
