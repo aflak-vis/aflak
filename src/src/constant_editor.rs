@@ -111,7 +111,7 @@ fn inner_editor(
                 .horizontal_scrollbar(true)
                 .movable(false)
                 .build(ui, || {
-                    let result = ui.tone_curve(&mut state.clone(), &draw_list.clone());
+                    let result = ui.tone_curve(&mut state.clone(), &draw_list);
                     if let Ok(next_state) = result {
                         let next_state = next_state.unwrap();
                         if &next_state != state {
