@@ -162,8 +162,8 @@ impl<'ui> UiImage2d for Ui<'ui> {
 
     fn color_image<F, FX, FY, I>(
         &self,
-        _ctx: &F,
-        _textures: &mut Textures,
+        ctx: &F,
+        textures: &mut Textures,
         texture_id: TextureId,
         vunit: &str,
         xaxis: Option<&AxisTransform<FX>>,
@@ -208,16 +208,16 @@ impl<'ui> UiImage2d for Ui<'ui> {
         )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
-        let _lut_bar_updated = state.show_bar(
+        let lut_bar_updated = state.show_bar(
             self,
             [p[0] + size[0] + HIST_WIDTH, p[1]],
             [BAR_WIDTH, size[1]],
         );
-        /*if lut_bar_updated {
+        if lut_bar_updated {
             state
                 .image()
-                .update_texture(ctx, texture_id, textures, &state.lut)?;
-        }*/
+                .update_texture_color(ctx, texture_id, textures, &state.lut)?;
+        }
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);
 

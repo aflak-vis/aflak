@@ -52,19 +52,22 @@ fn make_raw_image_rgb<S>(
     image: &ArrayBase<S, Ix3>,
     vmin: f32,
     vmax: f32,
-    _lut: &ColorLUT,
+    lut: &ColorLUT,
 ) -> Result<RawImage2d<'static, u8>, Error>
 where
     S: Data<Elem = f32>,
 {
     let (_c, m, n) = image.dim();
+    let lims = lut.lims();
     let mut data = Vec::with_capacity(3 * n * m);
     if !vmin.is_nan() && !vmax.is_nan() {
         for (_, slice) in image.axis_iter(Axis(1)).enumerate() {
             for (_, channel) in slice.axis_iter(Axis(1)).enumerate() {
-                let r = channel[0] / 65535.0 * 255.0;
-                let g = channel[1] / 65535.0 * 255.0;
-                let b = channel[2] / 65535.0 * 255.0;
+                let lim_min = lims.0 * vmax;
+                let lim_max = lims.1 * vmax;
+                let r = (channel[0] - lim_min) / (lim_max - lim_min) * 255.0;
+                let g = (channel[1] - lim_min) / (lim_max - lim_min) * 255.0;
+                let b = (channel[2] - lim_min) / (lim_max - lim_min) * 255.0;
                 data.push(r as u8);
                 data.push(g as u8);
                 data.push(b as u8);
@@ -231,6 +234,34 @@ where
         if let Some(data) = &self.data {
             let image = coerce_to_array_view2(data);
             let raw = make_raw_image(&image, self.vmin, self.vmax, lut)?;
+            let gl_texture = Texture2d::new(ctx, raw)?;
+            textures.replace(
+                texture_id,
+                Texture {
+                    texture: Rc::new(gl_texture),
+                    sampler: SamplerBehavior {
+                        magnify_filter: MagnifySamplerFilter::Nearest,
+                        ..Default::default()
+                    },
+                },
+            );
+        }
+        Ok(())
+    }
+
+    pub fn update_texture_color<F>(
+        &self,
+        ctx: &F,
+        texture_id: TextureId,
+        textures: &mut Textures,
+        lut: &ColorLUT,
+    ) -> Result<(), Error>
+    where
+        F: Facade,
+    {
+        if let Some(data) = &self.data {
+            let image = coerce_to_array_view3(data);
+            let raw = make_raw_image_rgb(&image, self.vmin, self.vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             textures.replace(
                 texture_id,
