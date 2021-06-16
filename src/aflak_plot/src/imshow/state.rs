@@ -1,11 +1,11 @@
+use super::cake::{OutputId, Transform, TransformIdx};
+use super::node_editor::NodeEditor;
+use super::primitives::{IOErr, IOValue};
 use glium::backend::Facade;
 use imgui::{
     ChildWindow, ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider,
     TextureId, Ui, Window,
 };
-use super::cake::{OutputId, TransformIdx, Transform};
-use super::node_editor::NodeEditor;
-use super::primitives::{IOErr, IOValue};
 use ndarray::ArrayD;
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -587,8 +587,9 @@ where
                     ui.separator();
                     if let Some(menu) = ui.begin_menu(im_str!("Horizontal Line"), true) {
                         if MenuItem::new(im_str!("to main editor")).build(ui) {
-                            let new =
-                                Interaction::HorizontalLine(HorizontalLine::new(self.mouse_pos.1.round()));
+                            let new = Interaction::HorizontalLine(HorizontalLine::new(
+                                self.mouse_pos.1.round(),
+                            ));
                             self.interactions.insert(new);
                         }
                         for macr in node_editor.macros.macros() {
@@ -614,14 +615,16 @@ where
                     }
                     if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
                         if MenuItem::new(im_str!("to main editor")).build(ui) {
-                            let new =
-                                Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
+                            let new = Interaction::VerticalLine(VerticalLine::new(
+                                self.mouse_pos.0.round(),
+                            ));
                             self.interactions.insert(new);
                         }
                         for macr in node_editor.macros.macros() {
                             if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
-                                let new =
-                                    Interaction::VerticalLine(VerticalLine::new(self.mouse_pos.0.round()));
+                                let new = Interaction::VerticalLine(VerticalLine::new(
+                                    self.mouse_pos.0.round(),
+                                ));
                                 self.interactions.insert(new);
                                 let macro_id = macr.id();
                                 let mut dstw = macr.write();

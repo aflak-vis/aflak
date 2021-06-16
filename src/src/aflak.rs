@@ -12,9 +12,9 @@ use node_editor::NodeEditor;
 
 use crate::constant_editor::MyConstantEditor;
 use crate::file_dialog::{FileDialog, FileDialogEvent};
+use crate::implot::Context;
 use crate::layout::{Layout, LayoutEngine};
 use crate::output_window::OutputWindow;
-use crate::implot::Context;
 pub type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 pub struct Aflak {
