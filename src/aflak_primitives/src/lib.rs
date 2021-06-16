@@ -432,55 +432,6 @@ Note: indices for a and b start from 0",
                 }
             ),
             cake_transform!(
-                "Create scatterplots from two 1D image data.",
-                1, 0, 0,
-                create_scatter<IOValue, IOErr>(xaxis: Image, yaxis: Image) -> Image{
-                    vec![run_create_scatter(xaxis, yaxis)]
-                }
-            ),
-            cake_transform!(
-                "Create Equivalent-Width map from off-band and on-band.
-Parameters i_off, i_on, onband-width, min, is_emission.
-Compute value = (i1 - i2) * fl / i1 (if is_emission is true, the sign of this value turns over).
-if value > max, value changes to 0.",
-                0, 1, 0,
-                create_equivalent_width<IOValue, IOErr>(i_off: Image, i_on: Image, fl: Float = 1.0, max: Float = ::std::f32::INFINITY, is_emission: Bool = false) -> Image {
-                    vec![run_create_equivalent_width(i_off, i_on, *fl, *max, *is_emission)]
-                }
-            ),
-            cake_transform!(
-                "Convert to log-scale. Parameter: image, a, v_min, v_max.
-Compute y = log(ax + 1) / log(a)  (x = (value - v_min) / (v_max - v_min))",
-                1, 0, 0,
-                convert_to_logscale<IOValue, IOErr>(image: Image, a: Float = 1000.0, v_min: Float, v_max: Float) -> Image {
-                    vec![run_convert_to_logscale(image, *a, *v_min, *v_max)]
-                }
-            ),
-            cake_transform!(
-                "Convert to log10",
-                1, 0, 0,
-                log10<IOValue, IOErr>(image: Image) -> Image {
-                    vec![run_log10(image)]
-                }
-            ),
-            cake_transform!(
-                "Image's min and max value. Parameter: image.
-Compute v_min(first), v_max(second)",
-                1, 0, 0,
-                image_min_max<IOValue, IOErr>(image: Image) -> Float, Float {
-                    let mut min = std::f32::MAX;
-                    let mut max = std::f32::MIN;
-                    let image_arr = image.scalar();
-
-                    for i in image_arr {
-                        min = min.min(*i);
-                        max = max.max(*i);
-                    }
-
-                    vec![Ok(IOValue::Float(min)), Ok(IOValue::Float(max))]
-                }
-            ),
-            cake_transform!(
                 "Extract min/max wavelength value of each pixel.
 Parameter: image, start, end, is_min (start <= end)
 Output argmax/argmin map of flux; wavelength
