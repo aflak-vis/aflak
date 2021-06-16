@@ -26,11 +26,9 @@ fn main() {
         ..Default::default()
     };
     let mut state = State::default();
-    let system = support::init(config.clone());
-
     let plotcontext = Context::create();
 
-    system.main_loop(config, move |_run, ui, _, _| {
+    support::init(config).main_loop(move |ui, _, _| {
         let plot_ui = plotcontext.get_plot_ui();
         let image_data = {
             const WIDTH: usize = 10;
