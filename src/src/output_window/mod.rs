@@ -8,15 +8,13 @@ use glium;
 use imgui::{Ui, Window};
 use owning_ref::ArcRef;
 
-use crate::cake::{OutputId, TransformIdx};
-use crate::primitives::{ndarray, IOValue, SuccessOut};
-use aflak_plot::{
+use crate::aflak_plot::{
     imshow::{self, Textures},
     plot, scatter_lineplot, InteractionId,
 };
-use cake::{OutputId, TransformIdx};
+use crate::cake::{OutputId, TransformIdx};
+use crate::primitives::{ndarray, IOValue, SuccessOut};
 use implot::Context;
-use primitives::{ndarray, IOValue, SuccessOut};
 
 use self::menu_bar::MenuBar;
 use self::visualizable::{Initializing, Unimplemented, Visualizable};
