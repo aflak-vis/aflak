@@ -59,7 +59,7 @@ pub struct Dimensioned<V> {
 pub struct WcsArray {
     meta: Option<MetaWcsArray>,
     array: Dimensioned<ArrayD<f32>>,
-    pub visualization: Option<String>,
+    visualization: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -211,6 +211,14 @@ impl WcsArray {
 
     pub fn axes(&self) -> Option<&[Axis]> {
         self.meta.as_ref().map(|meta| meta.axes.as_ref())
+    }
+
+    pub fn tag(&self) -> &Option<String> {
+        &self.visualization
+    }
+
+    pub fn set_tag(&mut self, tag: Option<String>) {
+        self.visualization = tag;
     }
 
     pub fn wcs(&self) -> Option<&WCS> {

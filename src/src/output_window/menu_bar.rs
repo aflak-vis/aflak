@@ -400,7 +400,7 @@ impl MenuBar for ROI {
 
 impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match &self.visualization {
+        match &self.tag() {
             None => match self.scalar().ndim() {
                 1 | 2 => {
                     let has_wcs_data = self.wcs().is_some();
@@ -424,7 +424,7 @@ impl MenuBar for primitives::WcsArray {
     }
 
     fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match &self.visualization {
+        match &self.tag() {
             None => match self.scalar().ndim() {
                 2 => {
                     if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
@@ -543,7 +543,7 @@ impl MenuBar for primitives::WcsArray {
         F: glium::backend::Facade,
     {
         use crate::primitives::ndarray::Dimension;
-        match &self.visualization {
+        match &self.tag() {
             None => match self.scalar().dim().ndim() {
                 0 => {
                     if let Some(attaching) = ctx.attaching {
