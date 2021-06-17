@@ -107,6 +107,16 @@ fn read_string(hdu: &Hdu, key: &str) -> Option<String> {
     }
 }
 
+fn read_float(hdu: &Hdu, key: &str) -> Option<f64> {
+    if let Some(HeaderValue::RealFloatingNumber(value)) = hdu.value(key) {
+        Some(value.to_owned())
+    } else if let Some(HeaderValue::IntegerNumber(value)) = hdu.value(key) {
+        Some(value.to_owned() as f64)
+    } else {
+        None
+    }
+}
+
 impl WcsArray {
     /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
@@ -130,7 +140,20 @@ impl WcsArray {
         let ctype2 = read_string(hdu, "CTYPE2");
         let ctype3 = read_string(hdu, "CTYPE3");
         let ctype4 = read_string(hdu, "CTYPE4");
+        let bzeros = read_float(hdu, "BZERO");
+        let bscales = read_float(hdu, "BSCALE");
         let wcs = WCS::new(hdu);
+        let bzero = if let Some(bzero) = bzeros {
+            bzero as f32
+        } else {
+            0.0
+        };
+        let bscale = if let Some(bscale) = bscales {
+            bscale as f32
+        } else {
+            0.0
+        };
+
         Ok(Self {
             meta: Some(MetaWcsArray {
                 wcs,
@@ -141,7 +164,7 @@ impl WcsArray {
                     Axis::new(ctype4, cunit4),
                 ],
             }),
-            array: vunit.new(image),
+            array: vunit.new(image * bscale + bzero),
             visualization: None,
         })
     }
