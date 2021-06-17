@@ -1589,7 +1589,7 @@ fn run_create_emission_line_map(
 
 fn run_change_tag(data_in: &WcsArray, tag: &str) -> Result<IOValue, IOErr> {
     let mut out = data_in.clone();
-    out.visualization = Some(String::from(tag));
+    out.set_tag(Some(String::from(tag)));
 
     Ok(IOValue::Image(out))
 }
@@ -1677,6 +1677,7 @@ fn run_apply_arcsinh_stretch(
     beta: f32,
 ) -> Result<IOValue, IOErr> {
     dim_is!(image, 3)?;
+    let tag = image.tag();
     let image = image.scalar();
     let mut out = image.clone();
     for (j, slice) in image.axis_iter(Axis(1)).enumerate() {
@@ -1689,10 +1690,10 @@ fn run_apply_arcsinh_stretch(
             out[[2, j, i]] = s_fact * (data[2] + 0.5);
         }
     }
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out,
-        Unit::None,
-    ))))
+    Ok(IOValue::Image(WcsArray::from_array_and_tag(
+        Dimensioned::new(out, Unit::None),
+        tag.clone(),
+    )))
 }
 
 fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
