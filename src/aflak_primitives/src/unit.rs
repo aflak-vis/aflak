@@ -151,7 +151,7 @@ impl WcsArray {
         let bscale = if let Some(bscale) = bscales {
             bscale as f32
         } else {
-            0.0
+            1.0
         };
 
         Ok(Self {
