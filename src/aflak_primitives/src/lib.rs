@@ -1672,22 +1672,19 @@ fn run_apply_tone_curve(image: &WcsArray, tone_curve: ToneCurveState) -> Result<
     ))))
 }
 
-fn run_apply_arcsinh_stretch(
-    image: &WcsArray,
-    beta: f32,
-) -> Result<IOValue, IOErr> {
+fn run_apply_arcsinh_stretch(image: &WcsArray, beta: f32) -> Result<IOValue, IOErr> {
     dim_is!(image, 3)?;
     let tag = image.tag();
     let image = image.scalar();
     let mut out = image.clone();
     for (j, slice) in image.axis_iter(Axis(1)).enumerate() {
         for (i, data) in slice.axis_iter(Axis(1)).enumerate() {
-            let l = (data[0] + data[1] + data[2] + 1.5) / 3.0;
+            let l = (data[0] + data[1] + data[2]) / 3.0;
             let s_fact = libm::asinh((l * beta) as f64) / (l as f64 * libm::asinh(beta as f64));
             let s_fact = s_fact as f32;
-            out[[0, j, i]] = s_fact * (data[0] + 0.5);
-            out[[1, j, i]] = s_fact * (data[1] + 0.5);
-            out[[2, j, i]] = s_fact * (data[2] + 0.5);
+            out[[0, j, i]] = s_fact * data[0];
+            out[[1, j, i]] = s_fact * data[1];
+            out[[2, j, i]] = s_fact * data[2];
         }
     }
     Ok(IOValue::Image(WcsArray::from_array_and_tag(
