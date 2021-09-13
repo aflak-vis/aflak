@@ -30,7 +30,7 @@ pub use self::node::{Node, NodeId};
 pub struct DST<'t, T: 't, E: 't> {
     transforms: BTreeMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: BTreeMap<Output, InputList>,
-    outputs: BTreeMap<OutputId, Option<Output>>,
+    outputs: BTreeMap<OutputId, (Option<Output>, String)>,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>

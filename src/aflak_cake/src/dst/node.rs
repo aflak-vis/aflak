@@ -18,7 +18,7 @@ pub enum Node<'a, 't: 'a, T: 't, E: 't> {
     Transform(&'a Transform<'t, T, E>),
     /// [`Output`] is `None` when there is an [`OutputId`] not connected to any
     /// [`Output`].
-    Output(Option<&'a Output>),
+    Output((Option<&'a Output>, String)),
 }
 
 impl<'a, 't, T, E> Node<'a, 't, T, E>

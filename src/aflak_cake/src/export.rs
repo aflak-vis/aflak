@@ -177,7 +177,7 @@ impl<T> DeserTransform<T> {
 pub struct SerialDST<'d, T: 'd> {
     transforms: Vec<(&'d TransformIdx, SerialMetaTransform<'d, T>)>,
     edges: Vec<(&'d Output, &'d Input)>,
-    outputs: Vec<(&'d OutputId, &'d Option<Output>)>,
+    outputs: Vec<(&'d OutputId, &'d Option<Output>, String)>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -217,7 +217,7 @@ where
 pub struct DeserDST<T> {
     transforms: Vec<(TransformIdx, DeserMetaTransform<T>)>,
     edges: Vec<(Output, Input)>,
-    outputs: Vec<(OutputId, Option<Output>)>,
+    outputs: Vec<(OutputId, Option<Output>, String)>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

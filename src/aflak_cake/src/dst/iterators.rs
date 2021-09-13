@@ -164,7 +164,7 @@ impl<'a, 't, T, E> Iterator for TransformIterator<'a, 't, T, E> {
 /// Iterate over a tuple ([`NodeId`], [`Node`]).
 pub struct NodeIter<'a, 't: 'a, T: 't, E: 't> {
     transforms: TransformIterator<'a, 't, T, E>,
-    outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
+    outputs: btree_map::Iter<'a, OutputId, (Option<Output>, String)>,
 }
 
 /// Iterate over nodes.
@@ -189,7 +189,7 @@ impl<'a, 't, T, E> Iterator for NodeIter<'a, 't, T, E> {
 /// input slot of an output node.
 pub struct LinkIter<'a> {
     edges: EdgeIterator<'a>,
-    outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
+    outputs: btree_map::Iter<'a, OutputId, (Option<Output>, String)>,
 }
 
 impl<'a> LinkIter<'a> {
