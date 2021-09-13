@@ -41,7 +41,9 @@ impl<'a, 't, T: VariantName, E> Node<'a, 't, T, E> {
             (Node::Transform(t), NodeId::Transform(t_idx)) => {
                 format!("#{} {}", t_idx.id(), t.name())
             }
-            (Node::Output(_), NodeId::Output(output_id)) => format!("Output #{}", output_id.id()),
+            (Node::Output((_, name)), NodeId::Output(output_id)) => {
+                format!("Output #{} {}", output_id.id(), name.clone())
+            }
             (Node::Transform(_), node_id) => panic!(
                 "Node and NodeId do not agree on their types. Got a Node::Transform with Id {:?}.",
                 node_id

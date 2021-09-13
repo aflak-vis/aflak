@@ -30,7 +30,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Iterator over outputs.
-    pub fn outputs_iter(&self) -> btree_map::Iter<OutputId, Option<Output>> {
+    pub fn outputs_iter(&self) -> btree_map::Iter<OutputId, (Option<Output>, String)> {
         self.outputs.iter()
     }
 
@@ -173,8 +173,11 @@ impl<'a, 't, T, E> Iterator for NodeIter<'a, 't, T, E> {
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((id, t)) = self.transforms.next() {
             Some((NodeId::Transform(*id), Node::Transform(t)))
-        } else if let Some((id, o)) = self.outputs.next() {
-            Some((NodeId::Output(*id), Node::Output(o.as_ref())))
+        } else if let Some((id, (o, name))) = self.outputs.next() {
+            Some((
+                NodeId::Output(*id),
+                Node::Output((o.as_ref(), name.clone())),
+            ))
         } else {
             None
         }
@@ -195,7 +198,7 @@ pub struct LinkIter<'a> {
 impl<'a> LinkIter<'a> {
     fn new(
         edges: EdgeIterator<'a>,
-        outputs: btree_map::Iter<'a, OutputId, Option<Output>>,
+        outputs: btree_map::Iter<'a, OutputId, (Option<Output>, String)>,
     ) -> Self {
         Self { edges, outputs }
     }
@@ -207,7 +210,7 @@ impl<'a> Iterator for LinkIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((output, input)) = self.edges.next() {
             Some((output, InputSlot::Transform(*input)))
-        } else if let Some((output_id, output)) = self.outputs.next() {
+        } else if let Some((output_id, (output, _))) = self.outputs.next() {
             if let Some(output) = output {
                 Some((output, InputSlot::Output(*output_id)))
             } else {
@@ -235,7 +238,7 @@ where
     fn unattached_output_ids(&self) -> impl Iterator<Item = OutputId> + '_ {
         self.outputs
             .iter()
-            .filter(|(_, some_output)| some_output.is_none())
+            .filter(|(_, (some_output, _))| some_output.is_none())
             .map(|(output_id, _)| *output_id)
     }
 

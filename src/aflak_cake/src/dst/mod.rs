@@ -357,8 +357,8 @@ where
     E: 't,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (output_id, output) in self.outputs_iter() {
-            writeln!(f, "{:?}", output_id)?;
+        for (output_id, (output, name)) in self.outputs_iter() {
+            writeln!(f, "{:?} name:{:?}", output_id, name)?;
             if let Some(output) = output {
                 self.write_output(f, 1, output)?;
             } else {

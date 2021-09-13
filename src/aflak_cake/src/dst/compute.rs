@@ -158,7 +158,7 @@ where
         let t_indices = self.transforms.keys().cloned();
         cache.init(t_indices);
 
-        if let Some(some_output) = self.outputs.get(&output_id) {
+        if let Some((some_output, _)) = self.outputs.get(&output_id) {
             if let Some(output) = some_output {
                 let output = *output;
                 let cache_ref = cache.get_ref();
@@ -311,7 +311,7 @@ where
         output_id: OutputId,
         cache: &mut collections::HashMap<Output, Result<T, Arc<ComputeError<E>>>>,
     ) -> Result<T, Arc<ComputeError<E>>> {
-        if let Some(some_output) = self.outputs.get(&output_id) {
+        if let Some((some_output, _)) = self.outputs.get(&output_id) {
             if let Some(output) = some_output {
                 self._compute_sync(*output, cache)
             } else {
