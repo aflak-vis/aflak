@@ -530,6 +530,11 @@ where
             }
         }
     }
+    fn change_output_name(&mut self, node_id: cake::NodeId, name: String) {
+        if let cake::NodeId::Output(output_id) = node_id {
+            self.dst.change_output_name(output_id, name);
+        }
+    }
 }
 
 impl<T, E> ApplyRenderEvent<T, E> for InnerNodeEditor<T, E>
@@ -628,6 +633,13 @@ where
     }
     fn edit_node(&mut self, _: cake::NodeId) {
         unreachable!("Macro can only be edited in NodeEditor's context!");
+    }
+    fn change_output_name(&mut self, node_id: cake::NodeId, name: String) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        if let cake::NodeId::Output(output_id) = node_id {
+            dst.change_output_name(output_id, name);
+        }
     }
 }
 

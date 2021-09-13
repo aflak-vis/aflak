@@ -961,6 +961,15 @@ where
                 if changed {
                     *handle.name_mut() = out.to_str().to_owned();
                 }
+            } else if let Some(cake::Node::Output((_, name))) = dst.get_node(id) {
+                ui.text(format!("Output #{}", -id.id()));
+                ui.same_line(0.0);
+                let mut out = ImString::with_capacity(1024);
+                out.push_str(&name);
+                let changed = ui.input_text(im_str!(""), &mut out).build();
+                if changed {
+                    events.push(RenderEvent::ChangeOutputName(*id, out.to_string()));
+                }
             } else {
                 // Show node name
                 ui.text(&node_name);

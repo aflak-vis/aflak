@@ -20,6 +20,7 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     AddNewMacro,
     AddMacro(macros::MacroHandle<'static, T, E>),
     EditNode(NodeId),
+    ChangeOutputName(NodeId, String),
 }
 
 impl<T, E> fmt::Debug for RenderEvent<T, E> {
@@ -45,6 +46,9 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             AddNewMacro => write!(f, "AddNewMacro"),
             AddMacro(handle) => write!(f, "AddMacro(id={}, name={:?})", handle.id(), handle.name()),
             EditNode(node_id) => write!(f, "EditNode({:?})", node_id),
+            ChangeOutputName(node_id, name) => {
+                write!(f, "ChangeOutputName(id={:?}, name={})", node_id, name)
+            }
         }
     }
 }
@@ -70,6 +74,7 @@ pub trait ApplyRenderEvent<T, E> {
             AddNewMacro => self.add_new_macro(),
             AddMacro(handle) => self.add_macro(handle),
             EditNode(node_id) => self.edit_node(node_id),
+            ChangeOutputName(node_id, name) => self.change_output_name(node_id, name),
         }
     }
 
@@ -86,4 +91,5 @@ pub trait ApplyRenderEvent<T, E> {
     fn add_new_macro(&mut self);
     fn add_macro(&mut self, handle: macros::MacroHandle<'static, T, E>);
     fn edit_node(&mut self, node: NodeId);
+    fn change_output_name(&mut self, node_id: NodeId, name: String);
 }
