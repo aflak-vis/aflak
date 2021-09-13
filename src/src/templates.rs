@@ -90,11 +90,11 @@ pub fn show_frame_and_wave<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ((1), Some((
                     t_idx: (4),
                     output_i: (0),
-                ))),
+                )), "Spectrum"),
                 ((2), Some((
                     t_idx: (5),
                     output_i: (0),
-                ))),
+                )), "Sliced Plane"),
             ],
         ),
         subs: [
@@ -366,15 +366,15 @@ pub fn show_equivalent_width<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ((6), Some((
                     t_idx: (19),
                     output_i: (0),
-                ))),
+                )), "Average of On-band"),
                 ((7), Some((
                     t_idx: (22),
                     output_i: (0),
-                ))),
+                )), "Linear composited of Off-band"),
                 ((8), Some((
                     t_idx: (26),
                     output_i: (0),
-                ))),
+                )), "EW Map"),
             ],
         ),
         subs: [
@@ -569,11 +569,11 @@ pub fn show_velocity_field<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ((1), Some((
                     t_idx: (6),
                     output_i: (0),
-                ))),
+                )), "VF Map using argminmax"),
                 ((2), Some((
                     t_idx: (7),
                     output_i: (0),
-                ))),
+                )), "VF Map using centroid"),
             ],
         ),
         subs: [
@@ -732,15 +732,15 @@ pub fn show_fits_cleaning<P: AsRef<Path>>(path: P) -> Cursor<String> {
                 ((1), Some((
                     t_idx: (4),
                     output_i: (0),
-                ))),
+                )), "Spectrum"),
                 ((2), Some((
                     t_idx: (6),
                     output_i: (0),
-                ))),
+                )), "Sliced Plane"),
                 ((3), Some((
                     t_idx: (2),
                     output_i: (0),
-                ))),
+                )), "FITS Headers"),
             ],
         ),
         subs: [
