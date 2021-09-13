@@ -328,7 +328,8 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Create a new output not attached and return its Id.
     pub fn create_output(&mut self) -> OutputId {
         let idx = self.new_output_id();
-        self.outputs.insert(idx, None);
+        self.outputs
+            .insert(idx, (None, format!("Output #{}", idx.id())));
         idx
     }
 
@@ -338,7 +339,8 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Use [`DST::create_output`] to have aflak manages resources for you
     /// (that's probably what your want).
     pub(crate) fn create_output_with_id(&mut self, output_id: OutputId) {
-        self.outputs.insert(output_id, None);
+        self.outputs
+            .insert(output_id, (None, format!("Output #{}", output_id.id())));
     }
 
     /// Attach an already registered output somewhere else
