@@ -304,6 +304,11 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         None
     }
 
+    pub fn change_output_name(&mut self, id: OutputId, new_name: String) {
+        let mut target = self.outputs.get_mut(&id).unwrap();
+        target.1 = new_name;
+    }
+
     pub(crate) fn inputs_attached_to(&self, output: &Output) -> Option<slice::Iter<Input>> {
         self.edges
             .get(output)
@@ -359,10 +364,6 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         OutputId: Borrow<O>,
         O: Ord,
     {
-        self.transforms
-            .get_mut(&output.t_idx)
-            .unwrap()
-            .updated_now();
         if let Some((output, _)) = self.outputs.get_mut(output_id) {
             *output = None;
         }
