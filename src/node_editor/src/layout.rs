@@ -424,8 +424,9 @@ where
                 // Scroll
                 if self.drag_node.is_none()
                     && self.creating_link.is_none()
-                    && (ui.io().key_ctrl || ui.io().key_alt)
-                    && ui.is_mouse_dragging(MouseButton::Left)
+                    && (((ui.io().key_ctrl || ui.io().key_alt)
+                        && ui.is_mouse_dragging(MouseButton::Left))
+                        || ui.is_mouse_dragging(MouseButton::Middle))
                 {
                     ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
                     let delta = Vec2(0.0, 0.0) - ui.io().mouse_delta.into();
