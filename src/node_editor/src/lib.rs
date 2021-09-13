@@ -200,11 +200,11 @@ where
     }
 
     /// Get all the outputs defined in the node editor.
-    pub fn outputs(&self) -> Vec<cake::OutputId> {
+    pub fn outputs(&self) -> Vec<(cake::OutputId, String)> {
         self.dst
             .outputs_iter()
-            .filter(|(_, some_output)| some_output.is_some())
-            .map(|(id, _)| *id)
+            .filter(|(_, (some_output, _))| some_output.is_some())
+            .map(|(id, (_, name))| (*id, name.clone()))
             .collect()
     }
 
@@ -450,7 +450,13 @@ where
                     self.error_stack.push(Box::new(e));
                 }
             }
-            cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
+            cake::InputSlot::Output(output_id) => {
+                if let Some(cake::Node::Output((_, name))) =
+                    self.dst.get_node(&cake::NodeId::Output(output_id))
+                {
+                    self.dst.update_output(output_id, output, name)
+                }
+            }
         }
     }
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
@@ -541,7 +547,13 @@ where
                         .push(InnerEditorError::IncorrectNodeConnection(e));
                 }
             }
-            cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+            cake::InputSlot::Output(output_id) => {
+                if let Some(cake::Node::Output((_, name))) =
+                    dst.get_node(&cake::NodeId::Output(output_id))
+                {
+                    dst.update_output(output_id, output, name)
+                }
+            }
         }
     }
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
