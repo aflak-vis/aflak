@@ -114,8 +114,10 @@ impl Aflak {
         let outputs = self.node_editor.outputs();
         let display_size = ui.io().display_size;
         for output in outputs {
-            let output_window = self.output_windows.entry(output).or_default();
-            let window_name = ImString::new(format!("Output #{}", output.id()));
+            let output_id = output.0;
+            let output_name = output.1;
+            let output_window = self.output_windows.entry(output_id).or_default();
+            let window_name = ImString::new(format!("{}###{:?}", output_name, output_id));
             let mut window = Window::new(&window_name);
             if let Some(Layout { position, size }) = self
                 .layout_engine
@@ -125,8 +127,14 @@ impl Aflak {
                     .position(position, Condition::FirstUseEver)
                     .size(size, Condition::FirstUseEver);
             }
-            let new_errors =
-                output_window.draw(ui, output, window, &mut self.node_editor, gl_ctx, textures);
+            let new_errors = output_window.draw(
+                ui,
+                output_id,
+                window,
+                &mut self.node_editor,
+                gl_ctx,
+                textures,
+            );
             self.error_alerts.extend(new_errors);
         }
     }

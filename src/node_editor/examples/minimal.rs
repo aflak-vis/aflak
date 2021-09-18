@@ -231,7 +231,7 @@ fn main() {
 
         // Do something with outputs... For example, show them in a new imgui window
         let outputs = editor.outputs();
-        for output in outputs {
+        for (output, _) in outputs {
             let window_name = ImString::new(format!("Output #{}", output.id()));
             imgui::Window::new(&window_name)
                 .size([400.0, 400.0], imgui::Condition::FirstUseEver)

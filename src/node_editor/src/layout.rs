@@ -35,7 +35,7 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     import_opened: bool,
     pub import_path: Option<std::path::PathBuf>,
     pub is_macro: bool,
-
+    adding_new_node_pos: Option<Vec2>,
     // Used at runtime to aggregate events
     events: Vec<RenderEvent<T, E>>,
 }
@@ -60,7 +60,7 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             import_opened: false,
             import_path: None,
             is_macro: false,
-
+            adding_new_node_pos: None,
             events: vec![],
         }
     }
@@ -110,15 +110,25 @@ where
                 let offset = win_pos - scroll;
                 let mouse_pos: Vec2 = ui.io().mouse_pos.into();
                 mouse_pos * 0.7 - offset
+            } else if let Some(pos) = self.adding_new_node_pos {
+                scroll + pos
             } else {
                 scroll + Vec2(30.0, 30.0)
             };
             self.node_states.init_node(&idx, clue);
         }
+        let mut scroll_target_node_pos_size: Option<(Vec2, Vec2)> = None;
         if self.show_left_pane {
-            self.render_left_pane(ui, dst);
+            self.render_left_pane(ui, dst, &mut scroll_target_node_pos_size);
         }
-        self.render_graph_node(ui, dst, addable_nodes, addable_macros, constant_editor);
+        self.render_graph_node(
+            ui,
+            dst,
+            addable_nodes,
+            addable_macros,
+            constant_editor,
+            &mut scroll_target_node_pos_size,
+        );
 
         if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
             && !ui.io().want_capture_keyboard
@@ -134,7 +144,12 @@ where
         ::std::mem::replace(&mut self.events, vec![])
     }
 
-    fn render_left_pane(&mut self, ui: &Ui, dst: &DST<'static, T, E>) {
+    fn render_left_pane(
+        &mut self,
+        ui: &Ui,
+        dst: &DST<'static, T, E>,
+        scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
+    ) {
         const LEFT_PANE_DEFAULT_RELATIVE_WIDTH: f32 = 0.2;
         let window_size = Vec2::new(ui.window_size());
         let pane_width = *self
@@ -151,7 +166,7 @@ where
                     .build(&ui)
                 {
                     ui.separator();
-                    self.show_node_list(ui, dst);
+                    self.show_node_list(ui, dst, scroll_target_node_pos_size);
                 }
                 ui.separator();
                 if let Some(node_id) = self.active_node {
@@ -212,7 +227,12 @@ where
         ui.same_line(0.0);
     }
 
-    fn show_node_list(&mut self, ui: &Ui, dst: &DST<'static, T, E>) {
+    fn show_node_list(
+        &mut self,
+        ui: &Ui,
+        dst: &DST<'static, T, E>,
+        scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
+    ) {
         const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
 
         for (idx, node) in dst.nodes_iter() {
@@ -225,9 +245,10 @@ where
                 }
                 self.node_states.toggle_select(&idx);
                 self.active_node = Some(idx);
-                self.scrolling.set_target(
-                    self.node_states.get_state(&idx, |s| s.pos) + SCROLL_OVER_NODE_OFFSET,
-                )
+                *scroll_target_node_pos_size = Some((
+                    self.node_states.get_state(&idx, |s| s.pos),
+                    self.node_states.get_state(&idx, |s| s.size),
+                ));
             }
             stack.pop(ui);
         }
@@ -240,6 +261,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -342,6 +364,13 @@ where
                 .movable(false)
                 .scrollable(false)
                 .build(ui, || {
+                    if let Some((target_node_pos, target_node_size)) = scroll_target_node_pos_size {
+                        let scroll_region_size = Vec2::from(ui.window_size());
+                        self.scrolling.set_target(
+                            *target_node_pos - scroll_region_size * 0.5 + *target_node_size * 0.5,
+                        );
+                        *scroll_target_node_pos_size = None;
+                    }
                     // TODO: Manage scaling (and font-scaling)
                     self.render_graph_canvas(
                         ui,
@@ -418,14 +447,16 @@ where
                         && win_pos.1 < mouse_pos[1]
                         && mouse_pos[1] < win_pos.1 + canvas_size.1
                     {
+                        self.adding_new_node_pos = Some(Vec2::from(mouse_pos) - win_pos);
                         ui.open_popup(im_str!("add-new-node"));
                     }
                 }
                 // Scroll
                 if self.drag_node.is_none()
                     && self.creating_link.is_none()
-                    && (ui.io().key_ctrl || ui.io().key_alt)
-                    && ui.is_mouse_dragging(MouseButton::Left)
+                    && (((ui.io().key_ctrl || ui.io().key_alt)
+                        && ui.is_mouse_dragging(MouseButton::Left))
+                        || ui.is_mouse_dragging(MouseButton::Middle))
                 {
                     ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
                     let delta = Vec2(0.0, 0.0) - ui.io().mouse_delta.into();
@@ -960,6 +991,15 @@ where
                 let changed = ui.input_text(im_str!(""), &mut out).build();
                 if changed {
                     *handle.name_mut() = out.to_str().to_owned();
+                }
+            } else if let Some(cake::Node::Output((_, name))) = dst.get_node(id) {
+                ui.text(format!("Output #{}", -id.id()));
+                ui.same_line(0.0);
+                let mut out = ImString::with_capacity(1024);
+                out.push_str(&name);
+                let changed = ui.input_text(im_str!(""), &mut out).build();
+                if changed {
+                    events.push(RenderEvent::ChangeOutputName(*id, out.to_string()));
                 }
             } else {
                 // Show node name

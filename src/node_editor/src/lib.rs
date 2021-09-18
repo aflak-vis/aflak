@@ -200,11 +200,11 @@ where
     }
 
     /// Get all the outputs defined in the node editor.
-    pub fn outputs(&self) -> Vec<cake::OutputId> {
+    pub fn outputs(&self) -> Vec<(cake::OutputId, String)> {
         self.dst
             .outputs_iter()
-            .filter(|(_, some_output)| some_output.is_some())
-            .map(|(id, _)| *id)
+            .filter(|(_, (some_output, _))| some_output.is_some())
+            .map(|(id, (_, name))| (*id, name.clone()))
             .collect()
     }
 
@@ -450,7 +450,13 @@ where
                     self.error_stack.push(Box::new(e));
                 }
             }
-            cake::InputSlot::Output(output_id) => self.dst.update_output(output_id, output),
+            cake::InputSlot::Output(output_id) => {
+                if let Some(cake::Node::Output((_, name))) =
+                    self.dst.get_node(&cake::NodeId::Output(output_id))
+                {
+                    self.dst.update_output(output_id, output, name)
+                }
+            }
         }
     }
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
@@ -524,6 +530,11 @@ where
             }
         }
     }
+    fn change_output_name(&mut self, node_id: cake::NodeId, name: String) {
+        if let cake::NodeId::Output(output_id) = node_id {
+            self.dst.change_output_name(output_id, name);
+        }
+    }
 }
 
 impl<T, E> ApplyRenderEvent<T, E> for InnerNodeEditor<T, E>
@@ -541,7 +552,13 @@ where
                         .push(InnerEditorError::IncorrectNodeConnection(e));
                 }
             }
-            cake::InputSlot::Output(output_id) => dst.update_output(output_id, output),
+            cake::InputSlot::Output(output_id) => {
+                if let Some(cake::Node::Output((_, name))) =
+                    dst.get_node(&cake::NodeId::Output(output_id))
+                {
+                    dst.update_output(output_id, output, name)
+                }
+            }
         }
     }
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
@@ -616,6 +633,13 @@ where
     }
     fn edit_node(&mut self, _: cake::NodeId) {
         unreachable!("Macro can only be edited in NodeEditor's context!");
+    }
+    fn change_output_name(&mut self, node_id: cake::NodeId, name: String) {
+        let mut lock = self.handle.write();
+        let dst = lock.dst_mut();
+        if let cake::NodeId::Output(output_id) = node_id {
+            dst.change_output_name(output_id, name);
+        }
     }
 }
 

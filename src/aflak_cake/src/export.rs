@@ -177,7 +177,7 @@ impl<T> DeserTransform<T> {
 pub struct SerialDST<'d, T: 'd> {
     transforms: Vec<(&'d TransformIdx, SerialMetaTransform<'d, T>)>,
     edges: Vec<(&'d Output, &'d Input)>,
-    outputs: Vec<(&'d OutputId, &'d Option<Output>)>,
+    outputs: Vec<(&'d OutputId, &'d Option<Output>, String)>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -206,7 +206,10 @@ where
                 })
                 .collect(),
             edges: dst.edges_iter().collect(),
-            outputs: dst.outputs_iter().collect(),
+            outputs: dst
+                .outputs_iter()
+                .map(|(output_id, (some_output, name))| (output_id, some_output, name.clone()))
+                .collect(),
         }
     }
 }
@@ -217,7 +220,7 @@ where
 pub struct DeserDST<T> {
     transforms: Vec<(TransformIdx, DeserMetaTransform<T>)>,
     edges: Vec<(Output, Input)>,
-    outputs: Vec<(OutputId, Option<Output>)>,
+    outputs: Vec<(OutputId, Option<Output>, String)>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -251,7 +254,7 @@ impl<T> DeserDST<T> {
                 .collect(),
             outputs: dst
                 .outputs_iter()
-                .map(|(ouput_id, some_output)| (*ouput_id, *some_output))
+                .map(|(output_id, (some_output, name))| (*output_id, *some_output, name.clone()))
                 .collect(),
         }
     }
@@ -314,10 +317,10 @@ where
                 )
             })?;
         }
-        for (output_id, some_output) in self.outputs {
+        for (output_id, some_output, name) in self.outputs {
             dst.create_output_with_id(output_id);
             if let Some(output) = some_output {
-                dst.update_output(output_id, output);
+                dst.update_output(output_id, output, name);
             }
         }
         Ok(dst)

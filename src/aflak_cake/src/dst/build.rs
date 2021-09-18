@@ -27,7 +27,7 @@ where
             for i in 0..len {
                 let output = Output::new(t_idx, i);
                 if self.edges.contains_key(&output)
-                    || self.outputs.values().any(|&val| Some(output) == val)
+                    || self.outputs.values().any(|(val, _)| Some(output) == *val)
                 {
                     outputs.push(output)
                 }
@@ -109,7 +109,7 @@ where
                         self.disconnect(&output, &input);
                     }
                 }
-                for (_, some_output) in self.outputs.iter_mut() {
+                for (_, (some_output, _)) in self.outputs.iter_mut() {
                     if some_output == &Some(output) {
                         *some_output = None;
                     }
@@ -162,7 +162,9 @@ where
     pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
-            self.update_output(idx, output);
+            if let Some(Node::Output((_, name))) = self.get_node(&NodeId::Output(idx)) {
+                self.update_output(idx, output, name)
+            }
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
@@ -274,7 +276,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
             NodeId::Output(ref output_id) => self
                 .outputs
                 .get(output_id)
-                .map(|some_output| Node::Output(some_output.as_ref())),
+                .map(|(some_output, name)| Node::Output((some_output.as_ref(), name.clone()))),
         }
     }
 
@@ -302,6 +304,11 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         None
     }
 
+    pub fn change_output_name(&mut self, id: OutputId, new_name: String) {
+        let mut target = self.outputs.get_mut(&id).unwrap();
+        target.1 = new_name;
+    }
+
     pub(crate) fn inputs_attached_to(&self, output: &Output) -> Option<slice::Iter<Input>> {
         self.edges
             .get(output)
@@ -326,7 +333,8 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Create a new output not attached and return its Id.
     pub fn create_output(&mut self) -> OutputId {
         let idx = self.new_output_id();
-        self.outputs.insert(idx, None);
+        self.outputs
+            .insert(idx, (None, format!("Output #{}", idx.id())));
         idx
     }
 
@@ -336,12 +344,17 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     /// Use [`DST::create_output`] to have aflak manages resources for you
     /// (that's probably what your want).
     pub(crate) fn create_output_with_id(&mut self, output_id: OutputId) {
-        self.outputs.insert(output_id, None);
+        self.outputs
+            .insert(output_id, (None, format!("Output #{}", output_id.id())));
     }
 
     /// Attach an already registered output somewhere else
-    pub fn update_output(&mut self, output_id: OutputId, output: Output) {
-        self.outputs.insert(output_id, Some(output));
+    pub fn update_output(&mut self, output_id: OutputId, output: Output, name: String) {
+        self.outputs.insert(output_id, (Some(output), name));
+        self.transforms
+            .get_mut(&output.t_idx)
+            .unwrap()
+            .updated_now();
     }
 
     /// Detach output with given ID. Does nothing if output does not exist or
@@ -351,7 +364,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         OutputId: Borrow<O>,
         O: Ord,
     {
-        if let Some(output) = self.outputs.get_mut(output_id) {
+        if let Some((output, _)) = self.outputs.get_mut(output_id) {
             *output = None;
         }
     }

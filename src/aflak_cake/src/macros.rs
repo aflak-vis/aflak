@@ -210,7 +210,7 @@ impl<'t, T, E> Macro<'t, T, E> {
     {
         self.dst
             .outputs_iter()
-            .map(|(_, some_output)| {
+            .map(|(_, (some_output, _))| {
                 if let Some(output) = some_output {
                     let t = self.dst.get_transform(output.t_idx).unwrap();
                     t.outputs()[output.index()]
@@ -278,7 +278,9 @@ impl<'t, T, E> Macro<'t, T, E> {
             let t_idx = dst.add_owned_transform(Transform::new_constant((*arg).clone()));
             let output = Output::new(t_idx, 0);
             match input.slot {
-                InputSlot::Output(output_id) => dst.update_output(output_id, output),
+                InputSlot::Output(output_id) => {
+                    dst.update_output(output_id, output, "".to_string())
+                }
                 InputSlot::Transform(input) => {
                     if let Err(e) = dst.connect(output, input) {
                         unimplemented!("Type error: {}", e);

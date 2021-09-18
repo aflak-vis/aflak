@@ -30,7 +30,7 @@ pub use self::node::{Node, NodeId};
 pub struct DST<'t, T: 't, E: 't> {
     transforms: BTreeMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: BTreeMap<Output, InputList>,
-    outputs: BTreeMap<OutputId, Option<Output>>,
+    outputs: BTreeMap<OutputId, (Option<Output>, String)>,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>
@@ -357,8 +357,8 @@ where
     E: 't,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (output_id, output) in self.outputs_iter() {
-            writeln!(f, "{:?}", output_id)?;
+        for (output_id, (output, name)) in self.outputs_iter() {
+            writeln!(f, "{:?} name:{:?}", output_id, name)?;
             if let Some(output) = output {
                 self.write_output(f, 1, output)?;
             } else {
