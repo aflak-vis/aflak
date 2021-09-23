@@ -233,8 +233,6 @@ where
         dst: &DST<'static, T, E>,
         scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
     ) {
-        const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
-
         for (idx, node) in dst.nodes_iter() {
             let stack = ui.push_id(idx.id());
             let selected = self.node_states.get_state(&idx, |state| state.selected);
