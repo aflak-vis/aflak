@@ -30,11 +30,4 @@ impl fmt::Display for Error {
     }
 }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Msg(s) => s,
-            Error::Glium(ref e) => e.description(),
-        }
-    }
-}
+impl error::Error for Error {}
