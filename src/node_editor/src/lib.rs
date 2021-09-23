@@ -212,8 +212,8 @@ where
         if !self.error_stack.is_empty() {
             ui.open_popup(im_str!("Error!"));
         }
-        ui.popup_modal(im_str!("Error!")).build(|| {
-            let stack = ui.push_text_wrap_pos(400.0);
+        ui.popup_modal(im_str!("Error!")).build(ui, || {
+            let stack = ui.push_text_wrap_pos_with_pos(400.0);
             let e = &self.error_stack[self.error_stack.len() - 1];
             ui.text_wrapped(&ImString::new(format!("{}", e)));
             stack.pop(ui);
@@ -227,7 +227,7 @@ where
         if self.error_stack.is_empty() && !self.success_stack.is_empty() {
             ui.open_popup(im_str!("Success!"));
         }
-        ui.popup_modal(im_str!("Success!")).build(|| {
+        ui.popup_modal(im_str!("Success!")).build(ui, || {
             {
                 let msg = &self.success_stack[self.success_stack.len() - 1];
                 ui.text(msg);
@@ -341,7 +341,7 @@ where
                             selected_path = Some(path);
                         }
                     });
-                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                if ui.button(im_str!("Cancel")) {
                     cancelled = true;
                 }
             });

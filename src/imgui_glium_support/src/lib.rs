@@ -77,7 +77,7 @@ pub fn init(config: AppConfig) -> System {
     imgui.set_log_filename(config.log_filename);
 
     if let Some(backend) = clipboard_support::init() {
-        imgui.set_clipboard_backend(Box::new(backend));
+        imgui.set_clipboard_backend(backend);
     } else {
         eprintln!("Failed to initialize clipboard");
     }

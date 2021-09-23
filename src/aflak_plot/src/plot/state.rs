@@ -214,7 +214,7 @@ impl State {
                 Interaction::Line(_) => {}
                 Interaction::Circle(_) => {}
             }
-            stack.pop(ui);
+            stack.pop();
         }
 
         if let Some(line_id) = line_marked_for_deletion {

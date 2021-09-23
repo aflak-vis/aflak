@@ -118,7 +118,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
         } else if let Some(file_name) = i.file_name() {
             if let Some(file_name) = file_name.to_str() {
                 ui.bullet_text(im_str!(""));
-                ui.same_line(0.0);
+                ui.same_line();
                 if ui.small_button(&ImString::new(file_name)) {
                     ret = Ok(Some(i.clone()));
                 }

@@ -148,7 +148,7 @@ where
                     self.lut.set_gradient(*builtin_lut);
                     changed = true;
                 }
-                stack.pop(ui);
+                stack.pop();
             }
         });
 
@@ -833,9 +833,7 @@ where
                                 .size([300.0, 50.0], Condition::Appearing)
                                 .resizable(false)
                                 .build(ui, || {
-                                    Slider::new(im_str!("Degree"))
-                                        .range(-180..=180)
-                                        .build(ui, degree);
+                                    Slider::new(im_str!("Degree"), -180, 180).build(ui, degree);
                                 });
                             if !*allmoving && !edgemoving.0 && !edgemoving.1 {
                                 if *degree == 0 {
@@ -992,7 +990,7 @@ where
                     }
                 }
             }
-            stack.pop(ui);
+            stack.pop();
         }
 
         if let Some(line_id) = line_marked_for_deletion {
@@ -1047,11 +1045,7 @@ where
             for name in self.roi_input.roi_names.iter() {
                 names.push(&name);
             }
-            ComboBox::new(im_str!("Active ROI")).build_simple_string(
-                ui,
-                &mut self.roi_input.selected,
-                &names,
-            );
+            ui.combo_simple_string(im_str!("Active ROI"), &mut self.roi_input.selected, &names);
         }
     }
 
