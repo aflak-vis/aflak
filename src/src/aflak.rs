@@ -155,7 +155,7 @@ impl Aflak {
             }
             let new_errors = output_window.draw(
                 ui,
-                output,
+                output_id,
                 window,
                 &mut self.node_editor,
                 gl_ctx,
@@ -209,8 +209,8 @@ impl Aflak {
             let outputs = self.node_editor.outputs();
             let dst = &self.node_editor.dst;
             let mut bind_count = 0;
-            for output in outputs {
-                let output_window = self.output_windows.entry(output).or_default();
+            for (output_id, _) in outputs {
+                let output_window = self.output_windows.entry(output_id).or_default();
                 let editable_values = output_window.editable_values.clone();
                 let mut remove_id = None;
                 for (interaction_id, transformidx) in editable_values.iter() {
@@ -221,7 +221,7 @@ impl Aflak {
                                     if t_idx == *transformidx {
                                         ui.text(im_str!(
                                             "{:?} <--> {:?} in Macro {:?}",
-                                            output,
+                                            output_id,
                                             node.name(&nodeid),
                                             macr.name(),
                                         ));
@@ -247,7 +247,11 @@ impl Aflak {
                         for (nodeid, node) in dst.nodes_iter() {
                             if let NodeId::Transform(t_idx) = nodeid {
                                 if t_idx == *transformidx {
-                                    ui.text(im_str!("{:?} <--> {:?}", output, node.name(&nodeid)));
+                                    ui.text(im_str!(
+                                        "{:?} <--> {:?}",
+                                        output_id,
+                                        node.name(&nodeid)
+                                    ));
                                     let p = ui.cursor_screen_pos();
                                     ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
                                     bind_count += 1;

@@ -368,8 +368,8 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     }
 
     /// Attach an already registered output somewhere else
-    pub fn update_output(&mut self, output_id: OutputId, output: Output) {
-        self.outputs.insert(output_id, Some(output));
+    pub fn update_output(&mut self, output_id: OutputId, output: Output, name: String) {
+        self.outputs.insert(output_id, (Some(output), name));
         self.transforms
             .get_mut(&output.t_idx)
             .unwrap()
