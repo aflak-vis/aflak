@@ -163,9 +163,13 @@ where
     pub fn attach_output(&mut self, output: Output) -> Result<OutputId, DSTError> {
         if self.output_exists(&output) {
             let idx = self.new_output_id();
-            if let Some(Node::Output((_, name))) = self.get_node(&NodeId::Output(idx)) {
-                self.update_output(idx, output, name)
-            }
+            let name = if let Some(Node::Output((_, name))) = self.get_node(&NodeId::Output(idx)) {
+                name
+            } else {
+                let OutputId(num) = idx;
+                format!("Output #{}", num)
+            };
+            self.update_output(idx, output, name);
             Ok(idx)
         } else {
             Err(DSTError::InvalidOutput(format!(
