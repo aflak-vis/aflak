@@ -185,7 +185,7 @@ where
                     self.lut.set_gradient(*builtin_lut);
                     changed = true;
                 }
-                stack.pop(ui);
+                stack.pop();
             }
         });
 
@@ -585,7 +585,8 @@ where
                 ui.popup(im_str!("add-interaction-handle"), || {
                     ui.text("Add interaction handle");
                     ui.separator();
-                    if let Some(menu) = ui.begin_menu(im_str!("Horizontal Line"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Horizontal Line"), true)
+                    {
                         if MenuItem::new(im_str!("to main editor")).build(ui) {
                             let new = Interaction::HorizontalLine(HorizontalLine::new(
                                 self.mouse_pos.1.round(),
@@ -611,9 +612,9 @@ where
                                 store.insert(self.interactions.id(), t_idx);
                             }
                         }
-                        menu.end(ui);
+                        menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Vertical Line"), true) {
                         if MenuItem::new(im_str!("to main editor")).build(ui) {
                             let new = Interaction::VerticalLine(VerticalLine::new(
                                 self.mouse_pos.0.round(),
@@ -639,7 +640,7 @@ where
                                 store.insert(self.interactions.id(), t_idx);
                             }
                         }
-                        menu.end(ui);
+                        menu.end();
                     }
                     if MenuItem::new(im_str!("Region of interest")).build(ui) {
                         let new = Interaction::FinedGrainedROI(FinedGrainedROI::new(
@@ -1125,8 +1126,7 @@ where
                                         .size([300.0, 50.0], Condition::Appearing)
                                         .resizable(false)
                                         .build(ui, || {
-                                            Slider::new(im_str!("Degree"))
-                                                .range(-180..=180)
+                                            Slider::new(im_str!("Degree"), -180, 180)
                                                 .build(ui, degree);
                                         });
                                     if !*allmoving && !edgemoving.0 && !edgemoving.1 {
@@ -1311,7 +1311,7 @@ where
                             }
                         }
                     }
-                    stack.pop(ui);
+                    stack.pop();
                 }
 
                 if let Some(line_id) = line_marked_for_deletion {
@@ -1419,11 +1419,7 @@ where
             for name in self.roi_input.roi_names.iter() {
                 names.push(&name);
             }
-            ComboBox::new(im_str!("Active ROI")).build_simple_string(
-                ui,
-                &mut self.roi_input.selected,
-                &names,
-            );
+            ui.combo_simple_string(im_str!("Active ROI"), &mut self.roi_input.selected, &names);
         }
     }
 

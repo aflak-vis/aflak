@@ -3,8 +3,8 @@ use std::error::Error;
 use std::{collections::BTreeMap, path::PathBuf};
 
 use imgui::{
-    ChildWindow, CollapsingHeader, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable,
-    StyleColor, StyleVar, Ui, WindowDrawList, WindowFocusedFlags,
+    ChildWindow, CollapsingHeader, DrawListMut, ImString, Key, MenuItem, MouseButton, MouseCursor,
+    Selectable, StyleColor, StyleVar, Ui, WindowFocusedFlags,
 };
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     pub import_path: Option<std::path::PathBuf>,
     pub export_path: Option<std::path::PathBuf>,
     selected_dir: Option<std::path::PathBuf>,
-    filename: ImString,
+    filename: String,
     pub is_macro: bool,
     adding_new_node_pos: Option<Vec2>,
     // Used at runtime to aggregate events
@@ -67,7 +67,7 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             import_path: None,
             export_path: None,
             selected_dir: None,
-            filename: ImString::with_capacity(256),
+            filename: String::with_capacity(256),
             is_macro: false,
             adding_new_node_pos: None,
             events: vec![],
@@ -144,9 +144,7 @@ where
         if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
             && !ui.io().want_capture_keyboard
         {
-            let delete_index = ui.key_index(Key::Delete);
-            let backspace_index = ui.key_index(Key::Backspace);
-            if ui.is_key_pressed(delete_index) || ui.is_key_pressed(backspace_index) {
+            if ui.is_key_pressed(Key::Delete) || ui.is_key_pressed(Key::Backspace) {
                 self.delete_selected_nodes();
             }
         }
@@ -207,7 +205,7 @@ where
             });
 
         // Horizontal splitter
-        ui.same_line(0.0);
+        ui.same_line();
         const SPLITTER_WIDTH: f32 = 6.0;
         const SPLITTER_DESIGN: [(StyleColor, [f32; 4]); 3] = [
             (StyleColor::Button, [1.0, 1.0, 1.0, 0.2]),
@@ -215,7 +213,7 @@ where
             (StyleColor::ButtonActive, [1.0, 1.0, 1.0, 0.5]),
         ];
         let color_stack = ui.push_style_colors(&SPLITTER_DESIGN);
-        ui.button(im_str!("##hsplitter1"), [SPLITTER_WIDTH, -1.0]);
+        ui.button_with_size(im_str!("##hsplitter1"), [SPLITTER_WIDTH, -1.0]);
         let splitter_active = ui.is_item_active();
         if ui.is_item_hovered() || splitter_active {
             ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
@@ -235,7 +233,7 @@ where
             }
         }
         color_stack.pop(ui);
-        ui.same_line(0.0);
+        ui.same_line();
     }
 
     fn show_node_list(
@@ -244,8 +242,6 @@ where
         dst: &DST<'static, T, E>,
         scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
     ) {
-        const SCROLL_OVER_NODE_OFFSET: Vec2 = Vec2(-50.0, -50.0);
-
         for (idx, node) in dst.nodes_iter() {
             let stack = ui.push_id(idx.id());
             let selected = self.node_states.get_state(&idx, |state| state.selected);
@@ -261,7 +257,7 @@ where
                     self.node_states.get_state(&idx, |s| s.size),
                 ));
             }
-            stack.pop(ui);
+            stack.pop();
         }
     }
 
@@ -290,8 +286,8 @@ where
                 );
                 ui.same_line_with_spacing(0.0, 15.0);
                 ui.text(im_str!("Scroll with Ctrl+LMB or Alt+LMB."));
-                ui.same_line(ui.window_size()[0] - 240.0);
-                if ui.button(im_str!("Import"), [0.0, 0.0]) {
+                ui.same_line_with_pos(ui.window_size()[0] - 240.0);
+                if ui.button(im_str!("Import")) {
                     if !self.is_macro {
                         self.import_opened = true;
                     } else {
@@ -331,7 +327,7 @@ where
                                             selected_path = Some(path);
                                         }
                                     });
-                                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                                if ui.button(im_str!("Cancel")) {
                                     cancelled = true;
                                 }
                             });
@@ -344,8 +340,8 @@ where
                         self.import_opened = false;
                     }
                 }
-                ui.same_line(ui.window_size()[0] - 180.0);
-                if ui.button(im_str!("Export"), [0.0, 0.0]) {
+                ui.same_line_with_pos(ui.window_size()[0] - 180.0);
+                if ui.button(im_str!("Export")) {
                     if !self.is_macro {
                         self.export_opened = true;
                     } else {
@@ -362,9 +358,9 @@ where
                     let mut cancelled = false;
                     let mut try_save = false;
                     let mouse_pos = ui.io().mouse_pos;
-                    let mut filename = ImString::with_capacity(256);
+                    let mut filename = String::with_capacity(256);
                     let mut changed = false;
-                    filename.push_str(self.filename.to_str());
+                    filename.push_str(&self.filename);
                     selected_dir = self.selected_dir.clone();
                     if self.export_opened {
                         imgui::Window::new(&imgui::ImString::new(format!("Export .ron")))
@@ -393,10 +389,10 @@ where
                                 }
                                 changed =
                                     ui.input_text(im_str!("File name"), &mut filename).build();
-                                if ui.button(im_str!("Save"), [0.0, 0.0]) {
+                                if ui.button(im_str!("Save")) {
                                     try_save = true;
                                 }
-                                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                                if ui.button(im_str!("Cancel")) {
                                     cancelled = true;
                                 }
                             });
@@ -410,7 +406,7 @@ where
                     if cancelled {
                         self.export_opened = false;
                     } else if try_save {
-                        if self.filename.to_str() == "" {
+                        if &self.filename == "" {
                             ui.open_popup(im_str!("Blank filename"));
                         } else {
                             self.events.push(RenderEvent::Export);
@@ -430,14 +426,14 @@ where
                     }
                     ui.popup_modal(im_str!("Blank filename"))
                         .always_auto_resize(true)
-                        .build(|| {
+                        .build(ui, || {
                             ui.text(im_str!("Please fill in the File name"));
-                            if ui.button(im_str!("OK"), [0.0, 0.0]) {
+                            if ui.button(im_str!("OK")) {
                                 ui.close_current_popup();
                             }
                         });
                 }
-                ui.same_line(ui.window_size()[0] - 120.0);
+                ui.same_line_with_pos(ui.window_size()[0] - 120.0);
                 ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
                 ui.text(im_str!(
                     "Press Delete or Backspace key to remove selected nodes."
@@ -472,8 +468,8 @@ where
                         attaching,
                     );
                 });
-            color_stack.pop(ui);
-            style_stack.pop(ui);
+            color_stack.pop();
+            style_stack.pop();
         });
     }
 
@@ -619,7 +615,9 @@ where
                         "Float" => {
                             for (i, o) in dst.outputs_iter().enumerate() {
                                 let id_stack = ui.push_id(i as i32);
-                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                if let Some(menu) =
+                                    ui.begin_menu_with_enabled(&im_str!("{:?}", o.0), true)
+                                {
                                     if MenuItem::new(im_str!("As horizontal line")).build(ui) {
                                         if let cake::NodeId::Transform(t_idx) = idx {
                                             *attaching = Some((*o.0, t_idx, 0));
@@ -630,23 +628,25 @@ where
                                             *attaching = Some((*o.0, t_idx, 1));
                                         }
                                     }
-                                    menu.end(ui);
+                                    menu.end();
                                 }
-                                id_stack.pop(ui);
+                                id_stack.pop();
                             }
                         }
                         "Roi" => {
                             for (i, o) in dst.outputs_iter().enumerate() {
                                 let id_stack = ui.push_id(i as i32);
-                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                if let Some(menu) =
+                                    ui.begin_menu_with_enabled(&im_str!("{:?}", o.0), true)
+                                {
                                     if MenuItem::new(im_str!("Roi")).build(ui) {
                                         if let cake::NodeId::Transform(t_idx) = idx {
                                             *attaching = Some((*o.0, t_idx, 2));
                                         }
                                     }
-                                    menu.end(ui);
+                                    menu.end();
                                 }
-                                id_stack.pop(ui);
+                                id_stack.pop();
                             }
                         }
                         _ => {
@@ -689,7 +689,7 @@ where
                         .build();
                     if self.show_connection_names {
                         let slot_name = ImString::new(slot_name);
-                        let name_size = ui.calc_text_size(&slot_name, false, -1.0);
+                        let name_size = ui.calc_text_size(&slot_name);
                         ui.set_cursor_screen_pos([
                             connector_screen_pos.0 - NODE_SLOT_RADIUS - name_size[0],
                             connector_screen_pos.1 - name_size[1],
@@ -753,8 +753,7 @@ where
                             .filled(true)
                             .build();
                         if self.show_connection_names {
-                            let name_size =
-                                ui.calc_text_size(&ImString::new(slot_name), false, -1.0);
+                            let name_size = ui.calc_text_size(&ImString::new(slot_name));
                             ui.set_cursor_screen_pos([
                                 connector_screen_pos.0 + NODE_SLOT_RADIUS,
                                 connector_screen_pos.1 - name_size[1],
@@ -784,7 +783,7 @@ where
                         }
                     }
                 }
-                id_stack.pop(ui);
+                id_stack.pop();
             }
             // Preview new link
             const NEW_LINK_COLOR: [f32; 3] = [0.78, 0.78, 0.39];
@@ -969,7 +968,7 @@ where
 
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
             ui.text("Delete Link");
-            color_stack.pop(ui);
+            color_stack.pop();
             ui.separator();
             let mut hover_flag = false;
             for candidate_link in self.delete_link_list.clone() {
@@ -989,7 +988,7 @@ where
                                 self.deleting_link = candidate_link;
                                 hover_flag = true;
                             }
-                            if ui.is_item_clicked(MouseButton::Left) {
+                            if ui.is_item_clicked() {
                                 self.deleting_link = candidate_link;
                                 self.delete_flag = true;
                                 ui.close_current_popup();
@@ -1008,7 +1007,7 @@ where
                                 self.deleting_link = candidate_link;
                                 hover_flag = true;
                             }
-                            if ui.is_item_clicked(MouseButton::Left) {
+                            if ui.is_item_clicked() {
                                 self.deleting_link = candidate_link;
                                 self.delete_flag = true;
                                 ui.close_current_popup();
@@ -1035,7 +1034,7 @@ where
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
             ui.text("Add node");
-            color_stack.pop(ui);
+            color_stack.pop();
             ui.separator();
             let mut addable_nodes_class = BTreeMap::<String, Vec<&&Transform<T, E>>>::new();
             for node in addable_nodes.iter() {
@@ -1048,15 +1047,15 @@ where
                 }
             }
             for (k, v) in addable_nodes_class.iter() {
-                if let Some(menu) = ui.begin_menu(&ImString::new(k.clone()), true) {
+                if let Some(menu) = ui.begin_menu_with_enabled(&ImString::new(k.clone()), true) {
                     for (i, n) in v.iter().enumerate() {
                         let id_stack = ui.push_id(i as i32);
                         if MenuItem::new(&ImString::new(n.name())).build(ui) {
                             self.events.push(RenderEvent::AddTransform(*n));
                         }
-                        id_stack.pop(ui);
+                        id_stack.pop();
                     }
-                    menu.end(ui);
+                    menu.end();
                 }
             }
             ui.separator();
@@ -1070,14 +1069,14 @@ where
                     ui.separator();
                     let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
                     ui.text("Add macro node");
-                    color_stack.pop(ui);
+                    color_stack.pop();
                     macro_list_started = true;
                 }
                 let id_stack = ui.push_id(macr.id().as_fields().0 as i32);
                 if MenuItem::new(&ImString::new(macr.name())).build(ui) {
                     self.events.push(RenderEvent::AddMacro(macr.clone()));
                 }
-                id_stack.pop(ui);
+                id_stack.pop();
             }
             ui.separator();
             if MenuItem::new(im_str!("Output node")).build(ui) {
@@ -1097,7 +1096,7 @@ where
         &mut self,
         ui: &Ui,
         dst: &DST<'static, T, E>,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
         id: &cake::NodeId,
         constant_editor: &ED,
     ) where
@@ -1142,21 +1141,21 @@ where
             if let Some(handle) = get_macro_handle(dst, *id) {
                 // Allow to change macro name
                 ui.text(format!("#{}", id.id()));
-                ui.same_line(0.0);
-                let mut out = ImString::with_capacity(1024);
+                ui.same_line();
+                let mut out = String::with_capacity(1024);
                 out.push_str(&handle.name());
                 let changed = ui.input_text(im_str!(""), &mut out).build();
                 if changed {
-                    *handle.name_mut() = out.to_str().to_owned();
+                    *handle.name_mut() = out;
                 }
             } else if let Some(cake::Node::Output((_, name))) = dst.get_node(id) {
                 ui.text(format!("Output #{}", -id.id()));
-                ui.same_line(0.0);
-                let mut out = ImString::with_capacity(1024);
+                ui.same_line();
+                let mut out = String::with_capacity(1024);
                 out.push_str(&name);
                 let changed = ui.input_text(im_str!(""), &mut out).build();
                 if changed {
-                    events.push(RenderEvent::ChangeOutputName(*id, out.to_string()));
+                    events.push(RenderEvent::ChangeOutputName(*id, out));
                 }
             } else {
                 // Show node name
@@ -1166,7 +1165,7 @@ where
             if ui.is_item_hovered() {
                 ui.tooltip(|| ui.text(description));
             }
-            color_stack.pop(ui);
+            color_stack.pop();
 
             ui.dummy([0.0, NODE_WINDOW_PADDING.1 / 2.0]);
             if let cake::NodeId::Transform(t_idx) = *id {
