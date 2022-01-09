@@ -60,7 +60,7 @@ pub trait UiToneCurve {
     fn tone_curve(
         &self,
         state: &mut ToneCurveState,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> io::Result<Option<ToneCurveState>>;
 }
 
@@ -160,7 +160,7 @@ impl<'ui> UiToneCurve for Ui<'ui> {
     fn tone_curve(
         &self,
         state: &mut ToneCurveState,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> io::Result<Option<ToneCurveState>> {
         let p = self.cursor_screen_pos();
         let mouse_pos = self.io().mouse_pos;
