@@ -99,7 +99,7 @@ impl State {
         ui.set_cursor_screen_pos([pos[0] + y_labels_width, pos[1]]);
         let p = ui.cursor_screen_pos();
 
-        ui.invisible_button(im_str!("plot"), size);
+        ui.invisible_button(format!("plot"), size);
         let is_plot_hovered = ui.is_item_hovered();
         ui.set_item_allow_overlap();
 
@@ -169,7 +169,7 @@ impl State {
             }
 
             if ui.is_mouse_clicked(MouseButton::Right) {
-                ui.open_popup(im_str!("add-interaction-handle"))
+                ui.open_popup(format!("add-interaction-handle"))
             }
         }
 
@@ -190,14 +190,14 @@ impl State {
                     const CLICKABLE_WIDTH: f32 = 5.0;
 
                     ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
-                    ui.invisible_button(im_str!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size[1]]);
+                    ui.invisible_button(format!("vertical-line"), [2.0 * CLICKABLE_WIDTH, size[1]]);
                     if ui.is_item_hovered() {
                         ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
                         if ui.is_mouse_clicked(MouseButton::Left) {
                             *moving = true;
                         }
                         if ui.is_mouse_clicked(MouseButton::Right) {
-                            ui.open_popup(im_str!("edit-vertical-line"))
+                            ui.open_popup(format!("edit-vertical-line"))
                         }
                     }
                     if !moved_one && *moving {
@@ -217,11 +217,11 @@ impl State {
                         &format!("{:.0}", x_pos),
                     );
 
-                    ui.popup(im_str!("edit-vertical-line"), || {
-                        if MenuItem::new(im_str!("Delete Line")).build(ui) {
+                    ui.popup(format!("edit-vertical-line"), || {
+                        if MenuItem::new(format!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
-                        if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                        if MenuItem::new(format!("Copy Line")).build(ui) {
                             if store.contains_key(id) {
                                 let t_idx = *store.get(id).unwrap();
                                 *copying = Some((*id, t_idx));
@@ -247,17 +247,17 @@ impl State {
         ticks.draw(&draw_list, p, size);
 
         // Add interaction handlers
-        ui.popup(im_str!("add-interaction-handle"), || {
+        ui.popup(format!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Vertical Line"), true) {
-                if MenuItem::new(im_str!("to main editor")).build(ui) {
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("Vertical Line"), true) {
+                if MenuItem::new(format!("to main editor")).build(ui) {
                     let new =
                         Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
                     self.interactions.insert(new);
                 }
                 for macr in node_editor.macros.macros() {
-                    if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
+                    if MenuItem::new(&format!("to macro: {}", macr.name())).build(ui) {
                         let new =
                             Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
                         self.interactions.insert(new);
@@ -280,7 +280,7 @@ impl State {
                 ui.separator();
                 ui.text("Paste Line Options");
                 ui.separator();
-                if MenuItem::new(im_str!("Paste Line as Vertical Line")).build(ui) {
+                if MenuItem::new(format!("Paste Line as Vertical Line")).build(ui) {
                     let new =
                         Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
                     self.interactions.insert(new);
@@ -289,7 +289,7 @@ impl State {
                 }
             }
             ui.separator();
-            if MenuItem::new(im_str!("Reset view")).build(ui) {
+            if MenuItem::new(format!("Reset view")).build(ui) {
                 self.zoom = [1.0, 1.0];
                 self.offset = [0.0, 0.0];
             }

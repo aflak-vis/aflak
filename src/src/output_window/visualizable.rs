@@ -59,15 +59,16 @@ impl Visualizable for Fits {
             use std::borrow::Cow;
 
             has_hdus = true;
-
+            let extname;
             let tree_name = match hdu.value("EXTNAME") {
-                Some(CharacterString(extname)) => ImString::new(extname.as_str()),
+                Some(CharacterString(extname)) => extname,
                 _ => {
                     if i == 0 {
-                        im_str!("Primary HDU").to_owned()
+                        extname = format!("Primary HDU");
                     } else {
-                        ImString::new(format!("Hdu #{}", i))
+                        extname = format!("Hdu #{}", i);
                     }
+                    &extname
                 }
             };
 

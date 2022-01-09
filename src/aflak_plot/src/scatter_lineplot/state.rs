@@ -7,8 +7,7 @@ use crate::imshow::cake::{OutputId, TransformIdx};
 use imgui::{ImString, MenuItem, MouseButton, Ui, Window};
 use implot::{
     get_plot_limits, get_plot_mouse_position, is_plot_hovered, push_style_var_i32, Condition,
-    ImPlotLimits, ImPlotPoint, ImPlotRange, Marker, Plot, PlotLine, PlotScatter, PlotUi, StyleVar,
-    YAxisChoice,
+    ImPlotLimits, ImPlotPoint, Marker, Plot, PlotLine, PlotScatter, PlotUi, StyleVar, YAxisChoice,
 };
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 use std::collections::HashMap;
@@ -241,7 +240,7 @@ impl State {
                         out_expr.push_str(&self.expr[i]);
                         ui.text("y = ");
                         ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
-                        let changed = ui.input_text(&im_str!("expr_{}", i), &mut out_expr).build();
+                        let changed = ui.input_text(&format!("expr_{}", i), &mut out_expr).build();
                         if changed {
                             graph_changed = true;
                             self.expr[i] = out_expr;
@@ -251,19 +250,19 @@ impl State {
                         out_bind.push_str(&self.bind[i]);
                         ui.text("bind:");
                         ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
-                        let changed = ui.input_text(&im_str!("bind_{}", i), &mut out_bind).build();
+                        let changed = ui.input_text(&format!("bind_{}", i), &mut out_bind).build();
                         if changed {
                             graph_changed = true;
                             self.bind[i] = out_bind;
                         }
-                        if ui.checkbox(&im_str!("Show graph {}", i), &mut self.show_graph[i]) {
+                        if ui.checkbox(&format!("Show graph {}", i), &mut self.show_graph[i]) {
                             graph_changed = true;
                         }
-                        if ui.button(&im_str!("Delete Function {}", i)) {
+                        if ui.button(&format!("Delete Function {}", i)) {
                             self.graph_removing = Some(i);
                         }
                     }
-                    if ui.button(im_str!("Add Function")) {
+                    if ui.button(format!("Add Function")) {
                         self.show_graph.push(false);
                         self.expr.push(String::from(""));
                         self.bind.push(String::from(""));
@@ -440,14 +439,14 @@ impl State {
                 plot_limits = Some(get_plot_limits(None));
                 if is_plot_hovered() {
                     if ui.is_mouse_clicked(MouseButton::Right) {
-                        ui.open_popup(im_str!("add-node"));
+                        ui.open_popup(format!("add-node"));
                     }
                     hover_pos_plot = Some(get_plot_mouse_position(None));
                 }
-                ui.popup(im_str!("add-node"), || {
+                ui.popup(format!("add-node"), || {
                     let mut counter = 0;
                     for (_, (_, _, idx)) in self.datapoints.iter() {
-                        if MenuItem::new(&im_str!("Add data points {}", counter)).build(ui) {
+                        if MenuItem::new(&format!("Add data points {}", counter)).build(ui) {
                             let mut datavec: Vec<(usize, usize)> = Vec::new();
                             for d in idx {
                                 if d.len() == 2 {

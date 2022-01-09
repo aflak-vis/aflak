@@ -165,12 +165,12 @@ where
             .left_pane_size
             .get_or_insert_with(|| window_size.0 * LEFT_PANE_DEFAULT_RELATIVE_WIDTH);
 
-        ChildWindow::new(im_str!("node_list"))
+        ChildWindow::new("node_list")
             .size([pane_width, 0.0])
             .build(ui, || {
                 ui.spacing();
                 ui.separator();
-                if CollapsingHeader::new(im_str!("Node List##node_list_1"))
+                if CollapsingHeader::new(format!("Node List##node_list_1"))
                     .default_open(true)
                     .build(&ui)
                 {
@@ -181,7 +181,7 @@ where
                 if let Some(node_id) = self.active_node {
                     ui.spacing();
                     ui.separator();
-                    if CollapsingHeader::new(im_str!("Active Node##activeNode"))
+                    if CollapsingHeader::new(format!("Active Node##activeNode"))
                         .default_open(true)
                         .build(&ui)
                     {
@@ -212,8 +212,12 @@ where
             (StyleColor::ButtonHovered, [1.0, 1.0, 1.0, 0.35]),
             (StyleColor::ButtonActive, [1.0, 1.0, 1.0, 0.5]),
         ];
-        let color_stack = ui.push_style_colors(&SPLITTER_DESIGN);
-        ui.button_with_size(im_str!("##hsplitter1"), [SPLITTER_WIDTH, -1.0]);
+        let color_stack_button = ui.push_style_color(SPLITTER_DESIGN[0].0, SPLITTER_DESIGN[0].1);
+        let color_stack_buttonhovered =
+            ui.push_style_color(SPLITTER_DESIGN[1].0, SPLITTER_DESIGN[1].1);
+        let color_stack_buttonactive =
+            ui.push_style_color(SPLITTER_DESIGN[2].0, SPLITTER_DESIGN[2].1);
+        ui.button_with_size(format!("##hsplitter1"), [SPLITTER_WIDTH, -1.0]);
         let splitter_active = ui.is_item_active();
         if ui.is_item_hovered() || splitter_active {
             ui.set_mouse_cursor(Some(MouseCursor::ResizeEW));
@@ -232,7 +236,9 @@ where
                 *w = minw;
             }
         }
-        color_stack.pop(ui);
+        color_stack_button.pop();
+        color_stack_buttonhovered.pop();
+        color_stack_buttonactive.pop();
         ui.same_line();
     }
 
@@ -273,21 +279,22 @@ where
     ) where
         ED: ConstantEditor<T>,
     {
-        ChildWindow::new(im_str!("GraphNodeChildWindow")).build(ui, || {
+        ChildWindow::new("GraphNodeChildWindow").build(ui, || {
             if self.show_top_pane {
                 const TOP_PANE_DESIGN: [StyleVar; 2] = [
                     StyleVar::ItemSpacing([0.0, 0.0]),
                     StyleVar::ItemInnerSpacing([0.0, 0.0]),
                 ];
-                let style_stack = ui.push_style_vars(&TOP_PANE_DESIGN);
+                let style_stack_itemspacing = ui.push_style_var(TOP_PANE_DESIGN[0]);
+                let style_stack_iteminnerspacing = ui.push_style_var(TOP_PANE_DESIGN[1]);
                 ui.checkbox(
-                    im_str!("Show connection names."),
+                    format!("Show connection names."),
                     &mut self.show_connection_names,
                 );
                 ui.same_line_with_spacing(0.0, 15.0);
-                ui.text(im_str!("Scroll with Ctrl+LMB or Alt+LMB."));
+                ui.text(format!("Scroll with Ctrl+LMB or Alt+LMB."));
                 ui.same_line_with_pos(ui.window_size()[0] - 240.0);
-                if ui.button(im_str!("Import")) {
+                if ui.button(format!("Import")) {
                     if !self.is_macro {
                         self.import_opened = true;
                     } else {
@@ -297,11 +304,11 @@ where
                 if ui.is_item_hovered() {
                     if self.is_macro {
                         ui.tooltip(|| {
-                            ui.text(im_str!("Import macro"));
+                            ui.text(format!("Import macro"));
                         });
                     } else {
                         ui.tooltip(|| {
-                            ui.text(im_str!("Import editor from *.ron files."));
+                            ui.text(format!("Import editor from *.ron files."));
                         });
                     }
                 }
@@ -316,7 +323,7 @@ where
                             .position(mouse_pos, imgui::Condition::Appearing)
                             .size([400.0, 410.0], imgui::Condition::Appearing)
                             .build(ui, || {
-                                imgui::ChildWindow::new(im_str!("edit"))
+                                imgui::ChildWindow::new("import_fileexplorer")
                                     .size([0.0, 350.0])
                                     .horizontal_scrollbar(true)
                                     .build(ui, || {
@@ -327,7 +334,7 @@ where
                                             selected_path = Some(path);
                                         }
                                     });
-                                if ui.button(im_str!("Cancel")) {
+                                if ui.button(format!("Cancel")) {
                                     cancelled = true;
                                 }
                             });
@@ -341,7 +348,7 @@ where
                     }
                 }
                 ui.same_line_with_pos(ui.window_size()[0] - 180.0);
-                if ui.button(im_str!("Export")) {
+                if ui.button(format!("Export")) {
                     if !self.is_macro {
                         self.export_opened = true;
                     } else {
@@ -350,7 +357,7 @@ where
                 }
                 if ui.is_item_hovered() {
                     ui.tooltip(|| {
-                        ui.text(im_str!("Export editor content *.ron files.",));
+                        ui.text(format!("Export editor content *.ron files.",));
                     });
                 }
                 if !self.is_macro {
@@ -369,7 +376,7 @@ where
                             .position(mouse_pos, imgui::Condition::Appearing)
                             .size([400.0, 410.0], imgui::Condition::Appearing)
                             .build(ui, || {
-                                imgui::ChildWindow::new(im_str!("edit"))
+                                imgui::ChildWindow::new("export_fileexplorer")
                                     .size([0.0, 350.0])
                                     .horizontal_scrollbar(true)
                                     .build(ui, || {
@@ -383,16 +390,16 @@ where
                                         }
                                     });
                                 if let Some(s) = selected_dir.clone() {
-                                    ui.text(im_str!("target directory: {:?}", s));
+                                    ui.text(format!("target directory: {:?}", s));
                                 } else {
-                                    ui.text(im_str!("target directory:"));
+                                    ui.text(format!("target directory:"));
                                 }
                                 changed =
-                                    ui.input_text(im_str!("File name"), &mut filename).build();
-                                if ui.button(im_str!("Save")) {
+                                    ui.input_text(format!("File name"), &mut filename).build();
+                                if ui.button(format!("Save")) {
                                     try_save = true;
                                 }
-                                if ui.button(im_str!("Cancel")) {
+                                if ui.button(format!("Cancel")) {
                                     cancelled = true;
                                 }
                             });
@@ -407,7 +414,7 @@ where
                         self.export_opened = false;
                     } else if try_save {
                         if &self.filename == "" {
-                            ui.open_popup(im_str!("Blank filename"));
+                            ui.open_popup(format!("Blank filename"));
                         } else {
                             self.events.push(RenderEvent::Export);
                             let dir = if let Some(dir) = self.selected_dir.clone() {
@@ -424,28 +431,29 @@ where
                             self.export_opened = false;
                         }
                     }
-                    ui.popup_modal(im_str!("Blank filename"))
+                    ui.popup_modal(format!("Blank filename"))
                         .always_auto_resize(true)
                         .build(ui, || {
-                            ui.text(im_str!("Please fill in the File name"));
-                            if ui.button(im_str!("OK")) {
+                            ui.text(format!("Please fill in the File name"));
+                            if ui.button(format!("OK")) {
                                 ui.close_current_popup();
                             }
                         });
                 }
                 ui.same_line_with_pos(ui.window_size()[0] - 120.0);
-                ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
-                ui.text(im_str!(
+                ui.checkbox(format!("Show grid"), &mut self.show_grid);
+                ui.text(format!(
                     "Press Delete or Backspace key to remove selected nodes."
                 ));
 
-                style_stack.pop(ui);
+                style_stack_itemspacing.pop();
+                style_stack_iteminnerspacing.pop();
             }
             const GRAPH_STYLE_VAR: StyleVar = StyleVar::FramePadding([1.0, 1.0]);
             const GRAPH_STYLE_COLOR: [f32; 4] = [0.24, 0.24, 0.27, 0.78];
             let style_stack = ui.push_style_var(GRAPH_STYLE_VAR);
             let color_stack = ui.push_style_color(StyleColor::ChildBg, GRAPH_STYLE_COLOR);
-            ChildWindow::new(im_str!("scrolling_region"))
+            ChildWindow::new("scrolling_region")
                 .border(true)
                 .scroll_bar(false)
                 .movable(false)
@@ -537,7 +545,7 @@ where
                         && mouse_pos[1] < win_pos.1 + canvas_size.1
                     {
                         self.adding_new_node_pos = Some(Vec2::from(mouse_pos) - win_pos);
-                        ui.open_popup(im_str!("add-new-node"));
+                        ui.open_popup(format!("add-new-node"));
                     }
                 }
                 // Scroll
@@ -586,7 +594,7 @@ where
                 channels.set_current(if self.active_node == Some(idx) { 3 } else { 1 });
                 ui.set_cursor_screen_pos(node_rect_min.into());
                 ui.invisible_button(
-                    im_str!("node##nodeinvbtn"),
+                    format!("node##nodeinvbtn"),
                     node_states.get_state(&idx, |state| state.size.into()),
                 );
                 // TODO: Handle selection
@@ -600,9 +608,9 @@ where
                     .filled(true)
                     .build();
                 if ui.is_item_hovered() && ui.is_mouse_double_clicked(MouseButton::Left) {
-                    ui.open_popup(im_str!("attach-to-output"));
+                    ui.open_popup(format!("attach-to-output"));
                 }
-                ui.popup(im_str!("attach-to-output"), || {
+                ui.popup(format!("attach-to-output"), || {
                     let mut name = String::from("");
                     if let cake::NodeId::Transform(t_idx) = idx {
                         if let Some(t) = dst.get_transform(t_idx) {
@@ -616,14 +624,14 @@ where
                             for (i, o) in dst.outputs_iter().enumerate() {
                                 let id_stack = ui.push_id(i as i32);
                                 if let Some(menu) =
-                                    ui.begin_menu_with_enabled(&im_str!("{:?}", o.0), true)
+                                    ui.begin_menu_with_enabled(&format!("{:?}", o.0), true)
                                 {
-                                    if MenuItem::new(im_str!("As horizontal line")).build(ui) {
+                                    if MenuItem::new(format!("As horizontal line")).build(ui) {
                                         if let cake::NodeId::Transform(t_idx) = idx {
                                             *attaching = Some((*o.0, t_idx, 0));
                                         }
                                     }
-                                    if MenuItem::new(im_str!("As vertical line")).build(ui) {
+                                    if MenuItem::new(format!("As vertical line")).build(ui) {
                                         if let cake::NodeId::Transform(t_idx) = idx {
                                             *attaching = Some((*o.0, t_idx, 1));
                                         }
@@ -637,9 +645,9 @@ where
                             for (i, o) in dst.outputs_iter().enumerate() {
                                 let id_stack = ui.push_id(i as i32);
                                 if let Some(menu) =
-                                    ui.begin_menu_with_enabled(&im_str!("{:?}", o.0), true)
+                                    ui.begin_menu_with_enabled(&format!("{:?}", o.0), true)
                                 {
-                                    if MenuItem::new(im_str!("Roi")).build(ui) {
+                                    if MenuItem::new(format!("Roi")).build(ui) {
                                         if let cake::NodeId::Transform(t_idx) = idx {
                                             *attaching = Some((*o.0, t_idx, 2));
                                         }
@@ -945,14 +953,14 @@ where
                         self.delete_link_list
                             .retain(|&e| e.unwrap().1 == input_slot);
                         self.delete_link_list.insert(Some((*output, input_slot)));
-                        ui.open_popup(im_str!("delete-link"));
+                        ui.open_popup(format!("delete-link"));
                     } else if (p2[0] - mouse_pos[0]) * (p2[0] - mouse_pos[0])
                         + (p2[1] - mouse_pos[1]) * (p2[1] - mouse_pos[1])
                         < NODE_SLOT_RADIUS * NODE_SLOT_RADIUS
                     {
                         self.delete_link_list.retain(|&e| e.unwrap().0 == *output);
                         self.delete_link_list.insert(Some((*output, input_slot)));
-                        ui.open_popup(im_str!("delete-link"));
+                        ui.open_popup(format!("delete-link"));
                     }
                 }
             }
@@ -963,7 +971,7 @@ where
             self.events.push(RenderEvent::Connect(output, input_slot));
             self.new_link = None;
         }
-        ui.popup(im_str!("delete-link"), || {
+        ui.popup(format!("delete-link"), || {
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
@@ -975,7 +983,7 @@ where
                 if let Some((cand_out, cand_input_slot)) = candidate_link {
                     match cand_input_slot {
                         cake::InputSlot::Transform(input) => {
-                            let text = im_str!(
+                            let text = format!(
                                 "from node #{}, output {} to node #{} input {}",
                                 cand_out.t_idx.id(),
                                 cand_out.index(),
@@ -995,7 +1003,7 @@ where
                             }
                         }
                         cake::InputSlot::Output(input) => {
-                            let text = im_str!(
+                            let text = format!(
                                 "from node #{}, output {} to Output #{}",
                                 cand_out.t_idx.id(),
                                 cand_out.index(),
@@ -1030,7 +1038,7 @@ where
                     .retain(|e| e.unwrap().0 != output || e.unwrap().1 != input_slot);
             }
         }
-        ui.popup(im_str!("add-new-node"), || {
+        ui.popup(format!("add-new-node"), || {
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
             ui.text("Add node");
@@ -1059,7 +1067,7 @@ where
                 }
             }
             ui.separator();
-            if MenuItem::new(im_str!("Create new macro")).build(ui) {
+            if MenuItem::new(format!("Create new macro")).build(ui) {
                 self.events.push(RenderEvent::AddNewMacro);
             }
 
@@ -1079,7 +1087,7 @@ where
                 id_stack.pop();
             }
             ui.separator();
-            if MenuItem::new(im_str!("Output node")).build(ui) {
+            if MenuItem::new(format!("Output node")).build(ui) {
                 self.events.push(RenderEvent::CreateOutput);
             }
             ui.separator();
@@ -1144,7 +1152,7 @@ where
                 ui.same_line();
                 let mut out = String::with_capacity(1024);
                 out.push_str(&handle.name());
-                let changed = ui.input_text(im_str!(""), &mut out).build();
+                let changed = ui.input_text(format!(""), &mut out).build();
                 if changed {
                     *handle.name_mut() = out;
                 }
@@ -1153,7 +1161,7 @@ where
                 ui.same_line();
                 let mut out = String::with_capacity(1024);
                 out.push_str(&name);
-                let changed = ui.input_text(im_str!(""), &mut out).build();
+                let changed = ui.input_text(format!(""), &mut out).build();
                 if changed {
                     events.push(RenderEvent::ChangeOutputName(*id, out));
                 }

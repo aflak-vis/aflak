@@ -69,7 +69,7 @@ impl<'ui> UiFileExplorer for Ui<'ui> {
         S: AsRef<str>,
     {
         let current_dir = env::current_dir().unwrap_or_else(|_| target.as_ref().to_owned());
-        TreeNode::new(im_str!("./"))
+        TreeNode::new(format!("./"))
             .opened(false, Condition::Always)
             .build(&self, || {});
         if self.is_item_clicked() {
@@ -143,7 +143,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             }
         } else if let Some(file_name) = i.file_name() {
             if let Some(file_name) = file_name.to_str() {
-                ui.bullet_text(im_str!(""));
+                ui.bullet_text(format!(""));
                 ui.same_line();
                 if ui.small_button(&ImString::new(file_name)) {
                     selected_path = Some(i.clone());

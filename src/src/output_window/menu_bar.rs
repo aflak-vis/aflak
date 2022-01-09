@@ -95,8 +95,8 @@ pub trait MenuBar {
 
         let mut output_saved_success_popup = false;
         ui.menu_bar(|| {
-            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("File"), true) {
-                if MenuItem::new(im_str!("Save")).build(ui) {
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("File"), true) {
+                if MenuItem::new(format!("Save")).build(ui) {
                     let path = self.file_name(output);
                     if let Err(e) = self.save(path) {
                         eprintln!("Error on saving output: '{}'", e);
@@ -112,14 +112,14 @@ pub trait MenuBar {
         });
 
         if output_saved_success_popup {
-            ui.open_popup(im_str!("Export completed!"));
+            ui.open_popup(format!("Export completed!"));
         }
-        ui.popup_modal(im_str!("Export completed!")).build(ui, || {
+        ui.popup_modal(format!("Export completed!")).build(ui, || {
             ui.text(format!(
                 "File saved with success to '{}'.",
                 self.file_name(output)
             ));
-            if ui.button(im_str!("Close")) {
+            if ui.button(format!("Close")) {
                 ui.close_current_popup();
             }
         });
@@ -367,7 +367,7 @@ impl MenuBar for PATHS {
                 attach_failued(&mut ctx, &"Paths");
             }
         }
-        ctx.ui.text_wrapped(&im_str!("{:?}", self));
+        ctx.ui.text_wrapped(&format!("{:?}", self));
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
@@ -388,7 +388,7 @@ impl MenuBar for ROI {
                 attach_failued(&mut ctx, &"Roi");
             }
         }
-        ctx.ui.text_wrapped(&im_str!("{:?}", self));
+        ctx.ui.text_wrapped(&format!("{:?}", self));
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
@@ -405,7 +405,7 @@ impl MenuBar for primitives::WcsArray {
             None => match self.scalar().ndim() {
                 1 | 2 => {
                     let has_wcs_data = self.wcs().is_some();
-                    MenuItem::new(im_str!("Show pixels"))
+                    MenuItem::new(format!("Show pixels"))
                         .enabled(has_wcs_data)
                         .build_with_ref(ui, &mut window.show_pixels);
                     if !has_wcs_data && ui.is_item_hovered() {
@@ -428,16 +428,16 @@ impl MenuBar for primitives::WcsArray {
         match &self.tag() {
             None => match self.scalar().ndim() {
                 2 => {
-                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Window"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Window"), true) {
                         self.zoom_menu(ui, window);
                         menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Histogram"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Histogram"), true) {
                         self.histogram_menu(ui, window);
                         menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Others"), true) {
-                        MenuItem::new(im_str!("Approx Line"))
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Others"), true) {
+                        MenuItem::new(format!("Approx Line"))
                             .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
                         menu.end();
                     }
@@ -447,15 +447,15 @@ impl MenuBar for primitives::WcsArray {
             Some(tag) => match tag.as_ref() {
                 "BPT" => match self.scalar().ndim() {
                     2 => {
-                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Graph"), true) {
-                            MenuItem::new(im_str!("Graph Editor")).build_with_ref(
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Graph"), true) {
+                            MenuItem::new(format!("Graph Editor")).build_with_ref(
                                 ui,
                                 &mut window.scatter_lineplot_state.show_graph_editor,
                             );
                             menu.end();
                         }
-                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Option"), true) {
-                            if MenuItem::new(im_str!("Show all data points")).build_with_ref(
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Option"), true) {
+                            if MenuItem::new(format!("Show all data points")).build_with_ref(
                                 ui,
                                 &mut window.scatter_lineplot_state.show_all_point,
                             ) {
@@ -468,11 +468,11 @@ impl MenuBar for primitives::WcsArray {
                 },
                 "color_image" => match self.scalar().ndim() {
                     3 => {
-                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Window"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Window"), true) {
                             self.zoom_menu(ui, window);
                             menu.end();
                         }
-                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Histogram"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Histogram"), true) {
                             self.histogram_menu(ui, window);
                             menu.end();
                         }
@@ -485,8 +485,8 @@ impl MenuBar for primitives::WcsArray {
     }
 
     fn zoom_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Zoom"), true) {
-            if MenuItem::new(im_str!("Fit"))
+        if let Some(menu) = ui.begin_menu_with_enabled(format!("Zoom"), true) {
+            if MenuItem::new(format!("Fit"))
                 .build_with_ref(ui, &mut window.image2d_state.zoomkind[0])
             {
                 if window.image2d_state.zoomkind[0] == true {
@@ -497,7 +497,7 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[0] = true;
                 }
             }
-            if MenuItem::new(im_str!("50%"))
+            if MenuItem::new(format!("50%"))
                 .build_with_ref(ui, &mut window.image2d_state.zoomkind[1])
             {
                 if window.image2d_state.zoomkind[1] == true {
@@ -508,7 +508,7 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[1] = true;
                 }
             }
-            if MenuItem::new(im_str!("100%"))
+            if MenuItem::new(format!("100%"))
                 .build_with_ref(ui, &mut window.image2d_state.zoomkind[2])
             {
                 if window.image2d_state.zoomkind[2] == true {
@@ -519,7 +519,7 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[2] = true;
                 }
             }
-            if MenuItem::new(im_str!("200%"))
+            if MenuItem::new(format!("200%"))
                 .build_with_ref(ui, &mut window.image2d_state.zoomkind[3])
             {
                 if window.image2d_state.zoomkind[3] == true {
@@ -535,7 +535,7 @@ impl MenuBar for primitives::WcsArray {
     }
 
     fn histogram_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        MenuItem::new(im_str!("Logscale"))
+        MenuItem::new(format!("Logscale"))
             .build_with_ref(ui, &mut window.image2d_state.hist_logscale);
     }
 
@@ -909,9 +909,9 @@ fn attach_failued<F>(ctx: &mut OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>, v
 where
     F: glium::backend::Facade,
 {
-    ctx.ui.open_popup(im_str!("Attach failued"));
+    ctx.ui.open_popup(format!("Attach failued"));
     ctx.ui
-        .popup_modal(im_str!("Attach failued"))
+        .popup_modal(format!("Attach failued"))
         .build(ctx.ui, || {
             let kind = match ctx.attaching.unwrap().2 {
                 0 => "horizontal line",
@@ -923,7 +923,7 @@ where
                 "Attach failued, {} cannot be used in {}",
                 kind, viztype
             ));
-            if ctx.ui.button(im_str!("Close")) {
+            if ctx.ui.button(format!("Close")) {
                 *ctx.attaching = None;
                 ctx.ui.close_current_popup();
             }
