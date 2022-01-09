@@ -1,4 +1,4 @@
-use imgui::{self, Ui, WindowDrawList};
+use imgui::{self, DrawListMut, Ui};
 
 /// Trait to define how to draw constant editor.
 ///
@@ -13,7 +13,7 @@ pub trait ConstantEditor<T>: Default {
         constant: &T,
         id: I,
         read_only: bool,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> Option<T>
     where
         I: Into<imgui::Id<'a>>;
