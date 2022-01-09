@@ -3,7 +3,7 @@ use imgui_file_explorer::{UiFileExplorer, CURRENT_FOLDER};
 use imgui_tone_curve::UiToneCurve;
 use node_editor::ConstantEditor;
 
-use imgui::{ChildWindow, Id, ImString, Ui, WindowDrawList};
+use imgui::{ChildWindow, DrawListMut, Id, ImString, Ui};
 
 #[derive(Default)]
 pub struct MyConstantEditor;
@@ -15,7 +15,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
         constant: &IOValue,
         id: I,
         read_only: bool,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> Option<IOValue>
     where
         I: Into<Id<'a>>,
@@ -30,7 +30,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             ui.tooltip_text("Read only, value is set by input!");
         }
 
-        id_stack.pop(ui);
+        id_stack.pop();
 
         some_new_value
     }
@@ -40,18 +40,18 @@ fn inner_editor(
     ui: &Ui,
     constant: &IOValue,
     read_only: bool,
-    draw_list: &WindowDrawList,
+    draw_list: &DrawListMut,
 ) -> Option<IOValue> {
     match *constant {
         IOValue::Str(ref string) => {
-            let mut out = ImString::with_capacity(1024);
+            let mut out = String::with_capacity(1024);
             out.push_str(string);
             let changed = ui
                 .input_text(im_str!("String value"), &mut out)
                 .read_only(read_only)
                 .build();
             if changed {
-                Some(IOValue::Str(out.to_str().to_owned()))
+                Some(IOValue::Str(out.to_owned()))
             } else {
                 None
             }
