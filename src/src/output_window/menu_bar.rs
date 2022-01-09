@@ -55,13 +55,14 @@ pub trait MenuBar {
 
     const EXTENSION: &'static str;
 
-    fn draw<'ui, F>(
+    fn draw<'ui, F, T>(
         &self,
         ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, '_, F>,
-        window: Window<'_>,
+        window: Window<'_, T>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
+        T: AsRef<str>,
     {
         let mut errors = vec![];
         window

@@ -8,7 +8,10 @@ use crate::primitives::fitrs::Fits;
 pub trait Visualizable {
     fn visualize(&self, ui: &Ui);
 
-    fn draw<'ui>(&self, ui: &'ui Ui, window: Window<'_>) {
+    fn draw<'ui, T>(&self, ui: &'ui Ui, window: Window<'_, T>)
+    where
+        T: AsRef<str>,
+    {
         window.build(ui, || self.visualize(ui));
     }
 }
