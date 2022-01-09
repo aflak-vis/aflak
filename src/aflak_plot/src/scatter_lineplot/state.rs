@@ -27,8 +27,8 @@ pub struct State {
     class: Vec<usize>,
     pub show_graph_editor: bool,
     show_graph: Vec<bool>,
-    expr: Vec<ImString>,
-    bind: Vec<ImString>,
+    expr: Vec<String>,
+    bind: Vec<String>,
     graph_points: Vec<Vec<f64>>,
     graph_removing: Option<usize>,
     pub show_all_point: bool,
@@ -50,8 +50,8 @@ impl Default for State {
             class: vec![],
             show_graph_editor: false,
             show_graph: vec![false],
-            expr: vec![ImString::from(im_str!(""))],
-            bind: vec![ImString::from(im_str!(""))],
+            expr: vec![String::from("")],
+            bind: vec![String::from("")],
             graph_points: vec![vec![]],
             graph_removing: None,
             show_all_point: true,
@@ -100,7 +100,7 @@ impl State {
             let size = [size[0] - 15.0, size[1] - 15.0];
             let (data_points, attributes) = image.dim();
             Plot::new("Simple scatter plot")
-                .size(size[0], size[1])
+                .size(size)
                 .x_label(&haxislabel)
                 .y_label(&vaxislabel)
                 .build(&plot_ui, || {
@@ -237,8 +237,8 @@ impl State {
                 .build(ui, || {
                     for i in 0..self.show_graph.len() {
                         let p = ui.cursor_screen_pos();
-                        let mut out_expr = ImString::with_capacity(1024);
-                        out_expr.push_str(self.expr[i].to_str());
+                        let mut out_expr = String::with_capacity(1024);
+                        out_expr.push_str(&self.expr[i]);
                         ui.text("y = ");
                         ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
                         let changed = ui.input_text(&im_str!("expr_{}", i), &mut out_expr).build();
@@ -247,8 +247,8 @@ impl State {
                             self.expr[i] = out_expr;
                         }
                         let p = ui.cursor_screen_pos();
-                        let mut out_bind = ImString::with_capacity(1024);
-                        out_bind.push_str(self.bind[i].to_str());
+                        let mut out_bind = String::with_capacity(1024);
+                        out_bind.push_str(&self.bind[i]);
                         ui.text("bind:");
                         ui.set_cursor_screen_pos([p[0] + 40.0, p[1]]);
                         let changed = ui.input_text(&im_str!("bind_{}", i), &mut out_bind).build();
@@ -259,14 +259,14 @@ impl State {
                         if ui.checkbox(&im_str!("Show graph {}", i), &mut self.show_graph[i]) {
                             graph_changed = true;
                         }
-                        if ui.button(&im_str!("Delete Function {}", i), [0.0, 0.0]) {
+                        if ui.button(&im_str!("Delete Function {}", i)) {
                             self.graph_removing = Some(i);
                         }
                     }
-                    if ui.button(im_str!("Add Function"), [0.0, 0.0]) {
+                    if ui.button(im_str!("Add Function")) {
                         self.show_graph.push(false);
-                        self.expr.push(ImString::from(im_str!("")));
-                        self.bind.push(ImString::from(im_str!("")));
+                        self.expr.push(String::from(""));
+                        self.bind.push(String::from(""));
                         self.graph_points.push(vec![]);
                     }
                 });
@@ -279,8 +279,8 @@ impl State {
             res
         };
         for i in 0..self.show_graph.len() {
-            if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
-                if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+            if let Ok(expr) = &self.expr[i].parse::<meval::Expr>() {
+                if let Ok(func) = expr.clone().bind(&self.bind[i]) {
                     self.graph_points[i] = (0..300 + 1)
                         .map(|i| {
                             let minx = self.plot_limits[0];
@@ -353,8 +353,8 @@ impl State {
                         let mut t = Vec::new();
                         for i in 0..self.show_graph.len() {
                             if self.show_graph[i] {
-                                if let Ok(expr) = self.expr[i].to_str().parse::<meval::Expr>() {
-                                    if let Ok(func) = expr.bind(self.bind[i].to_str()) {
+                                if let Ok(expr) = &self.expr[i].parse::<meval::Expr>() {
+                                    if let Ok(func) = expr.clone().bind(&self.bind[i]) {
                                         if func(first.0 as f64) > first.1 as f64 {
                                             t.push(true);
                                         } else {
@@ -424,21 +424,15 @@ impl State {
             self.graph_removing = None;
         }
         Plot::new("Simple Plot")
-            .size(content_width, size[1])
+            .size([content_width, size[1]])
             .x_label(&haxislabel)
             .y_label(&vaxislabel)
             .x_limits(
-                &ImPlotRange {
-                    Min: self.plot_limits[0],
-                    Max: self.plot_limits[1],
-                },
+                (self.plot_limits[0], self.plot_limits[1]),
                 Condition::FirstUseEver,
             )
             .y_limits(
-                &ImPlotRange {
-                    Min: self.plot_limits[2],
-                    Max: self.plot_limits[3],
-                },
+                (self.plot_limits[2], self.plot_limits[3]),
                 YAxisChoice::First,
                 Condition::FirstUseEver,
             )

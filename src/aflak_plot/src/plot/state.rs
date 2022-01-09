@@ -250,7 +250,7 @@ impl State {
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
+            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Vertical Line"), true) {
                 if MenuItem::new(im_str!("to main editor")).build(ui) {
                     let new =
                         Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
@@ -274,7 +274,7 @@ impl State {
                         store.insert(self.interactions.id(), t_idx);
                     }
                 }
-                menu.end(ui);
+                menu.end();
             }
             if let Some((_, t_idx)) = *copying {
                 ui.separator();
