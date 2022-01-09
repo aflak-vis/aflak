@@ -17,7 +17,7 @@ extern crate variant_name_derive;
 use std::error::Error;
 use std::fmt;
 
-use imgui::{Id, ImString, Ui};
+use imgui::{DrawListMut, Id, ImString, Ui};
 use variant_name::VariantName;
 
 /// Values that we will transform in our node editor
@@ -52,6 +52,7 @@ lazy_static! {
             cake_transform!(
                 // description
                 "A transformation that adds 1 to an integer",
+                "Calculate",
                 // version number
                 1, 0, 0,
                 // definition
@@ -61,6 +62,7 @@ lazy_static! {
             ),
             cake_transform!(
                 "Very slow transformation that returns two floats",
+                "Calculate",
                 1, 0, 0,
                 slow<IOValue, IOErr>(i: Integer = 0) -> Float, Float {
                     use std::{thread, time};
@@ -145,7 +147,14 @@ impl cake::ConvertibleVariants for IOValue {
 struct MyConstantEditor;
 
 impl node_editor::ConstantEditor<IOValue> for MyConstantEditor {
-    fn editor<'a, I>(&self, ui: &Ui, constant: &IOValue, id: I, read_only: bool) -> Option<IOValue>
+    fn editor<'a, I>(
+        &self,
+        ui: &Ui,
+        constant: &IOValue,
+        id: I,
+        read_only: bool,
+        drawlist: &DrawListMut,
+    ) -> Option<IOValue>
     where
         I: Into<Id<'a>>,
     {
@@ -159,7 +168,7 @@ impl node_editor::ConstantEditor<IOValue> for MyConstantEditor {
             ui.tooltip_text("Read only, value is set by input!");
         }
 
-        id_stack.pop(ui);
+        id_stack.pop();
 
         some_new_value
     }
@@ -222,11 +231,11 @@ fn main() {
             .size([900.0, 600.0], imgui::Condition::FirstUseEver)
             .build(ui, || {
                 // Render main editor
-                editor.render(ui, transformations, &MyConstantEditor);
+                editor.render(ui, transformations, &MyConstantEditor, &mut None);
             });
 
         // Render macro editors and popups
-        editor.inner_editors_render(ui, transformations, &MyConstantEditor);
+        editor.inner_editors_render(ui, transformations, &MyConstantEditor, &mut None);
         editor.render_popups(ui);
 
         // Do something with outputs... For example, show them in a new imgui window
