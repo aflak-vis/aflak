@@ -52,22 +52,22 @@ impl Aflak {
         let mut new_editor = false;
 
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
-            if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
+            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("File"), true) {
                 if MenuItem::new(im_str!("New")).build(ui) {
                     new_editor = true;
                 }
                 if MenuItem::new(im_str!("Open FITS")).build(ui) {
                     self.file_dialog = Some(FileDialog::default());
                 }
-                if let Some(menu) =
-                    ui.begin_menu(im_str!("Open Recent"), !self.recent_files.is_empty())
+                if let Some(menu) = ui
+                    .begin_menu_with_enabled(im_str!("Open Recent"), !self.recent_files.is_empty())
                 {
                     for file in self.recent_files.iter().rev() {
                         if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
                             self.file_dialog = Some(FileDialog::with_path(file.clone()));
                         }
                     }
-                    menu.end(ui);
+                    menu.end();
                 }
                 ui.separator();
                 if MenuItem::new(im_str!("Quit"))
@@ -76,18 +76,18 @@ impl Aflak {
                 {
                     self.quit = true;
                 }
-                menu.end(ui);
+                menu.end();
             }
-            if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Others"), true) {
                 if MenuItem::new(im_str!("Metrics")).build(ui) {
                     self.show_metrics = !self.show_metrics;
                 }
                 if MenuItem::new(im_str!("Bind manager")).build(ui) {
                     self.show_bind_manager = !self.show_bind_manager;
                 }
-                menu.end(ui);
+                menu.end();
             }
-            menu_bar.end(ui);
+            menu_bar.end();
         }
 
         if new_editor {
@@ -95,15 +95,15 @@ impl Aflak {
         }
         ui.popup_modal(im_str!("Start new node program"))
             .always_auto_resize(true)
-            .build(|| {
+            .build(ui, || {
                 ui.text("The current node program will be lost. Proceed?");
                 ui.separator();
-                if ui.button(im_str!("OK"), [120.0, 0.0]) {
+                if ui.button(im_str!("OK")) {
                     self.node_editor = NodeEditor::default();
                     ui.close_current_popup();
                 }
-                ui.same_line(0.0);
-                if ui.button(im_str!("Cancel"), [120.0, 0.0]) {
+                ui.same_line();
+                if ui.button(im_str!("Cancel")) {
                     ui.close_current_popup();
                 }
             });
@@ -172,7 +172,7 @@ impl Aflak {
         if !self.error_alerts.is_empty() {
             ui.open_popup(im_str!("Error"));
         }
-        ui.popup_modal(im_str!("Error")).build(|| {
+        ui.popup_modal(im_str!("Error")).build(ui, || {
             {
                 let e = &self.error_alerts[self.error_alerts.len() - 1];
                 ui.text(&ImString::new(format!("{}", e)));
@@ -228,10 +228,10 @@ impl Aflak {
                                         let p = ui.cursor_screen_pos();
                                         ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
                                         bind_count += 1;
-                                        if ui.button(
-                                            &ImString::new(format!("Remove bind {}", bind_count)),
-                                            [0.0, 0.0],
-                                        ) {
+                                        if ui.button(&ImString::new(format!(
+                                            "Remove bind {}",
+                                            bind_count
+                                        ))) {
                                             remove_id = Some(interaction_id);
                                         }
                                         if ui.is_item_hovered() {
@@ -255,10 +255,10 @@ impl Aflak {
                                     let p = ui.cursor_screen_pos();
                                     ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
                                     bind_count += 1;
-                                    if ui.button(
-                                        &ImString::new(format!("Remove bind {}", bind_count)),
-                                        [0.0, 0.0],
-                                    ) {
+                                    if ui.button(&ImString::new(format!(
+                                        "Remove bind {}",
+                                        bind_count
+                                    ))) {
                                         remove_id = Some(interaction_id);
                                     }
                                     if ui.is_item_hovered() {
