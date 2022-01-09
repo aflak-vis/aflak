@@ -10,7 +10,7 @@ pub enum Value {
     Float(f32),
     Float2([f32; 2]),
     Float3([f32; 3]),
-    FinedGrainedROI(Vec<(usize, usize)>),
+    FinedGrainedROI((Vec<(usize, usize)>, bool)),
     Line(Vec<(usize, usize)>),
     Circle(Vec<(usize, usize)>),
 }
@@ -33,6 +33,11 @@ impl From<[f32; 2]> for Value {
 impl From<[f32; 3]> for Value {
     fn from(v: [f32; 3]) -> Self {
         Value::Float3(v)
+    }
+}
+impl From<(Vec<(usize, usize)>, bool)> for Value {
+    fn from(v: (Vec<(usize, usize)>, bool)) -> Self {
+        Value::FinedGrainedROI(v)
     }
 }
 
@@ -60,6 +65,7 @@ pub struct VerticalLine {
 pub struct FinedGrainedROI {
     pub(crate) id: usize,
     pub pixels: Vec<(usize, usize)>,
+    pub changed: bool,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Line {
@@ -102,7 +108,19 @@ impl VerticalLine {
 
 impl FinedGrainedROI {
     pub fn new(id: usize) -> Self {
-        Self { id, pixels: vec![] }
+        Self {
+            id,
+            pixels: vec![],
+            changed: false,
+        }
+    }
+
+    pub fn from_vec(id: usize, vec: Vec<(usize, usize)>) -> Self {
+        Self {
+            id,
+            pixels: vec,
+            changed: false,
+        }
     }
 }
 
@@ -160,6 +178,10 @@ impl Interactions {
         self.0.insert(new_id, interaction)
     }
 
+    pub fn id(&mut self) -> InteractionId {
+        InteractionId(self.1)
+    }
+
     pub(crate) fn remove(&mut self, id: InteractionId) -> Option<Interaction> {
         self.0.remove(&id)
     }
@@ -180,9 +202,11 @@ impl Interaction {
         match self {
             Interaction::HorizontalLine(HorizontalLine { height, .. }) => Value::Float(*height),
             Interaction::VerticalLine(VerticalLine { x_pos, .. }) => Value::Float(*x_pos),
-            Interaction::FinedGrainedROI(FinedGrainedROI { pixels, .. }) => {
-                Value::FinedGrainedROI(pixels.clone())
-            }
+            Interaction::FinedGrainedROI(FinedGrainedROI {
+                id: _,
+                pixels,
+                changed,
+            }) => Value::FinedGrainedROI((pixels.clone(), *changed)),
             Interaction::Line(Line { pixels, .. }) => Value::Line(pixels.clone()),
             Interaction::Circle(Circle { pixels, .. }) => Value::Circle(pixels.clone()),
         }
@@ -200,6 +224,22 @@ impl Interaction {
             }
             (Interaction::VerticalLine(VerticalLine { ref mut x_pos, .. }), Value::Float(f)) => {
                 *x_pos = *f;
+                Ok(())
+            }
+            (
+                Interaction::FinedGrainedROI(FinedGrainedROI {
+                    id: _,
+                    ref mut pixels,
+                    ref mut changed,
+                }),
+                Value::FinedGrainedROI(p),
+            ) => {
+                if *pixels != (*p).0.clone() {
+                    *changed = true;
+                } else {
+                    *changed = false;
+                }
+                *pixels = (*p).0.clone();
                 Ok(())
             }
             interaction => Err(format!(
@@ -233,9 +273,9 @@ pub struct ValueIter<'a>(btree_map::Iter<'a, InteractionId, Interaction>);
 pub struct InteractionIterMut<'a>(btree_map::IterMut<'a, InteractionId, Interaction>);
 
 impl<'a> Iterator for ValueIter<'a> {
-    type Item = (&'a InteractionId, Value);
+    type Item = (&'a InteractionId, &'a Interaction, Value);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(id, inter)| (id, inter.value()))
+        self.0.next().map(|(id, inter)| (id, inter, inter.value()))
     }
 }
 

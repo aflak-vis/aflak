@@ -23,7 +23,7 @@ mod vec2;
 
 use std::{collections, error, fmt, fs, io, path};
 
-use crate::cake::Future;
+use crate::cake::{Future, TransformIdx};
 use imgui::ImString;
 use imgui_file_explorer::UiFileExplorer;
 
@@ -33,14 +33,13 @@ use crate::layout::NodeEditorLayout;
 
 /// The node editor instance.
 pub struct NodeEditor<T: 'static, E: 'static> {
-    dst: cake::DST<'static, T, E>,
+    pub dst: cake::DST<'static, T, E>,
     output_results: collections::BTreeMap<cake::OutputId, ComputationState<T, E>>,
     cache: cake::Cache<T, cake::compute::ComputeError<E>>,
-    macros: cake::macros::MacroManager<'static, T, E>,
+    pub macros: cake::macros::MacroManager<'static, T, E>,
     layout: NodeEditorLayout<T, E>,
     error_stack: Vec<Box<dyn error::Error>>,
     success_stack: Vec<ImString>,
-
     nodes_edit: Vec<InnerNodeEditor<T, E>>,
     import_macro: Option<cake::macros::MacroHandle<'static, T, E>>,
 }
@@ -128,24 +127,42 @@ where
     /// Return the ID if the new node.
     pub fn create_constant_node(&mut self, t: T) -> cake::TransformIdx {
         self.dst
-            .add_owned_transform(cake::Transform::new_constant(t))
+            .add_owned_transform(cake::Transform::new_constant(t), None)
     }
 }
 
 impl<T, E> NodeEditor<T, E>
 where
-    T: PartialEq + cake::VariantName,
+    T: PartialEq + cake::VariantName + std::clone::Clone,
 {
     /// Update the constant value of constant node with given `id` with given
     /// value `val`.
     pub fn update_constant_node(&mut self, id: cake::TransformIdx, val: T) {
-        if let Some(t) = self.dst.get_transform_mut(id) {
-            let mut new_value = false;
-            if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                new_value = *constant != val;
+        if let Some(macro_id) = id.macro_id() {
+            if let Some(macro_handle) = self.macros.get_macro(macro_id) {
+                if let Some(t) = macro_handle.write().dst_mut().get_transform_mut(id) {
+                    let mut new_value = false;
+                    if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                        new_value = *constant != val;
+                    }
+                    if new_value {
+                        t.set_constant(val);
+                    }
+                } else {
+                    eprintln!("not found macro transform from {:?}", id);
+                }
+            } else {
+                eprintln!("not found macro handle");
             }
-            if new_value {
-                t.set_constant(val);
+        } else {
+            if let Some(t) = self.dst.get_transform_mut(id) {
+                let mut new_value = false;
+                if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
+                    new_value = *constant != val;
+                }
+                if new_value {
+                    t.set_constant(val);
+                }
             }
         }
     }
@@ -183,12 +200,18 @@ where
         ui: &imgui::Ui,
         addable_nodes: &[&'static cake::Transform<T, E>],
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
-        let events =
-            self.layout
-                .render(ui, &self.dst, addable_nodes, &self.macros, constant_editor);
+        let events = self.layout.render(
+            ui,
+            &self.dst,
+            addable_nodes,
+            &self.macros,
+            constant_editor,
+            attaching,
+        );
         for event in events {
             self.apply_event(event);
         }
@@ -244,6 +267,7 @@ where
         ui: &imgui::Ui,
         addable_nodes: &[&'static cake::Transform<T, E>],
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -271,18 +295,23 @@ where
                     let events = {
                         let lock = node_edit.handle.read();
                         let dst = lock.dst();
-                        node_edit
-                            .layout
-                            .render(ui, dst, addable_nodes, macros, constant_editor)
+                        node_edit.layout.render(
+                            ui,
+                            dst,
+                            addable_nodes,
+                            macros,
+                            constant_editor,
+                            attaching,
+                        )
                     };
                     for event in events {
                         if let event::RenderEvent::AddNewMacro = event {
                             let new_macr = macros.create_macro().clone();
-                            node_edit
-                                .handle
-                                .write()
-                                .dst_mut()
-                                .add_owned_transform(cake::Transform::from_macro(new_macr));
+                            let macro_id = new_macr.id();
+                            node_edit.handle.write().dst_mut().add_owned_transform(
+                                cake::Transform::from_macro(new_macr),
+                                Some(macro_id),
+                            );
                         } else if let event::RenderEvent::EditNode(node_id) = event {
                             if let cake::NodeId::Transform(t_idx) = node_id {
                                 if let Some(t) = node_edit.handle.read().dst().get_transform(t_idx)
@@ -335,8 +364,8 @@ where
                     .size([0.0, 350.0])
                     .horizontal_scrollbar(true)
                     .build(ui, || {
-                        if let Ok(Some(path)) =
-                            ui.file_explorer(imgui_file_explorer::TOP_FOLDER, &["macro"])
+                        if let Ok((Some(path), _)) =
+                            ui.file_explorer(imgui_file_explorer::CURRENT_FOLDER, &["macro"])
                         {
                             selected_path = Some(path);
                         }
@@ -430,8 +459,6 @@ fn open_macro_editor<T, E>(
     }
 }
 
-const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
-
 impl<T, E> ApplyRenderEvent<T, E> for NodeEditor<T, E>
 where
     T: Clone
@@ -462,18 +489,18 @@ where
     fn disconnect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
         match input_slot {
             cake::InputSlot::Transform(input) => self.dst.disconnect(&output, &input),
-            cake::InputSlot::Output(output_id) => self.dst.detach_output(&output_id),
+            cake::InputSlot::Output(output_id) => self.dst.detach_output(&output, &output_id),
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
-        self.dst.add_transform(t);
+        self.dst.add_transform(t, None);
     }
     fn create_output(&mut self) {
         self.dst.create_output();
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
-        self.dst.add_owned_transform(constant);
+        self.dst.add_owned_transform(constant, None);
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         if let Some(t) = self.dst.get_transform_mut(t_idx) {
@@ -502,24 +529,27 @@ where
         }
     }
     fn export(&mut self) {
-        if let Err(e) = self.export_to_file(EDITOR_EXPORT_FILE) {
-            eprintln!("Error on export! {}", e);
-            self.error_stack.push(Box::new(e));
-        } else {
-            self.success_stack.push(ImString::new(format!(
-                "Editor content was exported with success to '{}'!",
-                EDITOR_EXPORT_FILE
-            )));
+        if let Some(path) = self.layout.export_path.take() {
+            if let Err(e) = self.export_to_file(path.clone()) {
+                eprintln!("Error on export! {}", e);
+                self.error_stack.push(Box::new(e));
+            } else {
+                self.success_stack.push(ImString::new(format!(
+                    "Editor content was exported with success to '{:?}'!",
+                    path
+                )));
+            }
         }
     }
     fn add_new_macro(&mut self) {
-        self.dst.add_owned_transform(cake::Transform::from_macro(
-            self.macros.create_macro().clone(),
-        ));
+        self.dst.add_owned_transform(
+            cake::Transform::from_macro(self.macros.create_macro().clone()),
+            None,
+        );
     }
     fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
         self.dst
-            .add_owned_transform(cake::Transform::from_macro(handle));
+            .add_owned_transform(cake::Transform::from_macro(handle), None);
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         if let cake::NodeId::Transform(t_idx) = node_id {
@@ -566,18 +596,26 @@ where
         let dst = lock.dst_mut();
         match input_slot {
             cake::InputSlot::Transform(input) => dst.disconnect(&output, &input),
-            cake::InputSlot::Output(output_id) => dst.detach_output(&output_id),
+            cake::InputSlot::Output(output_id) => dst.detach_output(&output, &output_id),
         }
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
-        self.handle.write().dst_mut().add_transform(t);
+        let handle_id = self.handle.id();
+        self.handle
+            .write()
+            .dst_mut()
+            .add_transform(t, Some(handle_id));
     }
     fn create_output(&mut self) {
         self.handle.write().dst_mut().create_output();
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
-        self.handle.write().dst_mut().add_owned_transform(constant);
+        let handle_id = self.handle.id();
+        self.handle
+            .write()
+            .dst_mut()
+            .add_owned_transform(constant, Some(handle_id));
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         let mut lock = self.handle.write();
@@ -628,7 +666,7 @@ where
             self.handle
                 .write()
                 .dst_mut()
-                .add_owned_transform(cake::Transform::from_macro(handle));
+                .add_owned_transform(cake::Transform::from_macro(handle), Some(self.handle.id()));
         }
     }
     fn edit_node(&mut self, _: cake::NodeId) {

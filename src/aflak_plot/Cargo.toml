@@ -10,7 +10,12 @@ license = "GPL-3.0-only"
 glium = { version = "0.27", default-features = true }
 imgui = { version = "0.5.0" }
 imgui-glium-renderer = { version = "0.5.0" }
+aflak_cake = { path = "../aflak_cake" }
+aflak_primitives = { path = "../aflak_primitives" }
+node_editor = { path = "../node_editor" }
 ndarray = "0.12"
+implot = { version = "0.2.0" }
+meval = "0.2"
 
 [dev-dependencies]
 aflak_imgui_glium_support = { path = "../imgui_glium_support", version = "0.0.3" }

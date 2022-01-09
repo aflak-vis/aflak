@@ -10,8 +10,12 @@ use aflak_plot::{
 };
 use imgui::{Condition, Window};
 
+use std::collections::HashMap;
 use std::f32;
 use std::path::PathBuf;
+
+use aflak_plot::imshow::cake::OutputId;
+use aflak_plot::plot::node_editor::NodeEditor;
 
 fn main() {
     let config = support::AppConfig {
@@ -33,6 +37,11 @@ fn main() {
                     "m",
                     Some(&AxisTransform::new("x", "rad", |x| x / MAX)),
                     &mut state,
+                    &mut None,
+                    &mut HashMap::new(),
+                    &mut None,
+                    OutputId::new(0),
+                    &NodeEditor::default(),
                 )
                 .expect("Image1d failed");
             });

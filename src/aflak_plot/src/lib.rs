@@ -9,15 +9,22 @@
 extern crate glium;
 #[macro_use]
 extern crate imgui;
+extern crate aflak_cake as cake;
+extern crate aflak_primitives as primitives;
 extern crate imgui_glium_renderer;
+extern crate node_editor;
 #[macro_use]
 extern crate ndarray;
 
+extern crate implot;
+extern crate meval;
+
 pub mod imshow;
 pub mod plot;
+pub mod scatter_lineplot;
 
 mod err;
-mod interactions;
+pub mod interactions;
 mod lims;
 mod ticks;
 mod units;

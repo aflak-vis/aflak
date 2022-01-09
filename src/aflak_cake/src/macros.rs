@@ -1,3 +1,4 @@
+use crate::dst::TransformIdx;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::ops;
@@ -183,6 +184,15 @@ impl<'t, T, E> Macro<'t, T, E> {
         &mut self.dst
     }
 
+    pub fn get_constant_value(&self, id: TransformIdx) -> Option<&T> {
+        let tr = self.dst.get_transform(id).unwrap();
+        if let Algorithm::Constant(ref constant) = tr.algorithm() {
+            Some(constant)
+        } else {
+            None
+        }
+    }
+
     fn input_types(&self) -> Vec<TypeId> {
         self.inputs
             .iter()
@@ -275,7 +285,8 @@ impl<'t, T, E> Macro<'t, T, E> {
         let mut dst = self.dst.clone();
 
         for (arg, input) in args.into_iter().zip(&self.inputs) {
-            let t_idx = dst.add_owned_transform(Transform::new_constant((*arg).clone()));
+            let t_idx =
+                dst.add_owned_transform(Transform::new_constant((*arg).clone()), Some(self.id));
             let output = Output::new(t_idx, 0);
             match input.slot {
                 InputSlot::Output(output_id) => {

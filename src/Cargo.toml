@@ -17,6 +17,7 @@ aflak_cake = { path = "./aflak_cake", version = "0.0.3" }
 aflak_plot = { path = "./aflak_plot", version = "0.0.3" }
 aflak_primitives = { path = "./aflak_primitives", version = "0.0.3" }
 imgui_file_explorer = { path = "./imgui_file_explorer", version = "0.0.3" }
+imgui_tone_curve = { path = "./imgui_tone_curve", version = "0.0.3" }
 aflak_imgui_glium_support = { path = "./imgui_glium_support", version = "0.0.3" }
 node_editor = { path = "./node_editor", version = "0.0.3" }
 
@@ -24,8 +25,8 @@ clap = "2.32.0"
 glium = { version = "0.27", default-features = true }
 imgui = { version = "0.5.0" }
 imgui-glium-renderer = { version = "0.5.0" }
+implot = { version = "0.2.0" }
 owning_ref = "0.4.0"
-
 [build-dependencies]
 clap = "2.32.0"
 

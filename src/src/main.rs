@@ -5,6 +5,7 @@ extern crate glium;
 #[macro_use]
 extern crate imgui;
 extern crate imgui_glium_renderer;
+extern crate implot;
 extern crate owning_ref;
 
 extern crate aflak_cake as cake;
@@ -12,6 +13,7 @@ extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
 extern crate aflak_primitives as primitives;
 extern crate imgui_file_explorer;
+extern crate imgui_tone_curve;
 extern crate node_editor;
 
 mod aflak;
@@ -31,6 +33,8 @@ use std::process;
 use node_editor::NodeEditor;
 
 use crate::aflak::Aflak;
+
+use implot::Context;
 
 const CLEAR_COLOR: [f32; 4] = [0.05, 0.05, 0.05, 1.0];
 
@@ -67,14 +71,20 @@ fn main() {
         ..Default::default()
     };
     let transformations_ref: Vec<_> = primitives::TRANSFORMATIONS.iter().collect();
-
+    let plotcontext = Context::create();
     support::init(config).main_loop(move |ui, gl_ctx, textures| {
         let transformations = transformations_ref.as_slice();
         aflak.main_menu_bar(ui);
         aflak.node_editor(ui, transformations);
-        aflak.output_windows(ui, gl_ctx, textures);
+        aflak.output_windows(ui, gl_ctx, textures, &plotcontext);
         aflak.show_errors(ui);
         aflak.file_dialog(ui);
+        if aflak.show_metrics {
+            ui.show_metrics_window(&mut aflak.show_metrics);
+        }
+        if aflak.show_bind_manager {
+            aflak.bind_manager(ui);
+        }
         !aflak.quit
     })
 }

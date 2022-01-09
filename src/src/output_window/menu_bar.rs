@@ -10,22 +10,25 @@ use glium;
 use imgui::{MenuItem, TextureId, Ui, Window};
 use owning_ref::ArcRef;
 
-use crate::cake::OutputId;
+use crate::aflak_plot::{
+    imshow::{Textures, UiImage2d},
+    plot::UiImage1d,
+    scatter_lineplot::UiScatter,
+    AxisTransform, InteractionId, InteractionIterMut, ValueIter,
+};
+use crate::cake::{OutputId, TransformIdx};
 use crate::primitives::{
     self,
     fitrs::{Fits, Hdu},
-    IOValue, ROI,
+    IOValue, PATHS, ROI,
 };
-use aflak_plot::{
-    imshow::{Textures, UiImage2d},
-    plot::UiImage1d,
-    AxisTransform, InteractionIterMut, ValueIter,
-};
+
+use implot::Context;
 
 use super::{AflakNodeEditor, EditableValues, OutputWindow};
 
 /// Catch-all object for variables used by output window during render
-pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
+pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, 'p, F: 'gl> {
     pub ui: &'ui Ui<'ui>,
     pub output: OutputId,
     pub value: &'val ::std::sync::Arc<IOValue>,
@@ -34,6 +37,9 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
     pub node_editor: &'ed mut AflakNodeEditor,
     pub gl_ctx: &'gl F,
     pub textures: &'tex mut Textures,
+    pub plotcontext: &'p Context,
+    pub copying: &'w mut Option<(InteractionId, TransformIdx)>,
+    pub attaching: &'w mut Option<(OutputId, TransformIdx, usize)>,
 }
 
 /// Similar to Visualizable, excepts that the types that implements this trait
@@ -41,7 +47,7 @@ pub struct OutputWindowCtx<'ui, 'val, 'w, 'tex, 'ed, 'gl, F: 'gl> {
 /// The can be exported to disk and display options can be included in a menu
 /// bar.
 pub trait MenuBar {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade;
 
@@ -51,22 +57,28 @@ pub trait MenuBar {
 
     fn draw<'ui, F>(
         &self,
-        ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, F>,
+        ctx: OutputWindowCtx<'ui, '_, '_, '_, '_, '_, '_, F>,
         window: Window<'_>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
     {
         let mut errors = vec![];
-        window.menu_bar(true).build(ctx.ui, || {
-            errors = MenuBar::menu_bar(self, ctx.ui, ctx.output, ctx.window);
-            MenuBar::visualize(self, ctx);
-        });
+        window
+            .menu_bar(true)
+            .scroll_bar(false)
+            .scrollable(false)
+            .build(ctx.ui, || {
+                errors = MenuBar::menu_bar(self, ctx.ui, ctx.output, ctx.window);
+                MenuBar::visualize(self, ctx);
+            });
         errors
     }
 
     fn file_submenu(&self, _: &Ui, _: &mut OutputWindow) {}
     fn other_menu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn zoom_menu(&self, _: &Ui, _: &mut OutputWindow) {}
+    fn histogram_menu(&self, _: &Ui, _: &mut OutputWindow) {}
 
     fn file_name(&self, output: OutputId) -> String {
         format!("output-{}.{}", output.id(), Self::EXTENSION)
@@ -120,22 +132,53 @@ fn update_state_from_editor(
     editable_values: &EditableValues,
     node_editor: &AflakNodeEditor,
 ) {
+    use aflak_plot::Interaction;
+
     for (id, interaction) in interactions {
         if editable_values.contains_key(id) {
             let t_idx = editable_values.get(id).unwrap();
-            if let Some(value) = node_editor.constant_node_value(*t_idx) {
-                if let Err(e) = match value {
-                    IOValue::Integer(i) => interaction.set_value(*i),
-                    IOValue::Float(f) => interaction.set_value(*f),
-                    IOValue::Float2(f) => interaction.set_value(*f),
-                    IOValue::Float3(f) => interaction.set_value(*f),
-                    IOValue::Roi(_) => Ok(()),
-                    value => Err(format!("Cannot convert value '{:?}'", value)),
-                } {
-                    eprintln!("Could not update state from editor: {}", e);
+            if let Some(macro_id) = t_idx.macro_id() {
+                if let Some(macr) = node_editor.macros.get_macro(macro_id) {
+                    let macr = macr.read();
+                    if let Some(value) = macr.get_constant_value(*t_idx) {
+                        if let Err(e) = match value {
+                            IOValue::Integer(i) => interaction.set_value(*i),
+                            IOValue::Float(f) => interaction.set_value(*f),
+                            IOValue::Float2(f) => interaction.set_value(*f),
+                            IOValue::Float3(f) => interaction.set_value(*f),
+                            IOValue::Roi(r) => match r {
+                                primitives::ROI::All => Ok(()),
+                                primitives::ROI::PixelList(p) => match interaction {
+                                    Interaction::FinedGrainedROI(r) => {
+                                        let changed = r.changed;
+                                        interaction.set_value(((*p).clone(), changed))
+                                    }
+                                    _ => Ok(()),
+                                },
+                            },
+                            value => Err(format!("Cannot convert value '{:?}'", value)),
+                        } {
+                            eprintln!("Could not update state from editor: {}", e);
+                        }
+                    } else {
+                        eprintln!("No constant node found for transform '{:?}'", t_idx);
+                    }
                 }
             } else {
-                eprintln!("No constant node found for transform '{:?}'", t_idx);
+                if let Some(value) = node_editor.constant_node_value(*t_idx) {
+                    if let Err(e) = match value {
+                        IOValue::Integer(i) => interaction.set_value(*i),
+                        IOValue::Float(f) => interaction.set_value(*f),
+                        IOValue::Float2(f) => interaction.set_value(*f),
+                        IOValue::Float3(f) => interaction.set_value(*f),
+                        IOValue::Roi(_) => Ok(()),
+                        value => Err(format!("Cannot convert value '{:?}'", value)),
+                    } {
+                        eprintln!("Could not update state from editor: {}", e);
+                    }
+                } else {
+                    eprintln!("No constant node found for transform '{:?}'", t_idx);
+                }
             }
         } else {
             eprintln!("'{:?}' not found in store", id);
@@ -148,20 +191,28 @@ fn update_editor_from_state(
     store: &mut EditableValues,
     node_editor: &mut AflakNodeEditor,
 ) {
-    for (id, value) in value_iter {
-        use aflak_plot::Value;
+    for (id, interaction, value) in value_iter {
+        use aflak_plot::{Interaction, Value};
+        let change_flag = match interaction {
+            Interaction::HorizontalLine(h) => h.moving,
+            Interaction::VerticalLine(v) => v.moving,
+            Interaction::FinedGrainedROI(r) => r.changed,
+            _ => true,
+        };
         let val = match value {
             Value::Integer(i) => IOValue::Integer(i),
             Value::Float(f) => IOValue::Float(f),
             Value::Float2(f) => IOValue::Float2(f),
             Value::Float3(f) => IOValue::Float3(f),
-            Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
+            Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels.0)),
             Value::Line(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             Value::Circle(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
         };
         if store.contains_key(id) {
-            let t_idx = *store.get(id).unwrap();
-            node_editor.update_constant_node(t_idx, val);
+            if change_flag {
+                let t_idx = *store.get(id).unwrap();
+                node_editor.update_constant_node(t_idx, val);
+            }
         } else {
             let t_idx = node_editor.create_constant_node(val);
             store.insert(*id, t_idx);
@@ -180,10 +231,15 @@ fn hash_outputid(id: OutputId) -> usize {
 }
 
 impl MenuBar for String {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"String");
+            }
+        }
         ctx.ui.text(self);
     }
 
@@ -196,10 +252,15 @@ impl MenuBar for String {
 }
 
 impl MenuBar for i64 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Integer");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -212,10 +273,15 @@ impl MenuBar for i64 {
 }
 
 impl MenuBar for f32 {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -228,10 +294,15 @@ impl MenuBar for f32 {
 }
 
 impl MenuBar for [f32; 2] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float2");
+            }
+        }
         ctx.ui.text(format!("{:?}", self));
     }
 
@@ -244,10 +315,15 @@ impl MenuBar for [f32; 2] {
 }
 
 impl MenuBar for [f32; 3] {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float3");
+            }
+        }
         ctx.ui.text(format!("{:?}", self));
     }
 
@@ -260,10 +336,15 @@ impl MenuBar for [f32; 3] {
 }
 
 impl MenuBar for bool {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Bool");
+            }
+        }
         ctx.ui.text(format!("{}", self));
     }
 
@@ -275,16 +356,21 @@ impl MenuBar for bool {
     const EXTENSION: &'static str = "txt";
 }
 
-impl MenuBar for Path {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+impl MenuBar for PATHS {
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
-        ctx.ui.text(format!("{:?}", self));
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Paths");
+            }
+        }
+        ctx.ui.text_wrapped(&im_str!("{:?}", self));
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
-        write_to_file_as_display(path, &self.to_string_lossy())?;
+        write_to_file_as_display(path, &format!("{:?}", self))?;
         Ok(())
     }
 
@@ -292,10 +378,15 @@ impl MenuBar for Path {
 }
 
 impl MenuBar for ROI {
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Roi");
+            }
+        }
         ctx.ui.text_wrapped(&im_str!("{:?}", self));
     }
 
@@ -309,155 +400,473 @@ impl MenuBar for ROI {
 
 impl MenuBar for primitives::WcsArray {
     fn file_submenu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match self.scalar().ndim() {
-            1 | 2 => {
-                let has_wcs_data = self.wcs().is_some();
-                MenuItem::new(im_str!("Show pixels"))
-                    .enabled(has_wcs_data)
-                    .build_with_ref(ui, &mut window.show_pixels);
-                if !has_wcs_data && ui.is_item_hovered() {
-                    ui.tooltip_text("Data has no WCS metadata attached.");
+        match &self.tag() {
+            None => match self.scalar().ndim() {
+                1 | 2 => {
+                    let has_wcs_data = self.wcs().is_some();
+                    MenuItem::new(im_str!("Show pixels"))
+                        .enabled(has_wcs_data)
+                        .build_with_ref(ui, &mut window.show_pixels);
+                    if !has_wcs_data && ui.is_item_hovered() {
+                        ui.tooltip_text("Data has no WCS metadata attached.");
+                    }
                 }
-            }
-            _ => {}
+                _ => {}
+            },
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().ndim() {
+                    2 => {}
+                    _ => {}
+                },
+                _ => {}
+            },
         }
     }
 
     fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        match self.scalar().ndim() {
-            2 => {
-                if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
-                    MenuItem::new(im_str!("Approx Line"))
-                        .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
-                    menu.end(ui);
+        match &self.tag() {
+            None => match self.scalar().ndim() {
+                2 => {
+                    if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                        self.zoom_menu(ui, window);
+                        menu.end(ui);
+                    }
+                    if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                        self.histogram_menu(ui, window);
+                        menu.end(ui);
+                    }
+                    if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                        MenuItem::new(im_str!("Approx Line"))
+                            .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
+                        menu.end(ui);
+                    }
                 }
-            }
-            _ => {}
+                _ => {}
+            },
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().ndim() {
+                    2 => {
+                        if let Some(menu) = ui.begin_menu(im_str!("Graph"), true) {
+                            MenuItem::new(im_str!("Graph Editor")).build_with_ref(
+                                ui,
+                                &mut window.scatter_lineplot_state.show_graph_editor,
+                            );
+                            menu.end(ui);
+                        }
+                        if let Some(menu) = ui.begin_menu(im_str!("Option"), true) {
+                            if MenuItem::new(im_str!("Show all data points")).build_with_ref(
+                                ui,
+                                &mut window.scatter_lineplot_state.show_all_point,
+                            ) {
+                                window.scatter_lineplot_state.editor_changed = true;
+                            }
+                            menu.end(ui);
+                        }
+                    }
+                    _ => {}
+                },
+                "color_image" => match self.scalar().ndim() {
+                    3 => {
+                        if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                            self.zoom_menu(ui, window);
+                            menu.end(ui);
+                        }
+                        if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                            self.histogram_menu(ui, window);
+                            menu.end(ui);
+                        }
+                    }
+                    _ => {}
+                },
+                _ => {}
+            },
         }
     }
 
-    fn visualize<F>(&self, ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, F>)
+    fn zoom_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        if let Some(menu) = ui.begin_menu(im_str!("Zoom"), true) {
+            if MenuItem::new(im_str!("Fit"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[0])
+            {
+                if window.image2d_state.zoomkind[0] == true {
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[0] = true;
+                }
+            }
+            if MenuItem::new(im_str!("50%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[1])
+            {
+                if window.image2d_state.zoomkind[1] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[1] = true;
+                }
+            }
+            if MenuItem::new(im_str!("100%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[2])
+            {
+                if window.image2d_state.zoomkind[2] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[3] = false;
+                } else {
+                    window.image2d_state.zoomkind[2] = true;
+                }
+            }
+            if MenuItem::new(im_str!("200%"))
+                .build_with_ref(ui, &mut window.image2d_state.zoomkind[3])
+            {
+                if window.image2d_state.zoomkind[3] == true {
+                    window.image2d_state.zoomkind[0] = false;
+                    window.image2d_state.zoomkind[1] = false;
+                    window.image2d_state.zoomkind[2] = false;
+                } else {
+                    window.image2d_state.zoomkind[3] = true;
+                }
+            }
+            menu.end(ui);
+        }
+    }
+
+    fn histogram_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        MenuItem::new(im_str!("Logscale"))
+            .build_with_ref(ui, &mut window.image2d_state.hist_logscale);
+    }
+
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
     where
         F: glium::backend::Facade,
     {
         use crate::primitives::ndarray::Dimension;
-        let ui = &ctx.ui;
-        match self.scalar().dim().ndim() {
-            0 => {
-                let arr = self.array();
-                let val = arr.scalar()[[]];
-                let unit = arr.unit().repr();
-                ui.text(format!("{} {}", val, unit));
-            }
-            1 => {
-                let state = &mut ctx.window.image1d_state;
-                update_state_from_editor(
-                    state.stored_values_mut(),
-                    &ctx.window.editable_values,
-                    ctx.node_editor,
-                );
-                let unit = self.array().unit().repr();
-                let transform = if ctx.window.show_pixels {
-                    None
-                } else {
-                    match (self.axes(), self.wcs()) {
-                        (Some(axes), Some(wcs)) => {
-                            let axis = &axes[0];
-                            Some(AxisTransform::new(axis.name(), axis.unit(), move |t| {
-                                wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                            }))
+        match &self.tag() {
+            None => match self.scalar().dim().ndim() {
+                0 => {
+                    if let Some(attaching) = ctx.attaching {
+                        if attaching.0 == ctx.output {
+                            attach_failued(&mut ctx, &"String");
                         }
-                        _ => None,
                     }
-                };
-                if let Err(e) = ui.image1d(&self.scalar1(), "", unit, transform.as_ref(), state) {
-                    ui.text(format!("Error on drawing plot! {}", e))
+                    let arr = self.array();
+                    let val = arr.scalar()[[]];
+                    let unit = arr.unit().repr();
+                    let ui = &ctx.ui;
+                    ui.text(format!("{} {}", val, unit));
                 }
-                update_editor_from_state(
-                    state.stored_values(),
-                    &mut ctx.window.editable_values,
-                    ctx.node_editor,
-                );
-            }
-            2 => {
-                let state = &mut ctx.window.image2d_state;
-                update_state_from_editor(
-                    state.stored_values_mut(),
-                    &ctx.window.editable_values,
-                    &ctx.node_editor,
-                );
-                let texture_id = TextureId::from(hash_outputid(ctx.output));
-                let (x_transform, y_transform) = if ctx.window.show_pixels {
-                    (None, None)
-                } else {
-                    match (self.axes(), self.wcs()) {
-                        (Some(axes), Some(wcs)) => {
-                            let axis0 = &axes[0];
-                            let axis1 = &axes[1];
-                            (
-                                Some({
-                                    AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
-                                        wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
-                                    })
-                                }),
-                                Some(AxisTransform::new(axis0.name(), axis1.unit(), {
-                                    let max_height =
-                                        (self.scalar().dim().as_array_view().first().unwrap() - 1)
-                                            as f32;
-                                    move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
-                                })),
-                            )
+                1 => {
+                    let attaching = &ctx.attaching;
+                    let output = &ctx.output;
+                    if let Some(attaching) = attaching {
+                        if attaching.0 == *output {
+                            if attaching.2 != 1 {
+                                attach_failued(&mut ctx, &"1D plot");
+                            }
                         }
-                        _ => (None, None),
                     }
-                };
-                let unit = self.array().unit().repr();
-                let new_incoming_image = match state.image_created_on() {
-                    Some(image_created_on) => ctx.created_on > image_created_on,
-                    None => true,
-                };
-                if new_incoming_image {
-                    let value_ref: ArcRef<_> = ctx.value.clone().into();
-                    let image_ref = value_ref.map(|value| {
-                        if let IOValue::Image(image) = value {
-                            image.scalar()
-                        } else {
-                            unreachable!("Expect an Image")
+                    let ui = &ctx.ui;
+                    let state = &mut ctx.window.image1d_state;
+                    update_state_from_editor(
+                        state.stored_values_mut(),
+                        &ctx.window.editable_values,
+                        ctx.node_editor,
+                    );
+                    let unit = self.array().unit().repr();
+                    let transform = if ctx.window.show_pixels {
+                        None
+                    } else {
+                        match (self.axes(), self.wcs()) {
+                            (Some(axes), Some(wcs)) => {
+                                let axis = &axes[0];
+                                Some(AxisTransform::new(axis.name(), axis.unit(), move |t| {
+                                    wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                }))
+                            }
+                            _ => None,
                         }
-                    });
-                    if let Err(e) = state.set_image(
-                        image_ref,
-                        ctx.created_on,
-                        ctx.gl_ctx,
-                        texture_id,
-                        ctx.textures,
+                    };
+                    if let Err(e) = ui.image1d(
+                        &self.scalar1(),
+                        "",
+                        unit,
+                        transform.as_ref(),
+                        state,
+                        &mut ctx.copying,
+                        &mut ctx.window.editable_values,
+                        &mut ctx.attaching,
+                        ctx.output,
+                        &ctx.node_editor,
                     ) {
-                        ui.text(format!("Error on creating image! {}", e));
+                        ui.text(format!("Error on drawing plot! {}", e))
                     }
+                    update_editor_from_state(
+                        state.stored_values(),
+                        &mut ctx.window.editable_values,
+                        ctx.node_editor,
+                    );
                 }
-                if let Err(e) = ui.image2d(
-                    ctx.gl_ctx,
-                    ctx.textures,
-                    texture_id,
-                    unit,
-                    x_transform.as_ref(),
-                    y_transform.as_ref(),
-                    state,
-                ) {
-                    ui.text(format!("Error on drawing image! {}", e));
+                2 => {
+                    let attaching = &ctx.attaching;
+                    let output = &ctx.output;
+                    if let Some(attaching) = attaching {
+                        if attaching.0 == *output {
+                            if attaching.2 != 0 && attaching.2 != 1 {
+                                attach_failued(&mut ctx, &"2D Image");
+                            }
+                        }
+                    }
+                    let ui = &ctx.ui;
+                    let state = &mut ctx.window.image2d_state;
+                    update_state_from_editor(
+                        state.stored_values_mut(),
+                        &ctx.window.editable_values,
+                        &ctx.node_editor,
+                    );
+                    let texture_id = TextureId::from(hash_outputid(ctx.output));
+                    let (x_transform, y_transform) = if ctx.window.show_pixels {
+                        (None, None)
+                    } else {
+                        match (self.axes(), self.wcs()) {
+                            (Some(axes), Some(wcs)) => {
+                                let axis0 = &axes[0];
+                                let axis1 = &axes[1];
+                                (
+                                    Some({
+                                        AxisTransform::new(axis0.name(), axis0.unit(), move |t| {
+                                            wcs.pix2world([t, 0.0, 0.0, 0.0])[0]
+                                        })
+                                    }),
+                                    Some(AxisTransform::new(axis1.name(), axis1.unit(), {
+                                        let max_height =
+                                            (self.scalar().dim().as_array_view().first().unwrap()
+                                                - 1)
+                                                as f32;
+                                        move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                    })),
+                                )
+                            }
+                            _ => (None, None),
+                        }
+                    };
+                    let unit = self.array().unit().repr();
+                    let new_incoming_image = match state.image_created_on() {
+                        Some(image_created_on) => ctx.created_on > image_created_on,
+                        None => true,
+                    };
+                    if new_incoming_image {
+                        state.zoom_init();
+                        let value_ref: ArcRef<_> = ctx.value.clone().into();
+                        let image_ref = value_ref.map(|value| {
+                            if let IOValue::Image(image) = value {
+                                image.scalar()
+                            } else {
+                                unreachable!("Expect an Image")
+                            }
+                        });
+                        if let Err(e) = state.set_image(
+                            image_ref,
+                            ctx.created_on,
+                            ctx.gl_ctx,
+                            texture_id,
+                            ctx.textures,
+                        ) {
+                            ui.text(format!("Error on creating image! {}", e));
+                        }
+                    }
+                    if let Err(e) = ui.image2d(
+                        ctx.gl_ctx,
+                        ctx.textures,
+                        texture_id,
+                        unit,
+                        x_transform.as_ref(),
+                        y_transform.as_ref(),
+                        state,
+                        &mut ctx.copying,
+                        &mut ctx.window.editable_values,
+                        &mut ctx.attaching,
+                        ctx.output,
+                        &ctx.node_editor,
+                    ) {
+                        ui.text(format!("Error on drawing image! {}", e));
+                    }
+                    update_editor_from_state(
+                        state.stored_values(),
+                        &mut ctx.window.editable_values,
+                        ctx.node_editor,
+                    );
                 }
-                update_editor_from_state(
-                    state.stored_values(),
-                    &mut ctx.window.editable_values,
-                    ctx.node_editor,
-                );
-            }
-            _ => {
-                ui.text(format!(
-                    "Unimplemented for image of dimension {}",
-                    self.scalar().ndim()
-                ));
-            }
+                _ => {
+                    let ui = &ctx.ui;
+                    ui.text(format!(
+                        "Unimplemented for image of dimension {}",
+                        self.scalar().ndim()
+                    ));
+                }
+            },
+            Some(tag) => match tag.as_ref() {
+                "BPT" => match self.scalar().dim().ndim() {
+                    2 => {
+                        let ui = &ctx.ui;
+                        let state = &mut ctx.window.scatter_lineplot_state;
+                        let plot_ui = ctx.plotcontext.get_plot_ui();
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            &ctx.node_editor,
+                        );
+                        if let Err(e) = ui.scatter(
+                            &self.scalar2(),
+                            &plot_ui,
+                            Some(&AxisTransform::new("X Axis", "m", |x| x)),
+                            Some(&AxisTransform::new("Y Axis", "m", |y| y)),
+                            state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
+                        ) {
+                            ui.text(format!("Error on drawing plot! {}", e))
+                        }
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
+                    }
+                    _ => {
+                        let ui = &ctx.ui;
+                        ui.text(format!(
+                            "Unimplemented for scatter of dimension {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                },
+                "scatter" => match self.scalar().dim().ndim() {
+                    2 => {
+                        let ui = &ctx.ui;
+                        let state = &mut ctx.window.scatter_lineplot_state;
+                        let plot_ui = ctx.plotcontext.get_plot_ui();
+                        if let Err(e) = ui.scatter(
+                            &self.scalar2(),
+                            &plot_ui,
+                            Some(&AxisTransform::new("X Axis", "m", |x| x)),
+                            Some(&AxisTransform::new("Y Axis", "m", |y| y)),
+                            state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
+                        ) {
+                            ui.text(format!("Error on drawing plot! {}", e))
+                        }
+                    }
+                    _ => {
+                        let ui = &ctx.ui;
+                        ui.text(format!(
+                            "Unimplemented for scatter of dimension {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                },
+                "color_image" => match self.scalar().dim().ndim() {
+                    3 => {
+                        let ui = &ctx.ui;
+                        let state = &mut ctx.window.image2d_state;
+                        let texture_id = TextureId::from(hash_outputid(ctx.output));
+                        let (x_transform, y_transform) = if ctx.window.show_pixels {
+                            (None, None)
+                        } else {
+                            match (self.axes(), self.wcs()) {
+                                (Some(axes), Some(wcs)) => {
+                                    let axis0 = &axes[0];
+                                    let axis1 = &axes[1];
+                                    (
+                                        Some({
+                                            AxisTransform::new(
+                                                axis0.name(),
+                                                axis0.unit(),
+                                                move |t| wcs.pix2world([t, 0.0, 0.0, 0.0])[0],
+                                            )
+                                        }),
+                                        Some(AxisTransform::new(axis1.name(), axis1.unit(), {
+                                            let max_height = (self
+                                                .scalar()
+                                                .dim()
+                                                .as_array_view()
+                                                .first()
+                                                .unwrap()
+                                                - 1)
+                                                as f32;
+                                            move |t| {
+                                                wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                            }
+                                        })),
+                                    )
+                                }
+                                _ => (None, None),
+                            }
+                        };
+                        let unit = self.array().unit().repr();
+                        let new_incoming_image = match state.image_created_on() {
+                            Some(image_created_on) => ctx.created_on > image_created_on,
+                            None => true,
+                        };
+                        if new_incoming_image {
+                            state.zoom_init();
+                            let value_ref: ArcRef<_> = ctx.value.clone().into();
+                            let image_ref = value_ref.map(|value| {
+                                if let IOValue::Image(image) = value {
+                                    image.scalar()
+                                } else {
+                                    unreachable!("Expect an Image")
+                                }
+                            });
+                            if let Err(e) = state.set_color_image(
+                                image_ref,
+                                ctx.created_on,
+                                ctx.gl_ctx,
+                                texture_id,
+                                ctx.textures,
+                            ) {
+                                ui.text(format!("Error on creating image! {}", e));
+                            }
+                        }
+                        if let Err(e) = ui.color_image(
+                            ctx.gl_ctx,
+                            ctx.textures,
+                            texture_id,
+                            unit,
+                            x_transform.as_ref(),
+                            y_transform.as_ref(),
+                            state,
+                            &mut ctx.copying,
+                            &mut ctx.window.editable_values,
+                            &mut ctx.attaching,
+                            ctx.output,
+                            &ctx.node_editor,
+                        ) {
+                            ui.text(format!("Error on drawing image! {}", e));
+                        }
+                    }
+                    _ => {
+                        let ui = &ctx.ui;
+                        ui.text(format!(
+                            "Unimplemented for color image of dimension {}",
+                            self.scalar().ndim()
+                        ));
+                    }
+                },
+                _ => {
+                    let ui = &ctx.ui;
+                    ui.text(format!(
+                        "Unimplemented for visualization method {}",
+                        self.scalar().ndim()
+                    ));
+                }
+            },
         }
     }
 
@@ -493,6 +902,29 @@ fn write_to_file_as_debug<P: AsRef<Path>, T: fmt::Debug>(path: P, t: &T) -> io::
 fn write_to_file_as_bytes<P: AsRef<Path>>(path: P, buf: &[u8]) -> io::Result<()> {
     let mut file = fs::File::create(path)?;
     file.write_all(buf)
+}
+
+fn attach_failued<F>(ctx: &mut OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>, viztype: &str)
+where
+    F: glium::backend::Facade,
+{
+    ctx.ui.open_popup(im_str!("Attach failued"));
+    ctx.ui.popup_modal(im_str!("Attach failued")).build(|| {
+        let kind = match ctx.attaching.unwrap().2 {
+            0 => "horizontal line",
+            1 => "vertical line",
+            2 => "Region Of Interest",
+            _ => "Unimplemented Interaction",
+        };
+        ctx.ui.text(format!(
+            "Attach failued, {} cannot be used in {}",
+            kind, viztype
+        ));
+        if ctx.ui.button(im_str!("Close"), [0.0, 0.0]) {
+            *ctx.attaching = None;
+            ctx.ui.close_current_popup();
+        }
+    });
 }
 
 #[derive(Debug)]

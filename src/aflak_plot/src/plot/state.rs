@@ -1,12 +1,22 @@
 use imgui::{MenuItem, MouseButton, MouseCursor, Ui};
 use ndarray::{ArrayBase, Data, Ix1};
+use std::collections::HashMap;
 
-use super::interactions::{Interaction, InteractionIterMut, Interactions, ValueIter, VerticalLine};
+use super::interactions::{
+    Interaction, InteractionId, InteractionIterMut, Interactions, ValueIter, VerticalLine,
+};
 use super::lims;
+use super::node_editor::NodeEditor;
+use super::primitives::{IOErr, IOValue};
 use super::ticks::XYTicks;
 use super::util;
 use super::AxisTransform;
 use super::Error;
+
+use crate::plot::cake::{OutputId, Transform, TransformIdx};
+
+type EditableValues = HashMap<InteractionId, TransformIdx>;
+type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 /// Current state of a plot UI.
 #[derive(Debug)]
@@ -47,6 +57,11 @@ impl State {
         axis: Option<&AxisTransform<F>>,
         pos: [f32; 2],
         size: [f32; 2],
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        store: &mut EditableValues,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
+        outputid: OutputId,
+        node_editor: &AflakNodeEditor,
     ) -> Result<(), Error>
     where
         D: Data<Elem = f32>,
@@ -206,6 +221,14 @@ impl State {
                         if MenuItem::new(im_str!("Delete Line")).build(ui) {
                             line_marked_for_deletion = Some(*id);
                         }
+                        if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                            if store.contains_key(id) {
+                                let t_idx = *store.get(id).unwrap();
+                                *copying = Some((*id, t_idx));
+                            } else {
+                                println!("copy failued");
+                            }
+                        }
                     });
                 }
                 // Unused in plot
@@ -227,9 +250,43 @@ impl State {
         ui.popup(im_str!("add-interaction-handle"), || {
             ui.text("Add interaction handle");
             ui.separator();
-            if MenuItem::new(im_str!("Vertical Line")).build(ui) {
-                let new = Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
-                self.interactions.insert(new);
+            if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
+                if MenuItem::new(im_str!("to main editor")).build(ui) {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                }
+                for macr in node_editor.macros.macros() {
+                    if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
+                        let new =
+                            Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                        self.interactions.insert(new);
+                        let macro_id = macr.id();
+                        let mut dstw = macr.write();
+                        let t_idx = dstw.dst_mut().add_owned_transform(
+                            Transform::new_constant(aflak_primitives::IOValue::Float(
+                                self.mouse_pos[0].round(),
+                            )),
+                            Some(macro_id),
+                        );
+                        drop(dstw);
+                        let t_idx = t_idx.set_macro(macro_id);
+                        store.insert(self.interactions.id(), t_idx);
+                    }
+                }
+                menu.end(ui);
+            }
+            if let Some((_, t_idx)) = *copying {
+                ui.separator();
+                ui.text("Paste Line Options");
+                ui.separator();
+                if MenuItem::new(im_str!("Paste Line as Vertical Line")).build(ui) {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                    *copying = None;
+                }
             }
             ui.separator();
             if MenuItem::new(im_str!("Reset view")).build(ui) {
@@ -237,6 +294,26 @@ impl State {
                 self.offset = [0.0, 0.0];
             }
         });
+        if let Some((o, t_idx, kind)) = *attaching {
+            if kind == 1 && o == outputid {
+                let mut already_insert = false;
+                for d in store.iter() {
+                    if *d.1 == t_idx {
+                        already_insert = true;
+                        break;
+                    }
+                }
+                if !already_insert {
+                    let new =
+                        Interaction::VerticalLine(VerticalLine::new(self.mouse_pos[0].round()));
+                    self.interactions.insert(new);
+                    store.insert(self.interactions.id(), t_idx);
+                } else {
+                    eprintln!("{:?} is already bound", t_idx)
+                }
+                *attaching = None;
+            }
+        }
 
         Ok(())
     }

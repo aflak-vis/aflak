@@ -8,12 +8,13 @@ use glium;
 use imgui::{Ui, Window};
 use owning_ref::ArcRef;
 
+use crate::aflak_plot::{
+    imshow::{self, Textures},
+    plot, scatter_lineplot, InteractionId,
+};
 use crate::cake::{OutputId, TransformIdx};
 use crate::primitives::{ndarray, IOValue, SuccessOut};
-use aflak_plot::{
-    imshow::{self, Textures},
-    plot, InteractionId,
-};
+use implot::Context;
 
 use self::menu_bar::MenuBar;
 use self::visualizable::{Initializing, Unimplemented, Visualizable};
@@ -23,7 +24,8 @@ use crate::aflak::AflakNodeEditor;
 pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
-    editable_values: EditableValues,
+    scatter_lineplot_state: scatter_lineplot::State,
+    pub editable_values: EditableValues,
     show_pixels: bool,
 }
 
@@ -38,6 +40,9 @@ impl OutputWindow {
         node_editor: &mut AflakNodeEditor,
         gl_ctx: &F,
         textures: &mut Textures,
+        plotcontext: &Context,
+        copying: &mut Option<(InteractionId, TransformIdx)>,
+        attaching: &mut Option<(OutputId, TransformIdx, usize)>,
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
@@ -64,9 +69,13 @@ impl OutputWindow {
                     node_editor,
                     gl_ctx,
                     textures,
+                    plotcontext,
+                    copying,
+                    attaching,
                 };
                 match &*value {
                     IOValue::Str(ref string) => string.draw(ctx, window),
+                    IOValue::Paths(ref files) => files.draw(ctx, window),
                     IOValue::Integer(integer) => integer.draw(ctx, window),
                     IOValue::Float(float) => float.draw(ctx, window),
                     IOValue::Float2(floats) => floats.draw(ctx, window),

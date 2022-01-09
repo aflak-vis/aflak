@@ -12,6 +12,7 @@ use crate::dst::{
 };
 use crate::dst::{MetaTransform, TransformAndDefaults};
 use crate::transform::Transform;
+use uuid::Uuid;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
 where
@@ -207,19 +208,37 @@ where
     T: Clone,
 {
     /// Add a borrowed transform and return its identifier [`TransformIdx`].
-    pub fn add_transform(&mut self, t: &'t Transform<'t, T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Borrowed(t))
+    pub fn add_transform(
+        &mut self,
+        t: &'t Transform<'t, T, E>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
+        self.add_transform_impl(Bow::Borrowed(t), macro_id)
     }
 
     /// Add an owned transform and return its identifier [`TransformIdx`].
-    pub fn add_owned_transform(&mut self, t: Transform<'t, T, E>) -> TransformIdx {
-        self.add_transform_impl(Bow::Owned(t))
+    pub fn add_owned_transform(
+        &mut self,
+        t: Transform<'t, T, E>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
+        self.add_transform_impl(Bow::Owned(t), macro_id)
     }
 
-    fn add_transform_impl(&mut self, t: Bow<'t, Transform<'t, T, E>>) -> TransformIdx {
+    fn add_transform_impl(
+        &mut self,
+        t: Bow<'t, Transform<'t, T, E>>,
+        macro_id: Option<Uuid>,
+    ) -> TransformIdx {
         let idx = self.new_transform_idx();
-        self.transforms.insert(idx, MetaTransform::new(t));
-        idx
+        if let Some(macro_id) = macro_id {
+            let idx = idx.set_macro(macro_id);
+            self.transforms.insert(idx, MetaTransform::new(t));
+            idx
+        } else {
+            self.transforms.insert(idx, MetaTransform::new(t));
+            idx
+        }
     }
 }
 
@@ -359,11 +378,15 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
 
     /// Detach output with given ID. Does nothing if output does not exist or
     /// is already detached.
-    pub fn detach_output<O>(&mut self, output_id: &O)
+    pub fn detach_output<O>(&mut self, output: &Output, output_id: &O)
     where
         OutputId: Borrow<O>,
         O: Ord,
     {
+        self.transforms
+            .get_mut(&output.t_idx)
+            .unwrap()
+            .updated_now();
         if let Some((output, _)) = self.outputs.get_mut(output_id) {
             *output = None;
         }
@@ -398,7 +421,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         self.transforms
             .keys()
             .max()
-            .unwrap_or(&TransformIdx(0))
+            .unwrap_or(&TransformIdx(None, 0))
             .incr()
     }
 

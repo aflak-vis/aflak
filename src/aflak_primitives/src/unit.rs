@@ -59,6 +59,7 @@ pub struct Dimensioned<V> {
 pub struct WcsArray {
     meta: Option<MetaWcsArray>,
     array: Dimensioned<ArrayD<f32>>,
+    visualization: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -106,6 +107,16 @@ fn read_string(hdu: &Hdu, key: &str) -> Option<String> {
     }
 }
 
+fn read_float(hdu: &Hdu, key: &str) -> Option<f64> {
+    if let Some(HeaderValue::RealFloatingNumber(value)) = hdu.value(key) {
+        Some(value.to_owned())
+    } else if let Some(HeaderValue::IntegerNumber(value)) = hdu.value(key) {
+        Some(value.to_owned() as f64)
+    } else {
+        None
+    }
+}
+
 impl WcsArray {
     /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
@@ -129,7 +140,20 @@ impl WcsArray {
         let ctype2 = read_string(hdu, "CTYPE2");
         let ctype3 = read_string(hdu, "CTYPE3");
         let ctype4 = read_string(hdu, "CTYPE4");
+        let bzeros = read_float(hdu, "BZERO");
+        let bscales = read_float(hdu, "BSCALE");
         let wcs = WCS::new(hdu);
+        let bzero = if let Some(bzero) = bzeros {
+            bzero as f32
+        } else {
+            0.0
+        };
+        let bscale = if let Some(bscale) = bscales {
+            bscale as f32
+        } else {
+            1.0
+        };
+
         Ok(Self {
             meta: Some(MetaWcsArray {
                 wcs,
@@ -140,7 +164,8 @@ impl WcsArray {
                     Axis::new(ctype4, cunit4),
                 ],
             }),
-            array: vunit.new(image),
+            array: vunit.new(image * bscale + bzero),
+            visualization: None,
         })
     }
 
@@ -157,7 +182,22 @@ impl WcsArray {
 
     /// Make a new array missing all metadata about axes and world coordinates.
     pub fn from_array(array: Dimensioned<ArrayD<f32>>) -> Self {
-        Self { meta: None, array }
+        Self {
+            meta: None,
+            array,
+            visualization: None,
+        }
+    }
+
+    pub fn from_array_and_tag(
+        array: Dimensioned<ArrayD<f32>>,
+        visualization: Option<String>,
+    ) -> Self {
+        Self {
+            meta: None,
+            array,
+            visualization,
+        }
     }
 
     /// Get reference to contained *n*-dimensional array.
@@ -194,6 +234,14 @@ impl WcsArray {
 
     pub fn axes(&self) -> Option<&[Axis]> {
         self.meta.as_ref().map(|meta| meta.axes.as_ref())
+    }
+
+    pub fn tag(&self) -> &Option<String> {
+        &self.visualization
+    }
+
+    pub fn set_tag(&mut self, tag: Option<String>) {
+        self.visualization = tag;
     }
 
     pub fn wcs(&self) -> Option<&WCS> {
@@ -233,6 +281,7 @@ impl WcsArray {
         WcsArray {
             meta: new_meta,
             array,
+            visualization: None,
         }
     }
 }
@@ -430,6 +479,7 @@ impl ops::Mul<f32> for WcsArray {
         WcsArray {
             meta: self.meta,
             array: self.array * rhs,
+            visualization: None,
         }
     }
 }
@@ -441,6 +491,7 @@ impl<'a> ops::Mul<f32> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: self.array() * rhs,
+            visualization: None,
         }
     }
 }
@@ -452,6 +503,7 @@ impl ops::Div<f32> for WcsArray {
         WcsArray {
             meta: self.meta,
             array: self.array / rhs,
+            visualization: None,
         }
     }
 }
@@ -463,6 +515,7 @@ impl<'a> ops::Div<f32> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: self.array() / rhs,
+            visualization: None,
         }
     }
 }
@@ -479,6 +532,7 @@ impl ops::Add for WcsArray {
         WcsArray {
             meta,
             array: self.array + rhs.array,
+            visualization: None,
         }
     }
 }
@@ -495,6 +549,7 @@ impl ops::Sub for WcsArray {
         WcsArray {
             meta,
             array: self.array - rhs.array,
+            visualization: None,
         }
     }
 }
@@ -506,6 +561,7 @@ impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: &self.array - &rhs.array,
+            visualization: None,
         }
     }
 }

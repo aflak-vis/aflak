@@ -5,16 +5,16 @@ use std::path::PathBuf;
 use glium;
 use imgui::{Condition, ImString, MenuItem, MouseButton, Ui, Window};
 
-use crate::cake::{OutputId, Transform};
+use crate::aflak_plot::{imshow::Textures, interactions::InteractionId};
+use crate::cake::{NodeId, OutputId, Transform, TransformIdx};
 use crate::primitives::{IOErr, IOValue};
-use aflak_plot::imshow::Textures;
 use node_editor::NodeEditor;
 
 use crate::constant_editor::MyConstantEditor;
 use crate::file_dialog::{FileDialog, FileDialogEvent};
+use crate::implot::Context;
 use crate::layout::{Layout, LayoutEngine};
 use crate::output_window::OutputWindow;
-
 pub type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 
 pub struct Aflak {
@@ -25,6 +25,10 @@ pub struct Aflak {
     pub quit: bool,
     file_dialog: Option<FileDialog>,
     recent_files: Vec<PathBuf>,
+    pub show_metrics: bool,
+    pub show_bind_manager: bool,
+    copying: Option<(InteractionId, TransformIdx)>,
+    attaching: Option<(OutputId, TransformIdx, usize)>,
 }
 
 impl Aflak {
@@ -37,6 +41,10 @@ impl Aflak {
             quit: false,
             file_dialog: None,
             recent_files: vec![],
+            show_metrics: false,
+            show_bind_manager: false,
+            copying: None,
+            attaching: None,
         }
     }
 
@@ -70,6 +78,15 @@ impl Aflak {
                 }
                 menu.end(ui);
             }
+            if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                if MenuItem::new(im_str!("Metrics")).build(ui) {
+                    self.show_metrics = !self.show_metrics;
+                }
+                if MenuItem::new(im_str!("Bind manager")).build(ui) {
+                    self.show_bind_manager = !self.show_bind_manager;
+                }
+                menu.end(ui);
+            }
             menu_bar.end(ui);
         }
 
@@ -100,15 +117,24 @@ impl Aflak {
             .size(size, Condition::FirstUseEver)
             .build(ui, || {
                 self.node_editor
-                    .render(ui, addable_nodes, &MyConstantEditor);
+                    .render(ui, addable_nodes, &MyConstantEditor, &mut self.attaching);
             });
-        self.node_editor
-            .inner_editors_render(ui, addable_nodes, &MyConstantEditor);
+        self.node_editor.inner_editors_render(
+            ui,
+            addable_nodes,
+            &MyConstantEditor,
+            &mut self.attaching,
+        );
         self.node_editor.render_popups(ui);
     }
 
-    pub fn output_windows<F>(&mut self, ui: &Ui, gl_ctx: &F, textures: &mut Textures)
-    where
+    pub fn output_windows<F>(
+        &mut self,
+        ui: &Ui,
+        gl_ctx: &F,
+        textures: &mut Textures,
+        plotcontext: &Context,
+    ) where
         F: glium::backend::Facade,
     {
         let outputs = self.node_editor.outputs();
@@ -134,6 +160,9 @@ impl Aflak {
                 &mut self.node_editor,
                 gl_ctx,
                 textures,
+                &plotcontext,
+                &mut self.copying,
+                &mut self.attaching,
             );
             self.error_alerts.extend(new_errors);
         }
@@ -172,5 +201,80 @@ impl Aflak {
                 None => {}
             }
         }
+    }
+
+    pub fn bind_manager(&mut self, ui: &Ui) {
+        Window::new(im_str!("Bind Manager")).build(ui, || {
+            ui.text("Bindings:");
+            let outputs = self.node_editor.outputs();
+            let dst = &self.node_editor.dst;
+            let mut bind_count = 0;
+            for (output_id, _) in outputs {
+                let output_window = self.output_windows.entry(output_id).or_default();
+                let editable_values = output_window.editable_values.clone();
+                let mut remove_id = None;
+                for (interaction_id, transformidx) in editable_values.iter() {
+                    if let Some(macro_id) = transformidx.macro_id() {
+                        if let Some(macr) = &self.node_editor.macros.get_macro(macro_id) {
+                            for (nodeid, node) in macr.read().dst().nodes_iter() {
+                                if let NodeId::Transform(t_idx) = nodeid {
+                                    if t_idx == *transformidx {
+                                        ui.text(im_str!(
+                                            "{:?} <--> {:?} in Macro {:?}",
+                                            output_id,
+                                            node.name(&nodeid),
+                                            macr.name(),
+                                        ));
+                                        let p = ui.cursor_screen_pos();
+                                        ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
+                                        bind_count += 1;
+                                        if ui.button(
+                                            &ImString::new(format!("Remove bind {}", bind_count)),
+                                            [0.0, 0.0],
+                                        ) {
+                                            remove_id = Some(interaction_id);
+                                        }
+                                        if ui.is_item_hovered() {
+                                            ui.tooltip_text(im_str!(
+                                                "Remove this bind and create new bind"
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        for (nodeid, node) in dst.nodes_iter() {
+                            if let NodeId::Transform(t_idx) = nodeid {
+                                if t_idx == *transformidx {
+                                    ui.text(im_str!(
+                                        "{:?} <--> {:?}",
+                                        output_id,
+                                        node.name(&nodeid)
+                                    ));
+                                    let p = ui.cursor_screen_pos();
+                                    ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
+                                    bind_count += 1;
+                                    if ui.button(
+                                        &ImString::new(format!("Remove bind {}", bind_count)),
+                                        [0.0, 0.0],
+                                    ) {
+                                        remove_id = Some(interaction_id);
+                                    }
+                                    if ui.is_item_hovered() {
+                                        ui.tooltip_text(im_str!(
+                                            "Remove this bind and create new bind"
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if let Some(remove_id) = remove_id {
+                    output_window.editable_values.remove(remove_id);
+                }
+            }
+        });
     }
 }

@@ -1,5 +1,6 @@
 use crate::collections::HashSet;
 use std::error::Error;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use imgui::{
     ChildWindow, CollapsingHeader, ImString, Key, MenuItem, MouseButton, MouseCursor, Selectable,
@@ -7,7 +8,7 @@ use imgui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::cake::{self, InputSlot, Transform, VariantName, DST};
+use crate::cake::{self, InputSlot, Transform, TransformIdx, VariantName, DST};
 
 use crate::constant_editor::ConstantEditor;
 use crate::event::RenderEvent;
@@ -33,7 +34,11 @@ pub struct NodeEditorLayout<T: 'static, E: 'static> {
     scrolling: Scrolling,
     show_grid: bool,
     import_opened: bool,
+    export_opened: bool,
     pub import_path: Option<std::path::PathBuf>,
+    pub export_path: Option<std::path::PathBuf>,
+    selected_dir: Option<std::path::PathBuf>,
+    filename: ImString,
     pub is_macro: bool,
     adding_new_node_pos: Option<Vec2>,
     // Used at runtime to aggregate events
@@ -58,7 +63,11 @@ impl<T, E> Default for NodeEditorLayout<T, E> {
             scrolling: Default::default(),
             show_grid: true,
             import_opened: false,
+            export_opened: false,
             import_path: None,
+            export_path: None,
+            selected_dir: None,
+            filename: ImString::with_capacity(256),
             is_macro: false,
             adding_new_node_pos: None,
             events: vec![],
@@ -96,6 +105,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) -> Vec<RenderEvent<T, E>>
     where
         ED: ConstantEditor<T>,
@@ -128,6 +138,7 @@ where
             addable_macros,
             constant_editor,
             &mut scroll_target_node_pos_size,
+            attaching,
         );
 
         if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
@@ -262,11 +273,10 @@ where
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
         scroll_target_node_pos_size: &mut Option<(Vec2, Vec2)>,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
-        const EDITOR_EXPORT_FILE: &str = "editor_graph_export.ron";
-
         ChildWindow::new(im_str!("GraphNodeChildWindow")).build(ui, || {
             if self.show_top_pane {
                 const TOP_PANE_DESIGN: [StyleVar; 2] = [
@@ -295,7 +305,7 @@ where
                         });
                     } else {
                         ui.tooltip(|| {
-                            ui.text(im_str!("Import editor from '{}'.", EDITOR_EXPORT_FILE));
+                            ui.text(im_str!("Import editor from *.ron files."));
                         });
                     }
                 }
@@ -314,8 +324,8 @@ where
                                     .size([0.0, 350.0])
                                     .horizontal_scrollbar(true)
                                     .build(ui, || {
-                                        if let Ok(Some(path)) = ui.file_explorer(
-                                            imgui_file_explorer::TOP_FOLDER,
+                                        if let Ok((Some(path), _)) = ui.file_explorer(
+                                            imgui_file_explorer::CURRENT_FOLDER,
                                             &["ron"],
                                         ) {
                                             selected_path = Some(path);
@@ -336,15 +346,96 @@ where
                 }
                 ui.same_line(ui.window_size()[0] - 180.0);
                 if ui.button(im_str!("Export"), [0.0, 0.0]) {
-                    self.events.push(RenderEvent::Export);
+                    if !self.is_macro {
+                        self.export_opened = true;
+                    } else {
+                        self.events.push(RenderEvent::Export);
+                    }
                 }
                 if ui.is_item_hovered() {
                     ui.tooltip(|| {
-                        ui.text(im_str!(
-                            "Export editor content to '{}'.",
-                            EDITOR_EXPORT_FILE
-                        ));
+                        ui.text(im_str!("Export editor content *.ron files.",));
                     });
+                }
+                if !self.is_macro {
+                    let mut selected_dir;
+                    let mut cancelled = false;
+                    let mut try_save = false;
+                    let mouse_pos = ui.io().mouse_pos;
+                    let mut filename = ImString::with_capacity(256);
+                    let mut changed = false;
+                    filename.push_str(self.filename.to_str());
+                    selected_dir = self.selected_dir.clone();
+                    if self.export_opened {
+                        imgui::Window::new(&imgui::ImString::new(format!("Export .ron")))
+                            .opened(&mut self.export_opened)
+                            .save_settings(false)
+                            .position(mouse_pos, imgui::Condition::Appearing)
+                            .size([400.0, 410.0], imgui::Condition::Appearing)
+                            .build(ui, || {
+                                imgui::ChildWindow::new(im_str!("edit"))
+                                    .size([0.0, 350.0])
+                                    .horizontal_scrollbar(true)
+                                    .build(ui, || {
+                                        if let Ok((_, dir)) = ui.file_explorer(
+                                            imgui_file_explorer::CURRENT_FOLDER,
+                                            &[""],
+                                        ) {
+                                            if dir != None {
+                                                selected_dir = dir;
+                                            }
+                                        }
+                                    });
+                                if let Some(s) = selected_dir.clone() {
+                                    ui.text(im_str!("target directory: {:?}", s));
+                                } else {
+                                    ui.text(im_str!("target directory:"));
+                                }
+                                changed =
+                                    ui.input_text(im_str!("File name"), &mut filename).build();
+                                if ui.button(im_str!("Save"), [0.0, 0.0]) {
+                                    try_save = true;
+                                }
+                                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                                    cancelled = true;
+                                }
+                            });
+                    }
+                    if changed {
+                        self.filename = filename;
+                    }
+                    if let Some(_) = selected_dir {
+                        self.selected_dir = selected_dir;
+                    }
+                    if cancelled {
+                        self.export_opened = false;
+                    } else if try_save {
+                        if self.filename.to_str() == "" {
+                            ui.open_popup(im_str!("Blank filename"));
+                        } else {
+                            self.events.push(RenderEvent::Export);
+                            let dir = if let Some(dir) = self.selected_dir.clone() {
+                                dir
+                            } else {
+                                PathBuf::from("./")
+                            };
+                            let fullpath = Some(
+                                [dir, PathBuf::from(self.filename.to_string())]
+                                    .iter()
+                                    .collect(),
+                            );
+                            self.export_path = fullpath;
+                            self.export_opened = false;
+                        }
+                    }
+                    ui.popup_modal(im_str!("Blank filename"))
+                        .always_auto_resize(true)
+                        .build(|| {
+                            ui.text(im_str!("Please fill in the File name"));
+                            if ui.button(im_str!("OK"), [0.0, 0.0]) {
+                                ui.close_current_popup();
+                            }
+                        });
                 }
                 ui.same_line(ui.window_size()[0] - 120.0);
                 ui.checkbox(im_str!("Show grid"), &mut self.show_grid);
@@ -378,6 +469,7 @@ where
                         addable_nodes,
                         addable_macros,
                         constant_editor,
+                        attaching,
                     );
                 });
             color_stack.pop(ui);
@@ -392,6 +484,7 @@ where
         addable_nodes: &[&'static Transform<T, E>],
         addable_macros: &cake::macros::MacroManager<'static, T, E>,
         constant_editor: &ED,
+        attaching: &mut Option<(cake::OutputId, TransformIdx, usize)>,
     ) where
         ED: ConstantEditor<T>,
     {
@@ -510,7 +603,57 @@ where
                     .rounding(NODE_ROUNDING)
                     .filled(true)
                     .build();
-
+                if ui.is_item_hovered() && ui.is_mouse_double_clicked(MouseButton::Left) {
+                    ui.open_popup(im_str!("attach-to-output"));
+                }
+                ui.popup(im_str!("attach-to-output"), || {
+                    let mut name = String::from("");
+                    if let cake::NodeId::Transform(t_idx) = idx {
+                        if let Some(t) = dst.get_transform(t_idx) {
+                            if let cake::Algorithm::Constant(_) = t.algorithm() {
+                                name = t.name().to_string();
+                            }
+                        }
+                    }
+                    match name.as_str() {
+                        "Float" => {
+                            for (i, o) in dst.outputs_iter().enumerate() {
+                                let id_stack = ui.push_id(i as i32);
+                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                    if MenuItem::new(im_str!("As horizontal line")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 0));
+                                        }
+                                    }
+                                    if MenuItem::new(im_str!("As vertical line")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 1));
+                                        }
+                                    }
+                                    menu.end(ui);
+                                }
+                                id_stack.pop(ui);
+                            }
+                        }
+                        "Roi" => {
+                            for (i, o) in dst.outputs_iter().enumerate() {
+                                let id_stack = ui.push_id(i as i32);
+                                if let Some(menu) = ui.begin_menu(&im_str!("{:?}", o.0), true) {
+                                    if MenuItem::new(im_str!("Roi")).build(ui) {
+                                        if let cake::NodeId::Transform(t_idx) = idx {
+                                            *attaching = Some((*o.0, t_idx, 2));
+                                        }
+                                    }
+                                    menu.end(ui);
+                                }
+                                id_stack.pop(ui);
+                            }
+                        }
+                        _ => {
+                            ui.close_current_popup();
+                        }
+                    };
+                });
                 // Display frame
                 let line_thickness = if node_states.get_state(&idx, |s| s.selected) {
                     3.0
@@ -890,17 +1033,31 @@ where
         }
         ui.popup(im_str!("add-new-node"), || {
             const HEADER_COLOR: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
-
             let color_stack = ui.push_style_color(StyleColor::Text, HEADER_COLOR);
             ui.text("Add node");
             color_stack.pop(ui);
             ui.separator();
-            for (i, node) in addable_nodes.iter().enumerate() {
-                let id_stack = ui.push_id(i as i32);
-                if MenuItem::new(&ImString::new(node.name())).build(ui) {
-                    self.events.push(RenderEvent::AddTransform(node));
+            let mut addable_nodes_class = BTreeMap::<String, Vec<&&Transform<T, E>>>::new();
+            for node in addable_nodes.iter() {
+                let kind = node.kind().into_owned();
+                let kind = kind.as_str();
+                if let Some(v) = addable_nodes_class.get_mut(kind) {
+                    v.push(node);
+                } else {
+                    addable_nodes_class.insert(kind.to_string(), vec![node]);
                 }
-                id_stack.pop(ui);
+            }
+            for (k, v) in addable_nodes_class.iter() {
+                if let Some(menu) = ui.begin_menu(&ImString::new(k.clone()), true) {
+                    for (i, n) in v.iter().enumerate() {
+                        let id_stack = ui.push_id(i as i32);
+                        if MenuItem::new(&ImString::new(n.name())).build(ui) {
+                            self.events.push(RenderEvent::AddTransform(*n));
+                        }
+                        id_stack.pop(ui);
+                    }
+                    menu.end(ui);
+                }
             }
             ui.separator();
             if MenuItem::new(im_str!("Create new macro")).build(ui) {
@@ -1015,7 +1172,9 @@ where
             if let cake::NodeId::Transform(t_idx) = *id {
                 if let Some(t) = dst.get_transform(t_idx) {
                     if let cake::Algorithm::Constant(ref constant) = t.algorithm() {
-                        if let Some(new_value) = constant_editor.editor(ui, &constant, 0, false) {
+                        if let Some(new_value) =
+                            constant_editor.editor(ui, &constant, 0, false, &draw_list)
+                        {
                             events.push(RenderEvent::SetConstant(t_idx, Box::new(new_value)));
                         }
                     }
@@ -1028,7 +1187,7 @@ where
                         let read_only = some_output.is_some();
                         if let Some(val) = default_input {
                             if let Some(new_value) =
-                                constant_editor.editor(ui, &val, i as i32, read_only)
+                                constant_editor.editor(ui, &val, i as i32, read_only, &draw_list)
                             {
                                 events.push(RenderEvent::WriteDefaultInput {
                                     t_idx,

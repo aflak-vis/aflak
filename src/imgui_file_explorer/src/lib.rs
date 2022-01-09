@@ -13,7 +13,11 @@ pub trait UiFileExplorer {
     /// Can filter over several extensions.
     /// Anything that can be treated as a reference to a string `AsRef<str>` can be used as argument!
     /// Return the selected path, if any.
-    fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
+    fn file_explorer<T, S>(
+        &self,
+        target: T,
+        extensions: &[S],
+    ) -> io::Result<(Option<PathBuf>, Option<PathBuf>)>
     where
         T: AsRef<Path>,
         S: AsRef<str>;
@@ -46,19 +50,31 @@ fn is_hidden<P: AsRef<Path>>(path: P) -> bool {
 cfg_if! {
     if #[cfg(unix)] {
         pub const TOP_FOLDER: &str = "/";
+        pub const CURRENT_FOLDER: &str = "./";
     } else {
         pub const TOP_FOLDER: &str = "C:";
+        pub const CURRENT_FOLDER: &str = "./";
     }
 }
 
 /// Ui extends
 impl<'ui> UiFileExplorer for Ui<'ui> {
-    fn file_explorer<T, S>(&self, target: T, extensions: &[S]) -> io::Result<Option<PathBuf>>
+    fn file_explorer<T, S>(
+        &self,
+        target: T,
+        extensions: &[S],
+    ) -> io::Result<(Option<PathBuf>, Option<PathBuf>)>
     where
         T: AsRef<Path>,
         S: AsRef<str>,
     {
         let current_dir = env::current_dir().unwrap_or_else(|_| target.as_ref().to_owned());
+        TreeNode::new(im_str!("./"))
+            .opened(false, Condition::Always)
+            .build(&self, || {});
+        if self.is_item_clicked(MouseButton::Left) {
+            return Ok((None, Some(PathBuf::from("./"))));
+        }
         view_dirs(&self, target, extensions, &current_dir)
     }
 }
@@ -68,7 +84,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
     target: T,
     extensions: &[S],
     default_dir: &Path,
-) -> io::Result<Option<PathBuf>> {
+) -> io::Result<(Option<PathBuf>, Option<PathBuf>)> {
     let target = target.as_ref();
     let mut files = Vec::new();
 
@@ -92,7 +108,9 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
         (false, true) => Ordering::Greater,
     });
 
-    let mut ret = Ok(None);
+    let mut ret = Ok((None, None));
+    let mut selected_path = None;
+    let mut clicked_dir = None;
     for i in files {
         if i.is_dir() {
             if let Some(dirname) = i.file_name() {
@@ -102,13 +120,21 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                     TreeNode::new(&im_dirname)
                         .opened(open, Condition::Once)
                         .build(&ui, || {
+                            if ui.is_item_clicked(MouseButton::Left) {
+                                clicked_dir = Some(i.clone());
+                            }
                             let out = view_dirs(ui, &i, extensions, default_dir);
                             match ret {
                                 // Do not overwrite return value when it is already set
-                                Ok(Some(_)) => (),
-                                _ => ret = out,
+                                Ok((Some(_), _)) | Ok((_, Some(_))) => (),
+                                _ => {
+                                    ret = out;
+                                }
                             }
                         });
+                    if ui.is_item_clicked(MouseButton::Left) {
+                        clicked_dir = Some(i.clone());
+                    }
                 } else {
                     eprintln!("Could not get str out of directory: {:?}", i);
                 }
@@ -120,7 +146,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                 ui.bullet_text(im_str!(""));
                 ui.same_line(0.0);
                 if ui.small_button(&ImString::new(file_name)) {
-                    ret = Ok(Some(i.clone()));
+                    selected_path = Some(i.clone());
                 }
             } else {
                 eprintln!("Could not get str out of file: {:?}", i);
@@ -129,5 +155,12 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             eprintln!("Could not get file_name for path: {:?}", i);
         }
     }
+    ret = match ret {
+        // Do not overwrite return value when it is already set
+        Ok((Some(s), Some(c))) => Ok((Some(s), Some(c))),
+        Ok((Some(s), None)) => Ok((Some(s), clicked_dir)),
+        Ok((None, Some(c))) => Ok((selected_path, Some(c))),
+        _ => Ok((selected_path, clicked_dir)),
+    };
     ret
 }
