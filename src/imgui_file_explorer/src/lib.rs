@@ -72,7 +72,7 @@ impl<'ui> UiFileExplorer for Ui<'ui> {
         TreeNode::new(im_str!("./"))
             .opened(false, Condition::Always)
             .build(&self, || {});
-        if self.is_item_clicked(MouseButton::Left) {
+        if self.is_item_clicked() {
             return Ok((None, Some(PathBuf::from("./"))));
         }
         view_dirs(&self, target, extensions, &current_dir)
@@ -120,7 +120,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                     TreeNode::new(&im_dirname)
                         .opened(open, Condition::Once)
                         .build(&ui, || {
-                            if ui.is_item_clicked(MouseButton::Left) {
+                            if ui.is_item_clicked() {
                                 clicked_dir = Some(i.clone());
                             }
                             let out = view_dirs(ui, &i, extensions, default_dir);
@@ -132,7 +132,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                                 }
                             }
                         });
-                    if ui.is_item_clicked(MouseButton::Left) {
+                    if ui.is_item_clicked() {
                         clicked_dir = Some(i.clone());
                     }
                 } else {
