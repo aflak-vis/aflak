@@ -73,7 +73,7 @@ impl Visualizable for Fits {
                 for (key, value) in &hdu {
                     ui.text(key);
                     if let Some(value) = value {
-                        ui.same_line(150.0);
+                        ui.same_line(/*150.0*/);
                         let value = match value {
                             CharacterString(s) => Cow::Borrowed(s.as_str()),
                             Logical(true) => Cow::Borrowed("True"),
@@ -90,7 +90,7 @@ impl Visualizable for Fits {
                     ui.separator();
                 }
             });
-            id_stack.pop(ui);
+            id_stack.pop();
         }
         if !has_hdus {
             ui.text("Input Fits appears invalid. No HDU could be found.");

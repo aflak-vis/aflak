@@ -94,7 +94,7 @@ pub trait MenuBar {
 
         let mut output_saved_success_popup = false;
         ui.menu_bar(|| {
-            if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
+            if let Some(menu) = ui.begin_menu_with_enabled(im_str!("File"), true) {
                 if MenuItem::new(im_str!("Save")).build(ui) {
                     let path = self.file_name(output);
                     if let Err(e) = self.save(path) {
@@ -105,7 +105,7 @@ pub trait MenuBar {
                     }
                 }
                 self.file_submenu(ui, window);
-                menu.end(ui);
+                menu.end();
             }
             self.other_menu(ui, window);
         });
@@ -113,12 +113,12 @@ pub trait MenuBar {
         if output_saved_success_popup {
             ui.open_popup(im_str!("Export completed!"));
         }
-        ui.popup_modal(im_str!("Export completed!")).build(|| {
+        ui.popup_modal(im_str!("Export completed!")).build(ui, || {
             ui.text(format!(
                 "File saved with success to '{}'.",
                 self.file_name(output)
             ));
-            if ui.button(im_str!("Close"), [0.0, 0.0]) {
+            if ui.button(im_str!("Close")) {
                 ui.close_current_popup();
             }
         });
@@ -427,18 +427,18 @@ impl MenuBar for primitives::WcsArray {
         match &self.tag() {
             None => match self.scalar().ndim() {
                 2 => {
-                    if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Window"), true) {
                         self.zoom_menu(ui, window);
-                        menu.end(ui);
+                        menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Histogram"), true) {
                         self.histogram_menu(ui, window);
-                        menu.end(ui);
+                        menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Others"), true) {
                         MenuItem::new(im_str!("Approx Line"))
                             .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
-                        menu.end(ui);
+                        menu.end();
                     }
                 }
                 _ => {}
@@ -446,34 +446,34 @@ impl MenuBar for primitives::WcsArray {
             Some(tag) => match tag.as_ref() {
                 "BPT" => match self.scalar().ndim() {
                     2 => {
-                        if let Some(menu) = ui.begin_menu(im_str!("Graph"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Graph"), true) {
                             MenuItem::new(im_str!("Graph Editor")).build_with_ref(
                                 ui,
                                 &mut window.scatter_lineplot_state.show_graph_editor,
                             );
-                            menu.end(ui);
+                            menu.end();
                         }
-                        if let Some(menu) = ui.begin_menu(im_str!("Option"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Option"), true) {
                             if MenuItem::new(im_str!("Show all data points")).build_with_ref(
                                 ui,
                                 &mut window.scatter_lineplot_state.show_all_point,
                             ) {
                                 window.scatter_lineplot_state.editor_changed = true;
                             }
-                            menu.end(ui);
+                            menu.end();
                         }
                     }
                     _ => {}
                 },
                 "color_image" => match self.scalar().ndim() {
                     3 => {
-                        if let Some(menu) = ui.begin_menu(im_str!("Window"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Window"), true) {
                             self.zoom_menu(ui, window);
-                            menu.end(ui);
+                            menu.end();
                         }
-                        if let Some(menu) = ui.begin_menu(im_str!("Histogram"), true) {
+                        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Histogram"), true) {
                             self.histogram_menu(ui, window);
-                            menu.end(ui);
+                            menu.end();
                         }
                     }
                     _ => {}
@@ -484,7 +484,7 @@ impl MenuBar for primitives::WcsArray {
     }
 
     fn zoom_menu(&self, ui: &Ui, window: &mut OutputWindow) {
-        if let Some(menu) = ui.begin_menu(im_str!("Zoom"), true) {
+        if let Some(menu) = ui.begin_menu_with_enabled(im_str!("Zoom"), true) {
             if MenuItem::new(im_str!("Fit"))
                 .build_with_ref(ui, &mut window.image2d_state.zoomkind[0])
             {
@@ -529,7 +529,7 @@ impl MenuBar for primitives::WcsArray {
                     window.image2d_state.zoomkind[3] = true;
                 }
             }
-            menu.end(ui);
+            menu.end();
         }
     }
 
@@ -909,22 +909,24 @@ where
     F: glium::backend::Facade,
 {
     ctx.ui.open_popup(im_str!("Attach failued"));
-    ctx.ui.popup_modal(im_str!("Attach failued")).build(|| {
-        let kind = match ctx.attaching.unwrap().2 {
-            0 => "horizontal line",
-            1 => "vertical line",
-            2 => "Region Of Interest",
-            _ => "Unimplemented Interaction",
-        };
-        ctx.ui.text(format!(
-            "Attach failued, {} cannot be used in {}",
-            kind, viztype
-        ));
-        if ctx.ui.button(im_str!("Close"), [0.0, 0.0]) {
-            *ctx.attaching = None;
-            ctx.ui.close_current_popup();
-        }
-    });
+    ctx.ui
+        .popup_modal(im_str!("Attach failued"))
+        .build(ctx.ui, || {
+            let kind = match ctx.attaching.unwrap().2 {
+                0 => "horizontal line",
+                1 => "vertical line",
+                2 => "Region Of Interest",
+                _ => "Unimplemented Interaction",
+            };
+            ctx.ui.text(format!(
+                "Attach failued, {} cannot be used in {}",
+                kind, viztype
+            ));
+            if ctx.ui.button(im_str!("Close")) {
+                *ctx.attaching = None;
+                ctx.ui.close_current_popup();
+            }
+        });
 }
 
 #[derive(Debug)]
