@@ -60,8 +60,8 @@ impl FileDialog {
                     .focus_on_appearing(true)
                     .opened(&mut opened)
                     .build(ui, || {
-                        ComboBox::new(im_str!("Template")).build_simple_string(
-                            ui,
+                        ui.combo_simple_string(
+                            im_str!("Template"),
                             selected_template,
                             &template_names,
                         );
@@ -80,12 +80,12 @@ impl FileDialog {
                     .opened(&mut opened)
                     .size([512.0, 0.0], Condition::FirstUseEver)
                     .build(ui, || {
-                        ComboBox::new(im_str!("Template")).build_simple_string(
-                            ui,
+                        ui.combo_simple_string(
+                            im_str!("Template"),
                             selected_template,
                             &template_names,
                         );
-                        if ui.button(im_str!("OK"), [0.0, 0.0]) {
+                        if ui.button(im_str!("OK")) {
                             some_path = Some(path.clone());
                         }
                     });
