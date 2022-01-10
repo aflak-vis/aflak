@@ -3,7 +3,6 @@
 //! For development you will want to check the
 //! [NodeEditor](struct.NodeEditor.html) struct.
 extern crate aflak_cake as cake;
-#[macro_use]
 extern crate imgui;
 extern crate imgui_file_explorer;
 extern crate ron;
@@ -233,10 +232,10 @@ where
 
     fn render_error_popup(&mut self, ui: &imgui::Ui) {
         if !self.error_stack.is_empty() {
-            ui.open_popup(im_str!("Error!"));
+            ui.open_popup(format!("Error!"));
         }
-        ui.popup_modal(im_str!("Error!")).build(|| {
-            let stack = ui.push_text_wrap_pos(400.0);
+        ui.popup_modal(format!("Error!")).build(ui, || {
+            let stack = ui.push_text_wrap_pos_with_pos(400.0);
             let e = &self.error_stack[self.error_stack.len() - 1];
             ui.text_wrapped(&ImString::new(format!("{}", e)));
             stack.pop(ui);
@@ -248,9 +247,9 @@ where
     }
     fn render_success_popup(&mut self, ui: &imgui::Ui) {
         if self.error_stack.is_empty() && !self.success_stack.is_empty() {
-            ui.open_popup(im_str!("Success!"));
+            ui.open_popup(format!("Success!"));
         }
-        ui.popup_modal(im_str!("Success!")).build(|| {
+        ui.popup_modal(format!("Success!")).build(ui, || {
             {
                 let msg = &self.success_stack[self.success_stack.len() - 1];
                 ui.text(msg);
@@ -360,7 +359,7 @@ where
             .position(mouse_pos, imgui::Condition::Appearing)
             .size([400.0, 410.0], imgui::Condition::Appearing)
             .build(ui, || {
-                imgui::ChildWindow::new(im_str!("edit"))
+                imgui::ChildWindow::new("import_fileexplorer")
                     .size([0.0, 350.0])
                     .horizontal_scrollbar(true)
                     .build(ui, || {
@@ -370,7 +369,7 @@ where
                             selected_path = Some(path);
                         }
                     });
-                if ui.button(im_str!("Cancel"), [0.0, 0.0]) {
+                if ui.button(format!("Cancel")) {
                     cancelled = true;
                 }
             });

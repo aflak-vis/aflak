@@ -8,7 +8,10 @@ use crate::primitives::fitrs::Fits;
 pub trait Visualizable {
     fn visualize(&self, ui: &Ui);
 
-    fn draw<'ui>(&self, ui: &'ui Ui, window: Window<'_>) {
+    fn draw<'ui, T>(&self, ui: &'ui Ui, window: Window<'_, T>)
+    where
+        T: AsRef<str>,
+    {
         window.build(ui, || self.visualize(ui));
     }
 }
@@ -56,15 +59,16 @@ impl Visualizable for Fits {
             use std::borrow::Cow;
 
             has_hdus = true;
-
+            let extname;
             let tree_name = match hdu.value("EXTNAME") {
-                Some(CharacterString(extname)) => ImString::new(extname.as_str()),
+                Some(CharacterString(extname)) => extname,
                 _ => {
                     if i == 0 {
-                        im_str!("Primary HDU").to_owned()
+                        extname = format!("Primary HDU");
                     } else {
-                        ImString::new(format!("Hdu #{}", i))
+                        extname = format!("Hdu #{}", i);
                     }
+                    &extname
                 }
             };
 
@@ -73,7 +77,7 @@ impl Visualizable for Fits {
                 for (key, value) in &hdu {
                     ui.text(key);
                     if let Some(value) = value {
-                        ui.same_line(150.0);
+                        ui.same_line(/*150.0*/);
                         let value = match value {
                             CharacterString(s) => Cow::Borrowed(s.as_str()),
                             Logical(true) => Cow::Borrowed("True"),
@@ -90,7 +94,7 @@ impl Visualizable for Fits {
                     ui.separator();
                 }
             });
-            id_stack.pop(ui);
+            id_stack.pop();
         }
         if !has_hdus {
             ui.text("Input Fits appears invalid. No HDU could be found.");

@@ -3,7 +3,7 @@ use imgui_file_explorer::{UiFileExplorer, CURRENT_FOLDER};
 use imgui_tone_curve::UiToneCurve;
 use node_editor::ConstantEditor;
 
-use imgui::{ChildWindow, Id, ImString, Ui, WindowDrawList};
+use imgui::{ChildWindow, DrawListMut, Id, Ui};
 
 #[derive(Default)]
 pub struct MyConstantEditor;
@@ -15,7 +15,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
         constant: &IOValue,
         id: I,
         read_only: bool,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> Option<IOValue>
     where
         I: Into<Id<'a>>,
@@ -30,7 +30,7 @@ impl ConstantEditor<primitives::IOValue> for MyConstantEditor {
             ui.tooltip_text("Read only, value is set by input!");
         }
 
-        id_stack.pop(ui);
+        id_stack.pop();
 
         some_new_value
     }
@@ -40,18 +40,18 @@ fn inner_editor(
     ui: &Ui,
     constant: &IOValue,
     read_only: bool,
-    draw_list: &WindowDrawList,
+    draw_list: &DrawListMut,
 ) -> Option<IOValue> {
     match *constant {
         IOValue::Str(ref string) => {
-            let mut out = ImString::with_capacity(1024);
+            let mut out = String::with_capacity(1024);
             out.push_str(string);
             let changed = ui
-                .input_text(im_str!("String value"), &mut out)
+                .input_text(format!("String value"), &mut out)
                 .read_only(read_only)
                 .build();
             if changed {
-                Some(IOValue::Str(out.to_str().to_owned()))
+                Some(IOValue::Str(out.to_owned()))
             } else {
                 None
             }
@@ -64,7 +64,7 @@ fn inner_editor(
             if MIN <= *int && *int <= MAX {
                 let mut out = *int as i32;
                 let changed = ui
-                    .input_int(im_str!("Int value"), &mut out)
+                    .input_int(format!("Int value"), &mut out)
                     .read_only(read_only)
                     .build();
                 if changed {
@@ -83,7 +83,7 @@ fn inner_editor(
         IOValue::Float(ref float) => {
             let mut f = *float;
             if ui
-                .input_float(im_str!("Float value"), &mut f)
+                .input_float(format!("Float value"), &mut f)
                 .read_only(read_only)
                 .build()
             {
@@ -95,7 +95,7 @@ fn inner_editor(
         IOValue::Float2(ref floats) => {
             let mut f2 = *floats;
             if ui
-                .input_float2(im_str!("2 floats value"), &mut f2)
+                .input_float2(format!("2 floats value"), &mut f2)
                 .read_only(read_only)
                 .build()
             {
@@ -106,7 +106,7 @@ fn inner_editor(
         }
         IOValue::ToneCurve(ref state) => {
             let mut state_ret = None;
-            ChildWindow::new(im_str!("edit"))
+            ChildWindow::new("tonecurve_fileexplorer")
                 .size([430.0, 430.0])
                 .horizontal_scrollbar(true)
                 .movable(false)
@@ -124,7 +124,7 @@ fn inner_editor(
         IOValue::Float3(ref floats) => {
             let mut f3 = *floats;
             if ui
-                .input_float3(im_str!("3 floats value"), &mut f3)
+                .input_float3(format!("3 floats value"), &mut f3)
                 .read_only(read_only)
                 .build()
             {
@@ -135,7 +135,7 @@ fn inner_editor(
         }
         IOValue::Bool(ref b) => {
             let mut b = *b;
-            if ui.checkbox(im_str!("Bool value"), &mut b) {
+            if ui.checkbox(format!("Bool value"), &mut b) {
                 Some(IOValue::Bool(b))
             } else {
                 None
@@ -148,7 +148,7 @@ fn inner_editor(
                 } else {
                     let size = ui.item_rect_size();
                     let mut ret = Ok((None, None));
-                    ChildWindow::new(im_str!("edit"))
+                    ChildWindow::new("path_fileexplorer")
                         .size([size[0].max(400.0), 150.0])
                         .horizontal_scrollbar(true)
                         .build(ui, || {
@@ -159,7 +159,7 @@ fn inner_editor(
                                 ],
                             );
                         });
-                    ui.text(im_str!("Selected Files:"));
+                    ui.text(format!("Selected Files:"));
                     for single_file in file {
                         ui.text(single_file.to_str().unwrap_or("Unrepresentable path"));
                     }

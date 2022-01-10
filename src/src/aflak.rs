@@ -52,58 +52,58 @@ impl Aflak {
         let mut new_editor = false;
 
         if let Some(menu_bar) = ui.begin_main_menu_bar() {
-            if let Some(menu) = ui.begin_menu(im_str!("File"), true) {
-                if MenuItem::new(im_str!("New")).build(ui) {
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("File"), true) {
+                if MenuItem::new(format!("New")).build(ui) {
                     new_editor = true;
                 }
-                if MenuItem::new(im_str!("Open FITS")).build(ui) {
+                if MenuItem::new(format!("Open FITS")).build(ui) {
                     self.file_dialog = Some(FileDialog::default());
                 }
-                if let Some(menu) =
-                    ui.begin_menu(im_str!("Open Recent"), !self.recent_files.is_empty())
+                if let Some(menu) = ui
+                    .begin_menu_with_enabled(format!("Open Recent"), !self.recent_files.is_empty())
                 {
                     for file in self.recent_files.iter().rev() {
                         if MenuItem::new(&ImString::new(file.to_string_lossy())).build(ui) {
                             self.file_dialog = Some(FileDialog::with_path(file.clone()));
                         }
                     }
-                    menu.end(ui);
+                    menu.end();
                 }
                 ui.separator();
-                if MenuItem::new(im_str!("Quit"))
-                    .shortcut(im_str!("Alt+F4"))
+                if MenuItem::new(format!("Quit"))
+                    .shortcut(format!("Alt+F4"))
                     .build(ui)
                 {
                     self.quit = true;
                 }
-                menu.end(ui);
+                menu.end();
             }
-            if let Some(menu) = ui.begin_menu(im_str!("Others"), true) {
-                if MenuItem::new(im_str!("Metrics")).build(ui) {
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("Others"), true) {
+                if MenuItem::new(format!("Metrics")).build(ui) {
                     self.show_metrics = !self.show_metrics;
                 }
-                if MenuItem::new(im_str!("Bind manager")).build(ui) {
+                if MenuItem::new(format!("Bind manager")).build(ui) {
                     self.show_bind_manager = !self.show_bind_manager;
                 }
-                menu.end(ui);
+                menu.end();
             }
-            menu_bar.end(ui);
+            menu_bar.end();
         }
 
         if new_editor {
-            ui.open_popup(im_str!("Start new node program"));
+            ui.open_popup(format!("Start new node program"));
         }
-        ui.popup_modal(im_str!("Start new node program"))
+        ui.popup_modal(format!("Start new node program"))
             .always_auto_resize(true)
-            .build(|| {
+            .build(ui, || {
                 ui.text("The current node program will be lost. Proceed?");
                 ui.separator();
-                if ui.button(im_str!("OK"), [120.0, 0.0]) {
+                if ui.button(format!("OK")) {
                     self.node_editor = NodeEditor::default();
                     ui.close_current_popup();
                 }
-                ui.same_line(0.0);
-                if ui.button(im_str!("Cancel"), [120.0, 0.0]) {
+                ui.same_line();
+                if ui.button(format!("Cancel")) {
                     ui.close_current_popup();
                 }
             });
@@ -112,7 +112,7 @@ impl Aflak {
     pub fn node_editor(&mut self, ui: &Ui, addable_nodes: &[&'static Transform<IOValue, IOErr>]) {
         let display_size = ui.io().display_size;
         let Layout { position, size } = self.layout_engine.default_editor_layout(display_size);
-        Window::new(im_str!("Node editor"))
+        Window::new(format!("Node editor"))
             .position(position, Condition::FirstUseEver)
             .size(size, Condition::FirstUseEver)
             .build(ui, || {
@@ -170,9 +170,9 @@ impl Aflak {
 
     pub fn show_errors(&mut self, ui: &Ui) {
         if !self.error_alerts.is_empty() {
-            ui.open_popup(im_str!("Error"));
+            ui.open_popup(format!("Error"));
         }
-        ui.popup_modal(im_str!("Error")).build(|| {
+        ui.popup_modal(format!("Error")).build(ui, || {
             {
                 let e = &self.error_alerts[self.error_alerts.len() - 1];
                 ui.text(&ImString::new(format!("{}", e)));
@@ -204,7 +204,7 @@ impl Aflak {
     }
 
     pub fn bind_manager(&mut self, ui: &Ui) {
-        Window::new(im_str!("Bind Manager")).build(ui, || {
+        Window::new(format!("Bind Manager")).build(ui, || {
             ui.text("Bindings:");
             let outputs = self.node_editor.outputs();
             let dst = &self.node_editor.dst;
@@ -219,7 +219,7 @@ impl Aflak {
                             for (nodeid, node) in macr.read().dst().nodes_iter() {
                                 if let NodeId::Transform(t_idx) = nodeid {
                                     if t_idx == *transformidx {
-                                        ui.text(im_str!(
+                                        ui.text(format!(
                                             "{:?} <--> {:?} in Macro {:?}",
                                             output_id,
                                             node.name(&nodeid),
@@ -228,14 +228,14 @@ impl Aflak {
                                         let p = ui.cursor_screen_pos();
                                         ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
                                         bind_count += 1;
-                                        if ui.button(
-                                            &ImString::new(format!("Remove bind {}", bind_count)),
-                                            [0.0, 0.0],
-                                        ) {
+                                        if ui.button(&ImString::new(format!(
+                                            "Remove bind {}",
+                                            bind_count
+                                        ))) {
                                             remove_id = Some(interaction_id);
                                         }
                                         if ui.is_item_hovered() {
-                                            ui.tooltip_text(im_str!(
+                                            ui.tooltip_text(format!(
                                                 "Remove this bind and create new bind"
                                             ));
                                         }
@@ -247,7 +247,7 @@ impl Aflak {
                         for (nodeid, node) in dst.nodes_iter() {
                             if let NodeId::Transform(t_idx) = nodeid {
                                 if t_idx == *transformidx {
-                                    ui.text(im_str!(
+                                    ui.text(format!(
                                         "{:?} <--> {:?}",
                                         output_id,
                                         node.name(&nodeid)
@@ -255,14 +255,14 @@ impl Aflak {
                                     let p = ui.cursor_screen_pos();
                                     ui.set_cursor_screen_pos([p[0] + 150.0, p[1]]);
                                     bind_count += 1;
-                                    if ui.button(
-                                        &ImString::new(format!("Remove bind {}", bind_count)),
-                                        [0.0, 0.0],
-                                    ) {
+                                    if ui.button(&ImString::new(format!(
+                                        "Remove bind {}",
+                                        bind_count
+                                    ))) {
                                         remove_id = Some(interaction_id);
                                     }
                                     if ui.is_item_hovered() {
-                                        ui.tooltip_text(im_str!(
+                                        ui.tooltip_text(format!(
                                             "Remove this bind and create new bind"
                                         ));
                                     }

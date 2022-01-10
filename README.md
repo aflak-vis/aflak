@@ -44,8 +44,6 @@ for a better experience. 3000-pixel is even better!
 
 ## Build from source
 
-Minimum Rust version: 1.40.0.
-
 Install the rust toolchain with [rustup](https://rustup.rs/).
 You will need a working C & C++ environment to install from sources.
 

@@ -3,8 +3,8 @@ use super::node_editor::NodeEditor;
 use super::primitives::{IOErr, IOValue};
 use glium::backend::Facade;
 use imgui::{
-    ChildWindow, ComboBox, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider,
-    TextureId, Ui, Window,
+    ChildWindow, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
+    Ui, Window,
 };
 use ndarray::ArrayD;
 use std::borrow::Borrow;
@@ -172,11 +172,11 @@ where
         let mut changed = false;
 
         ui.set_cursor_screen_pos(pos);
-        ui.invisible_button(im_str!("image_bar"), size);
+        ui.invisible_button(format!("image_bar"), size);
         if ui.is_item_hovered() && ui.is_mouse_clicked(MouseButton::Right) {
-            ui.open_popup(im_str!("swap-lut"));
+            ui.open_popup(format!("swap-lut"));
         }
-        ui.popup(im_str!("swap-lut"), || {
+        ui.popup(format!("swap-lut"), || {
             ui.text("Swap LUT");
             ui.separator();
             for builtin_lut in BuiltinLUT::values() {
@@ -185,7 +185,7 @@ where
                     self.lut.set_gradient(*builtin_lut);
                     changed = true;
                 }
-                stack.pop(ui);
+                stack.pop();
             }
         });
 
@@ -230,7 +230,7 @@ where
                 );
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
-            ui.invisible_button(im_str!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            ui.invisible_button(format!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
@@ -277,7 +277,7 @@ where
                 );
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
-            ui.invisible_button(im_str!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            ui.invisible_button(format!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
             if ui.is_item_hovered() {
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
@@ -394,7 +394,7 @@ where
 
         let mut s = [0.0, 0.0];
 
-        ChildWindow::new(im_str!("scrolling_region"))
+        ChildWindow::new("scrolling_region")
             .border(false)
             .scroll_bar(false)
             .movable(false)
@@ -524,7 +524,7 @@ where
                     }
 
                     if ui.is_mouse_clicked(MouseButton::Right) {
-                        ui.open_popup(im_str!("add-interaction-handle"))
+                        ui.open_popup(format!("add-interaction-handle"))
                     }
                 }
 
@@ -582,18 +582,19 @@ where
                 }
 
                 // Add interaction handlers
-                ui.popup(im_str!("add-interaction-handle"), || {
+                ui.popup(format!("add-interaction-handle"), || {
                     ui.text("Add interaction handle");
                     ui.separator();
-                    if let Some(menu) = ui.begin_menu(im_str!("Horizontal Line"), true) {
-                        if MenuItem::new(im_str!("to main editor")).build(ui) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Horizontal Line"), true)
+                    {
+                        if MenuItem::new(format!("to main editor")).build(ui) {
                             let new = Interaction::HorizontalLine(HorizontalLine::new(
                                 self.mouse_pos.1.round(),
                             ));
                             self.interactions.insert(new);
                         }
                         for macr in node_editor.macros.macros() {
-                            if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
+                            if MenuItem::new(&format!("to macro: {}", macr.name())).build(ui) {
                                 let new = Interaction::HorizontalLine(HorizontalLine::new(
                                     self.mouse_pos.1.round(),
                                 ));
@@ -611,17 +612,17 @@ where
                                 store.insert(self.interactions.id(), t_idx);
                             }
                         }
-                        menu.end(ui);
+                        menu.end();
                     }
-                    if let Some(menu) = ui.begin_menu(im_str!("Vertical Line"), true) {
-                        if MenuItem::new(im_str!("to main editor")).build(ui) {
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Vertical Line"), true) {
+                        if MenuItem::new(format!("to main editor")).build(ui) {
                             let new = Interaction::VerticalLine(VerticalLine::new(
                                 self.mouse_pos.0.round(),
                             ));
                             self.interactions.insert(new);
                         }
                         for macr in node_editor.macros.macros() {
-                            if MenuItem::new(&im_str!("to macro: {}", macr.name())).build(ui) {
+                            if MenuItem::new(&format!("to macro: {}", macr.name())).build(ui) {
                                 let new = Interaction::VerticalLine(VerticalLine::new(
                                     self.mouse_pos.0.round(),
                                 ));
@@ -639,19 +640,19 @@ where
                                 store.insert(self.interactions.id(), t_idx);
                             }
                         }
-                        menu.end(ui);
+                        menu.end();
                     }
-                    if MenuItem::new(im_str!("Region of interest")).build(ui) {
+                    if MenuItem::new(format!("Region of interest")).build(ui) {
                         let new = Interaction::FinedGrainedROI(FinedGrainedROI::new(
                             self.roi_input.gen_id(),
                         ));
                         self.interactions.insert(new);
                     }
-                    if MenuItem::new(im_str!("Line")).build(ui) {
+                    if MenuItem::new(format!("Line")).build(ui) {
                         let new = Interaction::Line(Line::new());
                         self.interactions.insert(new);
                     }
-                    if MenuItem::new(im_str!("Circle")).build(ui) {
+                    if MenuItem::new(format!("Circle")).build(ui) {
                         let new = Interaction::Circle(Circle::new(self.circle_input.gen_id()));
                         self.interactions.insert(new);
                     }
@@ -659,7 +660,7 @@ where
                         ui.separator();
                         ui.text("Paste Line Options");
                         ui.separator();
-                        if MenuItem::new(im_str!("Paste Line as Horizontal Line")).build(ui) {
+                        if MenuItem::new(format!("Paste Line as Horizontal Line")).build(ui) {
                             let new = Interaction::HorizontalLine(HorizontalLine::new(
                                 self.mouse_pos.1.round(),
                             ));
@@ -667,7 +668,7 @@ where
                             store.insert(self.interactions.id(), t_idx);
                             *copying = None;
                         }
-                        if MenuItem::new(im_str!("Paste Line as Vertical Line")).build(ui) {
+                        if MenuItem::new(format!("Paste Line as Vertical Line")).build(ui) {
                             let new = Interaction::VerticalLine(VerticalLine::new(
                                 self.mouse_pos.0.round(),
                             ));
@@ -723,7 +724,7 @@ where
                             ui.set_cursor_screen_pos([x, y - CLICKABLE_HEIGHT]);
 
                             ui.invisible_button(
-                                im_str!("horizontal-line"),
+                                format!("horizontal-line"),
                                 [size[0], 2.0 * CLICKABLE_HEIGHT],
                             );
                             if ui.is_item_hovered() {
@@ -732,7 +733,7 @@ where
                                     *moving = true;
                                 }
                                 if ui.is_mouse_clicked(MouseButton::Right) {
-                                    ui.open_popup(im_str!("edit-horizontal-line"))
+                                    ui.open_popup(format!("edit-horizontal-line"))
                                 }
                             }
                             if *moving {
@@ -747,11 +748,11 @@ where
                                 .add_line([x, y], [x + size[0], y], LINE_COLOR)
                                 .build();
 
-                            ui.popup(im_str!("edit-horizontal-line"), || {
-                                if MenuItem::new(im_str!("Delete Line")).build(ui) {
+                            ui.popup(format!("edit-horizontal-line"), || {
+                                if MenuItem::new(format!("Delete Line")).build(ui) {
                                     line_marked_for_deletion = Some(*id);
                                 }
-                                if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                                if MenuItem::new(format!("Copy Line")).build(ui) {
                                     if store.contains_key(id) {
                                         let t_idx = *store.get(id).unwrap();
                                         *copying = Some((*id, t_idx));
@@ -769,7 +770,7 @@ where
 
                             ui.set_cursor_screen_pos([x - CLICKABLE_WIDTH, y]);
                             ui.invisible_button(
-                                im_str!("vertical-line"),
+                                format!("vertical-line"),
                                 [2.0 * CLICKABLE_WIDTH, size[1]],
                             );
                             if ui.is_item_hovered() {
@@ -778,7 +779,7 @@ where
                                     *moving = true;
                                 }
                                 if ui.is_mouse_clicked(MouseButton::Right) {
-                                    ui.open_popup(im_str!("edit-vertical-line"))
+                                    ui.open_popup(format!("edit-vertical-line"))
                                 }
                             }
                             if *moving {
@@ -792,11 +793,11 @@ where
                                 .add_line([x, y], [x, y + size[1]], LINE_COLOR)
                                 .build();
 
-                            ui.popup(im_str!("edit-vertical-line"), || {
-                                if MenuItem::new(im_str!("Delete Line")).build(ui) {
+                            ui.popup(format!("edit-vertical-line"), || {
+                                if MenuItem::new(format!("Delete Line")).build(ui) {
                                     line_marked_for_deletion = Some(*id);
                                 }
-                                if MenuItem::new(im_str!("Copy Line")).build(ui) {
+                                if MenuItem::new(format!("Copy Line")).build(ui) {
                                     if store.contains_key(id) {
                                         let t_idx = *store.get(id).unwrap();
                                         *copying = Some((*id, t_idx));
@@ -941,7 +942,7 @@ where
                                         mousepos.1 - CLICKABLE_WIDTH,
                                     ]);
                                     ui.invisible_button(
-                                        im_str!("line"),
+                                        format!("line"),
                                         [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
                                     );
                                     ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
@@ -950,7 +951,7 @@ where
                                         edgemoving.0 = true;
                                     }
                                     if ui.is_mouse_clicked(MouseButton::Right) {
-                                        ui.open_popup(im_str!("edit-line"))
+                                        ui.open_popup(format!("edit-line"))
                                     }
                                 } else if (x1 - mousepos.0) * (x1 - mousepos.0)
                                     + (y1 - mousepos.1) * (y1 - mousepos.1)
@@ -972,7 +973,7 @@ where
                                         mousepos.1 - CLICKABLE_WIDTH,
                                     ]);
                                     ui.invisible_button(
-                                        im_str!("line"),
+                                        format!("line"),
                                         [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
                                     );
                                     ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
@@ -981,7 +982,7 @@ where
                                         edgemoving.1 = true;
                                     }
                                     if ui.is_mouse_clicked(MouseButton::Right) {
-                                        ui.open_popup(im_str!("edit-line"))
+                                        ui.open_popup(format!("edit-line"))
                                     }
                                 } else if rotated_upperleft.0 <= rotated_mousepos.0
                                     && rotated_mousepos.0 <= rotated_upperleft.0 + linevecsize
@@ -994,7 +995,7 @@ where
                                         mousepos.1 - CLICKABLE_WIDTH,
                                     ]);
                                     ui.invisible_button(
-                                        im_str!("line"),
+                                        format!("line"),
                                         [CLICKABLE_WIDTH * 2.0, CLICKABLE_WIDTH * 2.0],
                                     );
                                     ui.set_mouse_cursor(Some(MouseCursor::ResizeAll));
@@ -1004,7 +1005,7 @@ where
                                         *pre_mousepos = self.mouse_pos;
                                     }
                                     if ui.is_mouse_clicked(MouseButton::Right) {
-                                        ui.open_popup(im_str!("edit-line"))
+                                        ui.open_popup(format!("edit-line"))
                                     }
                                 }
                                 if *allmoving {
@@ -1113,10 +1114,10 @@ where
                                     }
                                 }
 
-                                ui.popup(im_str!("edit-line"), || {
-                                    if MenuItem::new(im_str!("Delete Line")).build(ui) {
+                                ui.popup(format!("edit-line"), || {
+                                    if MenuItem::new(format!("Delete Line")).build(ui) {
                                         line_marked_for_deletion = Some(*id);
-                                    } else if MenuItem::new(im_str!("Rotate Line")).build(ui) {
+                                    } else if MenuItem::new(format!("Rotate Line")).build(ui) {
                                         *show_rotate = true;
                                     }
                                 });
@@ -1125,8 +1126,7 @@ where
                                         .size([300.0, 50.0], Condition::Appearing)
                                         .resizable(false)
                                         .build(ui, || {
-                                            Slider::new(im_str!("Degree"))
-                                                .range(-180..=180)
+                                            Slider::new(format!("Degree"), -180, 180)
                                                 .build(ui, degree);
                                         });
                                     if !*allmoving && !edgemoving.0 && !edgemoving.1 {
@@ -1311,7 +1311,7 @@ where
                             }
                         }
                     }
-                    stack.pop(ui);
+                    stack.pop();
                 }
 
                 if let Some(line_id) = line_marked_for_deletion {
@@ -1415,15 +1415,11 @@ where
     pub(crate) fn show_roi_selector(&mut self, ui: &Ui) {
         let any_roi = self.interactions.iter_mut().filter_roi().any(|_| true);
         if any_roi {
-            let mut names = vec![im_str!("None")];
+            let mut names = vec![format!("None")];
             for name in self.roi_input.roi_names.iter() {
-                names.push(&name);
+                names.push(name.to_string());
             }
-            ComboBox::new(im_str!("Active ROI")).build_simple_string(
-                ui,
-                &mut self.roi_input.selected,
-                &names,
-            );
+            ui.combo_simple_string(format!("Active ROI"), &mut self.roi_input.selected, &names);
         }
     }
 

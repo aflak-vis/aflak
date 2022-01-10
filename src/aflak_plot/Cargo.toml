@@ -7,14 +7,14 @@ edition = "2018"
 license = "GPL-3.0-only"
 
 [dependencies]
-glium = { version = "0.27", default-features = true }
-imgui = { version = "0.5.0" }
-imgui-glium-renderer = { version = "0.5.0" }
+glium = { version = "0.30", default-features = true }
+imgui = { version = "0.8.0" }
+imgui-glium-renderer = { version = "0.8.0" }
 aflak_cake = { path = "../aflak_cake" }
 aflak_primitives = { path = "../aflak_primitives" }
 node_editor = { path = "../node_editor" }
 ndarray = "0.12"
-implot = { version = "0.2.0" }
+implot = { git = "https://github.com/4bb4/implot-rs" }
 meval = "0.2"
 
 [dev-dependencies]

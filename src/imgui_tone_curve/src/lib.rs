@@ -60,7 +60,7 @@ pub trait UiToneCurve {
     fn tone_curve(
         &self,
         state: &mut ToneCurveState,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> io::Result<Option<ToneCurveState>>;
 }
 
@@ -160,21 +160,21 @@ impl<'ui> UiToneCurve for Ui<'ui> {
     fn tone_curve(
         &self,
         state: &mut ToneCurveState,
-        draw_list: &WindowDrawList,
+        draw_list: &DrawListMut,
     ) -> io::Result<Option<ToneCurveState>> {
         let p = self.cursor_screen_pos();
         let mouse_pos = self.io().mouse_pos;
         let [mouse_x, mouse_y] = [mouse_pos[0] - p[0] - 5.0, mouse_pos[1] - p[1] - 5.0];
         state.arr = Self::create_curve(&state.cp);
-        self.invisible_button(im_str!("tone_curve"), [410.0, 410.0]);
+        self.invisible_button(format!("tone_curve"), [410.0, 410.0]);
         self.set_cursor_screen_pos(p);
-        PlotLines::new(self, im_str!(""), &state.arr)
+        PlotLines::new(self, format!(""), &state.arr)
             .graph_size([410.0, 410.0])
             .scale_min(0.0)
             .scale_max(256.0)
             .build();
         self.set_cursor_screen_pos(p);
-        self.invisible_button(im_str!("tone_curve"), [410.0, 410.0]);
+        self.invisible_button(format!("tone_curve"), [410.0, 410.0]);
         if let Some(adding) = state.adding {
             let x = adding[0] * 400.0 + 5.0 + p[0];
             let y = (1.0 - adding[1]) * 400.0 + 5.0 + p[1];
@@ -192,7 +192,7 @@ impl<'ui> UiToneCurve for Ui<'ui> {
                     state.moving = Some(counter);
                 }
                 if self.is_mouse_clicked(MouseButton::Right) {
-                    self.open_popup(im_str!("delete-control-point"));
+                    self.open_popup(format!("delete-control-point"));
                     state.deleting = Some(counter);
                 }
             } else {
@@ -200,8 +200,8 @@ impl<'ui> UiToneCurve for Ui<'ui> {
             }
             counter += 1;
         }
-        self.popup(im_str!("delete-control-point"), || {
-            if MenuItem::new(im_str!("Delete Control Point")).build(self) {
+        self.popup(format!("delete-control-point"), || {
+            if MenuItem::new(format!("Delete Control Point")).build(self) {
                 if let Some(key) = state.deleting {
                     state.cp.remove(key);
                     state.deleting = None;

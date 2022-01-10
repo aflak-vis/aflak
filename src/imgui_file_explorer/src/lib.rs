@@ -69,10 +69,10 @@ impl<'ui> UiFileExplorer for Ui<'ui> {
         S: AsRef<str>,
     {
         let current_dir = env::current_dir().unwrap_or_else(|_| target.as_ref().to_owned());
-        TreeNode::new(im_str!("./"))
+        TreeNode::new(format!("./"))
             .opened(false, Condition::Always)
             .build(&self, || {});
-        if self.is_item_clicked(MouseButton::Left) {
+        if self.is_item_clicked() {
             return Ok((None, Some(PathBuf::from("./"))));
         }
         view_dirs(&self, target, extensions, &current_dir)
@@ -120,7 +120,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                     TreeNode::new(&im_dirname)
                         .opened(open, Condition::Once)
                         .build(&ui, || {
-                            if ui.is_item_clicked(MouseButton::Left) {
+                            if ui.is_item_clicked() {
                                 clicked_dir = Some(i.clone());
                             }
                             let out = view_dirs(ui, &i, extensions, default_dir);
@@ -132,7 +132,7 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
                                 }
                             }
                         });
-                    if ui.is_item_clicked(MouseButton::Left) {
+                    if ui.is_item_clicked() {
                         clicked_dir = Some(i.clone());
                     }
                 } else {
@@ -143,8 +143,8 @@ fn view_dirs<'a, T: AsRef<Path>, S: AsRef<str>>(
             }
         } else if let Some(file_name) = i.file_name() {
             if let Some(file_name) = file_name.to_str() {
-                ui.bullet_text(im_str!(""));
-                ui.same_line(0.0);
+                ui.bullet_text(format!(""));
+                ui.same_line();
                 if ui.small_button(&ImString::new(file_name)) {
                     selected_path = Some(i.clone());
                 }

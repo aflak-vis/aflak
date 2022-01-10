@@ -72,7 +72,7 @@ pub fn show_custom_markers_plot(ui: &Ui, plot_ui: &PlotUi) {
     Plot::new("Multi-marker scatter plot")
         // The size call could also be omitted, though the defaults don't consider window
         // width, which is why we're not doing so here.
-        .size(content_width, 300.0)
+        .size([content_width, 300.0])
         .build(plot_ui, || {
             // Change to cross marker for one scatter plot call
             let x_positions = vec![0.1, 0.2, 0.1, 0.5, 0.9];

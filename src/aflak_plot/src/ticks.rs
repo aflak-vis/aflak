@@ -1,4 +1,4 @@
-use imgui::{ImColor, ImString, Ui, WindowDrawList};
+use imgui::{DrawListMut, ImColor32, ImString, Ui};
 
 use super::AxisTransform;
 
@@ -50,7 +50,7 @@ impl XYTicks {
         self.y.width()
     }
 
-    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
+    pub fn draw(self, draw_list: &DrawListMut, p: [f32; 2], size: [f32; 2]) {
         self.x.draw(draw_list, p, size);
         self.y.draw(draw_list, p, size);
     }
@@ -70,14 +70,14 @@ impl XTicks {
                 } else {
                     ImString::new(format!("{:.0}", point))
                 };
-                let text_size = ui.calc_text_size(&label, false, -1.0);
+                let text_size = ui.calc_text_size(&label);
                 (label, text_size)
             })
             .collect();
         let axis_label = {
             let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
             let label = ImString::new(label);
-            let text_size = ui.calc_text_size(&label, false, -1.0);
+            let text_size = ui.calc_text_size(&label);
             (label, text_size)
         };
         XTicks { labels, axis_label }
@@ -92,7 +92,7 @@ impl XTicks {
         tick_height + label_height
     }
 
-    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
+    pub fn draw(self, draw_list: &DrawListMut, p: [f32; 2], size: [f32; 2]) {
         let x_step = size[0] / (self.labels.len() - 1) as f32;
         let mut x_pos = p[0];
         let y_pos = p[1] + size[1];
@@ -135,14 +135,14 @@ impl YTicks {
                 } else {
                     ImString::new(format!("{:.0}", point))
                 };
-                let text_size = ui.calc_text_size(&label, false, -1.0);
+                let text_size = ui.calc_text_size(&label);
                 (label, text_size)
             })
             .collect();
         let axis_label = {
             let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
             let label = ImString::new(label);
-            let text_size = ui.calc_text_size(&label, false, -1.0);
+            let text_size = ui.calc_text_size(&label);
             (label, text_size)
         };
         YTicks { labels, axis_label }
@@ -157,7 +157,7 @@ impl YTicks {
         label_width + tick_width + YTicks::AXIS_NAME_RIGHT_PADDING
     }
 
-    pub fn draw(self, draw_list: &WindowDrawList, p: [f32; 2], size: [f32; 2]) {
+    pub fn draw(self, draw_list: &DrawListMut, p: [f32; 2], size: [f32; 2]) {
         let y_step = size[1] / (self.labels.len() - 1) as f32;
         let mut y_pos = p[1] + size[1];
         let x_pos = p[0];
@@ -201,7 +201,7 @@ impl YTicks {
 /// Inspired from: https://github.com/ocornut/imgui/issues/705#issuecomment-247959437
 unsafe fn add_text_vertical<C, T>(pos: [f32; 2], col: C, text: T)
 where
-    C: Into<ImColor>,
+    C: Into<ImColor32>,
     T: AsRef<str>,
 {
     use imgui::sys;

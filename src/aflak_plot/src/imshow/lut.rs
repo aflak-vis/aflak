@@ -1,5 +1,3 @@
-use imgui::ImStr;
-
 use std::iter;
 use std::slice;
 
@@ -41,15 +39,15 @@ impl BuiltinLUT {
         VALUES.iter()
     }
 
-    pub fn name(self) -> &'static ImStr {
+    pub fn name(self) -> &'static str {
         match self {
-            BuiltinLUT::Grey => im_str!("Grey"),
-            BuiltinLUT::GreyClip => im_str!("GreyClip"),
-            BuiltinLUT::Yellowy => im_str!("Yellowy"),
-            BuiltinLUT::Thermal => im_str!("Thermal"),
-            BuiltinLUT::Flame => im_str!("Flame"),
-            BuiltinLUT::HeatMap => im_str!("HeatMap"),
-            BuiltinLUT::HeatMapInv => im_str!("HeatMap_Inv"),
+            BuiltinLUT::Grey => &"Grey",
+            BuiltinLUT::GreyClip => &"GreyClip",
+            BuiltinLUT::Yellowy => &"Yellowy",
+            BuiltinLUT::Thermal => &"Thermal",
+            BuiltinLUT::Flame => &"Flame",
+            BuiltinLUT::HeatMap => &"HeatMap",
+            BuiltinLUT::HeatMapInv => &"HeatMap_Inv",
         }
     }
 

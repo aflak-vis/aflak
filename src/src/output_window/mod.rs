@@ -32,11 +32,11 @@ pub struct OutputWindow {
 type EditableValues = HashMap<InteractionId, TransformIdx>;
 
 impl OutputWindow {
-    pub fn draw<'ui, F>(
+    pub fn draw<'ui, F, T>(
         &mut self,
         ui: &'ui Ui,
         output: OutputId,
-        window: Window<'_>,
+        window: Window<'_, T>,
         node_editor: &mut AflakNodeEditor,
         gl_ctx: &F,
         textures: &mut Textures,
@@ -46,6 +46,7 @@ impl OutputWindow {
     ) -> Vec<Box<dyn error::Error>>
     where
         F: glium::backend::Facade,
+        T: AsRef<str>,
     {
         let compute_state = node_editor.compute_output(output);
         match compute_state {

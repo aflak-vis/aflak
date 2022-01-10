@@ -1,7 +1,7 @@
 use std::error;
 use std::path::PathBuf;
 
-use imgui::{ChildWindow, ComboBox, Condition, ImString, Ui, Window};
+use imgui::{ChildWindow, Condition, ImString, Ui, Window};
 use imgui_file_explorer::UiFileExplorer;
 
 use crate::aflak::AflakNodeEditor;
@@ -49,23 +49,23 @@ impl FileDialog {
         let mut some_path = None;
         let mut opened = true;
         let template_names = [
-            im_str!("waveform"),
-            im_str!("equivalent_width"),
-            im_str!("fits_cleaning"),
-            im_str!("velocity_field"),
+            format!("waveform"),
+            format!("equivalent_width"),
+            format!("fits_cleaning"),
+            format!("velocity_field"),
         ];
         match &self.file_selection {
             FileSelection::FileNotSelected => {
-                Window::new(im_str!("Open file"))
+                Window::new(format!("Open file"))
                     .focus_on_appearing(true)
                     .opened(&mut opened)
                     .build(ui, || {
-                        ComboBox::new(im_str!("Template")).build_simple_string(
-                            ui,
+                        ui.combo_simple_string(
+                            format!("Template"),
                             selected_template,
                             &template_names,
                         );
-                        ChildWindow::new(im_str!("file-explorer"))
+                        ChildWindow::new("file-explorer")
                             .size([0.0, 512.0])
                             .build(ui, || {
                                 if let Ok((path, _)) = ui.file_explorer("/", &["fits"]) {
@@ -80,12 +80,12 @@ impl FileDialog {
                     .opened(&mut opened)
                     .size([512.0, 0.0], Condition::FirstUseEver)
                     .build(ui, || {
-                        ComboBox::new(im_str!("Template")).build_simple_string(
-                            ui,
+                        ui.combo_simple_string(
+                            format!("Template"),
                             selected_template,
                             &template_names,
                         );
-                        if ui.button(im_str!("OK"), [0.0, 0.0]) {
+                        if ui.button(format!("OK")) {
                             some_path = Some(path.clone());
                         }
                     });
