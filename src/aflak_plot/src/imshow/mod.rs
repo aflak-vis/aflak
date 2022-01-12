@@ -120,7 +120,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         let window_pos = self.window_pos();
         let cursor_pos = self.cursor_screen_pos();
         let window_size = self.window_size();
-        const HIST_WIDTH: f32 = 40.0;
+        const HIST_WIDTH: f32 = 100.0;
         const BAR_WIDTH: f32 = 20.0;
 
         const RIGHT_PADDING: f32 = 100.0;
@@ -184,7 +184,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         let window_pos = self.window_pos();
         let cursor_pos = self.cursor_screen_pos();
         let window_size = self.window_size();
-        const HIST_WIDTH: f32 = 300.0;
+        const HIST_WIDTH: f32 = 100.0;
         const BAR_WIDTH: f32 = 20.0;
 
         const RIGHT_PADDING: f32 = 100.0;
