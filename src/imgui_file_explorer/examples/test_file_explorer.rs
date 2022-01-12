@@ -5,7 +5,7 @@ use imgui::*;
 use imgui_file_explorer::UiFileExplorer;
 
 fn test(ui: &Ui) {
-    let window = Window::new(im_str!("File Explorer"))
+    let window = Window::new(format!("File Explorer"))
         .size([600.0, 400.0], Condition::Appearing)
         .position([200.0, 200.0], Condition::FirstUseEver);
     window.build(ui, || {

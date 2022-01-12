@@ -14,7 +14,7 @@ use aflak_plot::{
     scatter_lineplot::{State, UiScatter},
     AxisTransform,
 };
-use imgui::{im_str, Condition, Ui, Window};
+use imgui::{Condition, Ui, Window};
 use implot::{
     push_style_var_f32, push_style_var_i32, Context, Marker, Plot, PlotScatter, PlotUi, StyleVar,
 };
@@ -33,18 +33,24 @@ fn main() {
         let image_data = {
             const WIDTH: usize = 10;
             const HEIGHT: usize = 10;
-            let mut image_data = Vec::with_capacity(WIDTH * HEIGHT);
-            for j in 0..WIDTH {
-                for i in 0..HEIGHT {
-                    image_data.push(j as f32 * 0.1);
-                    image_data.push(i as f32 * 0.1);
-                    image_data.push(if i > 5 { 1.0 } else { 2.0 });
+            let mut image_data = Vec::with_capacity(WIDTH * HEIGHT * 3);
+            for c in 0..3 {
+                for j in 0..WIDTH {
+                    for i in 0..HEIGHT {
+                        if c == 0 {
+                            image_data.push(j as f32 * 0.1);
+                        } else if c == 1 {
+                            image_data.push(i as f32 * 0.1);
+                        } else if c == 2 {
+                            image_data.push(if i > 5 { 1.0 } else { 2.0 });
+                        }
+                    }
                 }
             }
-            ndarray::Array::from_shape_vec(vec![WIDTH * HEIGHT, 3], image_data).unwrap()
+            ndarray::Array::from_shape_vec(vec![3, WIDTH * HEIGHT], image_data).unwrap()
         };
         let image_data = image_data.slice(s![.., ..]);
-        Window::new(im_str!("Scatter plots example"))
+        Window::new(format!("Scatter plots example"))
             .size([430.0, 450.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.scatter(
@@ -65,7 +71,7 @@ fn main() {
 }
 
 pub fn show_custom_markers_plot(ui: &Ui, plot_ui: &PlotUi) {
-    ui.text(im_str!(
+    ui.text(format!(
         "This header shows how markers can be used in scatter plots."
     ));
     let content_width = ui.window_content_region_width();
