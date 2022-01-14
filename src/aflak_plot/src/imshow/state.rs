@@ -195,6 +195,17 @@ where
             ui.separator();
             ui.text("Stretch");
             ui.separator();
+            if MenuItem::new("ZScale").build(ui) {
+                let zscales = self.image.zscale(1000, 0.25);
+                if let (Some(z1), Some(z2)) = zscales {
+                    let vmin = self.image.vmin();
+                    let vmax = self.image.vmax();
+                    let lut_min = (z1 - vmin) / (vmax - vmin);
+                    let lut_max = (z2 - vmin) / (vmax - vmin);
+                    self.lut.set_lims(lut_min, 0.5, lut_max);
+                    changed = true;
+                }
+            }
             if MenuItem::new("Auto").build(ui) {
                 let med = self.image.vmed();
                 let mad = self.image.vmad();
