@@ -87,6 +87,8 @@ where
 pub struct Image<I> {
     vmin: f32,
     vmax: f32,
+    vmed: f32,
+    vmad: f32,
     tex_size: (f32, f32),
     created_on: Option<Instant>,
     data: Option<I>,
@@ -100,6 +102,8 @@ impl<I> Default for Image<I> {
         Self {
             vmin: f32::NAN,
             vmax: f32::NAN,
+            vmed: f32::NAN,
+            vmad: f32::NAN,
             tex_size: (0.0, 0.0),
             created_on: None,
             data: None,
@@ -140,11 +144,12 @@ where
     where
         F: Facade,
     {
-        let (vmin, vmax, tex_size, hist) = {
+        let (vmin, vmax, vmed, vmad, tex_size, hist) = {
             let image = coerce_to_array_view2(&image);
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
-
+            let vmed = lims::get_vmed_from_normalized_image(&image)?;
+            let vmad = lims::get_vmad_from_normalized_image(&image)?;
             let raw = make_raw_image(&image, vmin, vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
@@ -161,12 +166,14 @@ where
             );
 
             let hist = hist::histogram(&image, vmin, vmax);
-            (vmin, vmax, tex_size, hist)
+            (vmin, vmax, vmed, vmad, tex_size, hist)
         };
 
         Ok(Image {
             vmin,
             vmax,
+            vmed,
+            vmad,
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
@@ -186,11 +193,12 @@ where
     where
         F: Facade,
     {
-        let (vmin, vmax, tex_size, hist_color) = {
+        let (vmin, vmax, vmed, vmad, tex_size, hist_color) = {
             let image = coerce_to_array_view3(&image);
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
-
+            let vmed = lims::get_vmed_from_normalized_image(&image)?;
+            let vmad = lims::get_vmad_from_normalized_image(&image)?;
             let raw = make_raw_image_rgb(&image, vmin, vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
@@ -207,12 +215,14 @@ where
             );
 
             let hist = hist::histogram_color(&image, 0.0, 65535.0);
-            (vmin, vmax, tex_size, hist)
+            (vmin, vmax, vmed, vmad, tex_size, hist)
         };
 
         Ok(Image {
             vmin,
             vmax,
+            vmed,
+            vmad,
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
@@ -315,6 +325,12 @@ where
     }
     pub fn vmax(&self) -> f32 {
         self.vmax
+    }
+    pub fn vmed(&self) -> f32 {
+        self.vmed
+    }
+    pub fn vmad(&self) -> f32 {
+        self.vmad
     }
     pub fn tex_size(&self) -> (f32, f32) {
         self.tex_size

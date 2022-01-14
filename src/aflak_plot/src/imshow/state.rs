@@ -192,6 +192,26 @@ where
                 }
                 stack.pop();
             }
+            ui.separator();
+            ui.text("Stretch");
+            ui.separator();
+            if MenuItem::new("Auto").build(ui) {
+                let med = self.image.vmed();
+                let mad = self.image.vmad();
+                let lut_min = if 1.0 + mad != 1.0 {
+                    let b = med + -2.8 * mad;
+                    util::clamp(b, 0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let lut_mid = self.lut.mtf(0.25, med - lut_min);
+                self.lut.set_lims(lut_min, lut_mid, 1.0);
+                changed = true;
+            }
+            if MenuItem::new("Reset").build(ui) {
+                self.lut.set_lims(0.0, 0.5, 1.0);
+                changed = true;
+            }
         });
 
         let draw_list = ui.get_window_draw_list();
