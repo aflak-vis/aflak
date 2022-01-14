@@ -34,6 +34,7 @@ pub struct State<I> {
     /// Control whether histogram uses a log scale
     pub hist_logscale: bool,
     lut_min_moving: bool,
+    lut_mid_moving: bool,
     lut_max_moving: bool,
     interactions: Interactions,
     roi_input: RoiInputState,
@@ -96,6 +97,7 @@ impl<I> Default for State<I> {
             mouse_pos: (f32::NAN, f32::NAN),
             hist_logscale: true,
             lut_min_moving: false,
+            lut_mid_moving: false,
             lut_max_moving: false,
             interactions: Interactions::new(),
             roi_input: Default::default(),
@@ -182,7 +184,10 @@ where
             for builtin_lut in BuiltinLUT::values() {
                 let stack = ui.push_id(*builtin_lut as i32);
                 if MenuItem::new(builtin_lut.name()).build(ui) {
+                    let (buf_min, buf_mid, buf_max) = self.lut.lims();
+                    self.lut.set_lims(0.0, 0.5, 1.0);
                     self.lut.set_gradient(*builtin_lut);
+                    self.lut.set_lims(buf_min, buf_mid, buf_max);
                     changed = true;
                 }
                 stack.pop();
@@ -248,9 +253,59 @@ where
                 self.lut_min_moving = false;
             }
 
+            // Mid_tone triangle
+            let mid_color =
+                util::to_u32_color(self.lut.color_at(lims.0 + (lims.2 - lims.0) * lims.1));
+            let x_pos = pos[0] + size[0] + TRIANGLE_LEFT_PADDING;
+            let y_pos = pos[1] + size[1] * (1.0 - (lims.0 + (lims.2 - lims.0) * lims.1));
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    mid_color,
+                )
+                .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    util::invert_color(mid_color),
+                )
+                .build();
+            if lims.1 != 0.5 {
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("midtone:{:.2}", lims.1),
+                );
+            }
+            ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
+            ui.invisible_button(format!("set_mid"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            if ui.is_item_hovered() {
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
+                    self.lut_mid_moving = true;
+                }
+            }
+            if self.lut_mid_moving {
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let max_y_pos = pos[1] + size[1] * (1.0 - lims.2);
+                let min_y_pos = pos[1] + size[1] * (1.0 - lims.0);
+                let mid = (mouse_y - min_y_pos) / (max_y_pos - min_y_pos);
+                self.lut.set_mid(mid);
+                changed = true;
+            }
+            if !ui.is_mouse_down(MouseButton::Left) {
+                self.lut_mid_moving = false;
+            }
+
             // Max triangle
-            let max_color = util::to_u32_color(self.lut.color_at(lims.1));
-            let y_pos = pos[1] + size[1] * (1.0 - lims.1);
+            let max_color = util::to_u32_color(self.lut.color_at(lims.2));
+            let y_pos = pos[1] + size[1] * (1.0 - lims.2);
             draw_list
                 .add_triangle(
                     [x_pos, y_pos],
@@ -268,8 +323,8 @@ where
                     util::invert_color(max_color),
                 )
                 .build();
-            if lims.1 < 1.0 {
-                let max_threshold = util::lerp(vmin, vmax, lims.1);
+            if lims.2 < 1.0 {
+                let max_threshold = util::lerp(vmin, vmax, lims.2);
                 draw_list.add_text(
                     [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
                     COLOR,

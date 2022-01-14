@@ -11,7 +11,7 @@ pub struct ColorLUT {
     /// Takes a series of color stops that indicate how to interpolate between the colors
     gradient: Vec<(f32, [u8; 3])>,
     lut: Box<[[u8; 3]; LUT_SIZE]>,
-    lims: (f32, f32),
+    lims: (f32, f32, f32),
 }
 
 #[derive(Copy, Clone, Hash, Debug, PartialEq, Eq)]
@@ -113,7 +113,7 @@ impl ColorLUT {
         let mut color_lut = ColorLUT {
             gradient: vec,
             lut: Box::new([[0; 3]; LUT_SIZE]),
-            lims: (0.0, 1.0),
+            lims: (0.0, 0.5, 1.0),
         };
         color_lut.lut_init();
         color_lut
@@ -182,10 +182,19 @@ impl ColorLUT {
         } else if min > 1.0 {
             min = 1.0;
         }
-        if min > self.lims.1 {
-            self.lims.1 = min;
+        if min > self.lims.2 {
+            self.lims.2 = min;
         }
         self.lims.0 = min;
+    }
+
+    pub fn set_mid(&mut self, mut mid: f32) {
+        if mid < 0.0 {
+            mid = 0.0;
+        } else if mid > 1.0 {
+            mid = 1.0;
+        }
+        self.lims.1 = mid;
     }
 
     pub fn set_max(&mut self, mut max: f32) {
@@ -197,10 +206,16 @@ impl ColorLUT {
         if max < self.lims.0 {
             self.lims.0 = max;
         }
-        self.lims.1 = max;
+        self.lims.2 = max;
     }
 
-    pub fn lims(&self) -> (f32, f32) {
+    pub fn set_lims(&mut self, min: f32, mid: f32, max: f32) {
+        self.set_min(min);
+        self.set_mid(mid);
+        self.set_max(max);
+    }
+
+    pub fn lims(&self) -> (f32, f32, f32) {
         self.lims
     }
 
@@ -238,7 +253,7 @@ impl<'a> Iterator for StopIter<'a> {
             } else {
                 self.lut.gradient.get(i - 1).map(|value| {
                     (
-                        self.lut.lims.0 + (self.lut.lims.1 - self.lut.lims.0) * value.0,
+                        self.lut.lims.0 + (self.lut.lims.2 - self.lut.lims.0) * value.0,
                         value.1,
                     )
                 })
@@ -294,7 +309,7 @@ mod test {
     fn test_color_bounds_with_limits() {
         let mut lut = ColorLUT::linear(vec![(0.0, [0, 0, 0]), (1.0, [255, 255, 255])]);
         lut.lims.0 = 0.2;
-        lut.lims.1 = 0.9;
+        lut.lims.2 = 0.9;
         assert_eq!(lut.color_at(0.0), [0, 0, 0]);
         assert_eq!(lut.color_at(0.1), [0, 0, 0]);
         assert_eq!(lut.color_at(0.2), [0, 0, 0]);

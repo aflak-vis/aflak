@@ -64,7 +64,7 @@ where
         for (_, slice) in image.axis_iter(Axis(1)).enumerate() {
             for (_, channel) in slice.axis_iter(Axis(1)).enumerate() {
                 let lim_min = lims.0 * vmax;
-                let lim_max = lims.1 * vmax;
+                let lim_max = lims.2 * vmax;
                 let r = (channel[0] - lim_min) / (lim_max - lim_min) * 255.0;
                 let g = (channel[1] - lim_min) / (lim_max - lim_min) * 255.0;
                 let b = (channel[2] - lim_min) / (lim_max - lim_min) * 255.0;
