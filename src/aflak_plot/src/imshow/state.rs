@@ -352,19 +352,41 @@ where
         }
 
         let x_pos = pos[0] + 5.0;
-        for ((v1, c1), (v2, c2)) in self.lut.bounds() {
-            let bottom_col = util::to_u32_color(c1);
-            let top_col = util::to_u32_color(c2);
-            let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
-            let top_y_pos = pos[1] + size[1] * (1.0 - v2);
-            draw_list.add_rect_filled_multicolor(
-                [x_pos, top_y_pos],
-                [x_pos + size[0], bottom_y_pos],
-                top_col,
-                top_col,
-                bottom_col,
-                bottom_col,
-            );
+        if self.lut.lims().1 == 0.5 {
+            // Linear transfer function when mid_tone = 0.5
+            for ((v1, c1), (v2, c2)) in self.lut.bounds() {
+                let bottom_col = util::to_u32_color(c1);
+                let top_col = util::to_u32_color(c2);
+                let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
+                let top_y_pos = pos[1] + size[1] * (1.0 - v2);
+                draw_list.add_rect_filled_multicolor(
+                    [x_pos, top_y_pos],
+                    [x_pos + size[0], bottom_y_pos],
+                    top_col,
+                    top_col,
+                    bottom_col,
+                    bottom_col,
+                );
+            }
+        } else {
+            // Non-linear transfer function (Midtone Transfer Function, MTF) is adopted when mid_tone != 0.5, so we can NOT use bounds()
+            let num_of_rects = 256;
+            for i in 0..num_of_rects {
+                let c1 = self.lut.color_at(i as f32 / num_of_rects as f32);
+                let c2 = self.lut.color_at((i as f32 + 1.0) / num_of_rects as f32);
+                let bottom_y_pos = pos[1] + size[1] * (1.0 - i as f32 / num_of_rects as f32);
+                let top_y_pos = pos[1] + size[1] * (1.0 - (i as f32 + 1.0) / num_of_rects as f32);
+                let bottom_col = util::to_u32_color(c1);
+                let top_col = util::to_u32_color(c2);
+                draw_list.add_rect_filled_multicolor(
+                    [x_pos, top_y_pos],
+                    [x_pos + size[0], bottom_y_pos],
+                    top_col,
+                    top_col,
+                    bottom_col,
+                    bottom_col,
+                );
+            }
         }
         let mut i = 1.0;
         let text_height = ui.text_line_height_with_spacing();

@@ -125,7 +125,9 @@ impl ColorLUT {
     }
 
     pub fn color_at(&self, point: f32) -> [u8; 3] {
-        let mut i = (point - self.lims.0) / (self.lims.1 - self.lims.0) * (LUT_SIZE - 1) as f32;
+        let c = (point - self.lims.0) / (self.lims.2 - self.lims.0);
+        let mut i = self.mtf(self.lims.1, c) * (LUT_SIZE - 1) as f32;
+
         if i < 0.0 {
             i = 0.0
         }
@@ -134,6 +136,17 @@ impl ColorLUT {
             i = LUT_SIZE - 1;
         }
         self.lut[i]
+    }
+
+    /// Midtone Transfer Function (MTF)
+    pub fn mtf(&self, m: f32, x: f32) -> f32 {
+        if x >= 1.0 {
+            1.0
+        } else if x <= 0.0 {
+            0.0
+        } else {
+            (m - 1.0) * x / ((2.0 * m - 1.0) * x - m)
+        }
     }
 
     fn color_at_init(&self, point: f32) -> [u8; 3] {
