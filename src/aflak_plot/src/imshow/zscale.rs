@@ -1,6 +1,6 @@
 /*
 This file is based on the part of STScI numdisplay package:
-    https://github.com/spacetelescope/stsci.numdisplay/blob/master/lib/stsci/numdisplay/zscale.py
+    https://github.com/spacetelescope/stsci.numdisplay/blob/b5062ec20673066b98d00e31fe165bb028db5181/lib/stsci/numdisplay/zscale.py
 
 under the following license:
 
