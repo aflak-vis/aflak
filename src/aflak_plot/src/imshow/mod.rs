@@ -3,6 +3,7 @@ mod hist;
 mod image;
 mod lut;
 mod state;
+mod zscale;
 
 pub extern crate aflak_cake as cake;
 pub extern crate aflak_primitives as primitives;
