@@ -558,6 +558,76 @@ if value > max, value changes to 0.",
                     vec![run_down_sampling(image, *n)]
                 }
             ),
+            cake_transform!(
+                "Histogram Transformation.",
+                "05. Convert data",
+                0, 1, 0,
+                histogram_transformation<IOValue, IOErr>(image: Image, parameters: Float3 = [0.0, 0.5, 1.0], dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                    let mut min = std::f32::MAX;
+                    let mut max = std::f32::MIN;
+                    let image_arr = image.scalar();
+
+                    for i in image_arr {
+                        min = min.min(*i);
+                        max = max.max(*i);
+                    }
+                    let mut out = image.clone();
+                    out.scalar_mut().par_iter_mut().for_each(|v| {
+                        let point = (*v - min) / (max - min);
+                        let x = (point - parameters[0]) / (parameters[2] - parameters[0]);
+                        let c = if x > 1.0 {
+                            1.0
+                        } else if x < 0.0 {
+                            0.0
+                        } else {
+                            let m = parameters[1];
+                            (m - 1.0) * x / ((2.0 * m - 1.0) * x - m)
+                        };
+                        *v = c * (max - min) + min;
+                    });
+                    vec![Ok(IOValue::Image(out))]
+                }
+            ),
+            cake_transform!(
+                "Histogram Transformation (color).",
+                "05. Convert data",
+                0, 1, 0,
+                histogram_transformation_rgb<IOValue, IOErr>(image: Image, parameters: Float3x3 = [[0.0, 0.5, 1.0], [0.0, 0.5, 1.0], [0.0, 0.5, 1.0]], dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                    let mut mins = [std::f32::MAX; 3];
+                    let mut mids = [std::f32::NAN; 3];
+                    let mut maxs = [std::f32::MIN; 3];
+                    let dim = image.scalar().dim();
+                    let dim = dim.as_array_view();
+                    let tag = image.tag();
+                    for (c, slice) in image.scalar().axis_iter(Axis(0)).enumerate() {
+                        for i in slice {
+                            mins[c] = mins[c].min(*i);
+                            maxs[c] = maxs[c].max(*i);
+                            mids[c] = parameters[c][1];
+                        }
+                    }
+                    let mut data = Vec::with_capacity(dim[0] * dim[1] * dim[2]);
+                    for (ch, slice) in image.scalar().axis_iter(Axis(0)).enumerate() {
+                        for v in slice.iter() {
+                            let point = (*v - mins[ch]) / (maxs[ch] - mins[ch]);
+                            let x = (point - parameters[ch][0]) / (parameters[ch][2] - parameters[ch][0]);
+                            let c = if x > 1.0 {
+                                1.0
+                            } else if x < 0.0 {
+                                0.0
+                            } else {
+                                (mids[ch] - 1.0) * x / ((2.0 * mids[ch] - 1.0) * x - mids[ch])
+                            };
+                            data.push(c * (maxs[ch] - mins[ch]) + mins[ch]);
+                        }
+                    }
+                    let img = Array::from_shape_vec((dim[0], dim[1], dim[2]), data).unwrap();
+                    vec![Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                        img.into_dyn(),
+                        Unit::None,
+                    ), tag.clone())))]
+                }
+            ),
         ]
     };
 }
