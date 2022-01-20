@@ -10,6 +10,7 @@ pub enum Value {
     Float(f32),
     Float2([f32; 2]),
     Float3([f32; 3]),
+    Float3x3([[f32; 3]; 3]),
     FinedGrainedROI((Vec<(usize, usize)>, bool)),
     Line(Vec<(usize, usize)>),
     Circle(Vec<(usize, usize)>),
@@ -35,6 +36,11 @@ impl From<[f32; 3]> for Value {
         Value::Float3(v)
     }
 }
+impl From<[[f32; 3]; 3]> for Value {
+    fn from(v: [[f32; 3]; 3]) -> Self {
+        Value::Float3x3(v)
+    }
+}
 impl From<(Vec<(usize, usize)>, bool)> for Value {
     fn from(v: (Vec<(usize, usize)>, bool)) -> Self {
         Value::FinedGrainedROI(v)
@@ -49,6 +55,8 @@ pub enum Interaction {
     FinedGrainedROI(FinedGrainedROI),
     Line(Line),
     Circle(Circle),
+    Lims(Lims),
+    ColorLims(ColorLims),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -86,6 +94,16 @@ pub struct Circle {
     pub radius: f32,
     pub parametersfill: (bool, bool),
     pub pixels: Vec<(usize, usize)>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Lims {
+    pub lims: [f32; 3],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ColorLims {
+    pub lims: [[f32; 3]; 3],
 }
 
 impl HorizontalLine {
@@ -152,6 +170,18 @@ impl Circle {
     }
 }
 
+impl Lims {
+    pub fn new(lims: [f32; 3]) -> Self {
+        Self { lims }
+    }
+}
+
+impl ColorLims {
+    pub fn new(lims: [[f32; 3]; 3]) -> Self {
+        Self { lims }
+    }
+}
+
 /// Record all interactions.
 ///
 /// Contains a counter that counts the number of interactions inserted.
@@ -193,6 +223,8 @@ impl Interactions {
             Interaction::FinedGrainedROI(..) => false,
             Interaction::Line(..) => false,
             Interaction::Circle(..) => false,
+            Interaction::Lims(..) => false,
+            Interaction::ColorLims(..) => false,
         })
     }
 }
@@ -209,6 +241,8 @@ impl Interaction {
             }) => Value::FinedGrainedROI((pixels.clone(), *changed)),
             Interaction::Line(Line { pixels, .. }) => Value::Line(pixels.clone()),
             Interaction::Circle(Circle { pixels, .. }) => Value::Circle(pixels.clone()),
+            Interaction::Lims(Lims { lims, .. }) => Value::Float3(*lims),
+            Interaction::ColorLims(ColorLims { lims, .. }) => Value::Float3x3(*lims),
         }
     }
 
@@ -242,10 +276,37 @@ impl Interaction {
                 *pixels = (*p).0.clone();
                 Ok(())
             }
+            (Interaction::Lims(Lims { ref mut lims, .. }), Value::Float3(f3)) => {
+                for i in 0..3 {
+                    lims[i] = Interaction::clamp(f3[i], 0.0, 1.0);
+                }
+                Ok(())
+            }
+            (Interaction::ColorLims(ColorLims { ref mut lims, .. }), Value::Float3x3(f3)) => {
+                for c in 0..3 {
+                    for v in 0..3 {
+                        lims[c][v] = Interaction::clamp(f3[c][v], 0.0, 1.0);
+                    }
+                }
+                Ok(())
+            }
             interaction => Err(format!(
                 "Got unexpected value type: '{:?}' for an interaction '{:?}'",
                 value, interaction
             )),
+        }
+    }
+
+    fn clamp<T>(v: T, min: T, max: T) -> T
+    where
+        T: PartialOrd,
+    {
+        if v < min {
+            min
+        } else if v > max {
+            max
+        } else {
+            v
         }
     }
 }

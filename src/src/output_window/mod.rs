@@ -81,6 +81,7 @@ impl OutputWindow {
                     IOValue::Float(float) => float.draw(ctx, window),
                     IOValue::Float2(floats) => floats.draw(ctx, window),
                     IOValue::Float3(floats) => floats.draw(ctx, window),
+                    IOValue::Float3x3(floats) => floats.draw(ctx, window),
                     IOValue::Bool(b) => b.draw(ctx, window),
                     IOValue::Image(ref image) => image.draw(ctx, window),
                     IOValue::Roi(ref roi) => roi.draw(ctx, window),

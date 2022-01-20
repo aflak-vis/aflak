@@ -13,8 +13,8 @@ use std::time::Instant;
 
 use super::image;
 use super::interactions::{
-    Circle, FinedGrainedROI, HorizontalLine, Interaction, InteractionId, InteractionIterMut,
-    Interactions, Line, ValueIter, VerticalLine,
+    Circle, ColorLims, FinedGrainedROI, HorizontalLine, Interaction, InteractionId,
+    InteractionIterMut, Interactions, Lims, Line, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -1429,6 +1429,8 @@ where
                                     .build();
                             }
                         }
+                        Interaction::Lims(_) => {}
+                        Interaction::ColorLims(_) => {}
                     }
                     stack.pop();
                 }

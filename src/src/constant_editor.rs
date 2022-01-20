@@ -133,6 +133,21 @@ fn inner_editor(
                 None
             }
         }
+        IOValue::Float3x3(ref floats) => {
+            let mut f3 = *floats;
+            let mut t = true;
+            for i in 0..3 {
+                t = t & ui
+                    .input_float3(format!("3 floats value, {}", i), &mut f3[i])
+                    .read_only(read_only)
+                    .build();
+            }
+            if t {
+                Some(IOValue::Float3x3(f3))
+            } else {
+                None
+            }
+        }
         IOValue::Bool(ref b) => {
             let mut b = *b;
             if ui.checkbox(format!("Bool value"), &mut b) {
