@@ -1028,7 +1028,27 @@ where
                                             unit: vunit,
                                         },
                                     );
-                                    ui.tooltip_text(text);
+                                    if ui.io().key_shift {
+                                        ui.tooltip(|| {
+                                            ui.text(text);
+                                            let x = self.mouse_pos.0;
+                                            let y = self.mouse_pos.1;
+                                            let x1 = (x - 10.0) as f32 / tex_size.0;
+                                            let x2 = (x + 11.0) as f32 / tex_size.0;
+                                            let y1 = (tex_size.1 - (y + 10.0) as f32) / tex_size.1;
+                                            let y2 = (tex_size.1 - (y - 11.0) as f32) / tex_size.1;
+                                            let x1 = util::clamp(x1, 0.0, 1.0);
+                                            let x2 = util::clamp(x2, 0.0, 1.0);
+                                            let y1 = util::clamp(y1, 0.0, 1.0);
+                                            let y2 = util::clamp(y2, 0.0, 1.0);
+                                            Image::new(texture_id, [300.0, 300.0])
+                                                .uv0([x1, y1])
+                                                .uv1([x2, y2])
+                                                .build(ui);
+                                        });
+                                    } else {
+                                        ui.tooltip_text(text);
+                                    }
                                 }
                             }
                         }
@@ -1067,7 +1087,27 @@ where
                                             unit: vunit,
                                         },
                                     );
-                                    ui.tooltip_text(text);
+                                    if ui.io().key_shift {
+                                        ui.tooltip(|| {
+                                            ui.text(text);
+                                            let x = self.mouse_pos.0;
+                                            let y = self.mouse_pos.1;
+                                            let x1 = (x - 10.0) as f32 / tex_size.0;
+                                            let x2 = (x + 11.0) as f32 / tex_size.0;
+                                            let y1 = (tex_size.1 - (y + 10.0) as f32) / tex_size.1;
+                                            let y2 = (tex_size.1 - (y - 11.0) as f32) / tex_size.1;
+                                            let x1 = util::clamp(x1, 0.0, 1.0);
+                                            let x2 = util::clamp(x2, 0.0, 1.0);
+                                            let y1 = util::clamp(y1, 0.0, 1.0);
+                                            let y2 = util::clamp(y2, 0.0, 1.0);
+                                            Image::new(texture_id, [300.0, 300.0])
+                                                .uv0([x1, y1])
+                                                .uv1([x2, y2])
+                                                .build(ui);
+                                        });
+                                    } else {
+                                        ui.tooltip_text(text);
+                                    }
                                 }
                             }
                         }
