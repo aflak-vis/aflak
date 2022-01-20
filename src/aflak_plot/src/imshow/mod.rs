@@ -209,7 +209,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
-        let lut_bar_updated = state.show_bar(
+        let lut_bar_updated = state.show_bar_rgb(
             self,
             [p[0] + size[0] + HIST_WIDTH, p[1]],
             [BAR_WIDTH, size[1]],

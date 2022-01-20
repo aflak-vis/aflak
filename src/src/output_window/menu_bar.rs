@@ -800,6 +800,11 @@ impl MenuBar for primitives::WcsArray {
                     3 => {
                         let ui = &ctx.ui;
                         let state = &mut ctx.window.image2d_state;
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            &ctx.node_editor,
+                        );
                         let texture_id = TextureId::from(hash_outputid(ctx.output));
                         let (x_transform, y_transform) = if ctx.window.show_pixels {
                             (None, None)
@@ -875,6 +880,11 @@ impl MenuBar for primitives::WcsArray {
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
                     }
                     _ => {
                         let ui = &ctx.ui;
