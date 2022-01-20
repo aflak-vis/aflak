@@ -1698,38 +1698,73 @@ fn run_apply_arcsinh_stretch(image: &WcsArray, beta: f32) -> Result<IOValue, IOE
 }
 
 fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
     precheck!(
         n > 0,
         "{}",
         format!("n should be greater than 0, {} > 0", n)
     )?;
-    let dim = image.scalar().dim();
-    let size = dim.as_array_view();
-    let mut out = image.clone();
-    let mut new_size = ((size[0]) / (n as usize), (size[1]) / (n as usize));
-    if size[0] % (n as usize) != 0 {
-        new_size.0 += 1;
-    }
-    if size[1] % (n as usize) != 0 {
-        new_size.1 += 1;
-    }
-    let mut new_image = Vec::with_capacity(new_size.0 * new_size.1);
-    let mut counter = 0;
-    for v in out.scalar_mut().iter_mut() {
-        let coord = (counter % size[1], counter / size[1]);
-        if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
-            new_image.push(*v);
+    let tag = image.tag();
+    if image.scalar().ndim() == 2 {
+        let dim = image.scalar().dim();
+        let size = dim.as_array_view();
+        let mut out = image.clone();
+        let mut new_size = ((size[0]) / (n as usize), (size[1]) / (n as usize));
+        if size[0] % (n as usize) != 0 {
+            new_size.0 += 1;
         }
-        counter += 1;
+        if size[1] % (n as usize) != 0 {
+            new_size.1 += 1;
+        }
+        let mut new_image = Vec::with_capacity(new_size.0 * new_size.1);
+        let mut counter = 0;
+        for v in out.scalar_mut().iter_mut() {
+            let coord = (counter % size[1], counter / size[1]);
+            if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
+                new_image.push(*v);
+            }
+            counter += 1;
+        }
+
+        let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
+        Ok(IOValue::Image(WcsArray::from_array_and_tag(
+            Dimensioned::new(out.into_dyn(), Unit::None),
+            tag.clone(),
+        )))
+    } else if image.scalar().ndim() == 3 {
+        let dim = image.scalar().dim();
+        let size = dim.as_array_view();
+        let mut new_size = (size[0], (size[1]) / (n as usize), (size[2]) / (n as usize));
+        if size[1] % (n as usize) != 0 {
+            new_size.1 += 1;
+        }
+        if size[2] % (n as usize) != 0 {
+            new_size.2 += 1;
+        }
+        let mut new_image = Vec::with_capacity(new_size.0 * new_size.1 * new_size.2);
+        for slice in image.scalar().axis_iter(Axis(0)) {
+            let mut counter = 0;
+            for v in slice.iter() {
+                let coord = (counter % size[2], counter / size[2]);
+                if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
+                    new_image.push(*v);
+                }
+                counter += 1;
+            }
+        }
+        let out = Array::from_shape_vec(
+            new_size.strides((new_size.1 * new_size.2, new_size.2, 1)),
+            new_image,
+        )
+        .unwrap();
+        Ok(IOValue::Image(WcsArray::from_array_and_tag(
+            Dimensioned::new(out.into_dyn(), Unit::None),
+            tag.clone(),
+        )))
+    } else {
+        Err(IOErr::UnexpectedInput(format!(
+            "This is neither 2 nor 3 dimensional image!",
+        )))
     }
-
-    let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out.into_dyn(),
-        Unit::None,
-    ))))
 }
 
 #[cfg(test)]
