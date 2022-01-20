@@ -294,18 +294,28 @@ where
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(format!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
             if ui.is_item_hovered() {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_min_moving = true;
                 }
             }
             if self.lut_min_moving {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 let [_, mouse_y] = ui.io().mouse_pos;
                 let min = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_min(min);
                 changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut.lims().0;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("shadow"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
             }
             if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_min_moving = false;
@@ -333,22 +343,18 @@ where
                     util::invert_color(mid_color),
                 )
                 .build();
-            if lims.1 != 0.5 {
-                draw_list.add_text(
-                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
-                    COLOR,
-                    &format!("midtone:{:.2}", lims.1),
-                );
-            }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(format!("set_mid"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
             if ui.is_item_hovered() {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_mid_moving = true;
                 }
             }
             if self.lut_mid_moving {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 let [_, mouse_y] = ui.io().mouse_pos;
                 let max_y_pos = pos[1] + size[1] * (1.0 - lims.2);
@@ -356,6 +362,13 @@ where
                 let mid = (mouse_y - min_y_pos) / (max_y_pos - min_y_pos);
                 self.lut.set_mid(mid);
                 changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut.lims().1;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("midpoint"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
             }
             if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_mid_moving = false;
@@ -391,18 +404,28 @@ where
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(format!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
             if ui.is_item_hovered() {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_max_moving = true;
                 }
             }
             if self.lut_max_moving {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 let [_, mouse_y] = ui.io().mouse_pos;
                 let max = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_max(max);
                 changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut.lims().2;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("highlight"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
             }
             if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_max_moving = false;
