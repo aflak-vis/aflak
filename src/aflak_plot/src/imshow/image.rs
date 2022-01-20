@@ -156,7 +156,7 @@ where
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
             let vmed = lims::get_vmed_normalized(&image)?;
-            let vmad = lims::get_vmad_normalized(&image)?;
+            let vmad = lims::get_vmad_normalized(&image, vmed)?;
             let raw = make_raw_image(&image, vmin, vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
@@ -214,12 +214,12 @@ where
                 vmin_rgb[c] = lims::get_vmin(&channels)?;
                 vmax_rgb[c] = lims::get_vmax(&channels)?;
                 vmed_rgb[c] = lims::get_vmed_normalized(&channels)?;
-                vmad_rgb[c] = lims::get_vmad_normalized(&channels)?;
+                vmad_rgb[c] = lims::get_vmad_normalized(&channels, vmed_rgb[c])?;
             }
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
             let vmed = lims::get_vmed_normalized(&image)?;
-            let vmad = lims::get_vmad_normalized(&image)?;
+            let vmad = lims::get_vmad_normalized(&image, vmed)?;
             let raw = make_raw_image_rgb(&image, vmin_rgb, vmax_rgb, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();

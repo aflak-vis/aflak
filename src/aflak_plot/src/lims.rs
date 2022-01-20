@@ -67,7 +67,7 @@ where
     }
 }
 
-pub fn get_vmad_normalized<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
+pub fn get_vmad_normalized<S, D>(image: &ArrayBase<S, D>, median: f32) -> Result<f32, Error>
 where
     S: ndarray::Data<Elem = f32>,
     D: ndarray::Dimension,
@@ -75,7 +75,11 @@ where
     let mut data = Vec::new();
     let vmax = get_vmax(image);
     let vmin = get_vmin(image);
-    let vmed = get_vmed_normalized(image);
+    let vmed = if median.is_nan() {
+        get_vmed_normalized(image)
+    } else {
+        Ok(median)
+    };
     if let (Ok(vmax), Ok(vmin), Ok(vmed)) = (vmax, vmin, vmed) {
         for i in image.iter() {
             let d = ((i - vmin) / (vmax - vmin) - vmed).abs();
