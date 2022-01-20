@@ -217,7 +217,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         if lut_bar_updated {
             state
                 .image()
-                .update_texture_color(ctx, texture_id, textures, &state.lut)?;
+                .update_texture_color(ctx, texture_id, textures, &state.lut_color)?;
         }
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);

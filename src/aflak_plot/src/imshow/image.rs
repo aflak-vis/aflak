@@ -50,24 +50,23 @@ where
 
 fn make_raw_image_rgb<S>(
     image: &ArrayBase<S, Ix3>,
-    vmin: f32,
-    vmax: f32,
-    lut: &ColorLUT,
+    vmin: [f32; 3],
+    vmax: [f32; 3],
+    lut: &[ColorLUT; 3],
 ) -> Result<RawImage2d<'static, u8>, Error>
 where
     S: Data<Elem = f32>,
 {
     let (_c, m, n) = image.dim();
-    let lims = lut.lims();
     let mut data = Vec::with_capacity(3 * n * m);
-    if !vmin.is_nan() && !vmax.is_nan() {
+    let is_include_nan =
+        vmin.iter().any(|v| *v == std::f32::NAN) || vmax.iter().any(|v| *v == std::f32::NAN);
+    if !is_include_nan {
         for (_, slice) in image.axis_iter(Axis(1)).enumerate() {
             for (_, channel) in slice.axis_iter(Axis(1)).enumerate() {
-                let lim_min = lims.0 * vmax;
-                let lim_max = lims.2 * vmax;
-                let r = (channel[0] - lim_min) / (lim_max - lim_min) * 255.0;
-                let g = (channel[1] - lim_min) / (lim_max - lim_min) * 255.0;
-                let b = (channel[2] - lim_min) / (lim_max - lim_min) * 255.0;
+                let [r, _, _] = lut[0].color_at_bounds(channel[0], vmin[0], vmax[0]);
+                let [_, g, _] = lut[1].color_at_bounds(channel[1], vmin[1], vmax[1]);
+                let [_, _, b] = lut[2].color_at_bounds(channel[2], vmin[2], vmax[2]);
                 data.push(r as u8);
                 data.push(g as u8);
                 data.push(b as u8);
