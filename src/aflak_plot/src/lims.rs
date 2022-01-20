@@ -34,7 +34,7 @@ where
     }
 }
 
-pub fn get_vmed_from_normalized_image<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
+pub fn get_vmed_normalized<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
 where
     S: ndarray::Data<Elem = f32>,
     D: ndarray::Dimension,
@@ -44,25 +44,30 @@ where
     let vmin = get_vmin(image);
     if let (Ok(vmax), Ok(vmin)) = (vmax, vmin) {
         for i in image.iter() {
-            if !i.is_nan() {
-                data.push((i - vmin) / (vmax - vmin));
+            let d = (i - vmin) / (vmax - vmin);
+            if !d.is_nan() && !d.is_infinite() {
+                data.push(d);
             }
         }
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let mid = data.len() / 2;
-        let med = if data.len() % 2 == 0 {
-            (data[mid] + data[mid - 1]) / 2.0
+        if data.len() == 0 {
+            Err(Error::Msg("Empty data!"))
         } else {
-            data[mid]
-        };
-        data.clear();
-        Ok(med)
+            let mid = data.len() / 2;
+            let med = if data.len() % 2 == 0 {
+                (data[mid] + data[mid - 1]) / 2.0
+            } else {
+                data[mid]
+            };
+            data.clear();
+            Ok(med)
+        }
     } else {
         Err(Error::Msg("Could not get vmed from normalized image"))
     }
 }
 
-pub fn get_vmad_from_normalized_image<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
+pub fn get_vmad_normalized<S, D>(image: &ArrayBase<S, D>) -> Result<f32, Error>
 where
     S: ndarray::Data<Elem = f32>,
     D: ndarray::Dimension,
@@ -70,22 +75,27 @@ where
     let mut data = Vec::new();
     let vmax = get_vmax(image);
     let vmin = get_vmin(image);
-    let vmed = get_vmed_from_normalized_image(image);
+    let vmed = get_vmed_normalized(image);
     if let (Ok(vmax), Ok(vmin), Ok(vmed)) = (vmax, vmin, vmed) {
         for i in image.iter() {
-            if !i.is_nan() {
-                data.push(((i - vmin) / (vmax - vmin) - vmed).abs());
+            let d = ((i - vmin) / (vmax - vmin) - vmed).abs();
+            if !d.is_nan() && !d.is_infinite() {
+                data.push(d);
             }
         }
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let mid = data.len() / 2;
-        let med = if data.len() % 2 == 0 {
-            (data[mid] + data[mid - 1]) / 2.0
+        if data.len() == 0 {
+            Err(Error::Msg("Empty data!"))
         } else {
-            data[mid]
-        };
-        data.clear();
-        Ok(med)
+            let mid = data.len() / 2;
+            let med = if data.len() % 2 == 0 {
+                (data[mid] + data[mid - 1]) / 2.0
+            } else {
+                data[mid]
+            };
+            data.clear();
+            Ok(med)
+        }
     } else {
         Err(Error::Msg("Could not get vmad from normalized image"))
     }

@@ -86,9 +86,13 @@ where
 
 pub struct Image<I> {
     vmin: f32,
+    vmin_rgb: [f32; 3],
     vmax: f32,
+    vmax_rgb: [f32; 3],
     vmed: f32,
+    vmed_rgb: [f32; 3],
     vmad: f32,
+    vmad_rgb: [f32; 3],
     tex_size: (f32, f32),
     created_on: Option<Instant>,
     data: Option<I>,
@@ -101,9 +105,13 @@ impl<I> Default for Image<I> {
         use std::f32;
         Self {
             vmin: f32::NAN,
+            vmin_rgb: [f32::NAN; 3],
             vmax: f32::NAN,
+            vmax_rgb: [f32::NAN; 3],
             vmed: f32::NAN,
+            vmed_rgb: [f32::NAN; 3],
             vmad: f32::NAN,
+            vmad_rgb: [f32::NAN; 3],
             tex_size: (0.0, 0.0),
             created_on: None,
             data: None,
@@ -148,8 +156,8 @@ where
             let image = coerce_to_array_view2(&image);
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
-            let vmed = lims::get_vmed_from_normalized_image(&image)?;
-            let vmad = lims::get_vmad_from_normalized_image(&image)?;
+            let vmed = lims::get_vmed_normalized(&image)?;
+            let vmad = lims::get_vmad_normalized(&image)?;
             let raw = make_raw_image(&image, vmin, vmax, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
@@ -171,9 +179,13 @@ where
 
         Ok(Image {
             vmin,
+            vmin_rgb: [f32::NAN; 3],
             vmax,
+            vmax_rgb: [f32::NAN; 3],
             vmed,
+            vmed_rgb: [f32::NAN; 3],
             vmad,
+            vmad_rgb: [f32::NAN; 3],
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
@@ -188,18 +200,28 @@ where
         ctx: &F,
         texture_id: TextureId,
         textures: &mut Textures,
-        lut: &ColorLUT,
+        lut: &[ColorLUT; 3],
     ) -> Result<Image<I>, Error>
     where
         F: Facade,
     {
-        let (vmin, vmax, vmed, vmad, tex_size, hist_color) = {
+        let (vmin, vmin_rgb, vmax, vmax_rgb, vmed, vmed_rgb, vmad, vmad_rgb, tex_size, hist_color) = {
             let image = coerce_to_array_view3(&image);
+            let mut vmin_rgb = [f32::NAN; 3];
+            let mut vmax_rgb = [f32::NAN; 3];
+            let mut vmed_rgb = [f32::NAN; 3];
+            let mut vmad_rgb = [f32::NAN; 3];
+            for (c, channels) in image.axis_iter(Axis(0)).enumerate() {
+                vmin_rgb[c] = lims::get_vmin(&channels)?;
+                vmax_rgb[c] = lims::get_vmax(&channels)?;
+                vmed_rgb[c] = lims::get_vmed_normalized(&channels)?;
+                vmad_rgb[c] = lims::get_vmad_normalized(&channels)?;
+            }
             let vmin = lims::get_vmin(&image)?;
             let vmax = lims::get_vmax(&image)?;
-            let vmed = lims::get_vmed_from_normalized_image(&image)?;
-            let vmad = lims::get_vmad_from_normalized_image(&image)?;
-            let raw = make_raw_image_rgb(&image, vmin, vmax, lut)?;
+            let vmed = lims::get_vmed_normalized(&image)?;
+            let vmad = lims::get_vmad_normalized(&image)?;
+            let raw = make_raw_image_rgb(&image, vmin_rgb, vmax_rgb, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             let tex_size = gl_texture.dimensions();
             let tex_size = (tex_size.0 as f32, tex_size.1 as f32);
@@ -215,14 +237,20 @@ where
             );
 
             let hist = hist::histogram_color(&image, 0.0, 65535.0);
-            (vmin, vmax, vmed, vmad, tex_size, hist)
+            (
+                vmin, vmin_rgb, vmax, vmax_rgb, vmed, vmed_rgb, vmad, vmad_rgb, tex_size, hist,
+            )
         };
 
         Ok(Image {
             vmin,
+            vmin_rgb,
             vmax,
+            vmax_rgb,
             vmed,
+            vmed_rgb,
             vmad,
+            vmad_rgb,
             tex_size,
             created_on: Some(created_on),
             data: Some(image),
@@ -264,14 +292,14 @@ where
         ctx: &F,
         texture_id: TextureId,
         textures: &mut Textures,
-        lut: &ColorLUT,
+        lut: &[ColorLUT; 3],
     ) -> Result<(), Error>
     where
         F: Facade,
     {
         if let Some(data) = &self.data {
             let image = coerce_to_array_view3(data);
-            let raw = make_raw_image_rgb(&image, self.vmin, self.vmax, lut)?;
+            let raw = make_raw_image_rgb(&image, self.vmin_rgb, self.vmax_rgb, lut)?;
             let gl_texture = Texture2d::new(ctx, raw)?;
             textures.replace(
                 texture_id,
@@ -323,14 +351,26 @@ where
     pub fn vmin(&self) -> f32 {
         self.vmin
     }
+    pub fn vmin_rgb(&self) -> [f32; 3] {
+        self.vmin_rgb
+    }
     pub fn vmax(&self) -> f32 {
         self.vmax
+    }
+    pub fn vmax_rgb(&self) -> [f32; 3] {
+        self.vmax_rgb
     }
     pub fn vmed(&self) -> f32 {
         self.vmed
     }
+    pub fn vmed_rgb(&self) -> [f32; 3] {
+        self.vmed_rgb
+    }
     pub fn vmad(&self) -> f32 {
         self.vmad
+    }
+    pub fn vmad_rgb(&self) -> [f32; 3] {
+        self.vmad_rgb
     }
     pub fn tex_size(&self) -> (f32, f32) {
         self.tex_size

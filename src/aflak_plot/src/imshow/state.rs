@@ -29,6 +29,7 @@ type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 /// Current state of the visualization of a 2D image
 pub struct State<I> {
     pub(crate) lut: ColorLUT,
+    pub(crate) lut_color: [ColorLUT; 3],
     /// Mouse position relative to the image (in pixels)
     pub mouse_pos: (f32, f32),
     /// Control whether histogram uses a log scale
@@ -157,8 +158,14 @@ where
     where
         F: Facade,
     {
-        self.image =
-            image::Image::color_new(image, created_on, ctx, texture_id, textures, &self.lut)?;
+        self.image = image::Image::color_new(
+            image,
+            created_on,
+            ctx,
+            texture_id,
+            textures,
+            &self.lut_color,
+        )?;
         Ok(())
     }
 
