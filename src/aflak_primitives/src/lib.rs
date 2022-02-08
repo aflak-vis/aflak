@@ -50,7 +50,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use imgui_tone_curve::ToneCurveState;
-use nalgebra::{Matrix3, Vector3};
+use nalgebra::{DMatrix, DVector, Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use ndarray_parallel::prelude::*;
 use variant_name::VariantName;
@@ -626,6 +626,119 @@ if value > max, value changes to 0.",
                         img.into_dyn(),
                         Unit::None,
                     ), tag.clone())))]
+                }
+            ),
+            cake_transform!(
+                "Dynamic Background Extraction.",
+                "05. Convert data",
+                0, 1, 0,
+                dynamic_background_extraction<IOValue, IOErr>(image: Image, points: Roi, function_degree: Integer = 1) -> Image, Image {
+                    let tag = image.tag();
+                    let dim = image.scalar().dim();
+                    let dim = dim.as_array_view();
+                    let funcdeg_plus_one = (*function_degree + 1) as usize;
+                    let params_right_num = funcdeg_plus_one * funcdeg_plus_one;
+                    let mut params_right = Vec::<f32>::with_capacity(params_right_num * dim[0]);
+                    params_right.resize(params_right_num * dim[0], 0.0);
+                    let mut params_right = Array::from_vec(params_right).into_shape((dim[0], funcdeg_plus_one, funcdeg_plus_one)).unwrap();
+                    let params_left_num = params_right_num * params_right_num;
+                    let mut params_left = Vec::<f32>::with_capacity(params_left_num * dim[0]);
+                    params_left.resize(params_left_num * dim[0], 0.0);
+                    let mut params_left = Array::from_vec(params_left)
+                        .into_shape((
+                            dim[0],
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                        ))
+                        .unwrap();
+                    let mut model = image.scalar().clone();
+                    let mut out = image.scalar().clone();
+                    let mut compute_failure = false;
+                    for i in 0..dim[0] {
+                        for takes_y in 0..funcdeg_plus_one {
+                            for takes_x in 0..funcdeg_plus_one {
+                                for inner_takes_y in 0..funcdeg_plus_one {
+                                    for inner_takes_x in 0..funcdeg_plus_one {
+                                        let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                        for ((x, y), _) in data {
+                                            let x = x as f32 / dim[2] as f32;
+                                            let y = y as f32 / dim[1] as f32;
+                                            params_left[[i, takes_y, takes_x, inner_takes_y, inner_takes_x]] += 1.0
+                                                * (x as f32).powf((takes_x + inner_takes_x) as f32)
+                                                * (y as f32).powf((takes_y + inner_takes_y) as f32);
+                                        }
+                                    }
+                                }
+                                let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                for ((x, y), _) in data {
+                                    let mut boxdata = Vec::new();
+                                    for xx in (x - 10).max(0)..(x + 10).min(dim[2]) {
+                                        for yy in (y - 10).max(0)..(y + 10).min(dim[1]) {
+                                            boxdata.push(model[[i, yy, xx]]);
+                                        }
+                                    }
+
+                                    boxdata.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                                    let mid = boxdata.len() / 2;
+                                    let med = if boxdata.len() % 2 == 0 {
+                                        (boxdata[mid] + boxdata[mid - 1]) / 2.0
+                                    } else {
+                                        boxdata[mid]
+                                    };
+                                    boxdata.clear();
+                                    let x = x as f32 / dim[2] as f32;
+                                    let y = y as f32 / dim[1] as f32;
+                                    params_right[[i, takes_y, takes_x]] +=
+                                        med * (x as f32).powf(takes_x as f32) * (y as f32).powf(takes_y as f32);
+                                }
+                            }
+                        }
+                        let params_left_vec = params_left.index_axis(Axis(0), i).to_owned().into_raw_vec();
+                        let params_right_vec = params_right.index_axis(Axis(0), i).to_owned().into_raw_vec();
+                        let a = DMatrix::from_vec(params_right_num, params_right_num, params_left_vec);
+                        let b = DVector::from(params_right_vec.clone());
+                        let decomp = a.lu();
+                        let x = decomp.solve(&b);
+                        let mut sol = DVector::from(params_right_vec);
+                        match x {
+                            Some(vector) => sol = vector,
+                            None => {
+                                println!("failure");
+                                compute_failure = true;
+                            },
+                        };
+                        if compute_failure {
+                            break;
+                        }
+                        for y in 0..dim[1] {
+                            for x in 0..dim[2] {
+                                let xx = x as f32 / dim[2] as f32;
+                                let yy = y as f32 / dim[1] as f32;
+                                model[[i, y, x]] = 0.0;
+                                for takes_x in 0..funcdeg_plus_one {
+                                    for takes_y in 0..funcdeg_plus_one {
+                                        model[[i, y, x]] += sol[takes_y * funcdeg_plus_one + takes_x]
+                                            * (xx.powf(takes_x as f32))
+                                            * (yy.powf(takes_y as f32));
+                                    }
+                                }
+                                out[[i, y, x]] -= model[[i, y, x]];
+                            }
+                        }
+                    }
+                    if !compute_failure {
+                        vec![Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                            out,
+                            Unit::None,
+                        ), tag.clone()))), Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                            model,
+                            Unit::None,
+                        ), tag.clone())))]
+                    } else {
+                        vec![Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string())), Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string()))]
+                    }
                 }
             ),
         ]
