@@ -603,7 +603,6 @@ where
         let vmax_rgb = self.image.vmax_rgb();
         // Show triangle to change contrast
         for channels in 0..3 {
-            const TRIANGLE_LEFT_PADDING: f32 = 10.0;
             const TRIANGLE_HEIGHT: f32 = 20.0;
             const TRIANGLE_WIDTH: f32 = 15.0;
             let lims = self.lut_color[channels].lims();

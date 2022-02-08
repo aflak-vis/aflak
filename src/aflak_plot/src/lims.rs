@@ -51,7 +51,7 @@ where
         }
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
         if data.len() == 0 {
-            Err(Error::Msg("Empty data!"))
+            Err(Error::Msg("Empty data!, med"))
         } else {
             let mid = data.len() / 2;
             let med = if data.len() % 2 == 0 {
@@ -89,7 +89,7 @@ where
         }
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
         if data.len() == 0 {
-            Err(Error::Msg("Empty data!"))
+            Err(Error::Msg("Empty data!, mad"))
         } else {
             let mid = data.len() / 2;
             let med = if data.len() % 2 == 0 {
