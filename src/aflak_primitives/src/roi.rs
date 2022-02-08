@@ -37,6 +37,7 @@ impl ROI {
     }
 
     pub fn filterx(&self, data: ArrayView2<f32>) -> Vec<((usize, usize), f32)> {
+        let dim = data.dim();
         match *self {
             ROI::All => {
                 let mut out = Vec::with_capacity(data.len());
@@ -51,7 +52,7 @@ impl ROI {
             ROI::PixelList(ref pixels) => {
                 let mut out = Vec::with_capacity(pixels.len());
                 for &(i, j) in pixels {
-                    if let Some(val) = data.get([73 - j, i]) {
+                    if let Some(val) = data.get([(dim.0 - 1) - j, i]) {
                         out.push(((i, j), *val));
                     }
                 }
