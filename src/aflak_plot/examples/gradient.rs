@@ -1,8 +1,7 @@
-extern crate glium;
-#[macro_use]
-extern crate imgui;
 extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
+extern crate glium;
+extern crate imgui;
 extern crate ndarray;
 
 use std::collections::HashMap;
@@ -42,7 +41,7 @@ fn main() {
                 .set_image(image_data, Instant::now(), gl_ctx, texture_id, textures)
                 .unwrap();
         }
-        imgui::Window::new(im_str!("Gradient")).build(ui, || {
+        imgui::Window::new(format!("Gradient")).build(ui, || {
             ui.image2d(
                 gl_ctx,
                 textures,

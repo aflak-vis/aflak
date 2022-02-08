@@ -171,7 +171,7 @@ where
     pub(crate) fn show_bar(&mut self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) -> bool {
         let mut changed = false;
 
-        ui.set_cursor_screen_pos(pos);
+        ui.set_cursor_screen_pos([pos[0] + 5.0, pos[1]]);
         ui.invisible_button(format!("image_bar"), size);
         if ui.is_item_hovered() && ui.is_mouse_clicked(MouseButton::Right) {
             ui.open_popup(format!("swap-lut"));
@@ -359,7 +359,7 @@ where
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
-        const IMAGE_TOP_PADDING: f32 = 0.0;
+        const IMAGE_TOP_PADDING: f32 = 10.0;
 
         let tex_size = self.image.tex_size();
         let ticks = XYTicks::prepare(
@@ -393,8 +393,12 @@ where
         };
 
         let mut s = [0.0, 0.0];
-
+        let childwindow_size = [
+            size[0] + y_labels_width * 2.0,
+            size[1] + x_labels_height + IMAGE_TOP_PADDING + 25.0,
+        ];
         ChildWindow::new("scrolling_region")
+            .size(childwindow_size)
             .border(false)
             .scroll_bar(false)
             .movable(false)
@@ -420,10 +424,10 @@ where
                     self.parent_offset = p;
                     self.offset = ui.cursor_screen_pos();
                 }
-                s = p;
                 let p = ui.cursor_screen_pos();
                 ui.set_cursor_screen_pos([p[0] + y_labels_width, p[1] + IMAGE_TOP_PADDING]);
                 let p = ui.cursor_screen_pos();
+                s = p;
                 Image::new(texture_id, size).build(ui);
                 ticks.draw(&draw_list, p, size);
                 const MIN_WIDTH: f32 = 100.0;
@@ -1371,45 +1375,48 @@ where
         const FILL_COLOR_B: u32 = 0x55FF_0000;
         const BORDER_COLOR: u32 = 0xFF00_0000;
         let hist = self.image.hist_color();
-        if let Some((max_count_r, max_count_g, max_count_b)) = hist
-            .iter()
-            .map(|bin| (bin[0].count, bin[1].count, bin[2].count))
-            .max()
-        {
-            let draw_list = ui.get_window_draw_list();
-            let max_count = max_count_r.max(max_count_g).max(max_count_b);
-            let x_pos = pos[0];
-            for i in 0..3 {
-                for bin in hist {
-                    let y_pos = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].start);
-                    let y_pos_end = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].end);
-                    let length = size[0]
-                        * if self.hist_logscale {
-                            (bin[i].count as f32).log10() / (max_count as f32).log10()
+
+        let (max_count_r, max_count_g, max_count_b) =
+            hist.iter().fold((0, 0, 0), |(max_r, max_g, max_b), bin| {
+                (
+                    max_r.max(bin[0].count),
+                    max_g.max(bin[1].count),
+                    max_b.max(bin[2].count),
+                )
+            });
+        let draw_list = ui.get_window_draw_list();
+        let max_count = max_count_r.max(max_count_g).max(max_count_b);
+        let x_pos = pos[0];
+        for i in 0..3 {
+            for bin in hist {
+                let y_pos = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].start);
+                let y_pos_end = pos[1] + size[1] / (vmax - vmin) * (vmax - bin[i].end);
+                let length = size[0]
+                    * if self.hist_logscale {
+                        (bin[i].count as f32).log10() / (max_count as f32).log10()
+                    } else {
+                        (bin[i].count as f32) / (max_count as f32)
+                    };
+                draw_list
+                    .add_rect(
+                        [x_pos + size[0] - length, y_pos],
+                        [x_pos + size[0], y_pos_end],
+                        if i == 0 {
+                            FILL_COLOR_R
+                        } else if i == 1 {
+                            FILL_COLOR_G
                         } else {
-                            (bin[i].count as f32) / (max_count as f32)
-                        };
-                    draw_list
-                        .add_rect(
-                            [x_pos + size[0] - length, y_pos],
-                            [x_pos + size[0], y_pos_end],
-                            if i == 0 {
-                                FILL_COLOR_R
-                            } else if i == 1 {
-                                FILL_COLOR_G
-                            } else {
-                                FILL_COLOR_B
-                            },
-                        )
-                        .filled(true)
-                        .build();
-                }
+                            FILL_COLOR_B
+                        },
+                    )
+                    .filled(true)
+                    .build();
             }
-            draw_list
-                .add_rect(pos, [pos[0] + size[0], pos[1] + size[1]], BORDER_COLOR)
-                .build();
-            // TODO show error
         }
+        draw_list
+            .add_rect(pos, [pos[0] + size[0], pos[1] + size[1]], BORDER_COLOR)
+            .build();
+        // TODO show error
     }
 
     pub(crate) fn show_roi_selector(&mut self, ui: &Ui) {

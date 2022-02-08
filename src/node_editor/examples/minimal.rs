@@ -2,7 +2,6 @@
 #[macro_use]
 extern crate aflak_cake as cake;
 extern crate aflak_imgui_glium_support as support;
-#[macro_use]
 extern crate imgui;
 #[macro_use]
 extern crate lazy_static;
@@ -153,7 +152,7 @@ impl node_editor::ConstantEditor<IOValue> for MyConstantEditor {
         constant: &IOValue,
         id: I,
         read_only: bool,
-        drawlist: &DrawListMut,
+        _drawlist: &DrawListMut,
     ) -> Option<IOValue>
     where
         I: Into<Id<'a>>,
@@ -184,7 +183,7 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
             if MIN <= *int && *int <= MAX {
                 let mut out = *int as i32;
                 let changed = ui
-                    .input_int(im_str!("Int value"), &mut out)
+                    .input_int(format!("Int value"), &mut out)
                     .read_only(read_only)
                     .build();
                 if changed {
@@ -203,7 +202,7 @@ fn inner_editor(ui: &Ui, constant: &IOValue, read_only: bool) -> Option<IOValue>
         IOValue::Float(ref float) => {
             let mut f = *float;
             if ui
-                .input_float(im_str!("Float value"), &mut f)
+                .input_float(format!("Float value"), &mut f)
                 .read_only(read_only)
                 .build()
             {
@@ -227,7 +226,7 @@ fn main() {
     support::init(config).main_loop(move |ui, _, _| {
         let transformations = transformations_ref.as_slice();
 
-        imgui::Window::new(im_str!("Node editor"))
+        imgui::Window::new(format!("Node editor"))
             .size([900.0, 600.0], imgui::Condition::FirstUseEver)
             .build(ui, || {
                 // Render main editor

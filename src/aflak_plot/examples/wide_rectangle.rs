@@ -1,8 +1,7 @@
-extern crate glium;
-#[macro_use]
-extern crate imgui;
 extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
+extern crate glium;
+extern crate imgui;
 extern crate ndarray;
 
 use std::collections::HashMap;
@@ -43,7 +42,7 @@ fn main() {
                 .unwrap();
         }
 
-        imgui::Window::new(im_str!("Wide Rectangle")).build(ui, || {
+        imgui::Window::new(format!("Wide Rectangle")).build(ui, || {
             ui.image2d(
                 gl_ctx,
                 textures,

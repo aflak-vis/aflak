@@ -9,7 +9,7 @@ use imgui_tone_curve::{ToneCurveState, UiToneCurve};
 mod support;
 
 fn test(ui: &Ui, mut state: &mut ToneCurveState) {
-    let window = Window::new(im_str!("Tone Curve"))
+    let window = Window::new(format!("Tone Curve"))
         .size([600.0, 400.0], Condition::Appearing)
         .position([200.0, 200.0], Condition::FirstUseEver);
     window.build(ui, || {
@@ -18,7 +18,7 @@ fn test(ui: &Ui, mut state: &mut ToneCurveState) {
         if let Ok(vectors) = vectors {
             let vectors = vectors.unwrap();
             ui.text(format!("control points: {:?}", vectors.control_points()));
-            ui.text_wrapped(&im_str!("data array: {:?}", vectors.array()));
+            ui.text_wrapped(&format!("data array: {:?}", vectors.array()));
         }
     });
 }

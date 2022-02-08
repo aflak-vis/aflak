@@ -1,7 +1,6 @@
-#[macro_use]
-extern crate imgui;
 extern crate aflak_imgui_glium_support as support;
 extern crate aflak_plot;
+extern crate imgui;
 extern crate ndarray;
 
 use aflak_plot::{
@@ -28,7 +27,7 @@ fn main() {
     const MAX: f32 = 4.0 * f32::consts::PI;
     let sin = ndarray::Array1::linspace(0.0, MAX, 100).mapv_into(f32::sin);
     support::init(config).main_loop(move |ui, _, _| {
-        Window::new(im_str!("Sin"))
+        Window::new(format!("Sin"))
             .size([430.0, 450.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.image1d(
