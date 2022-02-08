@@ -562,7 +562,7 @@ if value > max, value changes to 0.",
                 "Histogram Transformation.",
                 "05. Convert data",
                 0, 1, 0,
-                histogram_transformation<IOValue, IOErr>(image: Image, parameters: Float3 = [0.0, 0.5, 1.0], dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                histogram_transformation<IOValue, IOErr>(image: Image, parameters: Float3 = [0.0, 0.5, 1.0], _dynamic_range: Float2 = [0.0, 1.0]) -> Image {
                     let mut min = std::f32::MAX;
                     let mut max = std::f32::MIN;
                     let image_arr = image.scalar();
@@ -592,7 +592,7 @@ if value > max, value changes to 0.",
                 "Histogram Transformation (color).",
                 "05. Convert data",
                 0, 1, 0,
-                histogram_transformation_rgb<IOValue, IOErr>(image: Image, parameters: Float3x3 = [[0.0, 0.5, 1.0], [0.0, 0.5, 1.0], [0.0, 0.5, 1.0]], dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                histogram_transformation_rgb<IOValue, IOErr>(image: Image, parameters: Float3x3 = [[0.0, 0.5, 1.0], [0.0, 0.5, 1.0], [0.0, 0.5, 1.0]], _dynamic_range: Float2 = [0.0, 1.0]) -> Image {
                     let mut mins = [std::f32::MAX; 3];
                     let mut mids = [std::f32::NAN; 3];
                     let mut maxs = [std::f32::MIN; 3];
