@@ -3,6 +3,7 @@ mod hist;
 mod image;
 mod lut;
 mod state;
+mod zscale;
 
 pub extern crate aflak_cake as cake;
 pub extern crate aflak_primitives as primitives;
@@ -208,7 +209,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         )?;
 
         state.show_hist_color(self, [p[0] + size[0], p[1]], [HIST_WIDTH, size[1]]);
-        let lut_bar_updated = state.show_bar(
+        let lut_bar_updated = state.show_bar_rgb(
             self,
             [p[0] + size[0] + HIST_WIDTH, p[1]],
             [BAR_WIDTH, size[1]],
@@ -216,7 +217,7 @@ impl<'ui> UiImage2d for Ui<'ui> {
         if lut_bar_updated {
             state
                 .image()
-                .update_texture_color(ctx, texture_id, textures, &state.lut)?;
+                .update_texture_color(ctx, texture_id, textures, &state.lut_color)?;
         }
 
         self.set_cursor_screen_pos([p[0], p[1] + size[1] + x_label_height]);

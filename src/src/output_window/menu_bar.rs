@@ -147,6 +147,7 @@ fn update_state_from_editor(
                             IOValue::Float(f) => interaction.set_value(*f),
                             IOValue::Float2(f) => interaction.set_value(*f),
                             IOValue::Float3(f) => interaction.set_value(*f),
+                            IOValue::Float3x3(f) => interaction.set_value(*f),
                             IOValue::Roi(r) => match r {
                                 primitives::ROI::All => Ok(()),
                                 primitives::ROI::PixelList(p) => match interaction {
@@ -172,6 +173,7 @@ fn update_state_from_editor(
                         IOValue::Float(f) => interaction.set_value(*f),
                         IOValue::Float2(f) => interaction.set_value(*f),
                         IOValue::Float3(f) => interaction.set_value(*f),
+                        IOValue::Float3x3(f) => interaction.set_value(*f),
                         IOValue::Roi(_) => Ok(()),
                         value => Err(format!("Cannot convert value '{:?}'", value)),
                     } {
@@ -205,6 +207,7 @@ fn update_editor_from_state(
             Value::Float(f) => IOValue::Float(f),
             Value::Float2(f) => IOValue::Float2(f),
             Value::Float3(f) => IOValue::Float3(f),
+            Value::Float3x3(f) => IOValue::Float3x3(f),
             Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels.0)),
             Value::Line(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             Value::Circle(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
@@ -323,6 +326,27 @@ impl MenuBar for [f32; 3] {
         if let Some(attaching) = ctx.attaching {
             if attaching.0 == ctx.output {
                 attach_failued(&mut ctx, &"Float3");
+            }
+        }
+        ctx.ui.text(format!("{:?}", self));
+    }
+
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
+        write_to_file_as_debug(path, self)?;
+        Ok(())
+    }
+
+    const EXTENSION: &'static str = "txt";
+}
+
+impl MenuBar for [[f32; 3]; 3] {
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    where
+        F: glium::backend::Facade,
+    {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"Float3x3");
             }
         }
         ctx.ui.text(format!("{:?}", self));
@@ -776,6 +800,11 @@ impl MenuBar for primitives::WcsArray {
                     3 => {
                         let ui = &ctx.ui;
                         let state = &mut ctx.window.image2d_state;
+                        update_state_from_editor(
+                            state.stored_values_mut(),
+                            &ctx.window.editable_values,
+                            &ctx.node_editor,
+                        );
                         let texture_id = TextureId::from(hash_outputid(ctx.output));
                         let (x_transform, y_transform) = if ctx.window.show_pixels {
                             (None, None)
@@ -851,6 +880,11 @@ impl MenuBar for primitives::WcsArray {
                         ) {
                             ui.text(format!("Error on drawing image! {}", e));
                         }
+                        update_editor_from_state(
+                            state.stored_values(),
+                            &mut ctx.window.editable_values,
+                            ctx.node_editor,
+                        );
                     }
                     _ => {
                         let ui = &ctx.ui;

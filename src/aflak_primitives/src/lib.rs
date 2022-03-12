@@ -50,7 +50,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use imgui_tone_curve::ToneCurveState;
-use nalgebra::{Matrix3, Vector3};
+use nalgebra::{DMatrix, DVector, Matrix3, Vector3};
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, Axis, Dimension, ShapeBuilder, Slice};
 use ndarray_parallel::prelude::*;
 use variant_name::VariantName;
@@ -69,6 +69,7 @@ pub enum IOValue {
     Float(f32),
     Float2([f32; 2]),
     Float3([f32; 3]),
+    Float3x3([[f32; 3]; 3]),
     Str(String),
     Bool(bool),
     #[serde(skip_serializing)]
@@ -90,6 +91,7 @@ impl PartialEq for IOValue {
             (Float2(f1), Float2(f2)) => f1 == f2,
             (ToneCurve(t1), ToneCurve(t2)) => t1 == t2,
             (Float3(f1), Float3(f2)) => f1 == f2,
+            (Float3x3(f1), Float3x3(f2)) => f1 == f2,
             (Str(s1), Str(s2)) => s1 == s2,
             (Bool(b1), Bool(b2)) => b1 == b2,
             (Image(i1), Image(i2)) => i1 == i2,
@@ -556,6 +558,189 @@ if value > max, value changes to 0.",
                     vec![run_down_sampling(image, *n)]
                 }
             ),
+            cake_transform!(
+                "Histogram Transformation.",
+                "05. Convert data",
+                0, 1, 0,
+                histogram_transformation<IOValue, IOErr>(image: Image, parameters: Float3 = [0.0, 0.5, 1.0], _dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                    let mut min = std::f32::MAX;
+                    let mut max = std::f32::MIN;
+                    let image_arr = image.scalar();
+
+                    for i in image_arr {
+                        min = min.min(*i);
+                        max = max.max(*i);
+                    }
+                    let mut out = image.clone();
+                    out.scalar_mut().par_iter_mut().for_each(|v| {
+                        let point = (*v - min) / (max - min);
+                        let x = (point - parameters[0]) / (parameters[2] - parameters[0]);
+                        let c = if x > 1.0 {
+                            1.0
+                        } else if x < 0.0 {
+                            0.0
+                        } else {
+                            let m = parameters[1];
+                            (m - 1.0) * x / ((2.0 * m - 1.0) * x - m)
+                        };
+                        *v = c * (max - min) + min;
+                    });
+                    vec![Ok(IOValue::Image(out))]
+                }
+            ),
+            cake_transform!(
+                "Histogram Transformation (color).",
+                "05. Convert data",
+                0, 1, 0,
+                histogram_transformation_rgb<IOValue, IOErr>(image: Image, parameters: Float3x3 = [[0.0, 0.5, 1.0], [0.0, 0.5, 1.0], [0.0, 0.5, 1.0]], _dynamic_range: Float2 = [0.0, 1.0]) -> Image {
+                    let mut mins = [std::f32::MAX; 3];
+                    let mut mids = [std::f32::NAN; 3];
+                    let mut maxs = [std::f32::MIN; 3];
+                    let dim = image.scalar().dim();
+                    let dim = dim.as_array_view();
+                    let tag = image.tag();
+                    for (c, slice) in image.scalar().axis_iter(Axis(0)).enumerate() {
+                        for i in slice {
+                            mins[c] = mins[c].min(*i);
+                            maxs[c] = maxs[c].max(*i);
+                            mids[c] = parameters[c][1];
+                        }
+                    }
+                    let mut data = Vec::with_capacity(dim[0] * dim[1] * dim[2]);
+                    for (ch, slice) in image.scalar().axis_iter(Axis(0)).enumerate() {
+                        for v in slice.iter() {
+                            let point = (*v - mins[ch]) / (maxs[ch] - mins[ch]);
+                            let x = (point - parameters[ch][0]) / (parameters[ch][2] - parameters[ch][0]);
+                            let c = if x > 1.0 {
+                                1.0
+                            } else if x < 0.0 {
+                                0.0
+                            } else {
+                                (mids[ch] - 1.0) * x / ((2.0 * mids[ch] - 1.0) * x - mids[ch])
+                            };
+                            data.push(c * (maxs[ch] - mins[ch]) + mins[ch]);
+                        }
+                    }
+                    let img = Array::from_shape_vec((dim[0], dim[1], dim[2]), data).unwrap();
+                    vec![Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                        img.into_dyn(),
+                        Unit::None,
+                    ), tag.clone())))]
+                }
+            ),
+            cake_transform!(
+                "Dynamic Background Extraction.",
+                "05. Convert data",
+                0, 1, 0,
+                dynamic_background_extraction<IOValue, IOErr>(image: Image, points: Roi, function_degree: Integer = 1) -> Image, Image {
+                    let tag = image.tag();
+                    let dim = image.scalar().dim();
+                    let dim = dim.as_array_view();
+                    let funcdeg_plus_one = (*function_degree + 1) as usize;
+                    let params_right_num = funcdeg_plus_one * funcdeg_plus_one;
+                    let mut params_right = Vec::<f32>::with_capacity(params_right_num * dim[0]);
+                    params_right.resize(params_right_num * dim[0], 0.0);
+                    let mut params_right = Array::from_vec(params_right).into_shape((dim[0], funcdeg_plus_one, funcdeg_plus_one)).unwrap();
+                    let params_left_num = params_right_num * params_right_num;
+                    let mut params_left = Vec::<f32>::with_capacity(params_left_num * dim[0]);
+                    params_left.resize(params_left_num * dim[0], 0.0);
+                    let mut params_left = Array::from_vec(params_left)
+                        .into_shape((
+                            dim[0],
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                            funcdeg_plus_one,
+                        ))
+                        .unwrap();
+                    let mut model = image.scalar().clone();
+                    let mut out = image.scalar().clone();
+                    let mut compute_failure = false;
+                    for i in 0..dim[0] {
+                        for takes_y in 0..funcdeg_plus_one {
+                            for takes_x in 0..funcdeg_plus_one {
+                                for inner_takes_y in 0..funcdeg_plus_one {
+                                    for inner_takes_x in 0..funcdeg_plus_one {
+                                        let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                        for ((x, y), _) in data {
+                                            let x = x as f32 / dim[2] as f32;
+                                            let y = y as f32 / dim[1] as f32;
+                                            params_left[[i, takes_y, takes_x, inner_takes_y, inner_takes_x]] += 1.0
+                                                * (x as f32).powf((takes_x + inner_takes_x) as f32)
+                                                * (y as f32).powf((takes_y + inner_takes_y) as f32);
+                                        }
+                                    }
+                                }
+                                let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                for ((x, y), _) in data {
+                                    let mut boxdata = Vec::new();
+                                    for xx in (x - 10).max(0)..(x + 10).min(dim[2]) {
+                                        for yy in (y - 10).max(0)..(y + 10).min(dim[1]) {
+                                            boxdata.push(model[[i, yy, xx]]);
+                                        }
+                                    }
+
+                                    boxdata.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                                    let mid = boxdata.len() / 2;
+                                    let med = if boxdata.len() % 2 == 0 {
+                                        (boxdata[mid] + boxdata[mid - 1]) / 2.0
+                                    } else {
+                                        boxdata[mid]
+                                    };
+                                    boxdata.clear();
+                                    let x = x as f32 / dim[2] as f32;
+                                    let y = y as f32 / dim[1] as f32;
+                                    params_right[[i, takes_y, takes_x]] +=
+                                        med * (x as f32).powf(takes_x as f32) * (y as f32).powf(takes_y as f32);
+                                }
+                            }
+                        }
+                        let params_left_vec = params_left.index_axis(Axis(0), i).to_owned().into_raw_vec();
+                        let params_right_vec = params_right.index_axis(Axis(0), i).to_owned().into_raw_vec();
+                        let a = DMatrix::from_vec(params_right_num, params_right_num, params_left_vec);
+                        let b = DVector::from(params_right_vec.clone());
+                        let decomp = a.lu();
+                        let x = decomp.solve(&b);
+                        let mut sol = DVector::from(params_right_vec);
+                        match x {
+                            Some(vector) => sol = vector,
+                            None => {
+                                println!("failure");
+                                compute_failure = true;
+                            },
+                        };
+                        if compute_failure {
+                            break;
+                        }
+                        for y in 0..dim[1] {
+                            for x in 0..dim[2] {
+                                let xx = x as f32 / dim[2] as f32;
+                                let yy = y as f32 / dim[1] as f32;
+                                model[[i, y, x]] = 0.0;
+                                for takes_x in 0..funcdeg_plus_one {
+                                    for takes_y in 0..funcdeg_plus_one {
+                                        model[[i, y, x]] += sol[takes_y * funcdeg_plus_one + takes_x]
+                                            * (xx.powf(takes_x as f32))
+                                            * (yy.powf(takes_y as f32));
+                                    }
+                                }
+                                out[[i, y, x]] -= model[[i, y, x]];
+                            }
+                        }
+                    }
+                    if !compute_failure {
+                        vec![Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                            out,
+                            Unit::None,
+                        ), tag.clone()))), Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
+                            model,
+                            Unit::None,
+                        ), tag.clone())))]
+                    } else {
+                        vec![Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string())), Err(IOErr::UnexpectedInput("Linear algebra failed.".to_string()))]
+                    }
+                }
+            ),
         ]
     };
 }
@@ -579,6 +764,7 @@ impl cake::DefaultFor for IOValue {
             "Float2" => IOValue::Float2([0.0; 2]),
             "ToneCurve" => IOValue::ToneCurve(ToneCurveState::default()),
             "Float3" => IOValue::Float3([0.0; 3]),
+            "Float3x3" => IOValue::Float3x3([[0.0; 3]; 3]),
             "Roi" => IOValue::Roi(roi::ROI::All),
             "Str" => IOValue::Str("".to_owned()),
             "Bool" => IOValue::Bool(false),
@@ -595,6 +781,7 @@ impl cake::EditableVariants for IOValue {
             "Float",
             "Float2",
             "Float3",
+            "Float3x3",
             "Roi",
             "Str",
             "Bool",
@@ -1694,38 +1881,73 @@ fn run_apply_arcsinh_stretch(image: &WcsArray, beta: f32) -> Result<IOValue, IOE
 }
 
 fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
     precheck!(
         n > 0,
         "{}",
         format!("n should be greater than 0, {} > 0", n)
     )?;
-    let dim = image.scalar().dim();
-    let size = dim.as_array_view();
-    let mut out = image.clone();
-    let mut new_size = ((size[0]) / (n as usize), (size[1]) / (n as usize));
-    if size[0] % (n as usize) != 0 {
-        new_size.0 += 1;
-    }
-    if size[1] % (n as usize) != 0 {
-        new_size.1 += 1;
-    }
-    let mut new_image = Vec::with_capacity(new_size.0 * new_size.1);
-    let mut counter = 0;
-    for v in out.scalar_mut().iter_mut() {
-        let coord = (counter % size[1], counter / size[1]);
-        if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
-            new_image.push(*v);
+    let tag = image.tag();
+    if image.scalar().ndim() == 2 {
+        let dim = image.scalar().dim();
+        let size = dim.as_array_view();
+        let mut out = image.clone();
+        let mut new_size = ((size[0]) / (n as usize), (size[1]) / (n as usize));
+        if size[0] % (n as usize) != 0 {
+            new_size.0 += 1;
         }
-        counter += 1;
+        if size[1] % (n as usize) != 0 {
+            new_size.1 += 1;
+        }
+        let mut new_image = Vec::with_capacity(new_size.0 * new_size.1);
+        let mut counter = 0;
+        for v in out.scalar_mut().iter_mut() {
+            let coord = (counter % size[1], counter / size[1]);
+            if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
+                new_image.push(*v);
+            }
+            counter += 1;
+        }
+
+        let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
+        Ok(IOValue::Image(WcsArray::from_array_and_tag(
+            Dimensioned::new(out.into_dyn(), Unit::None),
+            tag.clone(),
+        )))
+    } else if image.scalar().ndim() == 3 {
+        let dim = image.scalar().dim();
+        let size = dim.as_array_view();
+        let mut new_size = (size[0], (size[1]) / (n as usize), (size[2]) / (n as usize));
+        if size[1] % (n as usize) != 0 {
+            new_size.1 += 1;
+        }
+        if size[2] % (n as usize) != 0 {
+            new_size.2 += 1;
+        }
+        let mut new_image = Vec::with_capacity(new_size.0 * new_size.1 * new_size.2);
+        for slice in image.scalar().axis_iter(Axis(0)) {
+            let mut counter = 0;
+            for v in slice.iter() {
+                let coord = (counter % size[2], counter / size[2]);
+                if coord.0 % (n as usize) == 0 && coord.1 % (n as usize) == 0 {
+                    new_image.push(*v);
+                }
+                counter += 1;
+            }
+        }
+        let out = Array::from_shape_vec(
+            new_size.strides((new_size.1 * new_size.2, new_size.2, 1)),
+            new_image,
+        )
+        .unwrap();
+        Ok(IOValue::Image(WcsArray::from_array_and_tag(
+            Dimensioned::new(out.into_dyn(), Unit::None),
+            tag.clone(),
+        )))
+    } else {
+        Err(IOErr::UnexpectedInput(format!(
+            "This is neither 2 nor 3 dimensional image!",
+        )))
     }
-
-    let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out.into_dyn(),
-        Unit::None,
-    ))))
 }
 
 #[cfg(test)]

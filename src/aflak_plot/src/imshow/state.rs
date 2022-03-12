@@ -13,8 +13,8 @@ use std::time::Instant;
 
 use super::image;
 use super::interactions::{
-    Circle, FinedGrainedROI, HorizontalLine, Interaction, InteractionId, InteractionIterMut,
-    Interactions, Line, ValueIter, VerticalLine,
+    Circle, ColorLims, FinedGrainedROI, HorizontalLine, Interaction, InteractionId,
+    InteractionIterMut, Interactions, Lims, Line, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
 use super::ticks::XYTicks;
@@ -29,12 +29,17 @@ type AflakNodeEditor = NodeEditor<IOValue, IOErr>;
 /// Current state of the visualization of a 2D image
 pub struct State<I> {
     pub(crate) lut: ColorLUT,
+    pub(crate) lut_color: [ColorLUT; 3],
     /// Mouse position relative to the image (in pixels)
     pub mouse_pos: (f32, f32),
     /// Control whether histogram uses a log scale
     pub hist_logscale: bool,
     lut_min_moving: bool,
+    lut_mid_moving: bool,
     lut_max_moving: bool,
+    lut_min_moving_rgb: [bool; 3],
+    lut_mid_moving_rgb: [bool; 3],
+    lut_max_moving_rgb: [bool; 3],
     interactions: Interactions,
     roi_input: RoiInputState,
     circle_input: CircleInputState,
@@ -93,10 +98,19 @@ impl<I> Default for State<I> {
         use std::f32;
         Self {
             lut: BuiltinLUT::Flame.lut(),
+            lut_color: [
+                BuiltinLUT::Red.lut(),
+                BuiltinLUT::Green.lut(),
+                BuiltinLUT::Blue.lut(),
+            ],
             mouse_pos: (f32::NAN, f32::NAN),
             hist_logscale: true,
             lut_min_moving: false,
+            lut_mid_moving: false,
             lut_max_moving: false,
+            lut_min_moving_rgb: [false; 3],
+            lut_mid_moving_rgb: [false; 3],
+            lut_max_moving_rgb: [false; 3],
             interactions: Interactions::new(),
             roi_input: Default::default(),
             circle_input: Default::default(),
@@ -155,8 +169,14 @@ where
     where
         F: Facade,
     {
-        self.image =
-            image::Image::color_new(image, created_on, ctx, texture_id, textures, &self.lut)?;
+        self.image = image::Image::color_new(
+            image,
+            created_on,
+            ctx,
+            texture_id,
+            textures,
+            &self.lut_color,
+        )?;
         Ok(())
     }
 
@@ -182,10 +202,53 @@ where
             for builtin_lut in BuiltinLUT::values() {
                 let stack = ui.push_id(*builtin_lut as i32);
                 if MenuItem::new(builtin_lut.name()).build(ui) {
+                    let (buf_min, buf_mid, buf_max) = self.lut.lims();
+                    self.lut.set_lims(0.0, 0.5, 1.0);
                     self.lut.set_gradient(*builtin_lut);
+                    self.lut.set_lims(buf_min, buf_mid, buf_max);
                     changed = true;
                 }
                 stack.pop();
+            }
+            ui.separator();
+            ui.text("Stretch");
+            ui.separator();
+            if MenuItem::new("ZScale").build(ui) {
+                let zscales = self.image.zscale(1000, 0.25);
+                if let (Some(z1), Some(z2)) = zscales {
+                    let vmin = self.image.vmin();
+                    let vmax = self.image.vmax();
+                    let lut_min = (z1 - vmin) / (vmax - vmin);
+                    let lut_max = (z2 - vmin) / (vmax - vmin);
+                    self.lut.set_lims(lut_min, 0.5, lut_max);
+                    changed = true;
+                }
+            }
+            if MenuItem::new("Auto").build(ui) {
+                let med = self.image.vmed();
+                let mad = self.image.vmad();
+                let lut_min = if 1.0 + mad != 1.0 {
+                    let b = med + -2.8 * mad;
+                    util::clamp(b, 0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let lut_mid = self.lut.mtf(0.25, med - lut_min);
+                self.lut.set_lims(lut_min, lut_mid, 1.0);
+                changed = true;
+            }
+            if MenuItem::new("Reset").build(ui) {
+                self.lut.set_lims(0.0, 0.5, 1.0);
+                changed = true;
+            }
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("Lims"), true) {
+                if MenuItem::new(format!("to main editor")).build(ui) {
+                    let now_lims = self.lut.lims();
+                    let now_lims = [now_lims.0, now_lims.1, now_lims.2];
+                    let new = Interaction::Lims(Lims::new(now_lims));
+                    self.interactions.insert(new);
+                }
+                menu.end();
             }
         });
 
@@ -231,26 +294,89 @@ where
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(format!("set_min"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
             if ui.is_item_hovered() {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_min_moving = true;
                 }
             }
             if self.lut_min_moving {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 let [_, mouse_y] = ui.io().mouse_pos;
                 let min = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_min(min);
                 changed = true;
             }
+            if hovered_or_moving {
+                let p = self.lut.lims().0;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("shadow"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
+            }
             if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_min_moving = false;
             }
 
+            // Mid_tone triangle
+            let mid_color =
+                util::to_u32_color(self.lut.color_at(lims.0 + (lims.2 - lims.0) * lims.1));
+            let x_pos = pos[0] + size[0] + TRIANGLE_LEFT_PADDING;
+            let y_pos = pos[1] + size[1] * (1.0 - (lims.0 + (lims.2 - lims.0) * lims.1));
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    mid_color,
+                )
+                .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    util::invert_color(mid_color),
+                )
+                .build();
+            ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
+            ui.invisible_button(format!("set_mid"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
+            if ui.is_item_hovered() {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
+                    self.lut_mid_moving = true;
+                }
+            }
+            if self.lut_mid_moving {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let max_y_pos = pos[1] + size[1] * (1.0 - lims.2);
+                let min_y_pos = pos[1] + size[1] * (1.0 - lims.0);
+                let mid = (mouse_y - min_y_pos) / (max_y_pos - min_y_pos);
+                self.lut.set_mid(mid);
+                changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut.lims().1;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("midpoint"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
+            }
+            if !ui.is_mouse_down(MouseButton::Left) {
+                self.lut_mid_moving = false;
+            }
+
             // Max triangle
-            let max_color = util::to_u32_color(self.lut.color_at(lims.1));
-            let y_pos = pos[1] + size[1] * (1.0 - lims.1);
+            let max_color = util::to_u32_color(self.lut.color_at(lims.2));
+            let y_pos = pos[1] + size[1] * (1.0 - lims.2);
             draw_list
                 .add_triangle(
                     [x_pos, y_pos],
@@ -268,8 +394,8 @@ where
                     util::invert_color(max_color),
                 )
                 .build();
-            if lims.1 < 1.0 {
-                let max_threshold = util::lerp(vmin, vmax, lims.1);
+            if lims.2 < 1.0 {
+                let max_threshold = util::lerp(vmin, vmax, lims.2);
                 draw_list.add_text(
                     [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
                     COLOR,
@@ -278,18 +404,28 @@ where
             }
             ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
             ui.invisible_button(format!("set_max"), [TRIANGLE_WIDTH, TRIANGLE_HEIGHT]);
+            let mut hovered_or_moving = false;
             if ui.is_item_hovered() {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 if ui.is_mouse_clicked(MouseButton::Left) {
                     self.lut_max_moving = true;
                 }
             }
             if self.lut_max_moving {
+                hovered_or_moving = true;
                 ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
                 let [_, mouse_y] = ui.io().mouse_pos;
                 let max = 1.0 - (mouse_y - pos[1]) / size[1];
                 self.lut.set_max(max);
                 changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut.lims().2;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("highlight"));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
             }
             if !ui.is_mouse_down(MouseButton::Left) {
                 self.lut_max_moving = false;
@@ -297,19 +433,41 @@ where
         }
 
         let x_pos = pos[0] + 5.0;
-        for ((v1, c1), (v2, c2)) in self.lut.bounds() {
-            let bottom_col = util::to_u32_color(c1);
-            let top_col = util::to_u32_color(c2);
-            let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
-            let top_y_pos = pos[1] + size[1] * (1.0 - v2);
-            draw_list.add_rect_filled_multicolor(
-                [x_pos, top_y_pos],
-                [x_pos + size[0], bottom_y_pos],
-                top_col,
-                top_col,
-                bottom_col,
-                bottom_col,
-            );
+        if self.lut.lims().1 == 0.5 {
+            // Linear transfer function when mid_tone = 0.5
+            for ((v1, c1), (v2, c2)) in self.lut.bounds() {
+                let bottom_col = util::to_u32_color(c1);
+                let top_col = util::to_u32_color(c2);
+                let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
+                let top_y_pos = pos[1] + size[1] * (1.0 - v2);
+                draw_list.add_rect_filled_multicolor(
+                    [x_pos, top_y_pos],
+                    [x_pos + size[0], bottom_y_pos],
+                    top_col,
+                    top_col,
+                    bottom_col,
+                    bottom_col,
+                );
+            }
+        } else {
+            // Non-linear transfer function (Midtone Transfer Function, MTF) is adopted when mid_tone != 0.5, so we can NOT use bounds()
+            let num_of_rects = 256;
+            for i in 0..num_of_rects {
+                let c1 = self.lut.color_at(i as f32 / num_of_rects as f32);
+                let c2 = self.lut.color_at((i as f32 + 1.0) / num_of_rects as f32);
+                let bottom_y_pos = pos[1] + size[1] * (1.0 - i as f32 / num_of_rects as f32);
+                let top_y_pos = pos[1] + size[1] * (1.0 - (i as f32 + 1.0) / num_of_rects as f32);
+                let bottom_col = util::to_u32_color(c1);
+                let top_col = util::to_u32_color(c2);
+                draw_list.add_rect_filled_multicolor(
+                    [x_pos, top_y_pos],
+                    [x_pos + size[0], bottom_y_pos],
+                    top_col,
+                    top_col,
+                    bottom_col,
+                    bottom_col,
+                );
+            }
         }
         let mut i = 1.0;
         let text_height = ui.text_line_height_with_spacing();
@@ -338,9 +496,420 @@ where
             i -= TICK_STEP;
         }
 
+        for (id, interaction) in self.interactions.iter_mut() {
+            let stack = ui.push_id(id.id());
+            match interaction {
+                Interaction::Lims(Lims { lims }) => {
+                    let now_lims = self.lut.lims();
+                    let now_lims = [now_lims.0, now_lims.1, now_lims.2];
+                    if changed {
+                        *lims = now_lims;
+                    } else if *lims != now_lims {
+                        self.lut.set_lims(lims[0], lims[1], lims[2]);
+                        changed = true;
+                    }
+                }
+                _ => {}
+            }
+
+            stack.pop();
+        }
+
         changed
     }
 
+    pub(crate) fn show_bar_rgb(&mut self, ui: &Ui, pos: [f32; 2], size: [f32; 2]) -> bool {
+        let mut changed = false;
+
+        for channel in 0..3 {
+            ui.set_cursor_screen_pos([pos[0] + 5.0 + (20.0 + size[0]) * channel as f32, pos[1]]);
+            ui.button_with_size(format!("image_bar"), size);
+            if ui.is_item_hovered() && ui.is_mouse_clicked(MouseButton::Right) {
+                ui.open_popup(format!("swap-lut"));
+            }
+        }
+        ui.popup(format!("swap-lut"), || {
+            ui.text("Stretch");
+            ui.separator();
+            if MenuItem::new("Auto (RGB Linked)").build(ui) {
+                let meds = self.image.vmed_rgb();
+                let mads = self.image.vmad_rgb();
+                let mut lut_min = 0.0;
+                let mut lut_mid = 0.0;
+                for c in 0..3 {
+                    if 1.0 + mads[c] != 1.0 {
+                        lut_min += meds[c] + -2.8 * mads[c];
+                    }
+                    lut_mid += meds[c];
+                }
+                let lut_min = util::clamp(lut_min / 3.0, 0.0, 1.0);
+                let lut_mid = self.lut.mtf(0.25, lut_mid / 3.0 - lut_min);
+                for c in 0..3 {
+                    self.lut_color[c].set_lims(lut_min, lut_mid, 1.0);
+                }
+                changed = true;
+            }
+            if MenuItem::new("Auto (RGB Unlinked)").build(ui) {
+                let meds = self.image.vmed_rgb();
+                let mads = self.image.vmad_rgb();
+                for c in 0..3 {
+                    let lut_min = if 1.0 + mads[c] != 1.0 {
+                        util::clamp(meds[c] + -2.8 * mads[c], 0.0, 1.0)
+                    } else {
+                        0.0
+                    };
+                    let lut_mid = self.lut.mtf(0.25, meds[c] - lut_min);
+                    self.lut_color[c].set_lims(lut_min, lut_mid, 1.0);
+                }
+                changed = true;
+            }
+            if MenuItem::new("Reset").build(ui) {
+                for c in 0..3 {
+                    self.lut_color[c].set_lims(0.0, 0.5, 1.0);
+                }
+                changed = true;
+            }
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("Lims"), true) {
+                if MenuItem::new(format!("to main editor")).build(ui) {
+                    let lims = [
+                        [
+                            self.lut_color[0].lims().0,
+                            self.lut_color[0].lims().1,
+                            self.lut_color[0].lims().2,
+                        ],
+                        [
+                            self.lut_color[1].lims().0,
+                            self.lut_color[1].lims().1,
+                            self.lut_color[1].lims().2,
+                        ],
+                        [
+                            self.lut_color[2].lims().0,
+                            self.lut_color[2].lims().1,
+                            self.lut_color[2].lims().2,
+                        ],
+                    ];
+                    let new = Interaction::ColorLims(ColorLims::new(lims));
+                    self.interactions.insert(new);
+                }
+                menu.end();
+            }
+        });
+        ui.set_cursor_screen_pos([pos[0] + 5.0, pos[1]]);
+        let draw_list = ui.get_window_draw_list();
+
+        let vmin = self.image.vmin();
+        let vmax = self.image.vmax();
+        let vmin_rgb = self.image.vmin_rgb();
+        let vmax_rgb = self.image.vmax_rgb();
+        // Show triangle to change contrast
+        for channels in 0..3 {
+            const TRIANGLE_HEIGHT: f32 = 20.0;
+            const TRIANGLE_WIDTH: f32 = 15.0;
+            let lims = self.lut_color[channels].lims();
+            let vmin = vmin_rgb[channels];
+            let vmax = vmax_rgb[channels];
+            let channel_name = match channels {
+                0 => "RED",
+                1 => "GREEN",
+                2 => "BLUE",
+                _ => "",
+            };
+            // Min triangle
+            let min_color = util::to_u32_color(self.lut_color[channels].color_at(lims.0));
+            let x_pos = pos[0] + 5.0 + 20.0 + 40.0 * channels as f32;
+            let y_pos = pos[1] + size[1] * (1.0 - lims.0);
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    min_color,
+                )
+                .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    util::invert_color(min_color),
+                )
+                .build();
+            if lims.0 != 0.0 {
+                let min_threshold = util::lerp(vmin, vmax, lims.0);
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("{:.2}", min_threshold),
+                );
+            }
+            ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
+            ui.invisible_button(
+                format!("set_min_{}", channels),
+                [TRIANGLE_WIDTH, TRIANGLE_HEIGHT],
+            );
+            let mut hovered_or_moving = false;
+            if ui.is_item_hovered() {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
+                    self.lut_min_moving_rgb[channels] = true;
+                }
+            }
+            if self.lut_min_moving_rgb[channels] {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let min = 1.0 - (mouse_y - pos[1]) / size[1];
+                self.lut_color[channels].set_min(min);
+                changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut_color[channels].lims().0;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("{}, shadow", channel_name));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
+            }
+            if !ui.is_mouse_down(MouseButton::Left) {
+                self.lut_min_moving_rgb[channels] = false;
+            }
+
+            // Mid_tone triangle
+            let mid_color = util::to_u32_color(
+                self.lut_color[channels].color_at(lims.0 + (lims.2 - lims.0) * lims.1),
+            );
+            let y_pos = pos[1] + size[1] * (1.0 - (lims.0 + (lims.2 - lims.0) * lims.1));
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    mid_color,
+                )
+                .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    util::invert_color(mid_color),
+                )
+                .build();
+            if lims.1 != 0.5 {
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("midtone:{:.2}", lims.1),
+                );
+            }
+            ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
+            ui.invisible_button(
+                format!("set_mid_{}", channels),
+                [TRIANGLE_WIDTH, TRIANGLE_HEIGHT],
+            );
+            let mut hovered_or_moving = false;
+            if ui.is_item_hovered() {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
+                    self.lut_mid_moving_rgb[channels] = true;
+                }
+            }
+            if self.lut_mid_moving_rgb[channels] {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let max_y_pos = pos[1] + size[1] * (1.0 - lims.2);
+                let min_y_pos = pos[1] + size[1] * (1.0 - lims.0);
+                let mid = (mouse_y - min_y_pos) / (max_y_pos - min_y_pos);
+                self.lut_color[channels].set_mid(mid);
+                changed = true;
+            }
+            if hovered_or_moving {
+                let vmin_lim = self.lut_color[channels].lims().0;
+                let vmin = vmin + (vmax - vmin) * vmin_lim;
+                let vmax_lim = self.lut_color[channels].lims().2;
+                let vmax = vmin + (vmax - vmin) * vmax_lim;
+                let p = self.lut_color[channels].lims().1;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("{}, midpoint", channel_name));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
+            }
+            if !ui.is_mouse_down(MouseButton::Left) {
+                self.lut_mid_moving_rgb[channels] = false;
+            }
+
+            // Max triangle
+            let max_color = util::to_u32_color(self.lut_color[channels].color_at(lims.2));
+            let y_pos = pos[1] + size[1] * (1.0 - lims.2);
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    max_color,
+                )
+                .filled(true)
+                .build();
+            draw_list
+                .add_triangle(
+                    [x_pos, y_pos],
+                    [x_pos + TRIANGLE_WIDTH, y_pos + TRIANGLE_HEIGHT / 2.0],
+                    [x_pos + TRIANGLE_WIDTH, y_pos - TRIANGLE_HEIGHT / 2.0],
+                    util::invert_color(max_color),
+                )
+                .build();
+            if lims.2 < 1.0 {
+                let max_threshold = util::lerp(vmin, vmax, lims.2);
+                draw_list.add_text(
+                    [x_pos + TRIANGLE_WIDTH + LABEL_HORIZONTAL_PADDING, y_pos],
+                    COLOR,
+                    &format!("{:.2}", max_threshold),
+                );
+            }
+            ui.set_cursor_screen_pos([x_pos, y_pos - TRIANGLE_HEIGHT / 2.0]);
+            ui.invisible_button(
+                format!("set_max_{}", channels),
+                [TRIANGLE_WIDTH, TRIANGLE_HEIGHT],
+            );
+            let mut hovered_or_moving = false;
+            if ui.is_item_hovered() {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                if ui.is_mouse_clicked(MouseButton::Left) {
+                    self.lut_max_moving_rgb[channels] = true;
+                }
+            }
+            if self.lut_max_moving_rgb[channels] {
+                hovered_or_moving = true;
+                ui.set_mouse_cursor(Some(MouseCursor::ResizeNS));
+                let [_, mouse_y] = ui.io().mouse_pos;
+                let max = 1.0 - (mouse_y - pos[1]) / size[1];
+                self.lut_color[channels].set_max(max);
+                changed = true;
+            }
+            if hovered_or_moving {
+                let p = self.lut_color[channels].lims().2;
+                let val = vmin + (vmax - vmin) * p;
+                ui.tooltip_text(format!("{}, highlight", channel_name));
+                ui.tooltip_text(format!("LIM: {:.6}", p));
+                ui.tooltip_text(format!("VAL: {:.6}", val));
+            }
+            if !ui.is_mouse_down(MouseButton::Left) {
+                self.lut_max_moving_rgb[channels] = false;
+            }
+        }
+
+        let x_pos = pos[0] + 5.0;
+        for channel in 0..3 {
+            let x_pos = x_pos + (size[0] + 15.0 + 5.0) * channel as f32;
+            if self.lut.lims().1 == 0.5 {
+                // Linear transfer function when mid_tone = 0.5
+                for ((v1, c1), (v2, c2)) in self.lut_color[channel].bounds() {
+                    let bottom_col = util::to_u32_color(c1);
+                    let top_col = util::to_u32_color(c2);
+                    let bottom_y_pos = pos[1] + size[1] * (1.0 - v1);
+                    let top_y_pos = pos[1] + size[1] * (1.0 - v2);
+                    draw_list.add_rect_filled_multicolor(
+                        [x_pos, top_y_pos],
+                        [x_pos + size[0], bottom_y_pos],
+                        top_col,
+                        top_col,
+                        bottom_col,
+                        bottom_col,
+                    );
+                }
+            } else {
+                // Non-linear transfer function (Midtone Transfer Function, MTF) is adopted when mid_tone != 0.5, so we can NOT use bounds()
+                let num_of_rects = 256;
+                for i in 0..num_of_rects {
+                    let c1 = self.lut_color[channel].color_at(i as f32 / num_of_rects as f32);
+                    let c2 =
+                        self.lut_color[channel].color_at((i as f32 + 1.0) / num_of_rects as f32);
+                    let bottom_y_pos = pos[1] + size[1] * (1.0 - i as f32 / num_of_rects as f32);
+                    let top_y_pos =
+                        pos[1] + size[1] * (1.0 - (i as f32 + 1.0) / num_of_rects as f32);
+                    let bottom_col = util::to_u32_color(c1);
+                    let top_col = util::to_u32_color(c2);
+                    draw_list.add_rect_filled_multicolor(
+                        [x_pos, top_y_pos],
+                        [x_pos + size[0], bottom_y_pos],
+                        top_col,
+                        top_col,
+                        bottom_col,
+                        bottom_col,
+                    );
+                }
+            }
+        }
+        let mut i = 1.0;
+        let text_height = ui.text_line_height_with_spacing();
+        const LABEL_HORIZONTAL_PADDING: f32 = 2.0;
+        const COLOR: u32 = 0xFFFF_FFFF;
+        const TICK_SIZE: f32 = 3.0;
+        const TICK_COUNT: usize = 10;
+        const TICK_STEP: f32 = 1.0 / TICK_COUNT as f32;
+        while i >= -0.01 {
+            let tick_y_pos = util::lerp(pos[1], pos[1] + size[1], i);
+            let y_pos = tick_y_pos - text_height / 2.5;
+            let val = vmax + (vmin - vmax) * i;
+            draw_list.add_text(
+                [x_pos + size[0] + LABEL_HORIZONTAL_PADDING, y_pos],
+                COLOR,
+                &format!("{:.2}", val),
+            );
+            draw_list
+                .add_line(
+                    [x_pos + size[0] - TICK_SIZE, tick_y_pos],
+                    [x_pos + size[0], tick_y_pos],
+                    COLOR,
+                )
+                .build();
+            // TODO: Make step editable
+            i -= TICK_STEP;
+        }
+
+        for (id, interaction) in self.interactions.iter_mut() {
+            let stack = ui.push_id(id.id());
+            match interaction {
+                Interaction::ColorLims(ColorLims { lims }) => {
+                    let self_lims = [
+                        [
+                            self.lut_color[0].lims().0,
+                            self.lut_color[0].lims().1,
+                            self.lut_color[0].lims().2,
+                        ],
+                        [
+                            self.lut_color[1].lims().0,
+                            self.lut_color[1].lims().1,
+                            self.lut_color[1].lims().2,
+                        ],
+                        [
+                            self.lut_color[2].lims().0,
+                            self.lut_color[2].lims().1,
+                            self.lut_color[2].lims().2,
+                        ],
+                    ];
+                    if changed {
+                        *lims = self_lims;
+                    } else if *lims != self_lims {
+                        for c in 0..3 {
+                            self.lut_color[c].set_lims(lims[c][0], lims[c][1], lims[c][2]);
+                        }
+                        changed = true;
+                    }
+                }
+                _ => {}
+            }
+
+            stack.pop();
+        }
+
+        changed
+    }
     pub(crate) fn show_image<FX, FY>(
         &mut self,
         ui: &Ui,
@@ -481,7 +1050,27 @@ where
                                             unit: vunit,
                                         },
                                     );
-                                    ui.tooltip_text(text);
+                                    if ui.io().key_shift {
+                                        ui.tooltip(|| {
+                                            ui.text(text);
+                                            let x = self.mouse_pos.0;
+                                            let y = self.mouse_pos.1;
+                                            let x1 = (x - 10.0) as f32 / tex_size.0;
+                                            let x2 = (x + 11.0) as f32 / tex_size.0;
+                                            let y1 = (tex_size.1 - (y + 10.0) as f32) / tex_size.1;
+                                            let y2 = (tex_size.1 - (y - 11.0) as f32) / tex_size.1;
+                                            let x1 = util::clamp(x1, 0.0, 1.0);
+                                            let x2 = util::clamp(x2, 0.0, 1.0);
+                                            let y1 = util::clamp(y1, 0.0, 1.0);
+                                            let y2 = util::clamp(y2, 0.0, 1.0);
+                                            Image::new(texture_id, [300.0, 300.0])
+                                                .uv0([x1, y1])
+                                                .uv1([x2, y2])
+                                                .build(ui);
+                                        });
+                                    } else {
+                                        ui.tooltip_text(text);
+                                    }
                                 }
                             }
                         }
@@ -520,7 +1109,27 @@ where
                                             unit: vunit,
                                         },
                                     );
-                                    ui.tooltip_text(text);
+                                    if ui.io().key_shift {
+                                        ui.tooltip(|| {
+                                            ui.text(text);
+                                            let x = self.mouse_pos.0;
+                                            let y = self.mouse_pos.1;
+                                            let x1 = (x - 10.0) as f32 / tex_size.0;
+                                            let x2 = (x + 11.0) as f32 / tex_size.0;
+                                            let y1 = (tex_size.1 - (y + 10.0) as f32) / tex_size.1;
+                                            let y2 = (tex_size.1 - (y - 11.0) as f32) / tex_size.1;
+                                            let x1 = util::clamp(x1, 0.0, 1.0);
+                                            let x2 = util::clamp(x2, 0.0, 1.0);
+                                            let y1 = util::clamp(y1, 0.0, 1.0);
+                                            let y2 = util::clamp(y2, 0.0, 1.0);
+                                            Image::new(texture_id, [300.0, 300.0])
+                                                .uv0([x1, y1])
+                                                .uv1([x2, y2])
+                                                .build(ui);
+                                        });
+                                    } else {
+                                        ui.tooltip_text(text);
+                                    }
                                 }
                             }
                         }
@@ -1314,6 +1923,8 @@ where
                                     .build();
                             }
                         }
+                        Interaction::Lims(_) => {}
+                        Interaction::ColorLims(_) => {}
                     }
                     stack.pop();
                 }

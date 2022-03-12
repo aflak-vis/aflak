@@ -236,6 +236,8 @@ impl State {
                 Interaction::FinedGrainedROI(_) => {}
                 Interaction::Line(_) => {}
                 Interaction::Circle(_) => {}
+                Interaction::Lims(_) => {}
+                Interaction::ColorLims(_) => {}
             }
             stack.pop();
         }
