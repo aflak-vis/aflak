@@ -661,7 +661,7 @@ if value > max, value changes to 0.",
                             for takes_x in 0..funcdeg_plus_one {
                                 for inner_takes_y in 0..funcdeg_plus_one {
                                     for inner_takes_x in 0..funcdeg_plus_one {
-                                        let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                        let data = points.filter_upside_down(image.scalar().slice(s![i, .., ..]));
                                         for ((x, y), _) in data {
                                             let x = x as f32 / dim[2] as f32;
                                             let y = y as f32 / dim[1] as f32;
@@ -671,7 +671,7 @@ if value > max, value changes to 0.",
                                         }
                                     }
                                 }
-                                let data = points.filterx(image.scalar().slice(s![i, .., ..]));
+                                let data = points.filter_upside_down(image.scalar().slice(s![i, .., ..]));
                                 for ((x, y), _) in data {
                                     let mut boxdata = Vec::new();
                                     for xx in (x - 10).max(0)..(x + 10).min(dim[2]) {
@@ -1152,7 +1152,7 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
     let mut wave = Vec::with_capacity(wave_size);
     for i in 0..wave_size {
         let mut res = 0.0;
-        for (_, val) in roi.filterx(image_val.slice(s![i, .., ..])) {
+        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
             res += val;
         }
         wave.push(res);
@@ -1239,7 +1239,7 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     let mut result = Vec::with_capacity(wave_size * roi.datalen());
 
     for i in (0..wave_size).rev() {
-        for (_, val) in roi.filterx(image_val.slice(s![i, .., ..])) {
+        for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
             result.push(val);
         }
     }

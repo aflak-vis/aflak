@@ -19,7 +19,7 @@ impl ROI {
                 let size = data.dim();
                 for j in 0..size.1 {
                     for i in 0..size.0 {
-                        out.push(((i, j), *data.get([i, j]).unwrap()));
+                        out.push(((i, j), *data.get([j, i]).unwrap()));
                     }
                 }
                 out
@@ -27,7 +27,7 @@ impl ROI {
             ROI::PixelList(ref pixels) => {
                 let mut out = Vec::with_capacity(pixels.len());
                 for &(i, j) in pixels {
-                    if let Some(val) = data.get([i, j]) {
+                    if let Some(val) = data.get([j, i]) {
                         out.push(((i, j), *val));
                     }
                 }
@@ -36,7 +36,7 @@ impl ROI {
         }
     }
 
-    pub fn filterx(&self, data: ArrayView2<f32>) -> Vec<((usize, usize), f32)> {
+    pub fn filter_upside_down(&self, data: ArrayView2<f32>) -> Vec<((usize, usize), f32)> {
         let dim = data.dim();
         match *self {
             ROI::All => {

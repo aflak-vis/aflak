@@ -665,11 +665,7 @@ impl MenuBar for primitives::WcsArray {
                                         })
                                     }),
                                     Some(AxisTransform::new(axis1.name(), axis1.unit(), {
-                                        let max_height =
-                                            (self.scalar().dim().as_array_view().first().unwrap()
-                                                - 1)
-                                                as f32;
-                                        move |t| wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
+                                        move |t| wcs.pix2world([0.0, t, 0.0, 0.0])[1]
                                     })),
                                 )
                             }
@@ -822,17 +818,7 @@ impl MenuBar for primitives::WcsArray {
                                             )
                                         }),
                                         Some(AxisTransform::new(axis1.name(), axis1.unit(), {
-                                            let max_height = (self
-                                                .scalar()
-                                                .dim()
-                                                .as_array_view()
-                                                .first()
-                                                .unwrap()
-                                                - 1)
-                                                as f32;
-                                            move |t| {
-                                                wcs.pix2world([0.0, max_height - t, 0.0, 0.0])[1]
-                                            }
+                                            move |t| wcs.pix2world([0.0, t, 0.0, 0.0])[1]
                                         })),
                                     )
                                 }
