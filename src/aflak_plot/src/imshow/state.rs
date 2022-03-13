@@ -937,6 +937,30 @@ where
         const IMAGE_TOP_PADDING: f32 = 10.0;
 
         let tex_size = self.image.tex_size();
+        let (x_use_ms_for_degrees, x_relative_to_center_for_degrees) = if let Some(xaxis) = xaxis {
+            if xaxis.unit() == "deg" || xaxis.unit() == "degree" {
+                (
+                    self.use_ms_for_degrees.0,
+                    self.relative_to_center_for_degrees.0,
+                )
+            } else {
+                (false, false)
+            }
+        } else {
+            (false, false)
+        };
+        let (y_use_ms_for_degrees, y_relative_to_center_for_degrees) = if let Some(yaxis) = yaxis {
+            if yaxis.unit() == "deg" || yaxis.unit() == "degree" {
+                (
+                    self.use_ms_for_degrees.1,
+                    self.relative_to_center_for_degrees.1,
+                )
+            } else {
+                (false, false)
+            }
+        } else {
+            (false, false)
+        };
         let ticks = XYTicks::prepare(
             ui,
             (0.0, tex_size.0 as f32),
@@ -1198,6 +1222,83 @@ where
                     draw_list
                         .add_line([line_x0, line_y0], [line_x1, line_y1], 0x8000_00FF)
                         .build();
+                }
+
+                if self.show_axis_option {
+                    Window::new(&ImString::new(format!("Axes option of {:?}", outputid)))
+                        .size([300.0, 200.0], Condition::Appearing)
+                        .resizable(false)
+                        .build(ui, || match (xaxis, yaxis) {
+                            (Some(xaxis), Some(yaxis)) => {
+                                let mut available = false;
+                                ui.text(format!("XAxis: {} ({})", xaxis.label(), xaxis.unit()));
+                                if xaxis.unit() == "deg" || xaxis.unit() == "degree" {
+                                    available = true;
+                                    ui.checkbox(
+                                        "Use {hours}h {minutes}m {seconds}s##XAxis",
+                                        &mut self.use_ms_for_degrees.0,
+                                    );
+                                    ui.checkbox(
+                                        "Display relative to the center##XAxis",
+                                        &mut self.relative_to_center_for_degrees.0,
+                                    );
+                                }
+                                ui.text(format!("YAxis: {} ({})", yaxis.label(), yaxis.unit()));
+                                if yaxis.unit() == "deg" || yaxis.unit() == "degree" {
+                                    available = true;
+                                    ui.checkbox(
+                                        "Use {degrees}° {minutes}' {seconds}''##YAxis",
+                                        &mut self.use_ms_for_degrees.1,
+                                    );
+                                    ui.checkbox(
+                                        "Display relative to the center###YAxis",
+                                        &mut self.relative_to_center_for_degrees.1,
+                                    );
+                                }
+                                if !available {
+                                    ui.text("NO available options.");
+                                }
+                            }
+                            (Some(xaxis), None) => {
+                                let mut available = false;
+                                ui.text(format!("XAxis: {} ({})", xaxis.label(), xaxis.unit()));
+                                if xaxis.unit() == "deg" || xaxis.unit() == "degree" {
+                                    available = true;
+                                    ui.checkbox(
+                                        "Use minutes & seconds",
+                                        &mut self.use_ms_for_degrees.0,
+                                    );
+                                    ui.checkbox(
+                                        "Displayed relative to the center",
+                                        &mut self.relative_to_center_for_degrees.0,
+                                    );
+                                }
+                                if !available {
+                                    ui.text("NO available options.");
+                                }
+                            }
+                            (None, Some(yaxis)) => {
+                                let mut available = false;
+                                ui.text(format!("YAxis: {} ({})", yaxis.label(), yaxis.unit()));
+                                if yaxis.unit() == "deg" || yaxis.unit() == "degree" {
+                                    available = true;
+                                    ui.checkbox(
+                                        "Use minutes & seconds",
+                                        &mut self.use_ms_for_degrees.1,
+                                    );
+                                    ui.checkbox(
+                                        "Displayed relative to the center",
+                                        &mut self.relative_to_center_for_degrees.1,
+                                    );
+                                }
+                                if !available {
+                                    ui.text("NO available options.");
+                                }
+                            }
+                            (None, None) => {
+                                ui.text("NO available options.");
+                            }
+                        });
                 }
 
                 // Add interaction handlers
@@ -1929,6 +2030,7 @@ where
                                     .build();
                             }
                         }
+                        // Used in show_bar
                         Interaction::Lims(_) => {}
                         Interaction::ColorLims(_) => {}
                     }
