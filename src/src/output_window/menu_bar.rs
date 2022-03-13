@@ -451,6 +451,13 @@ impl MenuBar for primitives::WcsArray {
     fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
         match &self.tag() {
             None => match self.scalar().ndim() {
+                1 => {
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Others"), true) {
+                        MenuItem::new(format!("Axes Option"))
+                            .build_with_ref(ui, &mut window.image1d_state.show_axis_option);
+                        menu.end();
+                    }
+                }
                 2 => {
                     if let Some(menu) = ui.begin_menu_with_enabled(format!("Window"), true) {
                         self.zoom_menu(ui, window);
@@ -463,6 +470,8 @@ impl MenuBar for primitives::WcsArray {
                     if let Some(menu) = ui.begin_menu_with_enabled(format!("Others"), true) {
                         MenuItem::new(format!("Approx Line"))
                             .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
+                        MenuItem::new(format!("Axes Option"))
+                            .build_with_ref(ui, &mut window.image2d_state.show_axis_option);
                         menu.end();
                     }
                 }

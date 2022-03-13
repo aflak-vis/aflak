@@ -25,6 +25,7 @@ pub struct State {
     zoom: [f32; 2],
     mouse_pos: [f32; 2],
     interactions: Interactions,
+    pub show_axis_option: bool,
 }
 
 impl Default for State {
@@ -35,6 +36,7 @@ impl Default for State {
             zoom: [1.0, 1.0],
             mouse_pos: [f32::NAN, f32::NAN],
             interactions: Interactions::new(),
+            show_axis_option: false,
         }
     }
 }
