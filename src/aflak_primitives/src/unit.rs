@@ -445,6 +445,32 @@ impl Unit {
             Unit::Custom(ref unit) => unit,
         }
     }
+
+    pub fn mul(self, rhs: Unit) -> Self {
+        match (self, rhs) {
+            (Unit::Custom(s1), Unit::Custom(s2)) => {
+                let d1 = DerivedUnit::new(&s1);
+                let d2 = DerivedUnit::new(&s2);
+                let d = d1.mul(d2);
+                let s = d.to_string();
+                Unit::Custom(s)
+            }
+            _ => Unit::None,
+        }
+    }
+
+    pub fn div(self, rhs: Unit) -> Self {
+        match (self, rhs) {
+            (Unit::Custom(s1), Unit::Custom(s2)) => {
+                let d1 = DerivedUnit::new(&s1);
+                let d2 = DerivedUnit::new(&s2);
+                let d = d1.div(d2);
+                let s = d.to_string();
+                Unit::Custom(s)
+            }
+            _ => Unit::None,
+        }
+    }
 }
 
 impl<V> Dimensioned<V> {
