@@ -627,7 +627,7 @@ if value > max, value changes to 0.",
                     vec![Ok(IOValue::Image(WcsArray::from_array_and_tag(Dimensioned::new(
                         img.into_dyn(),
                         Unit::None,
-                    ), tag.clone())))]
+                    ), tag.to_owned())))]
                 }
             ),
             cake_transform!(
@@ -1893,7 +1893,7 @@ fn run_apply_arcsinh_stretch(image: &WcsArray, beta: f32) -> Result<IOValue, IOE
     }
     Ok(IOValue::Image(WcsArray::from_array_and_tag(
         Dimensioned::new(out, Unit::None),
-        tag.clone(),
+        tag.to_owned(),
     )))
 }
 
@@ -1928,7 +1928,7 @@ fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
         let out = Array::from_shape_vec(new_size.strides((new_size.1, 1)), new_image).unwrap();
         Ok(IOValue::Image(WcsArray::from_array_and_tag(
             Dimensioned::new(out.into_dyn(), Unit::None),
-            tag.clone(),
+            tag.to_owned(),
         )))
     } else if image.scalar().ndim() == 3 {
         let dim = image.scalar().dim();
@@ -1958,7 +1958,7 @@ fn run_down_sampling(image: &WcsArray, n: i64) -> Result<IOValue, IOErr> {
         .unwrap();
         Ok(IOValue::Image(WcsArray::from_array_and_tag(
             Dimensioned::new(out.into_dyn(), Unit::None),
-            tag.clone(),
+            tag.to_owned(),
         )))
     } else {
         Err(IOErr::UnexpectedInput(format!(
