@@ -18,6 +18,149 @@ pub enum Unit {
     Custom(String),
 }
 
+/// Decompose the unit into elements and have a Hashmap of key (unit name) and exponent values.
+/// # Examples
+///
+/// ```rust
+/// extern crate aflak_primitives as primitives;
+/// use primitives::{Unit, DerivedUnit};
+///
+/// let flux_unit = Unit::Custom("erg/s/cm^2/Ang/spaxel".to_owned());
+/// let flux_unit_decomposed = DerivedUnit::new(&flux_unit.repr().to_owned());
+/// println!("{:?}", flux_unit_decomposed);
+/// //DerivedUnit { exp: Some((1.0, 0)), derived: {"spaxel": -1, "s": -1, "Ang": -1, "erg": 1, "cm": -2} }
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct DerivedUnit {
+    exp: Option<(f32, isize)>,
+    derived: HashMap<String, isize>,
+}
+impl DerivedUnit {
+    pub fn new(s: &String) -> Self {
+        let mut ret = HashMap::new();
+        let mut retexp = None;
+        let exp;
+        let dunit;
+        if let Some((e, d)) = s.split_once(' ') {
+            exp = Some(e);
+            dunit = d;
+        } else {
+            exp = None;
+            dunit = s;
+        }
+
+        if let Some(exp) = exp {
+            let re = regex::Regex::new(r"e|E").unwrap();
+            let v = re.splitn(exp, 2).collect::<Vec<_>>();
+            if v.len() == 2 {
+                let (pre, p) = (v[0].parse::<f32>().unwrap(), v[1].parse::<isize>().unwrap());
+                retexp = Some((pre, p));
+            }
+        } else {
+            retexp = Some((1.0, 0));
+        }
+
+        for mat in regex::Regex::new(r"[/|*]?[A-Z|a-z]+\^?[0-9]*")
+            .unwrap()
+            .find_iter(dunit)
+        {
+            let key;
+            let mut s = mat.as_str();
+            let mut p = if s.chars().nth(0) == Some('/') {
+                s = &s[1..];
+                -1
+            } else if s.chars().nth(0) == Some('*') {
+                s = &s[1..];
+                1
+            } else {
+                1
+            };
+            if let Some((k, dec)) = s.split_once('^') {
+                key = k;
+                p *= dec.parse::<isize>().unwrap();
+            } else {
+                key = s;
+            }
+            ret.insert(key.to_string(), p);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn mul(&self, d: DerivedUnit) -> Self {
+        let retexp = match (self.exp, d.exp) {
+            (Some(lexp), Some(rexp)) => Some(((lexp.0 * rexp.0), (lexp.1 + rexp.1))),
+            (Some(lexp), None) => Some(lexp),
+            (None, Some(rexp)) => Some(rexp),
+            (None, None) => None,
+        };
+        let mut ret = self.derived.clone();
+        for (key, val) in d.derived {
+            ret.entry(key).and_modify(|e| *e += val).or_insert(val);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn div(&self, d: DerivedUnit) -> Self {
+        let retexp = match (self.exp, d.exp) {
+            (Some(lexp), Some(rexp)) => Some(((lexp.0 / rexp.0), (lexp.1 - rexp.1))),
+            (Some(lexp), None) => Some(lexp),
+            (None, Some(rexp)) => Some(rexp),
+            (None, None) => None,
+        };
+        let mut ret = self.derived.clone();
+        for (key, val) in d.derived {
+            ret.entry(key).and_modify(|e| *e -= val).or_insert(-val);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut ret = String::new();
+        if let Some((pre, p)) = self.exp {
+            if !(pre == 1.0 && p == 0) {
+                if pre - pre.floor() == 0.0 {
+                    ret += format!("{}", pre as i32).as_str();
+                } else {
+                    ret += format!("{}", pre).as_str();
+                }
+                ret += format!("E{} ", p).as_str();
+            }
+        }
+        let mut derived_vec: Vec<_> = self.derived.iter().collect();
+        derived_vec.sort_by(|a, b| b.1.cmp(a.1));
+        let mut count = 0;
+        for (key, val) in derived_vec {
+            if *val == 0 {
+                continue;
+            }
+            if *val < 0 {
+                ret += "/";
+            } else if *val > 0 && count > 0 {
+                ret += "*";
+            }
+            ret += key;
+            let val = val.abs();
+            if val > 1 {
+                ret += format!("^{}", val).as_str();
+            }
+            count += 1;
+        }
+        ret
+    }
+}
+
 impl Default for Unit {
     fn default() -> Self {
         Unit::None
