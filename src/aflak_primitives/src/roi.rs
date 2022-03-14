@@ -35,7 +35,7 @@ impl ROI {
             }
         }
     }
-
+  
     pub fn filter_upside_down(&self, data: ArrayView2<f32>) -> Vec<((usize, usize), f32)> {
         let dim = data.dim();
         match *self {
