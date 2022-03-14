@@ -207,7 +207,7 @@ pub struct WcsArray {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray {
+pub struct MetaWcsArray {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     // TODO: Handle serialization for WCS
@@ -215,6 +215,11 @@ struct MetaWcsArray {
     axes: [Axis; 4],
 }
 
+impl MetaWcsArray {
+    pub fn axes(&self) -> &[Axis; 4] {
+        &self.axes
+    }
+}
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Axis {
     name: Option<String>,
@@ -262,6 +267,17 @@ fn read_float(hdu: &Hdu, key: &str) -> Option<f64> {
 }
 
 impl WcsArray {
+    pub fn new(
+        meta: Option<MetaWcsArray>,
+        array: Dimensioned<ArrayD<f32>>,
+        visualization: Option<String>,
+    ) -> Self {
+        WcsArray {
+            meta,
+            array,
+            visualization,
+        }
+    }
     /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
         let data = hdu.read_data();
@@ -390,6 +406,10 @@ impl WcsArray {
 
     pub fn wcs(&self) -> Option<&WCS> {
         self.meta.as_ref().map(|meta| &meta.wcs)
+    }
+
+    pub fn meta(&self) -> &Option<MetaWcsArray> {
+        &self.meta
     }
 
     /// Make a slice along the specific `indices` in the array.
