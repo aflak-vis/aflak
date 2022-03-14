@@ -1,7 +1,7 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
+use ndarray::{ArrayBase, ArrayD, ArrayView1, ArrayView2, IxDyn, IxDynImpl, OwnedRepr};
 extern crate regex;
 
 use crate::fits::{FitsArrayReadError, FitsDataToArray};
@@ -505,13 +505,48 @@ impl<V> Dimensioned<V> {
     }
 }
 
-impl<V, W> ops::Mul<W> for Dimensioned<V>
-where
-    V: ops::Mul<W>,
-{
-    type Output = Dimensioned<<V as ops::Mul<W>>::Output>;
+impl ops::Mul<Dimensioned<f32>> for f32 {
+    type Output = Dimensioned<f32>;
 
-    fn mul(self, rhs: W) -> Self::Output {
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        Dimensioned {
+            value: rhs.value * self,
+            unit: rhs.unit,
+            homogeneous: rhs.homogeneous,
+        }
+    }
+}
+
+impl ops::Mul<Dimensioned<f32>> for ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>> {
+    type Output = ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>;
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        self * rhs.value
+    }
+}
+
+impl<V, W> ops::Mul<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Mul<Dimensioned<W>>,
+    W: Clone,
+{
+    type Output = Dimensioned<<V as ops::Mul<Dimensioned<W>>>::Output>;
+
+    fn mul(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value * rhs.clone(),
+            unit: self.unit.mul(rhs.unit),
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
+impl<V> ops::Mul<f32> for Dimensioned<V>
+where
+    V: ops::Mul<f32>,
+{
+    type Output = Dimensioned<<V as ops::Mul<f32>>::Output>;
+
+    fn mul(self, rhs: f32) -> Self::Output {
         Dimensioned {
             value: self.value * rhs,
             unit: self.unit,
@@ -535,13 +570,48 @@ where
     }
 }
 
-impl<V, W> ops::Div<W> for Dimensioned<V>
-where
-    V: ops::Div<W>,
-{
-    type Output = Dimensioned<<V as ops::Div<W>>::Output>;
+impl ops::Div<Dimensioned<f32>> for f32 {
+    type Output = Dimensioned<f32>;
 
-    fn div(self, rhs: W) -> Self::Output {
+    fn div(self, rhs: Dimensioned<f32>) -> Self::Output {
+        Dimensioned {
+            value: rhs.value / self,
+            unit: rhs.unit,
+            homogeneous: rhs.homogeneous,
+        }
+    }
+}
+
+impl ops::Div<Dimensioned<f32>> for ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>> {
+    type Output = ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>;
+    fn div(self, rhs: Dimensioned<f32>) -> Self::Output {
+        self / rhs.value
+    }
+}
+
+impl<V, W> ops::Div<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Div<Dimensioned<W>>,
+    W: Clone,
+{
+    type Output = Dimensioned<<V as ops::Div<Dimensioned<W>>>::Output>;
+
+    fn div(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value / rhs.clone(),
+            unit: self.unit.div(rhs.unit),
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
+impl<V> ops::Div<f32> for Dimensioned<V>
+where
+    V: ops::Div<f32>,
+{
+    type Output = Dimensioned<<V as ops::Div<f32>>::Output>;
+
+    fn div(self, rhs: f32) -> Self::Output {
         Dimensioned {
             value: self.value / rhs,
             unit: self.unit,
@@ -613,13 +683,31 @@ where
     }
 }
 
-impl<'a, 'b, V, W> ops::Sub<&'b Dimensioned<W>> for &'a Dimensioned<V>
-where
-    &'a V: ops::Sub<&'b W>,
+impl<'a, 'b> ops::Sub<&'b Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>>
+    for &'a Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>
 {
-    type Output = Dimensioned<<&'a V as ops::Sub<&'b W>>::Output>;
+    type Output = Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>;
 
-    fn sub(self, rhs: &'b Dimensioned<W>) -> Self::Output {
+    fn sub(
+        self,
+        rhs: &'b Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>,
+    ) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: &self.value - &rhs.value,
+            unit: self.unit.clone(),
+            homogeneous,
+        }
+    }
+}
+
+impl<'a, 'b, V> ops::Sub<&'b Dimensioned<f32>> for &'a Dimensioned<V>
+where
+    &'a V: ops::Sub<&'b f32>,
+{
+    type Output = Dimensioned<<&'a V as ops::Sub<&'b f32>>::Output>;
+
+    fn sub(self, rhs: &'b Dimensioned<f32>) -> Self::Output {
         let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
         Dimensioned {
             value: &self.value - &rhs.value,
@@ -649,6 +737,21 @@ impl ops::Mul<f32> for WcsArray {
         WcsArray {
             meta: self.meta,
             array: self.array * rhs,
+            visualization: None,
+        }
+    }
+}
+
+impl ops::Mul<Dimensioned<f32>> for WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        let lval = self.array.scalar();
+        let val = lval * rhs.value;
+        let newdim = Dimensioned::new(val, self.array.unit().clone().mul(rhs.unit().clone()));
+        WcsArray {
+            meta: self.meta,
+            array: newdim,
             visualization: None,
         }
     }
@@ -731,6 +834,63 @@ impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: &self.array - &rhs.array,
+            visualization: None,
+        }
+    }
+}
+
+impl<'a, 'b> ops::Div<&'b WcsArray> for &'a WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: &'b WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval / rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().div(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
+            visualization: None,
+        }
+    }
+}
+
+impl<'a> ops::Div<&'a WcsArray> for WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: &'a WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval / rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().div(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
+            visualization: None,
+        }
+    }
+}
+
+impl ops::Mul<WcsArray> for WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval * rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().mul(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
             visualization: None,
         }
     }
