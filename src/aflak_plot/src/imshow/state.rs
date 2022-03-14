@@ -934,7 +934,7 @@ where
         FX: Fn(f32) -> f32,
         FY: Fn(f32) -> f32,
     {
-        const IMAGE_TOP_PADDING: f32 = 10.0;
+        const IMAGE_TOP_PADDING: f32 = 20.0;
 
         let tex_size = self.image.tex_size();
         let (x_use_ms_for_degrees, x_relative_to_center_for_degrees) = if let Some(xaxis) = xaxis {
