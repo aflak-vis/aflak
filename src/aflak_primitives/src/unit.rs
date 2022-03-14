@@ -2,6 +2,7 @@ use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
 use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
+extern crate regex;
 
 use crate::fits::{FitsArrayReadError, FitsDataToArray};
 
