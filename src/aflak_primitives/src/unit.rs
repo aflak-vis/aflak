@@ -1,7 +1,8 @@
 use std::{fmt, ops};
 
 use fitrs::{FitsData, Hdu, HeaderValue, WCS};
-use ndarray::{ArrayD, ArrayView1, ArrayView2, IxDyn};
+use ndarray::{ArrayBase, ArrayD, ArrayView1, ArrayView2, IxDyn, IxDynImpl, OwnedRepr};
+extern crate regex;
 
 use crate::fits::{FitsArrayReadError, FitsDataToArray};
 
@@ -15,6 +16,149 @@ pub enum Unit {
     None,
     /// Custom unit represented with a string
     Custom(String),
+}
+
+/// Decompose the unit into elements and have a Hashmap of key (unit name) and exponent values.
+/// # Examples
+///
+/// ```rust
+/// extern crate aflak_primitives as primitives;
+/// use primitives::{Unit, DerivedUnit};
+///
+/// let flux_unit = Unit::Custom("erg/s/cm^2/Ang/spaxel".to_owned());
+/// let flux_unit_decomposed = DerivedUnit::new(&flux_unit.repr().to_owned());
+/// println!("{:?}", flux_unit_decomposed);
+/// //DerivedUnit { exp: Some((1.0, 0)), derived: {"spaxel": -1, "s": -1, "Ang": -1, "erg": 1, "cm": -2} }
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct DerivedUnit {
+    exp: Option<(f32, isize)>,
+    derived: HashMap<String, isize>,
+}
+impl DerivedUnit {
+    pub fn new(s: &String) -> Self {
+        let mut ret = HashMap::new();
+        let mut retexp = None;
+        let exp;
+        let dunit;
+        if let Some((e, d)) = s.split_once(' ') {
+            exp = Some(e);
+            dunit = d;
+        } else {
+            exp = None;
+            dunit = s;
+        }
+
+        if let Some(exp) = exp {
+            let re = regex::Regex::new(r"e|E").unwrap();
+            let v = re.splitn(exp, 2).collect::<Vec<_>>();
+            if v.len() == 2 {
+                let (pre, p) = (v[0].parse::<f32>().unwrap(), v[1].parse::<isize>().unwrap());
+                retexp = Some((pre, p));
+            }
+        } else {
+            retexp = Some((1.0, 0));
+        }
+
+        for mat in regex::Regex::new(r"[/|*]?[A-Z|a-z]+\^?[0-9]*")
+            .unwrap()
+            .find_iter(dunit)
+        {
+            let key;
+            let mut s = mat.as_str();
+            let mut p = if s.chars().nth(0) == Some('/') {
+                s = &s[1..];
+                -1
+            } else if s.chars().nth(0) == Some('*') {
+                s = &s[1..];
+                1
+            } else {
+                1
+            };
+            if let Some((k, dec)) = s.split_once('^') {
+                key = k;
+                p *= dec.parse::<isize>().unwrap();
+            } else {
+                key = s;
+            }
+            ret.insert(key.to_string(), p);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn mul(&self, d: DerivedUnit) -> Self {
+        let retexp = match (self.exp, d.exp) {
+            (Some(lexp), Some(rexp)) => Some(((lexp.0 * rexp.0), (lexp.1 + rexp.1))),
+            (Some(lexp), None) => Some(lexp),
+            (None, Some(rexp)) => Some(rexp),
+            (None, None) => None,
+        };
+        let mut ret = self.derived.clone();
+        for (key, val) in d.derived {
+            ret.entry(key).and_modify(|e| *e += val).or_insert(val);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn div(&self, d: DerivedUnit) -> Self {
+        let retexp = match (self.exp, d.exp) {
+            (Some(lexp), Some(rexp)) => Some(((lexp.0 / rexp.0), (lexp.1 - rexp.1))),
+            (Some(lexp), None) => Some(lexp),
+            (None, Some(rexp)) => Some(rexp),
+            (None, None) => None,
+        };
+        let mut ret = self.derived.clone();
+        for (key, val) in d.derived {
+            ret.entry(key).and_modify(|e| *e -= val).or_insert(-val);
+        }
+
+        DerivedUnit {
+            exp: retexp,
+            derived: ret,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut ret = String::new();
+        if let Some((pre, p)) = self.exp {
+            if !(pre == 1.0 && p == 0) {
+                if pre - pre.floor() == 0.0 {
+                    ret += format!("{}", pre as i32).as_str();
+                } else {
+                    ret += format!("{}", pre).as_str();
+                }
+                ret += format!("E{} ", p).as_str();
+            }
+        }
+        let mut derived_vec: Vec<_> = self.derived.iter().collect();
+        derived_vec.sort_by(|a, b| b.1.cmp(a.1));
+        let mut count = 0;
+        for (key, val) in derived_vec {
+            if *val == 0 {
+                continue;
+            }
+            if *val < 0 {
+                ret += "/";
+            } else if *val > 0 && count > 0 {
+                ret += "*";
+            }
+            ret += key;
+            let val = val.abs();
+            if val > 1 {
+                ret += format!("^{}", val).as_str();
+            }
+            count += 1;
+        }
+        ret
+    }
 }
 
 impl Default for Unit {
@@ -63,7 +207,7 @@ pub struct WcsArray {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct MetaWcsArray {
+pub struct MetaWcsArray {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     // TODO: Handle serialization for WCS
@@ -71,6 +215,11 @@ struct MetaWcsArray {
     axes: [Axis; 4],
 }
 
+impl MetaWcsArray {
+    pub fn axes(&self) -> &[Axis; 4] {
+        &self.axes
+    }
+}
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Axis {
     name: Option<String>,
@@ -118,6 +267,17 @@ fn read_float(hdu: &Hdu, key: &str) -> Option<f64> {
 }
 
 impl WcsArray {
+    pub fn new(
+        meta: Option<MetaWcsArray>,
+        array: Dimensioned<ArrayD<f32>>,
+        visualization: Option<String>,
+    ) -> Self {
+        WcsArray {
+            meta,
+            array,
+            visualization,
+        }
+    }
     /// Make `WcsArray` from `Hdu` found in FITS file.
     pub fn from_hdu(hdu: &Hdu) -> Result<WcsArray, FitsArrayReadError> {
         let data = hdu.read_data();
@@ -248,6 +408,10 @@ impl WcsArray {
         self.meta.as_ref().map(|meta| &meta.wcs)
     }
 
+    pub fn meta(&self) -> &Option<MetaWcsArray> {
+        &self.meta
+    }
+
     /// Make a slice along the specific `indices` in the array.
     ///
     /// Create a new `WcsArray` containing the provided `array`.
@@ -301,6 +465,32 @@ impl Unit {
             Unit::Custom(ref unit) => unit,
         }
     }
+
+    pub fn mul(self, rhs: Unit) -> Self {
+        match (self, rhs) {
+            (Unit::Custom(s1), Unit::Custom(s2)) => {
+                let d1 = DerivedUnit::new(&s1);
+                let d2 = DerivedUnit::new(&s2);
+                let d = d1.mul(d2);
+                let s = d.to_string();
+                Unit::Custom(s)
+            }
+            _ => Unit::None,
+        }
+    }
+
+    pub fn div(self, rhs: Unit) -> Self {
+        match (self, rhs) {
+            (Unit::Custom(s1), Unit::Custom(s2)) => {
+                let d1 = DerivedUnit::new(&s1);
+                let d2 = DerivedUnit::new(&s2);
+                let d = d1.div(d2);
+                let s = d.to_string();
+                Unit::Custom(s)
+            }
+            _ => Unit::None,
+        }
+    }
 }
 
 impl<V> Dimensioned<V> {
@@ -335,13 +525,48 @@ impl<V> Dimensioned<V> {
     }
 }
 
-impl<V, W> ops::Mul<W> for Dimensioned<V>
-where
-    V: ops::Mul<W>,
-{
-    type Output = Dimensioned<<V as ops::Mul<W>>::Output>;
+impl ops::Mul<Dimensioned<f32>> for f32 {
+    type Output = Dimensioned<f32>;
 
-    fn mul(self, rhs: W) -> Self::Output {
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        Dimensioned {
+            value: rhs.value * self,
+            unit: rhs.unit,
+            homogeneous: rhs.homogeneous,
+        }
+    }
+}
+
+impl ops::Mul<Dimensioned<f32>> for ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>> {
+    type Output = ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>;
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        self * rhs.value
+    }
+}
+
+impl<V, W> ops::Mul<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Mul<Dimensioned<W>>,
+    W: Clone,
+{
+    type Output = Dimensioned<<V as ops::Mul<Dimensioned<W>>>::Output>;
+
+    fn mul(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value * rhs.clone(),
+            unit: self.unit.mul(rhs.unit),
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
+impl<V> ops::Mul<f32> for Dimensioned<V>
+where
+    V: ops::Mul<f32>,
+{
+    type Output = Dimensioned<<V as ops::Mul<f32>>::Output>;
+
+    fn mul(self, rhs: f32) -> Self::Output {
         Dimensioned {
             value: self.value * rhs,
             unit: self.unit,
@@ -365,13 +590,48 @@ where
     }
 }
 
-impl<V, W> ops::Div<W> for Dimensioned<V>
-where
-    V: ops::Div<W>,
-{
-    type Output = Dimensioned<<V as ops::Div<W>>::Output>;
+impl ops::Div<Dimensioned<f32>> for f32 {
+    type Output = Dimensioned<f32>;
 
-    fn div(self, rhs: W) -> Self::Output {
+    fn div(self, rhs: Dimensioned<f32>) -> Self::Output {
+        Dimensioned {
+            value: rhs.value / self,
+            unit: rhs.unit,
+            homogeneous: rhs.homogeneous,
+        }
+    }
+}
+
+impl ops::Div<Dimensioned<f32>> for ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>> {
+    type Output = ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>;
+    fn div(self, rhs: Dimensioned<f32>) -> Self::Output {
+        self / rhs.value
+    }
+}
+
+impl<V, W> ops::Div<Dimensioned<W>> for Dimensioned<V>
+where
+    V: ops::Div<Dimensioned<W>>,
+    W: Clone,
+{
+    type Output = Dimensioned<<V as ops::Div<Dimensioned<W>>>::Output>;
+
+    fn div(self, rhs: Dimensioned<W>) -> Self::Output {
+        Dimensioned {
+            value: self.value / rhs.clone(),
+            unit: self.unit.div(rhs.unit),
+            homogeneous: self.homogeneous,
+        }
+    }
+}
+
+impl<V> ops::Div<f32> for Dimensioned<V>
+where
+    V: ops::Div<f32>,
+{
+    type Output = Dimensioned<<V as ops::Div<f32>>::Output>;
+
+    fn div(self, rhs: f32) -> Self::Output {
         Dimensioned {
             value: self.value / rhs,
             unit: self.unit,
@@ -443,13 +703,31 @@ where
     }
 }
 
-impl<'a, 'b, V, W> ops::Sub<&'b Dimensioned<W>> for &'a Dimensioned<V>
-where
-    &'a V: ops::Sub<&'b W>,
+impl<'a, 'b> ops::Sub<&'b Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>>
+    for &'a Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>
 {
-    type Output = Dimensioned<<&'a V as ops::Sub<&'b W>>::Output>;
+    type Output = Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>;
 
-    fn sub(self, rhs: &'b Dimensioned<W>) -> Self::Output {
+    fn sub(
+        self,
+        rhs: &'b Dimensioned<ArrayBase<OwnedRepr<f32>, ndarray::Dim<IxDynImpl>>>,
+    ) -> Self::Output {
+        let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
+        Dimensioned {
+            value: &self.value - &rhs.value,
+            unit: self.unit.clone(),
+            homogeneous,
+        }
+    }
+}
+
+impl<'a, 'b, V> ops::Sub<&'b Dimensioned<f32>> for &'a Dimensioned<V>
+where
+    &'a V: ops::Sub<&'b f32>,
+{
+    type Output = Dimensioned<<&'a V as ops::Sub<&'b f32>>::Output>;
+
+    fn sub(self, rhs: &'b Dimensioned<f32>) -> Self::Output {
         let homogeneous = self.unit == rhs.unit && self.homogeneous && rhs.homogeneous;
         Dimensioned {
             value: &self.value - &rhs.value,
@@ -479,6 +757,21 @@ impl ops::Mul<f32> for WcsArray {
         WcsArray {
             meta: self.meta,
             array: self.array * rhs,
+            visualization: None,
+        }
+    }
+}
+
+impl ops::Mul<Dimensioned<f32>> for WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: Dimensioned<f32>) -> Self::Output {
+        let lval = self.array.scalar();
+        let val = lval * rhs.value;
+        let newdim = Dimensioned::new(val, self.array.unit().clone().mul(rhs.unit().clone()));
+        WcsArray {
+            meta: self.meta,
+            array: newdim,
             visualization: None,
         }
     }
@@ -561,6 +854,63 @@ impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
         WcsArray {
             meta: self.meta.clone(),
             array: &self.array - &rhs.array,
+            visualization: None,
+        }
+    }
+}
+
+impl<'a, 'b> ops::Div<&'b WcsArray> for &'a WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: &'b WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval / rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().div(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
+            visualization: None,
+        }
+    }
+}
+
+impl<'a> ops::Div<&'a WcsArray> for WcsArray {
+    type Output = WcsArray;
+
+    fn div(self, rhs: &'a WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval / rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().div(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
+            visualization: None,
+        }
+    }
+}
+
+impl ops::Mul<WcsArray> for WcsArray {
+    type Output = WcsArray;
+
+    fn mul(self, rhs: WcsArray) -> Self::Output {
+        let lval = self.array().scalar();
+        let rval = rhs.array().scalar();
+        let val = lval * rval;
+        let newdim = Dimensioned::new(
+            val,
+            self.array().unit().clone().mul(rhs.array().unit().clone()),
+        );
+        WcsArray {
+            meta: self.meta.clone(),
+            array: newdim,
             visualization: None,
         }
     }

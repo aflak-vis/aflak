@@ -25,6 +25,7 @@ pub struct State {
     zoom: [f32; 2],
     mouse_pos: [f32; 2],
     interactions: Interactions,
+    pub show_axis_option: bool,
 }
 
 impl Default for State {
@@ -35,6 +36,7 @@ impl Default for State {
             zoom: [1.0, 1.0],
             mouse_pos: [f32::NAN, f32::NAN],
             interactions: Interactions::new(),
+            show_axis_option: false,
         }
     }
 }
@@ -84,7 +86,14 @@ impl State {
         // Pre-compute tick size to accurately position and resize the figure
         // to fit everything in the "size" given as input to this function.
         let yaxis = AxisTransform::id(vtype, vunit);
-        let ticks = XYTicks::prepare(ui, xlims, ylims, axis, Some(&yaxis));
+        let ticks = XYTicks::prepare(
+            ui,
+            xlims,
+            ylims,
+            axis,
+            Some(&yaxis),
+            (false, false, false, false),
+        );
         let x_labels_height = ticks.x_labels_height();
         let y_labels_width = ticks.y_labels_width();
 

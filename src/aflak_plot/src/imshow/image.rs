@@ -62,8 +62,8 @@ where
     let is_include_nan =
         vmin.iter().any(|v| *v == std::f32::NAN) || vmax.iter().any(|v| *v == std::f32::NAN);
     if !is_include_nan {
-        for (_, slice) in image.axis_iter(Axis(1)).enumerate() {
-            for (_, channel) in slice.axis_iter(Axis(1)).enumerate() {
+        for slice in image.axis_iter(Axis(1)) {
+            for channel in slice.axis_iter(Axis(1)) {
                 let [r, _, _] = lut[0].color_at_bounds(channel[0], vmin[0], vmax[0]);
                 let [_, g, _] = lut[1].color_at_bounds(channel[1], vmin[1], vmax[1]);
                 let [_, _, b] = lut[2].color_at_bounds(channel[2], vmin[2], vmax[2]);
@@ -125,7 +125,7 @@ where
     I: Borrow<ArrayD<A>>,
 {
     let image = image.borrow();
-    image.slice(s![.., ..])
+    image.slice(s![..;-1, ..])
 }
 
 fn coerce_to_array_view3<I, A>(image: &I) -> ArrayView3<'_, A>

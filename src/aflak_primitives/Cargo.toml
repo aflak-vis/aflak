@@ -16,6 +16,7 @@ ndarray-parallel = "0.9.1"
 nalgebra = "0.16.0"
 serde = "1.0"
 serde_derive = "1.0"
+regex = "1.5"
 variant_name = { path = "../variant_name", version = "0.0.1" }
 variant_name_derive = { path = "../variant_name_derive", version = "0.0.1" }
 rawloader = "0.36.3"
