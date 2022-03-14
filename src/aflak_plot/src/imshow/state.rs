@@ -967,6 +967,12 @@ where
             (0.0, tex_size.1 as f32),
             xaxis,
             yaxis,
+            (
+                x_use_ms_for_degrees,
+                x_relative_to_center_for_degrees,
+                y_use_ms_for_degrees,
+                y_relative_to_center_for_degrees,
+            ),
         );
         let x_labels_height = ticks.x_labels_height();
         let y_labels_width = ticks.y_labels_width();

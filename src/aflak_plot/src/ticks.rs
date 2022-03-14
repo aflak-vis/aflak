@@ -1,6 +1,7 @@
 use imgui::{DrawListMut, ImColor32, ImString, Ui};
 
 use super::AxisTransform;
+use std::collections::VecDeque;
 
 const TICK_COUNT: usize = 10;
 
@@ -31,14 +32,15 @@ impl XYTicks {
         ylims: (f32, f32),
         xaxis: Option<&AxisTransform<F1>>,
         yaxis: Option<&AxisTransform<F2>>,
+        t: (bool, bool, bool, bool),
     ) -> Self
     where
         F1: Fn(f32) -> f32,
         F2: Fn(f32) -> f32,
     {
         Self {
-            x: XTicks::prepare(ui, xlims, xaxis),
-            y: YTicks::prepare(ui, ylims, yaxis),
+            x: XTicks::prepare(ui, xlims, xaxis, (t.0, t.1)),
+            y: YTicks::prepare(ui, ylims, yaxis, (t.2, t.3)),
         }
     }
 
@@ -56,24 +58,239 @@ impl XYTicks {
     }
 }
 
+fn transform_to_format_imstrings<F>(
+    ui: &Ui,
+    lims: (f32, f32),
+    axis: Option<&AxisTransform<F>>,
+    use_ms: bool,
+    relative: bool,
+) -> Vec<(ImString, [f32; 2])>
+where
+    F: Fn(f32) -> f32,
+{
+    if relative {
+        let right = (0..=TICK_COUNT / 2 - 1)
+            .rev()
+            .map(|i| {
+                let l_point = lims.0 + i as f32 * (lims.1 - lims.0) / TICK_COUNT as f32;
+                let r_point =
+                    lims.0 + (TICK_COUNT - i) as f32 * (lims.1 - lims.0) / TICK_COUNT as f32;
+                if let Some(axis) = axis {
+                    let center = (lims.0 + lims.1) * 0.5;
+                    let l_transformed = axis.pix2world(l_point) - axis.pix2world(center);
+                    let r_transformed = axis.pix2world(r_point) - axis.pix2world(center);
+                    let label = if use_ms {
+                        match axis.label() {
+                            "RA---TAN" => {
+                                let l_hours = (l_transformed / 15.0).trunc();
+                                let l_minutes =
+                                    ((l_transformed / 15.0).fract() * 60.0).trunc().abs();
+                                let l_seconds =
+                                    (((l_transformed / 15.0).fract() * 60.0).fract() * 60.0).abs();
+                                let r_hours = (r_transformed / 15.0).trunc();
+                                let r_minutes =
+                                    ((r_transformed / 15.0).fract() * 60.0).trunc().abs();
+                                let r_seconds =
+                                    (((r_transformed / 15.0).fract() * 60.0).fract() * 60.0).abs();
+
+                                let mut l_s = String::new();
+                                if l_transformed < 0.0 {
+                                    l_s += "-";
+                                } else {
+                                    l_s += "+";
+                                }
+                                if l_hours != 0.0 {
+                                    l_s +=
+                                        format!("{:2}h{:2}m{:4.2}s", l_hours, l_minutes, l_seconds)
+                                            .as_str();
+                                } else {
+                                    if l_minutes != 0.0 {
+                                        l_s +=
+                                            format!("{:2}m{:4.2}s", l_minutes, l_seconds).as_str();
+                                    } else {
+                                        if l_seconds != 0.0 {
+                                            l_s += format!("{:4.2}s", l_seconds).as_str();
+                                        }
+                                    }
+                                }
+                                let mut r_s = String::new();
+                                if r_transformed < 0.0 {
+                                    r_s += "-";
+                                } else {
+                                    r_s += "+";
+                                }
+                                if r_hours != 0.0 {
+                                    r_s +=
+                                        format!("{:2}h{:2}m{:4.2}s", r_hours, r_minutes, r_seconds)
+                                            .as_str();
+                                } else {
+                                    if r_minutes != 0.0 {
+                                        r_s +=
+                                            format!("{:2}m{:4.2}s", r_minutes, r_seconds).as_str();
+                                    } else {
+                                        if r_seconds != 0.0 {
+                                            r_s += format!("{:4.2}s", r_seconds).as_str();
+                                        }
+                                    }
+                                }
+                                [ImString::new(l_s), ImString::new(r_s)]
+                            }
+                            "DEC--TAN" => {
+                                let l_degree = l_transformed.trunc();
+                                let l_minutes = (l_transformed.fract() * 60.0).trunc().abs();
+                                let l_seconds =
+                                    ((l_transformed.fract() * 60.0).fract() * 60.0).abs();
+                                let r_degree = r_transformed.trunc();
+                                let r_minutes = (r_transformed.fract() * 60.0).trunc().abs();
+                                let r_seconds =
+                                    ((r_transformed.fract() * 60.0).fract() * 60.0).abs();
+
+                                let mut l_s = String::new();
+                                if l_transformed < 0.0 {
+                                    l_s += "-";
+                                } else {
+                                    l_s += "+";
+                                }
+                                if l_degree != 0.0 {
+                                    l_s += format!(
+                                        "{:2}°{:2}'{:4.2}''",
+                                        l_degree, l_minutes, l_seconds
+                                    )
+                                    .as_str();
+                                } else {
+                                    if l_minutes != 0.0 {
+                                        l_s +=
+                                            format!("{:2}'{:4.2}''", l_minutes, l_seconds).as_str();
+                                    } else {
+                                        if l_seconds != 0.0 {
+                                            l_s += format!("{:4.2}''", l_seconds).as_str();
+                                        }
+                                    }
+                                }
+                                let mut r_s = String::new();
+                                if r_transformed < 0.0 {
+                                    r_s += "-";
+                                } else {
+                                    r_s += "+";
+                                }
+                                if r_degree != 0.0 {
+                                    r_s += format!(
+                                        "{:2}°{:2}'{:4.2}''",
+                                        r_degree, r_minutes, r_seconds
+                                    )
+                                    .as_str();
+                                } else {
+                                    if r_minutes != 0.0 {
+                                        r_s +=
+                                            format!("{:2}'{:4.2}''", r_minutes, r_seconds).as_str();
+                                    } else {
+                                        if r_seconds != 0.0 {
+                                            r_s += format!("{:4.2}''", r_seconds).as_str();
+                                        }
+                                    }
+                                }
+                                [ImString::new(l_s), ImString::new(r_s)]
+                            }
+                            _ => [
+                                ImString::new(format!("{:.2}", l_transformed)),
+                                ImString::new(format!("{:.2}", r_transformed)),
+                            ],
+                        }
+                    } else {
+                        [
+                            ImString::new(format!("{:.2}", l_transformed)),
+                            ImString::new(format!("{:.2}", r_transformed)),
+                        ]
+                    };
+                    let text_size = [ui.calc_text_size(&label[0]), ui.calc_text_size(&label[1])];
+                    (label, text_size)
+                } else {
+                    let label = [
+                        ImString::new(format!("{:.2}", l_point)),
+                        ImString::new(format!("{:.2}", r_point)),
+                    ];
+                    let text_size = [ui.calc_text_size(&label[0]), ui.calc_text_size(&label[1])];
+                    (label, text_size)
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut t = VecDeque::new();
+        let center_label = if let Some(axis) = axis {
+            if use_ms {
+                match axis.label() {
+                    "RA---TAN" => ImString::new(format!("0.00s")),
+                    "DEC--TAN" => ImString::new(format!("0.00''")),
+                    _ => ImString::new(format!("0.00")),
+                }
+            } else {
+                ImString::new(format!("0.00"))
+            }
+        } else {
+            ImString::new(format!("0.00"))
+        };
+        let center_text_size = ui.calc_text_size(&center_label);
+        t.push_back((center_label, center_text_size));
+        let mut ret = Vec::new();
+        for (label, text_size) in right {
+            t.push_front((label[0].clone(), text_size[0]));
+            t.push_back((label[1].clone(), text_size[1]));
+        }
+        for s in t {
+            ret.push(s);
+        }
+        ret
+    } else {
+        (0..=TICK_COUNT)
+            .map(|i| {
+                let point = lims.0 + i as f32 * (lims.1 - lims.0) / TICK_COUNT as f32;
+                if let Some(axis) = axis {
+                    let transformed = axis.pix2world(point);
+                    let label = if use_ms {
+                        match axis.label() {
+                            "RA---TAN" => {
+                                let hours = (transformed / 15.0).trunc();
+                                let minutes = ((transformed / 15.0).fract() * 60.0).trunc().abs();
+                                let seconds =
+                                    (((transformed / 15.0).fract() * 60.0).fract() * 60.0).abs();
+                                ImString::new(format!("{:2}h{:2}m{:4.2}s", hours, minutes, seconds))
+                            }
+                            "DEC--TAN" => {
+                                let degree = transformed.trunc();
+                                let minutes = (transformed.fract() * 60.0).trunc().abs();
+                                let seconds = ((transformed.fract() * 60.0).fract() * 60.0).abs();
+                                ImString::new(format!(
+                                    "{:2}°{:2}'{:4.2}''",
+                                    degree, minutes, seconds
+                                ))
+                            }
+                            _ => ImString::new(format!("{:.2}", transformed)),
+                        }
+                    } else {
+                        ImString::new(format!("{:.2}", transformed))
+                    };
+                    let text_size = ui.calc_text_size(&label);
+                    (label, text_size)
+                } else {
+                    let label = ImString::new(format!("{:.2}", point));
+                    let text_size = ui.calc_text_size(&label);
+                    (label, text_size)
+                }
+            })
+            .collect()
+    }
+}
+
 impl XTicks {
-    pub fn prepare<F>(ui: &Ui, xlims: (f32, f32), axis: Option<&AxisTransform<F>>) -> Self
+    pub fn prepare<F>(
+        ui: &Ui,
+        xlims: (f32, f32),
+        axis: Option<&AxisTransform<F>>,
+        (use_ms, relative): (bool, bool),
+    ) -> Self
     where
         F: Fn(f32) -> f32,
     {
-        let labels = (0..=TICK_COUNT)
-            .map(|i| {
-                let point = xlims.0 + i as f32 * (xlims.1 - xlims.0) / TICK_COUNT as f32;
-                let label = if let Some(axis) = axis {
-                    let transformed = axis.pix2world(point);
-                    ImString::new(format!("{:.2}", transformed))
-                } else {
-                    ImString::new(format!("{:.0}", point))
-                };
-                let text_size = ui.calc_text_size(&label);
-                (label, text_size)
-            })
-            .collect();
+        let labels = transform_to_format_imstrings(ui, xlims, axis, use_ms, relative);
         let axis_label = {
             let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
             let label = ImString::new(label);
@@ -122,23 +339,16 @@ impl XTicks {
 impl YTicks {
     const AXIS_NAME_RIGHT_PADDING: f32 = 2.0;
 
-    pub fn prepare<F>(ui: &Ui, ylims: (f32, f32), axis: Option<&AxisTransform<F>>) -> Self
+    pub fn prepare<F>(
+        ui: &Ui,
+        ylims: (f32, f32),
+        axis: Option<&AxisTransform<F>>,
+        (use_ms, relative): (bool, bool),
+    ) -> Self
     where
         F: Fn(f32) -> f32,
     {
-        let labels = (0..=TICK_COUNT)
-            .map(|i| {
-                let point = ylims.0 + i as f32 * (ylims.1 - ylims.0) / TICK_COUNT as f32;
-                let label = if let Some(axis) = axis {
-                    let transformed = axis.pix2world(point);
-                    ImString::new(format!("{:.2}", transformed))
-                } else {
-                    ImString::new(format!("{:.0}", point))
-                };
-                let text_size = ui.calc_text_size(&label);
-                (label, text_size)
-            })
-            .collect();
+        let labels = transform_to_format_imstrings(ui, ylims, axis, use_ms, relative);
         let axis_label = {
             let label = axis.map(|axis| axis.name()).unwrap_or_else(String::new);
             let label = ImString::new(label);
@@ -172,7 +382,7 @@ impl YTicks {
             draw_list.add_text(
                 [
                     x_pos - text_size[0] - LABEL_HORIZONTAL_PADDING,
-                    y_pos - text_size[1] / 2.0,
+                    y_pos - text_size[1],
                 ],
                 COLOR,
                 label.to_str(),
