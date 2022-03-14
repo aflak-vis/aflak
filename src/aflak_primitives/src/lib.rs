@@ -41,7 +41,7 @@ mod roi;
 mod unit;
 
 pub use crate::roi::ROI;
-pub use crate::unit::{Dimensioned, Unit, WcsArray};
+pub use crate::unit::{DerivedUnit, Dimensioned, Unit, WcsArray};
 
 use std::error::Error;
 use std::fmt;
@@ -513,14 +513,16 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
 "10. Create astronomy-specific map",
                 1, 0, 0,
                 create_velocity_field_map<IOValue, IOErr>(image: Image, w_0: Float = 0.0) -> Image {
-                    let c = 3e5;
-                    let image_arr = image.scalar();
-                    let out = image_arr.map(|v| c * (*v - w_0) / w_0);
+                    let c = Unit::Custom("km/s".to_owned()).new(3e5 as f32);
+                    let w_0 = Unit::Custom("Ang".to_owned()).new(w_0.to_owned());
+                    let result = (image.array() - w_0.clone()) * c / w_0;
+                    let original_meta = image.meta();
+                    let original_visualization = image.tag();
+                    let original_topology = image.topology();
 
-                    vec![Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-                        out,
-                        Unit::Custom("km/s".to_string()),
-                    ))))]
+                    let result = WcsArray::new(original_meta.to_owned(), result, original_visualization.to_owned(), original_topology.to_owned());
+
+                    vec![Ok(IOValue::Image(result))]
                 }
             ),
             cake_transform!(
@@ -1245,10 +1247,12 @@ fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     }
 
     let waveimg = Array::from_shape_vec(new_size.strides((roi.datalen(), 1)), result).unwrap();
+    let unit = image.array().unit();
 
+    // FIXME: handle metadata
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
         waveimg.into_dyn(),
-        Unit::None,
+        unit.to_owned(),
     ))))
 }
 
@@ -1405,6 +1409,19 @@ fn run_create_argmap(
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
     is_sliceable!(image, start, end)?;
+    let original_meta = image.meta();
+    let original_visualization = image.tag();
+    let original_topology = image.topology();
+    let mut trypix = 0;
+    let mut waveunit = Unit::None;
+    for (n, a) in image.meta().clone().unwrap().axes().iter().enumerate() {
+        if a.name() == "WAVE" {
+            if a.unit() == "Angstrom" || a.unit() == "Ang" {
+                trypix = n;
+                waveunit = Unit::Custom("Ang".to_string());
+            }
+        }
+    }
 
     let image_val = image.scalar();
 
@@ -1424,7 +1441,7 @@ fn run_create_argmap(
             if (!is_min && slice[&index] > value) || (is_min && slice[&index] < value) {
                 value = slice[&index];
                 if is_actual_value {
-                    out = match image.pix2world(2, ((k + start) as i64 + range) as f32) {
+                    out = match image.pix2world(trypix, ((k + start) as i64 + range) as f32) {
                         Some(value) => value,
                         None => ((k + start) as i64 + range) as f32,
                     };
@@ -1435,17 +1452,14 @@ fn run_create_argmap(
         }
         out
     });
-
-    // FIXME: Unit support
-    // unit of index(Axis 0) should be adobped
-    //
-    // in above program...
-    // unit of variable 'out' should be adopted
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+    let waveimg = Dimensioned::new(waveimg, waveunit);
+    let waveimg = WcsArray::new(
+        original_meta.to_owned(), //FIXME: Handle metadata
         waveimg,
-        Unit::None,
-    ))))
+        original_visualization.to_owned(),
+        original_topology.to_owned(),
+    );
+    Ok(IOValue::Image(waveimg))
 }
 
 fn run_argminmax(image: &WcsArray, start: i64, end: i64, is_min: bool) -> Result<IOValue, IOErr> {
@@ -1456,6 +1470,19 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
     is_sliceable!(image, start, end)?;
+    let original_meta = image.meta();
+    let original_visualization = image.tag();
+    let original_topology = image.topology();
+    let mut trypix = 0;
+    let mut waveunit = Unit::None;
+    for (n, a) in image.meta().clone().unwrap().axes().iter().enumerate() {
+        if a.name() == "WAVE" {
+            if a.unit() == "Angstrom" || a.unit() == "Ang" {
+                trypix = n;
+                waveunit = Unit::Custom("Ang".to_string());
+            }
+        }
+    }
 
     let image_val = image.scalar();
 
@@ -1473,12 +1500,19 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
         }
         out
     });
+    let flux_sum = Dimensioned::new(flux_sum, image.array().unit().to_owned());
+    let flux_sum = WcsArray::new(
+        original_meta.to_owned(),
+        flux_sum,
+        original_visualization.to_owned(),
+        original_topology.to_owned(),
+    );
 
     let waveimg = ArrayD::from_shape_fn(new_size_2, |index| {
         let mut out = 0.0;
         for (k, slice) in slices.axis_iter(Axis(0)).enumerate() {
             let flux = slice[&index];
-            let wavelength = match image.pix2world(2, (k + start) as f32) {
+            let wavelength = match image.pix2world(trypix, (k + start) as f32) {
                 Some(value) => value,
                 None => (k + start) as f32,
             };
@@ -1486,20 +1520,15 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
         }
         out
     });
-
-    let result = waveimg / flux_sum;
-
-    // FIXME: Unit support
-    // unit of index(Axis 0) should be adobped
-    //
-    // in above program...
-    // 'waveimg' must have [flux * wavelength], 'flux_sum' must have [flux]
-    // 'result' = waveimg / flux_sum   must have [wavelength]
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        result,
-        Unit::None,
-    ))))
+    let waveimg = Dimensioned::new(waveimg, image.array().unit().to_owned().mul(waveunit));
+    let waveimg = WcsArray::new(
+        original_meta.to_owned(), //FIXME: Handle metadata
+        waveimg,
+        original_visualization.to_owned(),
+        original_topology.to_owned(),
+    );
+    let result = &waveimg / &flux_sum;
+    Ok(IOValue::Image(result))
 }
 
 fn run_centroid_with_mask(
@@ -1565,21 +1594,11 @@ fn run_create_equivalent_width(
     max: f32,
     is_emission: bool,
 ) -> Result<IOValue, IOErr> {
-    let i_off_arr = i_off.scalar();
-    let i_on_arr = i_on.scalar();
-    let out = (i_off_arr - i_on_arr) * fl / i_off_arr * (if is_emission { -1.0 } else { 1.0 });
-    let result = out.map(|v| if *v > max { 0.0 } else { *v });
-
-    // FIXME: Unit support
-    // implementation of &WcsArray / &WcsArray is needed
-    //
-    // in above program...
-    // variable 'fl' is width of on-band, so unit of length should be adopted (e.g. [Ang]).
-
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        result,
-        Unit::None,
-    ))))
+    let fl = Dimensioned::new(fl, Unit::Custom("Ang".to_string()));
+    let mut t = (i_off - i_on) * fl / i_off * (if is_emission { -1.0 } else { 1.0 });
+    let result_val = t.scalar_mut().map(|v| if *v > max { 0.0 } else { *v });
+    let result = WcsArray::from_array(Dimensioned::new(result_val, t.array().unit().to_owned()));
+    Ok(IOValue::Image(result))
 }
 
 fn run_convert_to_logscale(
@@ -1612,18 +1631,16 @@ fn run_image_multiplier(
     are_same_dim!(i1, i2)?;
     let mut i1 = i1.clone();
     let mut i2 = i2.clone();
+    //FIXME: Unit data lost
     i1.scalar_mut()
         .par_iter_mut()
         .for_each(|v| *v = (*v).powf(coef1));
     i2.scalar_mut()
         .par_iter_mut()
         .for_each(|v| *v = (*v).powf(coef2));
-    let out = i1.scalar() * i2.scalar();
+    let out = i1 * i2;
 
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        out,
-        Unit::None,
-    ))))
+    Ok(IOValue::Image(out))
 }
 
 fn run_negation(image: &WcsArray) -> Result<IOValue, IOErr> {
