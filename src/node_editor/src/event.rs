@@ -30,6 +30,115 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     Undo,
     Redo,
 }
+#[derive(Clone)]
+pub enum ProvenanceEvent<T: 'static, E: 'static> {
+    Connect(Output, InputSlot, Result<(), cake::DSTError>),
+    Disconnect(Output, InputSlot, Result<(), cake::DSTError>),
+    AddTransform(&'static Transform<'static, T, E>, TransformIdx),
+    AddOwnedTransform(
+        Option<Transform<'static, T, E>>,
+        TransformIdx,
+        Vec<Option<T>>,
+        Vec<Option<Output>>,
+        Vec<(Output, InputSlot)>,
+    ),
+    CreateOutput(OutputId),
+    AddConstant(&'static str, TransformIdx),
+    SetConstant(TransformIdx, Option<T>, Box<T>, Result<(), ()>),
+    WriteDefaultInput(TransformIdx, usize, Option<T>, Box<T>, Result<(), ()>),
+    RemoveNode(
+        NodeId,
+        Option<Transform<'static, T, E>>,
+        Option<String>,
+        Vec<Option<T>>,
+        Vec<Option<Output>>,
+        Vec<(Output, InputSlot)>,
+    ),
+    Import(
+        Option<PathBuf>,
+        Option<cake::DST<'static, T, E>>,
+        cake::DST<'static, T, E>,
+        Result<(), ImportError>,
+    ),
+    Export(PathBuf, cake::DST<'static, T, E>, Result<(), ExportError>),
+    AddNewMacro(TransformIdx),
+    AddMacro(macros::MacroHandle<'static, T, E>, TransformIdx),
+    EditNode(NodeId),
+    ChangeOutputName(NodeId, String, String),
+}
+
+impl<T, E> From<ProvenanceEvent<T, E>> for RenderEvent<T, E> {
+    fn from(p: ProvenanceEvent<T, E>) -> Self {
+        match p {
+            ProvenanceEvent::Connect(o, i, _) => RenderEvent::Connect(o, i),
+            ProvenanceEvent::Disconnect(o, i, _) => RenderEvent::Disconnect(o, i),
+            ProvenanceEvent::AddTransform(t, _) => RenderEvent::AddTransform(t),
+            ProvenanceEvent::AddOwnedTransform(t, _, default_inputs, i_c, o_c) => {
+                RenderEvent::AddOwnedTransform(t, default_inputs, i_c, o_c)
+            }
+            ProvenanceEvent::CreateOutput(_) => RenderEvent::CreateOutput,
+            ProvenanceEvent::AddConstant(name, _) => RenderEvent::AddConstant(name),
+            ProvenanceEvent::SetConstant(t_idx, _, val, _) => RenderEvent::SetConstant(t_idx, val),
+            ProvenanceEvent::WriteDefaultInput(t_idx, input_index, _, val, _) => {
+                RenderEvent::WriteDefaultInput {
+                    t_idx,
+                    input_index,
+                    val,
+                }
+            }
+            ProvenanceEvent::RemoveNode(n, _, _, _, _, _) => RenderEvent::RemoveNode(n),
+            ProvenanceEvent::Import(_, _, _, _) => RenderEvent::Import,
+            ProvenanceEvent::Export(_, _, _) => RenderEvent::Export,
+            ProvenanceEvent::AddNewMacro(_) => RenderEvent::AddNewMacro,
+            ProvenanceEvent::AddMacro(h, _) => RenderEvent::AddMacro(h),
+            ProvenanceEvent::EditNode(n) => RenderEvent::EditNode(n),
+            ProvenanceEvent::ChangeOutputName(n, _, after_name) => {
+                RenderEvent::ChangeOutputName(n, after_name)
+            }
+        }
+    }
+}
+
+impl<T: Clone, E> RenderEvent<T, E> {
+    pub fn new(ev: &Self) -> Self {
+        use self::RenderEvent::*;
+        match ev {
+            Connect(o, i) => Connect(*o, *i),
+            Disconnect(o, i) => Disconnect(*o, *i),
+            AddTransform(t) => AddTransform(t),
+            AddOwnedTransform(t, d_i, i_c, o_c) => {
+                AddOwnedTransform(t.clone(), d_i.clone(), i_c.clone(), o_c.clone())
+            }
+            CreateOutput => CreateOutput,
+            AddConstant(name) => AddConstant(name),
+            SetConstant(t_idx, v) => {
+                let d = v.clone();
+                SetConstant(*t_idx, d)
+            }
+            WriteDefaultInput {
+                t_idx,
+                input_index,
+                val,
+            } => {
+                let val = val.clone();
+                WriteDefaultInput {
+                    t_idx: *t_idx,
+                    input_index: *input_index,
+                    val: val,
+                }
+            }
+            RemoveNode(node_id) => RemoveNode(*node_id),
+            Import => Import,
+            Export => Export,
+            AddNewMacro => AddNewMacro,
+            AddMacro(handle) => AddMacro(handle.clone()),
+            EditNode(node_id) => EditNode(*node_id),
+            ChangeOutputName(node_id, name) => ChangeOutputName(*node_id, name.clone()),
+            Undo => Undo,
+            Redo => Redo,
+        }
+    }
+}
 
 impl<T, E> fmt::Debug for RenderEvent<T, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
