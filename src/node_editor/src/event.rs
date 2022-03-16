@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
-use crate::cake::{macros, InputSlot, NodeId, Output, Transform, TransformIdx};
-
+use super::export::{ExportError, ImportError};
+use crate::cake::{macros, InputSlot, NodeId, Output, OutputId, Transform, TransformIdx};
 pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
     Disconnect(Output, InputSlot),
@@ -169,6 +169,86 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             }
             Undo => write!(f, "Undo"),
             Redo => write!(f, "Redo"),
+        }
+    }
+}
+
+impl<T: fmt::Debug, E: fmt::Debug> fmt::Debug for ProvenanceEvent<T, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::ProvenanceEvent::*;
+        match self {
+            Connect(o, i, res) => write!(f, "Connect(({:?}, {:?}), {:?}),", o, i, res),
+            Disconnect(o, i, res) => write!(f, "Disconnect(({:?}, {:?}), {:?})", o, i, res),
+            AddTransform(t, t_idx) => write!(f, "AddTransform({:?}, {:?})", t_idx, t),
+            AddOwnedTransform(t, t_idx, d_i, i_c, o_c) => {
+                write!(
+                    f,
+                    "AddSpecificTransform({:?}, {:?}, {:?}, {:?}, {:?})",
+                    t_idx, t, d_i, i_c, o_c
+                )
+            }
+            CreateOutput(output_id) => write!(f, "CreateOutput({:?})", output_id),
+            AddConstant(name, t_idx) => write!(f, "AddConstant({:?}, {:?})", name, t_idx),
+            SetConstant(t_idx, before, after, res) => write!(
+                f,
+                "SetConstant({:?}, {:?} -> {:?}, {:?})",
+                t_idx, before, after, res
+            ),
+            WriteDefaultInput(t_idx, input_index, before, after, res) => write!(
+                f,
+                "WriteDefaultInput(t_idx: {:?}, input_index: {:?}, {:?} -> {:?}, result: {:?})",
+                t_idx, input_index, before, after, res
+            ),
+            RemoveNode(node_id, t, name, default_inputs, i_c, o_c) => {
+                write!(
+                    f,
+                    "RemoveNode({:?}, transform: {:?}, name: {:?}, default_inputs: {:?}, inputside_connects: {:?}, outputside_connects: {:?})",
+                    node_id, t, name, default_inputs, i_c, o_c
+                )
+            }
+            Import(p, before_dst, after_dst, res) => {
+                if let Some(before_dst) = before_dst {
+                    write!(
+                        f,
+                        "Import from {:?}, DST(updated: {:?}) -> DST(updated: {:?}), Result: {:?}",
+                        p,
+                        before_dst.max_updated_on(),
+                        after_dst.max_updated_on(),
+                        res
+                    )
+                } else {
+                    write!(
+                        f,
+                        "Import from {:?}, None -> DST(updated: {:?}), Result: {:?}",
+                        p,
+                        after_dst.max_updated_on(),
+                        res
+                    )
+                }
+            }
+            Export(p, dst, res) => write!(
+                f,
+                "Export to {:?}, DST(updated: {:?}), Result: {:?}",
+                p,
+                dst.max_updated_on(),
+                res
+            ),
+            AddNewMacro(t_idx) => write!(f, "AddNewMacro({:?})", t_idx),
+            AddMacro(handle, t_idx) => write!(
+                f,
+                "AddMacro(id={}, name={:?}, t_idx={:?})",
+                handle.id(),
+                handle.name(),
+                t_idx
+            ),
+            EditNode(node_id) => write!(f, "EditNode({:?})", node_id),
+            ChangeOutputName(node_id, before_name, after_name) => {
+                write!(
+                    f,
+                    "ChangeOutputName(id={:?}, name={} -> {})",
+                    node_id, before_name, after_name
+                )
+            }
         }
     }
 }
