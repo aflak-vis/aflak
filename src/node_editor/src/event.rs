@@ -6,6 +6,12 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     Connect(Output, InputSlot),
     Disconnect(Output, InputSlot),
     AddTransform(&'static Transform<'static, T, E>),
+    AddOwnedTransform(
+        Option<Transform<'static, T, E>>,
+        Vec<Option<T>>,
+        Vec<Option<Output>>,
+        Vec<(Output, InputSlot)>,
+    ),
     CreateOutput,
     AddConstant(&'static str),
     SetConstant(TransformIdx, Box<T>),
@@ -21,6 +27,8 @@ pub enum RenderEvent<T: 'static, E: 'static> {
     AddMacro(macros::MacroHandle<'static, T, E>),
     EditNode(NodeId),
     ChangeOutputName(NodeId, String),
+    Undo,
+    Redo,
 }
 
 impl<T, E> fmt::Debug for RenderEvent<T, E> {
@@ -30,6 +38,7 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             Connect(o, i) => write!(f, "Connect({:?}, {:?})", o, i),
             Disconnect(o, i) => write!(f, "Disconnect({:?}, {:?})", o, i),
             AddTransform(_) => write!(f, "AddTransform(_)"),
+            AddOwnedTransform(_, _, _, _) => write!(f, "AddSpecificTransform(_)"),
             CreateOutput => write!(f, "CreateOutput"),
             AddConstant(name) => write!(f, "AddConstant({:?})", name),
             SetConstant(t_idx, _) => write!(f, "SetConstant({:?}, _)", t_idx),
@@ -49,6 +58,8 @@ impl<T, E> fmt::Debug for RenderEvent<T, E> {
             ChangeOutputName(node_id, name) => {
                 write!(f, "ChangeOutputName(id={:?}, name={})", node_id, name)
             }
+            Undo => write!(f, "Undo"),
+            Redo => write!(f, "Redo"),
         }
     }
 }
@@ -60,6 +71,7 @@ pub trait ApplyRenderEvent<T, E> {
             Connect(output, input_slot) => self.connect(output, input_slot),
             Disconnect(output, input_slot) => self.disconnect(output, input_slot),
             AddTransform(t) => self.add_transform(t),
+            AddOwnedTransform(t, d_i, i_c, o_c) => self.add_owned_transform(t, d_i, i_c, o_c),
             CreateOutput => self.create_output(),
             AddConstant(constant_type) => self.add_constant(constant_type),
             SetConstant(t_idx, val) => self.set_constant(t_idx, val),
@@ -75,12 +87,20 @@ pub trait ApplyRenderEvent<T, E> {
             AddMacro(handle) => self.add_macro(handle),
             EditNode(node_id) => self.edit_node(node_id),
             ChangeOutputName(node_id, name) => self.change_output_name(node_id, name),
+            Undo | Redo => {}
         }
     }
 
     fn connect(&mut self, output: Output, input_slot: InputSlot);
     fn disconnect(&mut self, output: Output, input_slot: InputSlot);
     fn add_transform(&mut self, t: &'static Transform<'static, T, E>);
+    fn add_owned_transform(
+        &mut self,
+        t: Option<Transform<'static, T, E>>,
+        d_i: Vec<Option<T>>,
+        i_c: Vec<Option<Output>>,
+        o_c: Vec<(Output, InputSlot)>,
+    );
     fn create_output(&mut self);
     fn add_constant(&mut self, constant_type: &'static str);
     fn set_constant(&mut self, t_idx: TransformIdx, c: Box<T>);
