@@ -883,7 +883,12 @@ where
         + serde::Serialize
         + for<'de> serde::Deserialize<'de>,
 {
-    fn connect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+    fn connect(
+        &mut self,
+        output: cake::Output,
+        input_slot: cake::InputSlot,
+        leave_provenance: bool,
+    ) {
         match input_slot {
             cake::InputSlot::Transform(input) => {
                 if let Err(e) = self.dst.connect(output, input) {
@@ -909,6 +914,14 @@ where
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
         self.dst.add_transform(t, None);
     }
+    fn add_owned_transform(
+        &mut self,
+        t: Option<cake::Transform<'static, T, E>>,
+        d_i: Vec<Option<T>>,
+        i_c: Vec<Option<cake::Output>>,
+        o_c: Vec<(cake::Output, cake::InputSlot)>,
+    ) {
+    }
     fn create_output(&mut self) {
         self.dst.create_output();
     }
@@ -923,7 +936,13 @@ where
             eprintln!("Transform {:?} was not found.", t_idx);
         }
     }
-    fn write_default_input(&mut self, t_idx: cake::TransformIdx, input_index: usize, val: Box<T>) {
+    fn write_default_input(
+        &mut self,
+        t_idx: cake::TransformIdx,
+        input_index: usize,
+        val: Box<T>,
+        leave_provenance: bool,
+    ) {
         if let Some(mut inputs) = self.dst.get_default_inputs_mut(t_idx) {
             inputs.write(input_index, *val);
         } else {
@@ -985,7 +1004,12 @@ impl<T, E> ApplyRenderEvent<T, E> for InnerNodeEditor<T, E>
 where
     T: Clone + cake::ConvertibleVariants + cake::DefaultFor + serde::Serialize,
 {
-    fn connect(&mut self, output: cake::Output, input_slot: cake::InputSlot) {
+    fn connect(
+        &mut self,
+        output: cake::Output,
+        input_slot: cake::InputSlot,
+        leave_provenance: bool,
+    ) {
         let mut lock = self.handle.write();
         let dst = lock.dst_mut();
         match input_slot {
@@ -1020,6 +1044,14 @@ where
             .dst_mut()
             .add_transform(t, Some(handle_id));
     }
+    fn add_owned_transform(
+        &mut self,
+        t: Option<cake::Transform<'static, T, E>>,
+        d_i: Vec<Option<T>>,
+        i_c: Vec<Option<cake::Output>>,
+        o_c: Vec<(cake::Output, cake::InputSlot)>,
+    ) {
+    }
     fn create_output(&mut self) {
         self.handle.write().dst_mut().create_output();
     }
@@ -1040,7 +1072,13 @@ where
             eprintln!("Transform {:?} was not found in macro.", t_idx,);
         }
     }
-    fn write_default_input(&mut self, t_idx: cake::TransformIdx, input_index: usize, val: Box<T>) {
+    fn write_default_input(
+        &mut self,
+        t_idx: cake::TransformIdx,
+        input_index: usize,
+        val: Box<T>,
+        leave_provenance: bool,
+    ) {
         let mut lock = self.handle.write();
         let dst = lock.dst_mut();
         if let Some(mut inputs) = dst.get_default_inputs_mut(t_idx) {

@@ -257,7 +257,7 @@ pub trait ApplyRenderEvent<T, E> {
     fn apply_event(&mut self, ev: RenderEvent<T, E>) {
         use crate::event::RenderEvent::*;
         match ev {
-            Connect(output, input_slot) => self.connect(output, input_slot),
+            Connect(output, input_slot) => self.connect(output, input_slot, true),
             Disconnect(output, input_slot) => self.disconnect(output, input_slot),
             AddTransform(t) => self.add_transform(t),
             AddOwnedTransform(t, d_i, i_c, o_c) => self.add_owned_transform(t, d_i, i_c, o_c),
@@ -268,7 +268,7 @@ pub trait ApplyRenderEvent<T, E> {
                 t_idx,
                 input_index,
                 val,
-            } => self.write_default_input(t_idx, input_index, val),
+            } => self.write_default_input(t_idx, input_index, val, true),
             RemoveNode(node_id) => self.remove_node(node_id),
             Import => self.import(),
             Export => self.export(),
@@ -280,7 +280,7 @@ pub trait ApplyRenderEvent<T, E> {
         }
     }
 
-    fn connect(&mut self, output: Output, input_slot: InputSlot);
+    fn connect(&mut self, output: Output, input_slot: InputSlot, leave_provenance: bool);
     fn disconnect(&mut self, output: Output, input_slot: InputSlot);
     fn add_transform(&mut self, t: &'static Transform<'static, T, E>);
     fn add_owned_transform(
@@ -293,7 +293,13 @@ pub trait ApplyRenderEvent<T, E> {
     fn create_output(&mut self);
     fn add_constant(&mut self, constant_type: &'static str);
     fn set_constant(&mut self, t_idx: TransformIdx, c: Box<T>);
-    fn write_default_input(&mut self, t_idx: TransformIdx, input_index: usize, val: Box<T>);
+    fn write_default_input(
+        &mut self,
+        t_idx: TransformIdx,
+        input_index: usize,
+        val: Box<T>,
+        leave_provenance: bool,
+    );
     fn remove_node(&mut self, node_id: NodeId);
     fn import(&mut self);
     fn export(&mut self);
