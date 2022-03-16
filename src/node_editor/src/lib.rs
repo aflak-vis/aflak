@@ -41,6 +41,8 @@ pub struct NodeEditor<T: 'static, E: 'static> {
     success_stack: Vec<ImString>,
     nodes_edit: Vec<InnerNodeEditor<T, E>>,
     import_macro: Option<cake::macros::MacroHandle<'static, T, E>>,
+    pub valid_history: Vec<event::ProvenanceEvent<T, E>>,
+    redo_stack: Vec<event::ProvenanceEvent<T, E>>,
 }
 
 struct InnerNodeEditor<T: 'static, E: 'static> {
@@ -51,6 +53,8 @@ struct InnerNodeEditor<T: 'static, E: 'static> {
 
     error_stack: Vec<InnerEditorError>,
     success_stack: Vec<ImString>,
+    pub valid_history: Vec<event::ProvenanceEvent<T, E>>,
+    redo_stack: Vec<event::ProvenanceEvent<T, E>>,
 }
 
 impl<T, E> InnerNodeEditor<T, E> {
@@ -62,6 +66,13 @@ impl<T, E> InnerNodeEditor<T, E> {
             focus: true,
             error_stack: vec![],
             success_stack: vec![],
+            valid_history: vec![event::ProvenanceEvent::Import(
+                None,
+                None,
+                cake::DST::new(),
+                Ok(()),
+            )],
+            redo_stack: vec![],
         }
     }
 }
@@ -212,7 +223,184 @@ where
             attaching,
         );
         for event in events {
+            use event::ProvenanceEvent;
+            use event::RenderEvent;
+
+            let push_event = RenderEvent::new(&event);
             self.apply_event(event);
+            let pushed = self.valid_history.pop().unwrap();
+            if self.valid_history.is_empty() {
+                match push_event {
+                    RenderEvent::Undo => {
+                        self.valid_history.push(pushed);
+                        println!("Cannot Undo");
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+            if self.redo_stack.is_empty() {
+                match push_event {
+                    RenderEvent::Redo => {
+                        self.valid_history.push(pushed);
+                        println!("Cannot Redo");
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+            match (push_event, &pushed) {
+                (RenderEvent::Connect(_, _), ProvenanceEvent::Connect(_, _, Ok(())))
+                | (RenderEvent::Disconnect(_, _), ProvenanceEvent::Disconnect(_, _, Ok(())))
+                | (RenderEvent::AddTransform(_), ProvenanceEvent::AddTransform(_, _))
+                | (RenderEvent::CreateOutput, ProvenanceEvent::CreateOutput(_))
+                | (RenderEvent::AddConstant(_), ProvenanceEvent::AddConstant(_, _))
+                | (RenderEvent::SetConstant(_, _), ProvenanceEvent::SetConstant(_, _, _, Ok(())))
+                | (
+                    RenderEvent::WriteDefaultInput { .. },
+                    ProvenanceEvent::WriteDefaultInput(_, _, _, _, Ok(())),
+                )
+                | (RenderEvent::RemoveNode(_), ProvenanceEvent::RemoveNode(_, _, _, _, _, _))
+                | (RenderEvent::Import, ProvenanceEvent::Import(_, _, _, Ok(())))
+                | (RenderEvent::Export, ProvenanceEvent::Export(_, _, Ok(())))
+                | (RenderEvent::AddNewMacro, ProvenanceEvent::AddNewMacro(_))
+                | (RenderEvent::AddMacro(_), ProvenanceEvent::AddMacro(_, _))
+                | (RenderEvent::EditNode(_), ProvenanceEvent::EditNode(_))
+                | (
+                    RenderEvent::ChangeOutputName(_, _),
+                    ProvenanceEvent::ChangeOutputName(_, _, _),
+                ) => {
+                    self.redo_stack.clear();
+                    self.valid_history.push(pushed);
+                }
+                //Undo by looking at the previous operation, the opposite event is executed.
+                (RenderEvent::Undo, ProvenanceEvent::Connect(o, i, Ok(()))) => {
+                    let alternative_event = RenderEvent::<T, E>::Disconnect(*o, *i);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::Disconnect(o, i, Ok(()))) => {
+                    let alternative_event = RenderEvent::<T, E>::Connect(*o, *i);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::AddTransform(_, t_idx))
+                | (RenderEvent::Undo, ProvenanceEvent::AddConstant(_, t_idx)) => {
+                    let node = cake::NodeId::Transform(*t_idx);
+                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::CreateOutput(output_id)) => {
+                    let node = cake::NodeId::Output(*output_id);
+                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::SetConstant(t_idx, before, _, Ok(()))) => {
+                    let alternative_event =
+                        RenderEvent::<T, E>::SetConstant(*t_idx, Box::new(before.clone().unwrap()));
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (
+                    RenderEvent::Undo,
+                    ProvenanceEvent::WriteDefaultInput(t_idx, input_index, before, _, Ok(())),
+                ) => {
+                    let alternative_event = RenderEvent::<T, E>::WriteDefaultInput {
+                        t_idx: *t_idx,
+                        input_index: *input_index,
+                        val: Box::new(before.clone().unwrap()),
+                    };
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (
+                    RenderEvent::Undo,
+                    ProvenanceEvent::RemoveNode(cake::NodeId::Transform(_), t, _, d_i, i_c, o_c),
+                ) => {
+                    self.apply_event(RenderEvent::<T, E>::AddOwnedTransform(
+                        t.clone(),
+                        d_i.clone(),
+                        i_c.clone(),
+                        o_c.clone(),
+                    ));
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (
+                    RenderEvent::Undo,
+                    ProvenanceEvent::RemoveNode(
+                        cake::NodeId::Output(output_id),
+                        _,
+                        name,
+                        _,
+                        i_c,
+                        _,
+                    ),
+                ) => {
+                    if i_c.len() == 1 {
+                        if let Some(output) = i_c.get(0).unwrap() {
+                            self.dst.attach_output_with_id_name(
+                                *output,
+                                *output_id,
+                                name.clone().unwrap(),
+                            );
+                        } else {
+                            self.dst
+                                .create_output_with_id_name(*output_id, name.clone().unwrap());
+                        }
+                    }
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::Import(_, Some(before_dst), _, Ok(()))) => {
+                    self.dst = before_dst.clone();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::Export(_, _, _)) => {
+                    println!("Export undo skipped.");
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::AddNewMacro(t_idx)) => {
+                    let node = cake::NodeId::Transform(*t_idx);
+                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::AddMacro(_, t_idx)) => {
+                    let node = cake::NodeId::Transform(*t_idx);
+                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::EditNode(_)) => {
+                    println!("EditNode skipped.");
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Undo, ProvenanceEvent::ChangeOutputName(node_id, before_name, _)) => {
+                    let alternative_event =
+                        RenderEvent::<T, E>::ChangeOutputName(*node_id, before_name.clone());
+                    self.apply_event(alternative_event);
+                    self.valid_history.pop();
+                    self.redo_stack.push(pushed);
+                }
+                (RenderEvent::Redo, _) => {
+                    if let Some(redo_event) = self.redo_stack.pop() {
+                        self.valid_history.push(pushed);
+                        let redo_event = RenderEvent::<T, E>::from(redo_event);
+                        self.apply_event(redo_event);
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
@@ -324,7 +512,234 @@ where
                             *import_macro = Some(node_edit.handle.clone());
                             import_macro_focus = true;
                         } else {
+                            use event::ProvenanceEvent;
+                            use event::RenderEvent;
+                            let push_event = RenderEvent::new(&event);
                             node_edit.apply_event(event);
+                            let pushed = node_edit.valid_history.pop().unwrap();
+                            if node_edit.valid_history.is_empty() {
+                                match push_event {
+                                    RenderEvent::Undo => {
+                                        node_edit.valid_history.push(pushed);
+                                        println!("Cannot Undo");
+                                        continue;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            if node_edit.redo_stack.is_empty() {
+                                match push_event {
+                                    RenderEvent::Redo => {
+                                        node_edit.valid_history.push(pushed);
+                                        println!("Cannot Redo");
+                                        continue;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            match (push_event, &pushed) {
+                                (
+                                    RenderEvent::Connect(_, _),
+                                    ProvenanceEvent::Connect(_, _, Ok(())),
+                                )
+                                | (
+                                    RenderEvent::Disconnect(_, _),
+                                    ProvenanceEvent::Disconnect(_, _, Ok(())),
+                                )
+                                | (
+                                    RenderEvent::AddTransform(_),
+                                    ProvenanceEvent::AddTransform(_, _),
+                                )
+                                | (RenderEvent::CreateOutput, ProvenanceEvent::CreateOutput(_))
+                                | (
+                                    RenderEvent::AddConstant(_),
+                                    ProvenanceEvent::AddConstant(_, _),
+                                )
+                                | (
+                                    RenderEvent::SetConstant(_, _),
+                                    ProvenanceEvent::SetConstant(_, _, _, Ok(())),
+                                )
+                                | (
+                                    RenderEvent::WriteDefaultInput { .. },
+                                    ProvenanceEvent::WriteDefaultInput(_, _, _, _, Ok(())),
+                                )
+                                | (
+                                    RenderEvent::RemoveNode(_),
+                                    ProvenanceEvent::RemoveNode(_, _, _, _, _, _),
+                                )
+                                | (RenderEvent::Export, ProvenanceEvent::Export(_, _, Ok(())))
+                                | (RenderEvent::AddMacro(_), ProvenanceEvent::AddMacro(_, _))
+                                | (
+                                    RenderEvent::ChangeOutputName(_, _),
+                                    ProvenanceEvent::ChangeOutputName(_, _, _),
+                                ) => {
+                                    node_edit.redo_stack.clear();
+                                    node_edit.valid_history.push(pushed);
+                                }
+                                (RenderEvent::Import, ProvenanceEvent::Import(_, _, _, Ok(())))
+                                | (RenderEvent::AddNewMacro, ProvenanceEvent::AddNewMacro(_))
+                                | (RenderEvent::EditNode(_), ProvenanceEvent::EditNode(_)) => {
+                                    /* Defined Individually, nothing to do here. */
+                                }
+                                //Undo by looking at the previous operation, the opposite event is executed.
+                                (RenderEvent::Undo, ProvenanceEvent::Connect(o, i, Ok(()))) => {
+                                    let alternative_event = RenderEvent::<T, E>::Disconnect(*o, *i);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::Disconnect(o, i, Ok(()))) => {
+                                    let alternative_event = RenderEvent::<T, E>::Connect(*o, *i);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::AddTransform(_, t_idx))
+                                | (RenderEvent::Undo, ProvenanceEvent::AddConstant(_, t_idx)) => {
+                                    let node = cake::NodeId::Transform(*t_idx);
+                                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::CreateOutput(output_id)) => {
+                                    let node = cake::NodeId::Output(*output_id);
+                                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::SetConstant(t_idx, before, _, Ok(())),
+                                ) => {
+                                    let alternative_event = RenderEvent::<T, E>::SetConstant(
+                                        *t_idx,
+                                        Box::new(before.clone().unwrap()),
+                                    );
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::WriteDefaultInput(
+                                        t_idx,
+                                        input_index,
+                                        before,
+                                        _,
+                                        Ok(()),
+                                    ),
+                                ) => {
+                                    let alternative_event =
+                                        RenderEvent::<T, E>::WriteDefaultInput {
+                                            t_idx: *t_idx,
+                                            input_index: *input_index,
+                                            val: Box::new(before.clone().unwrap()),
+                                        };
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::RemoveNode(
+                                        cake::NodeId::Transform(_),
+                                        t,
+                                        _,
+                                        d_i,
+                                        i_c,
+                                        o_c,
+                                    ),
+                                ) => {
+                                    node_edit.apply_event(RenderEvent::<T, E>::AddOwnedTransform(
+                                        t.clone(),
+                                        d_i.clone(),
+                                        i_c.clone(),
+                                        o_c.clone(),
+                                    ));
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::RemoveNode(
+                                        cake::NodeId::Output(output_id),
+                                        _,
+                                        name,
+                                        _,
+                                        i_c,
+                                        _,
+                                    ),
+                                ) => {
+                                    if i_c.len() == 1 {
+                                        let mut lock = node_edit.handle.write();
+                                        let dst = lock.dst_mut();
+                                        if let Some(output) = i_c.get(0).unwrap() {
+                                            dst.attach_output_with_id_name(
+                                                *output,
+                                                *output_id,
+                                                name.clone().unwrap(),
+                                            );
+                                        } else {
+                                            dst.create_output_with_id_name(
+                                                *output_id,
+                                                name.clone().unwrap(),
+                                            );
+                                        }
+                                    }
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::Import(_, Some(before_dst), _, Ok(())),
+                                ) => {
+                                    *node_edit.handle.write().dst_mut() = before_dst.clone();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::Export(_, _, _)) => {
+                                    println!("Export undo skipped.");
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::AddNewMacro(t_idx)) => {
+                                    let node = cake::NodeId::Transform(*t_idx);
+                                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::AddMacro(_, t_idx)) => {
+                                    let node = cake::NodeId::Transform(*t_idx);
+                                    let alternative_event = RenderEvent::<T, E>::RemoveNode(node);
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Undo, ProvenanceEvent::EditNode(_)) => {
+                                    println!("EditNode skipped.");
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (
+                                    RenderEvent::Undo,
+                                    ProvenanceEvent::ChangeOutputName(node_id, before_name, _),
+                                ) => {
+                                    let alternative_event = RenderEvent::<T, E>::ChangeOutputName(
+                                        *node_id,
+                                        before_name.clone(),
+                                    );
+                                    node_edit.apply_event(alternative_event);
+                                    node_edit.valid_history.pop();
+                                    node_edit.redo_stack.push(pushed);
+                                }
+                                (RenderEvent::Redo, _) => {
+                                    if let Some(redo_event) = node_edit.redo_stack.pop() {
+                                        node_edit.valid_history.push(pushed);
+                                        let redo_event = RenderEvent::<T, E>::from(redo_event);
+                                        node_edit.apply_event(redo_event);
+                                    }
+                                }
+                                _ => {}
+                            }
                         }
                     }
                 });
@@ -840,6 +1255,8 @@ impl<T, E> Default for NodeEditor<T, E> {
             success_stack: vec![],
             nodes_edit: vec![],
             import_macro: None,
+            valid_history: vec![],
+            redo_stack: vec![],
         }
     }
 }
@@ -908,6 +1325,8 @@ impl SerialInnerEditor {
                 focus: false,
                 error_stack: vec![],
                 success_stack: vec![],
+                valid_history: vec![],
+                redo_stack: vec![],
             })
         } else {
             Err(export::ImportError::DSTError(
