@@ -21,7 +21,7 @@ where
     /// Get [`Output`]s of given transformation that are currently in use.
     ///
     /// Return [`None`] if transformation does not exist.
-    pub(crate) fn outputs_of_transformation(&self, t_idx: TransformIdx) -> Option<Vec<Output>> {
+    pub fn outputs_of_transformation(&self, t_idx: TransformIdx) -> Option<Vec<Output>> {
         self.get_transform(t_idx).map(|t| {
             let len = t.outputs().len();
             let mut outputs = Vec::with_capacity(len);
@@ -179,6 +179,15 @@ where
         }
     }
 
+    pub fn attach_output_with_id_name(
+        &mut self,
+        output: Output,
+        output_id: OutputId,
+        name: String,
+    ) {
+        self.update_output(output_id, output, name);
+    }
+
     /// Check that output exists in the current graph
     fn output_exists(&self, output: &Output) -> bool {
         match self.transforms.get(&output.t_idx) {
@@ -234,7 +243,7 @@ where
         t: Bow<'t, Transform<'t, T, E>>,
         macro_id: Option<Uuid>,
     ) -> TransformIdx {
-        let idx = self.new_transform_idx();
+        let idx = self.new_transform_idx(macro_id);
         if let Some(macro_id) = macro_id {
             let idx = idx.set_macro(macro_id);
             self.transforms.insert(idx, MetaTransform::new(t));
@@ -332,7 +341,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
         target.1 = new_name;
     }
 
-    pub(crate) fn inputs_attached_to(&self, output: &Output) -> Option<slice::Iter<Input>> {
+    pub fn inputs_attached_to(&self, output: &Output) -> Option<slice::Iter<Input>> {
         self.edges
             .get(output)
             .map(|input_list| input_list.inputs.iter())
@@ -369,6 +378,10 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
     pub(crate) fn create_output_with_id(&mut self, output_id: OutputId) {
         self.outputs
             .insert(output_id, (None, format!("Output #{}", output_id.id())));
+    }
+
+    pub fn create_output_with_id_name(&mut self, output_id: OutputId, name: String) {
+        self.outputs.insert(output_id, (None, name));
     }
 
     /// Attach an already registered output somewhere else
@@ -421,15 +434,34 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
             .unwrap_or(false)
     }
 
-    fn new_transform_idx(&self) -> TransformIdx {
-        self.transforms
+    fn new_transform_idx(&self, macro_id: Option<Uuid>) -> TransformIdx {
+        let mut c = 1;
+        while self.transforms.get(&TransformIdx(macro_id, c)).is_some() {
+            c += 1;
+        }
+        let maxkey = self
+            .transforms
             .keys()
             .max()
-            .unwrap_or(&TransformIdx(None, 0))
-            .incr()
+            .unwrap_or(&TransformIdx(macro_id, 0))
+            .incr();
+        if TransformIdx(macro_id, c) < maxkey {
+            TransformIdx(macro_id, c)
+        } else {
+            maxkey
+        }
     }
 
     fn new_output_id(&self) -> OutputId {
-        self.outputs.keys().max().unwrap_or(&OutputId(0)).incr()
+        let mut c = 1;
+        while self.outputs.get(&OutputId(c)).is_some() {
+            c += 1;
+        }
+        let maxkey = self.outputs.keys().max().unwrap_or(&OutputId(0)).incr();
+        if OutputId(c) < maxkey {
+            OutputId(c)
+        } else {
+            maxkey
+        }
     }
 }

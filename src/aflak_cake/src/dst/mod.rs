@@ -194,6 +194,12 @@ impl<'a, 't, T, E> InputDefaultsMut<'a, 't, T, E> {
     }
 }
 
+impl<'a, 't, T: Clone, E> InputDefaultsMut<'a, 't, T, E> {
+    pub fn read(&mut self, index: usize) -> Option<T> {
+        self.t.input_defaults[index].clone()
+    }
+}
+
 /// Tuple of a transformation and the default input values set up for it
 pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<'t, T, E>>, Vec<Option<T>>);
 
