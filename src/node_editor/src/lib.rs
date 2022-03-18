@@ -841,8 +841,9 @@ where
                         }
                     }
                     Err(e) => {
+                        use std::sync::Arc;
                         self.error_stack
-                            .push(Box::new(export::ImportError::IOError(e)));
+                            .push(Box::new(export::ImportError::IOError(Arc::new(e))));
                     }
                 }
                 opened = false;
