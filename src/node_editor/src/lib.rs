@@ -962,6 +962,32 @@ where
         i_c: Vec<Option<cake::Output>>,
         o_c: Vec<(cake::Output, cake::InputSlot)>,
     ) {
+        if let Some(t) = t {
+            let t_idx = self.dst.add_owned_transform(t.clone(), None);
+            for (input_idx, default_input) in d_i.iter().enumerate() {
+                if let Some(val) = default_input {
+                    self.write_default_input(t_idx, input_idx, Box::new(val.clone()), false);
+                }
+            }
+            for (input_idx, input_connect) in i_c.iter().enumerate() {
+                if let Some(i_c) = input_connect {
+                    let input_slot = cake::InputSlot::Transform(cake::Input::new(t_idx, input_idx));
+                    self.connect(*i_c, input_slot, false);
+                }
+            }
+            for o_cs in &o_c {
+                self.connect(o_cs.0, o_cs.1, false);
+            }
+
+            self.valid_history
+                .push(event::ProvenanceEvent::AddOwnedTransform(
+                    Some(t),
+                    t_idx,
+                    d_i,
+                    i_c,
+                    o_c,
+                ));
+        }
     }
     fn create_output(&mut self) {
         let output_id = self.dst.create_output();
@@ -1250,6 +1276,36 @@ where
         i_c: Vec<Option<cake::Output>>,
         o_c: Vec<(cake::Output, cake::InputSlot)>,
     ) {
+        if let Some(t) = t {
+            let handle_id = self.handle.id();
+            let mut lock = self.handle.write();
+            let dst = lock.dst_mut();
+            let t_idx = dst.add_owned_transform(t.clone(), Some(handle_id));
+            drop(lock);
+            for (input_idx, default_input) in d_i.iter().enumerate() {
+                if let Some(val) = default_input {
+                    self.write_default_input(t_idx, input_idx, Box::new(val.clone()), false);
+                }
+            }
+            for (input_idx, input_connect) in i_c.iter().enumerate() {
+                if let Some(i_c) = input_connect {
+                    let input_slot = cake::InputSlot::Transform(cake::Input::new(t_idx, input_idx));
+                    self.connect(*i_c, input_slot, false);
+                }
+            }
+            for o_cs in &o_c {
+                self.connect(o_cs.0, o_cs.1, false);
+            }
+
+            self.valid_history
+                .push(event::ProvenanceEvent::AddOwnedTransform(
+                    Some(t),
+                    t_idx,
+                    d_i,
+                    i_c,
+                    o_c,
+                ));
+        }
     }
     fn create_output(&mut self) {
         let output_id = self.handle.write().dst_mut().create_output();
