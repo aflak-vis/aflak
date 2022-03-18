@@ -1172,7 +1172,13 @@ where
                 out.push_str(&name);
                 let changed = ui.input_text(format!(""), &mut out).build();
                 if changed {
-                    events.push(RenderEvent::ChangeOutputName(*id, out));
+                    if let Some(RenderEvent::Undo) = events.last() {
+                        /* skipped */
+                    } else if let Some(RenderEvent::Redo) = events.last() {
+                        /* skipped */
+                    } else {
+                        events.push(RenderEvent::ChangeOutputName(*id, out));
+                    }
                 }
             } else {
                 // Show node name
