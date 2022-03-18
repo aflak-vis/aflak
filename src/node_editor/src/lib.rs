@@ -12,7 +12,7 @@ extern crate serde;
 extern crate serde_derive;
 
 mod constant_editor;
-mod event;
+pub mod event;
 mod export;
 mod id_stack;
 mod layout;
