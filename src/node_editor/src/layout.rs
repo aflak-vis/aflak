@@ -453,6 +453,15 @@ where
             const GRAPH_STYLE_COLOR: [f32; 4] = [0.24, 0.24, 0.27, 0.78];
             let style_stack = ui.push_style_var(GRAPH_STYLE_VAR);
             let color_stack = ui.push_style_color(StyleColor::ChildBg, GRAPH_STYLE_COLOR);
+            if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
+                && !ui.io().want_capture_keyboard
+            {
+                if ui.io().key_ctrl && ui.is_key_pressed(imgui::Key::Z) {
+                    self.events.push(RenderEvent::Undo);
+                } else if ui.io().key_ctrl && ui.is_key_pressed(imgui::Key::Y) {
+                    self.events.push(RenderEvent::Redo);
+                }
+            }
             ChildWindow::new("scrolling_region")
                 .border(true)
                 .scroll_bar(false)
