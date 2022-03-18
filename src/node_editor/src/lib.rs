@@ -893,14 +893,48 @@ where
             cake::InputSlot::Transform(input) => {
                 if let Err(e) = self.dst.connect(output, input) {
                     eprintln!("{:?}", e);
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Err(e.clone()),
+                        ));
+                    }
                     self.error_stack.push(Box::new(e));
+                } else {
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Ok(()),
+                        ));
+                    }
                 }
             }
             cake::InputSlot::Output(output_id) => {
                 if let Some(cake::Node::Output((_, name))) =
                     self.dst.get_node(&cake::NodeId::Output(output_id))
                 {
-                    self.dst.update_output(output_id, output, name)
+                    self.dst.update_output(output_id, output, name);
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Ok(()),
+                        ));
+                    }
+                } else {
+                    let e = cake::DSTError::InvalidInput(format!(
+                        "{:?} does not exist in this graph!",
+                        output_id
+                    ));
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Err(e),
+                        ));
+                    }
                 }
             }
         }
@@ -910,9 +944,16 @@ where
             cake::InputSlot::Transform(input) => self.dst.disconnect(&output, &input),
             cake::InputSlot::Output(output_id) => self.dst.detach_output(&output, &output_id),
         }
+        self.valid_history.push(event::ProvenanceEvent::Disconnect(
+            output,
+            input_slot,
+            Ok(()),
+        ))
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
-        self.dst.add_transform(t, None);
+        let t_idx = self.dst.add_transform(t, None);
+        self.valid_history
+            .push(event::ProvenanceEvent::AddTransform(t, t_idx));
     }
     fn add_owned_transform(
         &mut self,
@@ -923,17 +964,31 @@ where
     ) {
     }
     fn create_output(&mut self) {
-        self.dst.create_output();
+        let output_id = self.dst.create_output();
+        self.valid_history
+            .push(event::ProvenanceEvent::CreateOutput(output_id));
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
-        self.dst.add_owned_transform(constant, None);
+        let t_idx = self.dst.add_owned_transform(constant, None);
+        self.valid_history
+            .push(event::ProvenanceEvent::AddConstant(constant_type, t_idx));
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         if let Some(t) = self.dst.get_transform_mut(t_idx) {
-            t.set_constant(*c);
+            if let cake::Algorithm::Constant(ref constant) = t.clone().algorithm() {
+                t.set_constant(*c.clone());
+                self.valid_history.push(event::ProvenanceEvent::SetConstant(
+                    t_idx,
+                    Some(constant.clone()),
+                    c,
+                    Ok(()),
+                ));
+            }
         } else {
             eprintln!("Transform {:?} was not found.", t_idx);
+            self.valid_history
+                .push(event::ProvenanceEvent::SetConstant(t_idx, None, c, Err(())));
         }
     }
     fn write_default_input(
@@ -944,19 +999,107 @@ where
         leave_provenance: bool,
     ) {
         if let Some(mut inputs) = self.dst.get_default_inputs_mut(t_idx) {
-            inputs.write(input_index, *val);
+            let before = inputs.read(input_index);
+            inputs.write(input_index, *val.clone());
+            if leave_provenance {
+                self.valid_history
+                    .push(event::ProvenanceEvent::WriteDefaultInput(
+                        t_idx,
+                        input_index,
+                        before,
+                        val,
+                        Ok(()),
+                    ));
+            }
         } else {
             eprintln!("Transform {:?} was not found.", t_idx);
+            if leave_provenance {
+                self.valid_history
+                    .push(event::ProvenanceEvent::WriteDefaultInput(
+                        t_idx,
+                        input_index,
+                        None,
+                        val,
+                        Err(()),
+                    ));
+            }
         }
     }
     fn remove_node(&mut self, node_id: cake::NodeId) {
+        if let cake::NodeId::Transform(t_idx) = node_id {
+            let t = self.dst.get_transform(t_idx).unwrap();
+            let default_inputs = self.dst.get_default_inputs(t_idx).unwrap().to_vec();
+            let inputside_connects = self.dst.outputs_attached_to_transform(t_idx).unwrap();
+            let mut outputside_connects = Vec::new();
+            if let Some(outputs) = self.dst.outputs_of_transformation(t_idx) {
+                for output in outputs {
+                    if let Some(inputs) = self
+                        .dst
+                        .inputs_attached_to(&output)
+                        .map(|inputs| inputs.cloned().collect::<Vec<_>>())
+                    {
+                        for input in inputs {
+                            outputside_connects.push((output, cake::InputSlot::Transform(input)));
+                        }
+                    }
+                }
+            }
+            self.valid_history.push(event::ProvenanceEvent::RemoveNode(
+                node_id,
+                Some(t.clone()),
+                None,
+                default_inputs,
+                inputside_connects,
+                outputside_connects,
+            ));
+        } else if let cake::NodeId::Output(_) = node_id {
+            let o = self.dst.get_node(&node_id).unwrap();
+            if let cake::Node::Output((output, name)) = o {
+                let output = if let Some(o) = output { Some(*o) } else { None };
+                self.valid_history.push(event::ProvenanceEvent::RemoveNode(
+                    node_id,
+                    None,
+                    Some(name),
+                    vec![],
+                    vec![output],
+                    vec![],
+                ));
+            }
+        }
+
         self.dst.remove_node(&node_id);
+        self.layout.node_states.remove_node(&node_id);
+        if self.layout.active_node == Some(node_id) {
+            self.layout.active_node.take();
+        }
     }
     fn import(&mut self) {
+        let before_dst = self.dst.clone();
         if let Some(path) = self.layout.import_path.take() {
-            if let Err(e) = self.import_from_file(path) {
+            if let Err(e) = self.import_from_file(path.clone()) {
                 eprintln!("Error on import! {}", e);
+                self.valid_history.push(event::ProvenanceEvent::Import(
+                    Some(path),
+                    Some(before_dst),
+                    self.dst.clone(),
+                    Err(e.clone()),
+                ));
                 self.error_stack.push(Box::new(e));
+            } else {
+                self.valid_history.push(event::ProvenanceEvent::Import(
+                    Some(path.clone()),
+                    Some(before_dst),
+                    self.dst.clone(),
+                    Ok(()),
+                ));
+                for node_edit in self.nodes_edit.iter_mut() {
+                    node_edit.valid_history.push(event::ProvenanceEvent::Import(
+                        Some(path.clone()),
+                        None,
+                        node_edit.handle.read().dst().clone(),
+                        Ok(()),
+                    ))
+                }
             }
             self.layout.import_path = None;
         }
@@ -965,8 +1108,18 @@ where
         if let Some(path) = self.layout.export_path.take() {
             if let Err(e) = self.export_to_file(path.clone()) {
                 eprintln!("Error on export! {}", e);
+                self.valid_history.push(event::ProvenanceEvent::Export(
+                    path,
+                    self.dst.clone(),
+                    Err(e.clone()),
+                ));
                 self.error_stack.push(Box::new(e));
             } else {
+                self.valid_history.push(event::ProvenanceEvent::Export(
+                    path.clone(),
+                    self.dst.clone(),
+                    Ok(()),
+                ));
                 self.success_stack.push(ImString::new(format!(
                     "Editor content was exported with success to '{:?}'!",
                     path
@@ -975,27 +1128,43 @@ where
         }
     }
     fn add_new_macro(&mut self) {
-        self.dst.add_owned_transform(
+        let t_idx = self.dst.add_owned_transform(
             cake::Transform::from_macro(self.macros.create_macro().clone()),
             None,
         );
+        self.valid_history
+            .push(event::ProvenanceEvent::AddNewMacro(t_idx));
     }
     fn add_macro(&mut self, handle: cake::macros::MacroHandle<'static, T, E>) {
-        self.dst
-            .add_owned_transform(cake::Transform::from_macro(handle), None);
+        let t_idx = self
+            .dst
+            .add_owned_transform(cake::Transform::from_macro(handle.clone()), None);
+        self.valid_history
+            .push(event::ProvenanceEvent::AddMacro(handle, t_idx));
     }
     fn edit_node(&mut self, node_id: cake::NodeId) {
         if let cake::NodeId::Transform(t_idx) = node_id {
             if let Some(t) = self.dst.get_transform(t_idx) {
                 if let cake::Algorithm::Macro { handle } = t.algorithm() {
                     open_macro_editor(&mut self.nodes_edit, handle.clone());
+                    self.valid_history
+                        .push(event::ProvenanceEvent::EditNode(node_id));
                 }
             }
         }
     }
     fn change_output_name(&mut self, node_id: cake::NodeId, name: String) {
         if let cake::NodeId::Output(output_id) = node_id {
-            self.dst.change_output_name(output_id, name);
+            let node = self.dst.get_node(&node_id);
+            if let Some(cake::Node::Output((_, before_name))) = node {
+                self.valid_history
+                    .push(event::ProvenanceEvent::ChangeOutputName(
+                        node_id,
+                        before_name,
+                        name.clone(),
+                    ));
+                self.dst.change_output_name(output_id, name);
+            }
         }
     }
 }
@@ -1016,14 +1185,36 @@ where
             cake::InputSlot::Transform(input) => {
                 if let Err(e) = dst.connect(output, input) {
                     eprintln!("Cannot connect in macro: {:?}", e);
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Err(e.clone()),
+                        ));
+                    }
                     self.error_stack
                         .push(InnerEditorError::IncorrectNodeConnection(e));
+                } else {
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Ok(()),
+                        ));
+                    }
                 }
             }
             cake::InputSlot::Output(output_id) => {
                 if let Some(cake::Node::Output((_, name))) =
                     dst.get_node(&cake::NodeId::Output(output_id))
                 {
+                    if leave_provenance {
+                        self.valid_history.push(event::ProvenanceEvent::Connect(
+                            output,
+                            input_slot,
+                            Ok(()),
+                        ));
+                    }
                     dst.update_output(output_id, output, name)
                 }
             }
@@ -1036,13 +1227,21 @@ where
             cake::InputSlot::Transform(input) => dst.disconnect(&output, &input),
             cake::InputSlot::Output(output_id) => dst.detach_output(&output, &output_id),
         }
+        self.valid_history.push(event::ProvenanceEvent::Disconnect(
+            output,
+            input_slot,
+            Ok(()),
+        ))
     }
     fn add_transform(&mut self, t: &'static cake::Transform<'static, T, E>) {
         let handle_id = self.handle.id();
-        self.handle
+        let t_idx = self
+            .handle
             .write()
             .dst_mut()
             .add_transform(t, Some(handle_id));
+        self.valid_history
+            .push(event::ProvenanceEvent::AddTransform(t, t_idx));
     }
     fn add_owned_transform(
         &mut self,
@@ -1053,21 +1252,34 @@ where
     ) {
     }
     fn create_output(&mut self) {
-        self.handle.write().dst_mut().create_output();
+        let output_id = self.handle.write().dst_mut().create_output();
+        self.valid_history
+            .push(event::ProvenanceEvent::CreateOutput(output_id));
     }
     fn add_constant(&mut self, constant_type: &'static str) {
         let constant = cake::Transform::new_constant(T::default_for(constant_type));
         let handle_id = self.handle.id();
-        self.handle
+        let t_idx = self
+            .handle
             .write()
             .dst_mut()
             .add_owned_transform(constant, Some(handle_id));
+        self.valid_history
+            .push(event::ProvenanceEvent::AddConstant(constant_type, t_idx));
     }
     fn set_constant(&mut self, t_idx: cake::TransformIdx, c: Box<T>) {
         let mut lock = self.handle.write();
         let dst = lock.dst_mut();
         if let Some(t) = dst.get_transform_mut(t_idx) {
-            t.set_constant(*c);
+            if let cake::Algorithm::Constant(ref constant) = t.clone().algorithm() {
+                t.set_constant(*c.clone());
+                self.valid_history.push(event::ProvenanceEvent::SetConstant(
+                    t_idx,
+                    Some(constant.clone()),
+                    c,
+                    Ok(()),
+                ));
+            }
         } else {
             eprintln!("Transform {:?} was not found in macro.", t_idx,);
         }
@@ -1082,13 +1294,80 @@ where
         let mut lock = self.handle.write();
         let dst = lock.dst_mut();
         if let Some(mut inputs) = dst.get_default_inputs_mut(t_idx) {
-            inputs.write(input_index, *val);
+            let before = inputs.read(input_index);
+            inputs.write(input_index, *val.clone());
+            if leave_provenance {
+                self.valid_history
+                    .push(event::ProvenanceEvent::WriteDefaultInput(
+                        t_idx,
+                        input_index,
+                        before,
+                        val,
+                        Ok(()),
+                    ));
+            }
         } else {
             eprintln!("Transform {:?} was not found.", t_idx);
+            if leave_provenance {
+                self.valid_history
+                    .push(event::ProvenanceEvent::WriteDefaultInput(
+                        t_idx,
+                        input_index,
+                        None,
+                        val,
+                        Err(()),
+                    ));
+            }
         }
     }
     fn remove_node(&mut self, node_id: cake::NodeId) {
+        let lock = self.handle.read();
+        let dst = lock.dst();
+        if let cake::NodeId::Transform(t_idx) = node_id {
+            let t = dst.get_transform(t_idx).unwrap();
+            let default_inputs = dst.get_default_inputs(t_idx).unwrap().to_vec();
+            let inputside_connects = dst.outputs_attached_to_transform(t_idx).unwrap();
+            let mut outputside_connects = Vec::new();
+            if let Some(outputs) = dst.outputs_of_transformation(t_idx) {
+                for output in outputs {
+                    if let Some(inputs) = dst
+                        .inputs_attached_to(&output)
+                        .map(|inputs| inputs.cloned().collect::<Vec<_>>())
+                    {
+                        for input in inputs {
+                            outputside_connects.push((output, cake::InputSlot::Transform(input)));
+                        }
+                    }
+                }
+            }
+            self.valid_history.push(event::ProvenanceEvent::RemoveNode(
+                node_id,
+                Some(t.clone()),
+                None,
+                default_inputs,
+                inputside_connects,
+                outputside_connects,
+            ));
+        } else if let cake::NodeId::Output(_) = node_id {
+            let o = dst.get_node(&node_id).unwrap();
+            if let cake::Node::Output((output, name)) = o {
+                let output = if let Some(o) = output { Some(*o) } else { None };
+                self.valid_history.push(event::ProvenanceEvent::RemoveNode(
+                    node_id,
+                    None,
+                    Some(name),
+                    vec![],
+                    vec![output],
+                    vec![],
+                ));
+            }
+        }
+        drop(lock);
         self.handle.write().dst_mut().remove_node(&node_id);
+        self.layout.node_states.remove_node(&node_id);
+        if self.layout.active_node == Some(node_id) {
+            self.layout.active_node.take();
+        }
     }
     fn import(&mut self) {
         unreachable!("Import can only be handled in NodeEditor's context!");
@@ -1128,7 +1407,16 @@ where
         let mut lock = self.handle.write();
         let dst = lock.dst_mut();
         if let cake::NodeId::Output(output_id) = node_id {
-            dst.change_output_name(output_id, name);
+            let node = dst.get_node(&node_id);
+            if let Some(cake::Node::Output((_, before_name))) = node {
+                self.valid_history
+                    .push(event::ProvenanceEvent::ChangeOutputName(
+                        node_id,
+                        before_name,
+                        name.clone(),
+                    ));
+                dst.change_output_name(output_id, name);
+            }
         }
     }
 }
