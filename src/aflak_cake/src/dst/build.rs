@@ -12,6 +12,7 @@ use crate::dst::{
 };
 use crate::dst::{MetaTransform, TransformAndDefaults};
 use crate::transform::Transform;
+use std::time::Instant;
 use uuid::Uuid;
 
 impl<'t, T: 't, E: 't> DST<'t, T, E>
@@ -262,6 +263,7 @@ impl<'t, T: 't, E: 't> DST<'t, T, E> {
             transforms: BTreeMap::new(),
             edges: BTreeMap::new(),
             outputs: BTreeMap::new(),
+            created_time: Instant::now(),
         }
     }
 
