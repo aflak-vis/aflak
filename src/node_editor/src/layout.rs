@@ -1307,6 +1307,14 @@ impl<T, E> NodeEditorLayout<T, E> {
         &self.node_states
     }
 
+    pub fn node_states_mut(&mut self) -> &mut NodeStates {
+        &mut self.node_states
+    }
+
+    pub fn active_node_mut(&mut self) -> &mut Option<cake::NodeId> {
+        &mut self.active_node
+    }
+
     pub fn import(&mut self, node_states: NodeStates, scrolling: Scrolling) {
         // Set UI node states
         self.node_states = node_states;

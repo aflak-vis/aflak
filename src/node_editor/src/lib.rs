@@ -1095,9 +1095,9 @@ where
         }
 
         self.dst.remove_node(&node_id);
-        self.layout.node_states.remove_node(&node_id);
-        if self.layout.active_node == Some(node_id) {
-            self.layout.active_node.take();
+        self.layout.node_states_mut().remove_node(&node_id);
+        if self.layout.active_node_mut() == &Some(node_id) {
+            self.layout.active_node_mut().take();
         }
     }
     fn import(&mut self) {
@@ -1421,9 +1421,9 @@ where
         }
         drop(lock);
         self.handle.write().dst_mut().remove_node(&node_id);
-        self.layout.node_states.remove_node(&node_id);
-        if self.layout.active_node == Some(node_id) {
-            self.layout.active_node.take();
+        self.layout.node_states_mut().remove_node(&node_id);
+        if self.layout.active_node_mut() == &Some(node_id) {
+            self.layout.active_node_mut().take();
         }
     }
     fn import(&mut self) {
