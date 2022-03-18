@@ -518,9 +518,8 @@ Compute Velocity v = c * (w_i - w_0) / w_0   (c = 3e5 [km/s])",
                     let result = (image.array() - w_0.clone()) * c / w_0;
                     let original_meta = image.meta();
                     let original_visualization = image.tag();
-                    let original_topology = image.topology();
 
-                    let result = WcsArray::new(original_meta.to_owned(), result, original_visualization.to_owned(), original_topology.to_owned());
+                    let result = WcsArray::new(original_meta.to_owned(), result, original_visualization.to_owned());
 
                     vec![Ok(IOValue::Image(result))]
                 }
@@ -1411,7 +1410,6 @@ fn run_create_argmap(
     is_sliceable!(image, start, end)?;
     let original_meta = image.meta();
     let original_visualization = image.tag();
-    let original_topology = image.topology();
     let mut trypix = 0;
     let mut waveunit = Unit::None;
     for (n, a) in image.meta().clone().unwrap().axes().iter().enumerate() {
@@ -1457,7 +1455,6 @@ fn run_create_argmap(
         original_meta.to_owned(), //FIXME: Handle metadata
         waveimg,
         original_visualization.to_owned(),
-        original_topology.to_owned(),
     );
     Ok(IOValue::Image(waveimg))
 }
@@ -1472,7 +1469,6 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
     is_sliceable!(image, start, end)?;
     let original_meta = image.meta();
     let original_visualization = image.tag();
-    let original_topology = image.topology();
     let mut trypix = 0;
     let mut waveunit = Unit::None;
     for (n, a) in image.meta().clone().unwrap().axes().iter().enumerate() {
@@ -1505,7 +1501,6 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
         original_meta.to_owned(),
         flux_sum,
         original_visualization.to_owned(),
-        original_topology.to_owned(),
     );
 
     let waveimg = ArrayD::from_shape_fn(new_size_2, |index| {
@@ -1525,7 +1520,6 @@ fn run_centroid(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr
         original_meta.to_owned(), //FIXME: Handle metadata
         waveimg,
         original_visualization.to_owned(),
-        original_topology.to_owned(),
     );
     let result = &waveimg / &flux_sum;
     Ok(IOValue::Image(result))
