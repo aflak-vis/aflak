@@ -292,7 +292,7 @@ struct InputIdx(usize);
 pub struct OutputId(usize);
 
 /// Errors when computing or building a [`DST`].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DSTError {
     InvalidInput(String),
     InvalidOutput(String),
