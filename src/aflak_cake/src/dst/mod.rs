@@ -33,6 +33,7 @@ pub struct DST<'t, T: 't, E: 't> {
     transforms: BTreeMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: BTreeMap<Output, InputList>,
     outputs: BTreeMap<OutputId, (Option<Output>, String)>,
+    created_time: Instant,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>
@@ -44,6 +45,7 @@ where
             transforms: self.transforms.clone(),
             edges: self.edges.clone(),
             outputs: self.outputs.clone(),
+            created_time: Instant::now(),
         }
     }
 }
@@ -68,6 +70,19 @@ where
             updated_on = updated_on.max(dep_updated_on);
         }
         updated_on
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E> {
+    pub fn max_updated_on(&self) -> Instant {
+        let m = self
+            .transforms_iter()
+            .max_by(|(_, v1), (_, v2)| v1.updated_on().cmp(&v2.updated_on()));
+        if let Some(m) = m {
+            m.1.updated_on()
+        } else {
+            self.created_time
+        }
     }
 }
 
