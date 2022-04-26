@@ -3,7 +3,7 @@ name = "node_editor"
 version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Node editor UI using imgui-rs as backend, made for aflak project"
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0-only"
 
 [dependencies]

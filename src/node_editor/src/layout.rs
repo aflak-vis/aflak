@@ -453,6 +453,15 @@ where
             const GRAPH_STYLE_COLOR: [f32; 4] = [0.24, 0.24, 0.27, 0.78];
             let style_stack = ui.push_style_var(GRAPH_STYLE_VAR);
             let color_stack = ui.push_style_color(StyleColor::ChildBg, GRAPH_STYLE_COLOR);
+            if ui.is_window_focused_with_flags(WindowFocusedFlags::CHILD_WINDOWS)
+                && !ui.io().want_capture_keyboard
+            {
+                if ui.io().key_ctrl && ui.is_key_pressed(imgui::Key::Z) {
+                    self.events.push(RenderEvent::Undo);
+                } else if ui.io().key_ctrl && ui.is_key_pressed(imgui::Key::Y) {
+                    self.events.push(RenderEvent::Redo);
+                }
+            }
             ChildWindow::new("scrolling_region")
                 .border(true)
                 .scroll_bar(false)
@@ -1163,7 +1172,13 @@ where
                 out.push_str(&name);
                 let changed = ui.input_text(format!(""), &mut out).build();
                 if changed {
-                    events.push(RenderEvent::ChangeOutputName(*id, out));
+                    if let Some(RenderEvent::Undo) = events.last() {
+                        /* skipped */
+                    } else if let Some(RenderEvent::Redo) = events.last() {
+                        /* skipped */
+                    } else {
+                        events.push(RenderEvent::ChangeOutputName(*id, out));
+                    }
                 }
             } else {
                 // Show node name
@@ -1290,6 +1305,14 @@ impl<T, E> NodeEditorLayout<T, E> {
 
     pub fn node_states(&self) -> &NodeStates {
         &self.node_states
+    }
+
+    pub fn node_states_mut(&mut self) -> &mut NodeStates {
+        &mut self.node_states
+    }
+
+    pub fn active_node_mut(&mut self) -> &mut Option<cake::NodeId> {
+        &mut self.active_node
     }
 
     pub fn import(&mut self, node_states: NodeStates, scrolling: Scrolling) {

@@ -21,7 +21,7 @@ pub trait NamedAlgorithms<E>: Sized {
 }
 
 /// Error type used to represent a failed deserialization into DST.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImportError {
     /// An unknown transform name was used.
     TransformNotFound(String),

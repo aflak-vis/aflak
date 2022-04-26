@@ -33,6 +33,7 @@ pub struct DST<'t, T: 't, E: 't> {
     transforms: BTreeMap<TransformIdx, MetaTransform<'t, T, E>>,
     edges: BTreeMap<Output, InputList>,
     outputs: BTreeMap<OutputId, (Option<Output>, String)>,
+    created_time: Instant,
 }
 
 impl<'t, T, E> Clone for DST<'t, T, E>
@@ -44,6 +45,7 @@ where
             transforms: self.transforms.clone(),
             edges: self.edges.clone(),
             outputs: self.outputs.clone(),
+            created_time: Instant::now(),
         }
     }
 }
@@ -68,6 +70,19 @@ where
             updated_on = updated_on.max(dep_updated_on);
         }
         updated_on
+    }
+}
+
+impl<'t, T, E> DST<'t, T, E> {
+    pub fn max_updated_on(&self) -> Instant {
+        let m = self
+            .transforms_iter()
+            .max_by(|(_, v1), (_, v2)| v1.updated_on().cmp(&v2.updated_on()));
+        if let Some(m) = m {
+            m.1.updated_on()
+        } else {
+            self.created_time
+        }
     }
 }
 
@@ -194,6 +209,12 @@ impl<'a, 't, T, E> InputDefaultsMut<'a, 't, T, E> {
     }
 }
 
+impl<'a, 't, T: Clone, E> InputDefaultsMut<'a, 't, T, E> {
+    pub fn read(&mut self, index: usize) -> Option<T> {
+        self.t.input_defaults[index].clone()
+    }
+}
+
 /// Tuple of a transformation and the default input values set up for it
 pub type TransformAndDefaults<'t, T, E> = (Bow<'t, Transform<'t, T, E>>, Vec<Option<T>>);
 
@@ -286,7 +307,7 @@ struct InputIdx(usize);
 pub struct OutputId(usize);
 
 /// Errors when computing or building a [`DST`].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DSTError {
     InvalidInput(String),
     InvalidOutput(String),

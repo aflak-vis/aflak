@@ -1,14 +1,15 @@
 use std::error;
 use std::fmt;
 use std::io;
+use std::sync::Arc;
 
 use crate::cake;
 use ron::{de, error as ser_error};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExportError {
     SerializationError(ser_error::Error),
-    IOError(io::Error),
+    IOError(Arc<io::Error>),
 }
 
 impl fmt::Display for ExportError {
@@ -28,7 +29,7 @@ impl error::Error for ExportError {
 
 impl From<io::Error> for ExportError {
     fn from(io_error: io::Error) -> Self {
-        ExportError::IOError(io_error)
+        ExportError::IOError(Arc::new(io_error))
     }
 }
 
@@ -38,11 +39,11 @@ impl From<ser_error::Error> for ExportError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImportError {
     DSTError(cake::ImportError),
     DeserializationError(de::Error),
-    IOError(io::Error),
+    IOError(Arc<io::Error>),
 }
 
 impl fmt::Display for ImportError {
@@ -63,7 +64,7 @@ impl error::Error for ImportError {
 
 impl From<io::Error> for ImportError {
     fn from(io_error: io::Error) -> Self {
-        ImportError::IOError(io_error)
+        ImportError::IOError(Arc::new(io_error))
     }
 }
 

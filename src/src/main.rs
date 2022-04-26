@@ -53,7 +53,17 @@ fn main() {
     };
 
     let node_editor = match NodeEditor::from_export_buf(import_data) {
-        Ok(editor) => editor,
+        Ok(mut editor) => {
+            editor
+                .valid_history
+                .push(node_editor::event::ProvenanceEvent::Import(
+                    None,
+                    None,
+                    editor.dst.clone(),
+                    Ok(()),
+                ));
+            editor
+        }
         Err(e) => {
             eprintln!("Import failed! Initialize empty node editor.\n{}", e);
             NodeEditor::default()

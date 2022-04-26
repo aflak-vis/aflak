@@ -3,7 +3,7 @@ name = "aflak_primitives"
 version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Define primitive functions for use with aflak"
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0-only"
 
 [dependencies]
@@ -13,7 +13,7 @@ fitrs = "0.5.0"
 lazy_static = "1.0"
 ndarray = { version = "0.12", features = ["serde-1"] }
 ndarray-parallel = "0.9.1"
-nalgebra = "0.16.0"
+nalgebra = "0.30.1"
 serde = "1.0"
 serde_derive = "1.0"
 regex = "1.5"
