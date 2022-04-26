@@ -3,7 +3,7 @@ name = "imgui_file_explorer"
 version = "0.0.3"
 authors = ["Rikuo Uchiki <dbkn_rikuo@keio.jp>", "Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "File explorer plugin for imgui-rs"
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0-only"
 repository = "https://github.com/aflak-vis/aflak"
 

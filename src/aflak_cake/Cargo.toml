@@ -3,7 +3,7 @@ name = "aflak_cake"
 version = "0.0.3"
 authors = ["Malik Olivier Boussejra <malik@boussejra.com>"]
 description = "Computational mAKE: Manage a graph of interdependent functions"
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0-only"
 
 [dependencies]
