@@ -467,6 +467,26 @@ impl MenuBar for primitives::WcsArray {
                         self.histogram_menu(ui, window);
                         menu.end();
                     }
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Contour"), true) {
+                        MenuItem::new(format!("Contour Control"))
+                            .build_with_ref(ui, &mut window.image2d_state.show_contour);
+                        menu.end();
+                    }
+                    if let Some(_) = &self.topology() {
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Topology"), true) {
+                            MenuItem::new(format!("Critical Points")).build_with_ref(
+                                ui,
+                                &mut window.image2d_state.show_tp_critical_points,
+                            );
+                            MenuItem::new(format!("Separatrices Points")).build_with_ref(
+                                ui,
+                                &mut window.image2d_state.show_tp_separatrices_points,
+                            );
+                            MenuItem::new(format!("Connection"))
+                                .build_with_ref(ui, &mut window.image2d_state.show_tp_connections);
+                            menu.end();
+                        }
+                    }
                     if let Some(menu) = ui.begin_menu_with_enabled(format!("Others"), true) {
                         MenuItem::new(format!("Approx Line"))
                             .build_with_ref(ui, &mut window.image2d_state.show_approx_line);
@@ -682,6 +702,7 @@ impl MenuBar for primitives::WcsArray {
                         }
                     };
                     let unit = self.array().unit().repr();
+                    state.topology = self.topology().clone();
                     let new_incoming_image = match state.image_created_on() {
                         Some(image_created_on) => ctx.created_on > image_created_on,
                         None => true,

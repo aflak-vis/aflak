@@ -205,6 +205,7 @@ pub struct WcsArray {
     meta: Option<MetaWcsArray>,
     array: Dimensioned<ArrayD<f32>>,
     visualization: Option<String>,
+    topology: Option<Topology>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -221,6 +222,116 @@ impl MetaWcsArray {
         &self.axes
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CriticalPoints {
+    pub point_type: usize,
+    pub coord: (f32, f32, f32),
+    pub value: f32,
+    pub cellid: usize,
+    pl_vertex_identifier: usize,
+    pub manifoldsize: usize,
+}
+
+impl CriticalPoints {
+    pub fn new(
+        point_type: usize,
+        coord: (f32, f32, f32),
+        value: f32,
+        cellid: usize,
+        pl_vertex_identifier: usize,
+        manifoldsize: usize,
+    ) -> Self {
+        Self {
+            point_type,
+            coord,
+            value,
+            cellid,
+            pl_vertex_identifier,
+            manifoldsize,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Separatrices1Point {
+    pub id: usize,
+    pub coord: (f32, f32, f32),
+    pub point_type: usize,
+    cell_id: usize,
+}
+
+impl Separatrices1Point {
+    pub fn new(id: usize, coord: (f32, f32, f32), point_type: usize, cell_id: usize) -> Self {
+        Self {
+            id,
+            coord,
+            point_type,
+            cell_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Separatrices1Cell {
+    id: usize,
+    pub source: usize,
+    pub dest: usize,
+    pub connectivity: (usize, usize),
+    separatrix_id: usize,
+    separatrix_type: usize,
+    pub f_maxima: usize,
+    pub f_minima: usize,
+    pub f_diff: f32,
+}
+
+impl Separatrices1Cell {
+    pub fn new(
+        id: usize,
+        source: usize,
+        dest: usize,
+        connectivity: (usize, usize),
+        separatrix_id: usize,
+        separatrix_type: usize,
+        f_maxima: usize,
+        f_minima: usize,
+        f_diff: f32,
+    ) -> Self {
+        Self {
+            id,
+            source,
+            dest,
+            connectivity,
+            separatrix_id,
+            separatrix_type,
+            f_maxima,
+            f_minima,
+            f_diff,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Topology {
+    pub critical_points: Vec<CriticalPoints>,
+    pub separatrices1_points: Vec<Separatrices1Point>,
+    pub separatrices1_cells: Vec<Separatrices1Cell>,
+}
+
+impl Topology {
+    pub fn new(
+        critical_points: Vec<CriticalPoints>,
+        separatrices1_points: Vec<Separatrices1Point>,
+        separatrices1_cells: Vec<Separatrices1Cell>,
+    ) -> Self {
+        Self {
+            critical_points,
+            separatrices1_points,
+            separatrices1_cells,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Axis {
     name: Option<String>,
@@ -272,11 +383,13 @@ impl WcsArray {
         meta: Option<MetaWcsArray>,
         array: Dimensioned<ArrayD<f32>>,
         visualization: Option<String>,
+        topology: Option<Topology>,
     ) -> Self {
         WcsArray {
             meta,
             array,
             visualization,
+            topology,
         }
     }
     /// Make `WcsArray` from `Hdu` found in FITS file.
@@ -327,6 +440,7 @@ impl WcsArray {
             }),
             array: vunit.new(image * bscale + bzero),
             visualization: None,
+            topology: None,
         })
     }
 
@@ -347,6 +461,7 @@ impl WcsArray {
             meta: None,
             array,
             visualization: None,
+            topology: None,
         }
     }
 
@@ -358,6 +473,7 @@ impl WcsArray {
             meta: None,
             array,
             visualization,
+            topology: None,
         }
     }
 
@@ -405,6 +521,14 @@ impl WcsArray {
         self.visualization = tag;
     }
 
+    pub fn set_topology(&mut self, topology: Option<Topology>) {
+        self.topology = topology;
+    }
+
+    pub fn topology(&self) -> &Option<Topology> {
+        &self.topology
+    }
+
     pub fn wcs(&self) -> Option<&WCS> {
         self.meta.as_ref().map(|meta| &meta.wcs)
     }
@@ -447,6 +571,7 @@ impl WcsArray {
             meta: new_meta,
             array,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -759,6 +884,7 @@ impl ops::Mul<f32> for WcsArray {
             meta: self.meta,
             array: self.array * rhs,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -774,6 +900,7 @@ impl ops::Mul<Dimensioned<f32>> for WcsArray {
             meta: self.meta,
             array: newdim,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -786,6 +913,7 @@ impl<'a> ops::Mul<f32> for &'a WcsArray {
             meta: self.meta.clone(),
             array: self.array() * rhs,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -798,6 +926,7 @@ impl ops::Div<f32> for WcsArray {
             meta: self.meta,
             array: self.array / rhs,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -810,6 +939,7 @@ impl<'a> ops::Div<f32> for &'a WcsArray {
             meta: self.meta.clone(),
             array: self.array() / rhs,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -827,6 +957,7 @@ impl ops::Add for WcsArray {
             meta,
             array: self.array + rhs.array,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -844,6 +975,7 @@ impl ops::Sub for WcsArray {
             meta,
             array: self.array - rhs.array,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -856,6 +988,7 @@ impl<'a, 'b> ops::Sub<&'b WcsArray> for &'a WcsArray {
             meta: self.meta.clone(),
             array: &self.array - &rhs.array,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -875,6 +1008,7 @@ impl<'a, 'b> ops::Div<&'b WcsArray> for &'a WcsArray {
             meta: self.meta.clone(),
             array: newdim,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -894,6 +1028,7 @@ impl<'a> ops::Div<&'a WcsArray> for WcsArray {
             meta: self.meta.clone(),
             array: newdim,
             visualization: None,
+            topology: None,
         }
     }
 }
@@ -913,6 +1048,7 @@ impl ops::Mul<WcsArray> for WcsArray {
             meta: self.meta.clone(),
             array: newdim,
             visualization: None,
+            topology: None,
         }
     }
 }
