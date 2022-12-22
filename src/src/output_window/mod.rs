@@ -10,7 +10,7 @@ use owning_ref::ArcRef;
 
 use crate::aflak_plot::{
     imshow::{self, Textures},
-    plot, scatter_lineplot, InteractionId,
+    persistence_diagram, plot, scatter_lineplot, InteractionId,
 };
 use crate::cake::{OutputId, TransformIdx};
 use crate::primitives::{ndarray, IOValue, SuccessOut};
@@ -25,6 +25,7 @@ pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
     scatter_lineplot_state: scatter_lineplot::State,
+    persistence_diagram_state: persistence_diagram::State,
     pub editable_values: EditableValues,
     show_pixels: bool,
 }
@@ -89,6 +90,7 @@ impl OutputWindow {
                         fits.draw(ui, window);
                         vec![]
                     }
+                    IOValue::PersistencePairs(ref pp) => pp.draw(ctx, window),
                     val => {
                         Unimplemented::new(val).draw(ui, window);
                         vec![]

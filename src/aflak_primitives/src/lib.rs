@@ -65,6 +65,11 @@ pub enum PATHS {
     FileList(Vec<PathBuf>),
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum PersistencePairs {
+    Pairs(Vec<(i32, i32, f32, f32)>),
+}
+
 /// Value used for I/O in astronomical transforms.
 ///
 /// If new use cases arise, please add a new variant to this enumeration.
@@ -85,6 +90,7 @@ pub enum IOValue {
     Roi(roi::ROI),
     Paths(PATHS),
     ToneCurve(ToneCurveState),
+    PersistencePairs(PersistencePairs),
 }
 
 impl PartialEq for IOValue {
@@ -95,6 +101,7 @@ impl PartialEq for IOValue {
             (Float(f1), Float(f2)) => f1 == f2,
             (Float2(f1), Float2(f2)) => f1 == f2,
             (ToneCurve(t1), ToneCurve(t2)) => t1 == t2,
+            (PersistencePairs(p1), PersistencePairs(p2)) => p1 == p2,
             (Float3(f1), Float3(f2)) => f1 == f2,
             (Float3x3(f1), Float3x3(f2)) => f1 == f2,
             (Str(s1), Str(s2)) => s1 == s2,

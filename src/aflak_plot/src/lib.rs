@@ -19,6 +19,7 @@ extern crate implot;
 extern crate meval;
 
 pub mod imshow;
+pub mod persistence_diagram;
 pub mod plot;
 pub mod scatter_lineplot;
 

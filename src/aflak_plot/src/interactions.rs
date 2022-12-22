@@ -57,6 +57,7 @@ pub enum Interaction {
     Circle(Circle),
     Lims(Lims),
     ColorLims(ColorLims),
+    PersistenceFilter(PersistenceFilter),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -104,6 +105,12 @@ pub struct Lims {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ColorLims {
     pub lims: [[f32; 3]; 3],
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct PersistenceFilter {
+    pub val: f32,
+    pub moving: bool,
 }
 
 impl HorizontalLine {
@@ -182,6 +189,12 @@ impl ColorLims {
     }
 }
 
+impl PersistenceFilter {
+    pub fn new(val: f32) -> Self {
+        Self { val, moving: false }
+    }
+}
+
 /// Record all interactions.
 ///
 /// Contains a counter that counts the number of interactions inserted.
@@ -225,6 +238,7 @@ impl Interactions {
             Interaction::Circle(..) => false,
             Interaction::Lims(..) => false,
             Interaction::ColorLims(..) => false,
+            Interaction::PersistenceFilter(PersistenceFilter { moving, .. }) => *moving,
         })
     }
 }
@@ -243,6 +257,7 @@ impl Interaction {
             Interaction::Circle(Circle { pixels, .. }) => Value::Circle(pixels.clone()),
             Interaction::Lims(Lims { lims, .. }) => Value::Float3(*lims),
             Interaction::ColorLims(ColorLims { lims, .. }) => Value::Float3x3(*lims),
+            Interaction::PersistenceFilter(PersistenceFilter { val, .. }) => Value::Float(*val),
         }
     }
 
@@ -288,6 +303,13 @@ impl Interaction {
                         lims[c][v] = Interaction::clamp(f3[c][v], 0.0, 1.0);
                     }
                 }
+                Ok(())
+            }
+            (
+                Interaction::PersistenceFilter(PersistenceFilter { ref mut val, .. }),
+                Value::Float(f),
+            ) => {
+                *val = *f;
                 Ok(())
             }
             interaction => Err(format!(

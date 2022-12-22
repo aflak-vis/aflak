@@ -12,6 +12,7 @@ use owning_ref::ArcRef;
 
 use crate::aflak_plot::{
     imshow::{Textures, UiImage2d},
+    persistence_diagram::UiPersistenceDiagram,
     plot::UiImage1d,
     scatter_lineplot::UiScatter,
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
@@ -417,6 +418,51 @@ impl MenuBar for ROI {
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
         write_to_file_as_display(path, &format!("{:?}", self))?;
+        Ok(())
+    }
+
+    const EXTENSION: &'static str = "txt";
+}
+
+impl MenuBar for primitives::PersistencePairs {
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    where
+        F: glium::backend::Facade,
+    {
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                attach_failued(&mut ctx, &"PersistencePairs");
+            }
+        }
+        let ui = &ctx.ui;
+        let state = &mut ctx.window.persistence_diagram_state;
+        let plot_ui = ctx.plotcontext.get_plot_ui();
+        update_state_from_editor(
+            state.stored_values_mut(),
+            &ctx.window.editable_values,
+            &ctx.node_editor,
+        );
+        if let Err(e) = ui.persistence_diagram(
+            &self,
+            &plot_ui,
+            state,
+            &mut ctx.copying,
+            &mut ctx.window.editable_values,
+            &mut ctx.attaching,
+            ctx.created_on,
+            ctx.output,
+        ) {
+            ui.text(format!("Error on drawing plot! {}", e))
+        }
+        update_editor_from_state(
+            state.stored_values(),
+            &mut ctx.window.editable_values,
+            ctx.node_editor,
+        );
+    }
+
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
+        write_to_file_as_debug(path, self)?;
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use super::cake::{OutputId, Transform, TransformIdx};
 use super::node_editor::NodeEditor;
-use super::primitives::{IOErr, IOValue};
+use super::primitives::{IOErr, IOValue, Topology};
 use glium::backend::Facade;
 use imgui::{
     ChildWindow, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
@@ -48,6 +48,10 @@ pub struct State<I> {
     pub show_axis_option: bool,
     pub use_ms_for_degrees: (bool, bool),
     pub relative_to_center_for_degrees: (bool, bool),
+    pub show_tp_critical_points: bool,
+    pub show_tp_separatrices_points: bool,
+    pub show_tp_connections: bool,
+    pub topology: Option<Topology>,
     offset: [f32; 2],
     pub zoomkind: [bool; 4],
     scrolling: [f32; 2],
@@ -122,6 +126,10 @@ impl<I> Default for State<I> {
             show_axis_option: false,
             use_ms_for_degrees: (true, true),
             relative_to_center_for_degrees: (false, false),
+            show_tp_critical_points: false,
+            show_tp_separatrices_points: false,
+            show_tp_connections: false,
+            topology: None,
             offset: [0.0, 0.0],
             zoomkind: [true, false, false, false],
             scrolling: [0.0, 0.0],
@@ -1067,7 +1075,7 @@ where
                     match self.image.ndim() {
                         2 => {
                             if y < self.image.dim().0 {
-                                let index = [self.image.dim().0 - 1 - y, x];
+                                let index = [y, x];
                                 if let Some(val) = self.image.get(index) {
                                     let x_measurement = xaxis.map(|axis| Measurement {
                                         v: axis.pix2world(x as f32),
@@ -2039,6 +2047,8 @@ where
                         // Used in show_bar
                         Interaction::Lims(_) => {}
                         Interaction::ColorLims(_) => {}
+                        // Unused in imshow
+                        Interaction::PersistenceFilter(_) => {}
                     }
                     stack.pop();
                 }
