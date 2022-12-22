@@ -16,14 +16,14 @@ type EditableValues = HashMap<InteractionId, TransformIdx>;
 /// Current state of a plot UI.
 #[derive(Debug)]
 pub struct State {
-    offset: [f32; 2],
-    zoom: [f32; 2],
-    mouse_pos: [f32; 2],
+    //offset: [f32; 2],
+    //zoom: [f32; 2],
+    //mouse_pos: [f32; 2],
     interactions: Interactions,
     plot_limits: [f64; 4],
     limit_changed: bool,
     datapoints: HashMap<Vec<bool>, (Vec<f64>, Vec<f64>, Vec<Vec<f32>>)>,
-    class: Vec<usize>,
+    //class: Vec<usize>,
     pub show_graph_editor: bool,
     show_graph: Vec<bool>,
     expr: Vec<String>,
@@ -37,16 +37,15 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
-        use std::f32;
         State {
-            offset: [0.0, 0.0],
-            zoom: [1.0, 1.0],
-            mouse_pos: [f32::NAN, f32::NAN],
+            //offset: [0.0, 0.0],
+            //zoom: [1.0, 1.0],
+            //mouse_pos: [f32::NAN, f32::NAN],
             interactions: Interactions::new(),
             plot_limits: [0.0, 1.0, 0.0, 1.0],
             limit_changed: true,
             datapoints: HashMap::new(),
-            class: vec![],
+            //class: vec![],
             show_graph_editor: false,
             show_graph: vec![false],
             expr: vec![String::from("")],
