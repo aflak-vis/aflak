@@ -978,6 +978,20 @@ where
 
         if let Some((output, input_slot)) = self.new_link {
             self.events.push(RenderEvent::Connect(output, input_slot));
+            let mut name = String::from("");
+            if let Some(t) = dst.get_transform(output.t_idx) {
+                if let cake::Algorithm::Constant(_) = t.algorithm() {
+                    name = t.name().to_string();
+                }
+            }
+            match name.as_str() {
+                "ColorLut" => {
+                    if let cake::InputSlot::Output(output_id) = input_slot {
+                        *attaching = Some((output_id, output.t_idx, 3));
+                    }
+                }
+                _ => {}
+            }
             self.new_link = None;
         }
         ui.popup(format!("delete-link"), || {

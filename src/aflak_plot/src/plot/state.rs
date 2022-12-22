@@ -247,6 +247,7 @@ impl State {
                 Interaction::Circle(_) => {}
                 Interaction::Lims(_) => {}
                 Interaction::ColorLims(_) => {}
+                Interaction::ColorLut(_) => {}
                 Interaction::PersistenceFilter(_) => {}
             }
             stack.pop();

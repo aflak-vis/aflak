@@ -14,6 +14,7 @@ use crate::aflak_plot::{
     imshow::{Textures, UiImage2d},
     persistence_diagram::UiPersistenceDiagram,
     plot::UiImage1d,
+    plot_colormap::UiColorMap,
     scatter_lineplot::UiScatter,
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
@@ -176,6 +177,7 @@ fn update_state_from_editor(
                         IOValue::Float3(f) => interaction.set_value(*f),
                         IOValue::Float3x3(f) => interaction.set_value(*f),
                         IOValue::Roi(_) => Ok(()),
+                        IOValue::ColorLut(l) => interaction.set_value(l.clone()),
                         value => Err(format!("Cannot convert value '{:?}'", value)),
                     } {
                         eprintln!("Could not update state from editor: {}", e);
@@ -212,6 +214,7 @@ fn update_editor_from_state(
             Value::FinedGrainedROI(pixels) => IOValue::Roi(ROI::PixelList(pixels.0)),
             Value::Line(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
             Value::Circle(pixels) => IOValue::Roi(ROI::PixelList(pixels)),
+            Value::ColorLut(lut) => IOValue::ColorLut(lut),
         };
         if store.contains_key(id) {
             if change_flag {
@@ -414,6 +417,76 @@ impl MenuBar for ROI {
             }
         }
         ctx.ui.text_wrapped(&format!("{:?}", self));
+    }
+
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
+        write_to_file_as_display(path, &format!("{:?}", self))?;
+        Ok(())
+    }
+
+    const EXTENSION: &'static str = "txt";
+}
+
+impl MenuBar for &(usize, Vec<(f32, [u8; 3])>) {
+    fn other_menu(&self, ui: &Ui, window: &mut OutputWindow) {
+        if let Some(menu) = ui.begin_menu_with_enabled(format!("Color Mode"), true) {
+            if MenuItem::new(format!("RGB"))
+                .build_with_ref(ui, &mut window.colormap_state.colormode[0])
+            {
+                if window.colormap_state.colormode[0] == true {
+                    window.colormap_state.colormode[1] = false;
+                } else {
+                    window.colormap_state.colormode[0] = true;
+                }
+            };
+            if MenuItem::new(format!("HSV"))
+                .build_with_ref(ui, &mut window.colormap_state.colormode[1])
+            {
+                if window.colormap_state.colormode[1] == true {
+                    window.colormap_state.colormode[0] = false;
+                } else {
+                    window.colormap_state.colormode[1] = true;
+                }
+            };
+            menu.end();
+        }
+    }
+    fn visualize<F>(&self, mut ctx: OutputWindowCtx<'_, '_, '_, '_, '_, '_, '_, F>)
+    where
+        F: glium::backend::Facade,
+    {
+        ctx.ui.text_wrapped(&format!("{:?}", self));
+        if let Some(attaching) = ctx.attaching {
+            if attaching.0 == ctx.output {
+                if attaching.2 != 3 {
+                    attach_failued(&mut ctx, &"ColorLut");
+                }
+            }
+        }
+        let ui = &ctx.ui;
+        let state = &mut ctx.window.colormap_state;
+        update_state_from_editor(
+            state.stored_values_mut(),
+            &ctx.window.editable_values,
+            ctx.node_editor,
+        );
+        if let Err(e) = ui.colormap(
+            self,
+            "",
+            state,
+            &mut ctx.copying,
+            &mut ctx.window.editable_values,
+            &mut ctx.attaching,
+            ctx.output,
+            &ctx.node_editor,
+        ) {
+            ui.text(format!("Error on drawing colormap! {}", e))
+        }
+        update_editor_from_state(
+            state.stored_values(),
+            &mut ctx.window.editable_values,
+            ctx.node_editor,
+        );
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ExportError> {
@@ -1013,6 +1086,7 @@ where
                 0 => "horizontal line",
                 1 => "vertical line",
                 2 => "Region Of Interest",
+                3 => "Color Map",
                 _ => "Unimplemented Interaction",
             };
             ctx.ui.text(format!(

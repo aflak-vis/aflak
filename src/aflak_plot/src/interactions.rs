@@ -14,6 +14,7 @@ pub enum Value {
     FinedGrainedROI((Vec<(usize, usize)>, bool)),
     Line(Vec<(usize, usize)>),
     Circle(Vec<(usize, usize)>),
+    ColorLut((usize, Vec<(f32, [u8; 3])>)),
 }
 
 impl From<i64> for Value {
@@ -46,6 +47,11 @@ impl From<(Vec<(usize, usize)>, bool)> for Value {
         Value::FinedGrainedROI(v)
     }
 }
+impl From<(usize, Vec<(f32, [u8; 3])>)> for Value {
+    fn from(v: (usize, Vec<(f32, [u8; 3])>)) -> Self {
+        Value::ColorLut(v)
+    }
+}
 
 /// Possible interactions with UI.
 #[derive(Clone, Debug, PartialEq)]
@@ -57,6 +63,7 @@ pub enum Interaction {
     Circle(Circle),
     Lims(Lims),
     ColorLims(ColorLims),
+    ColorLut(ColorLut),
     PersistenceFilter(PersistenceFilter),
 }
 
@@ -107,6 +114,12 @@ pub struct ColorLims {
     pub lims: [[f32; 3]; 3],
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ColorLut {
+    pub colormode: usize,
+    pub lut: Vec<(f32, [u8; 3])>,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PersistenceFilter {
     pub val: f32,
@@ -146,6 +159,12 @@ impl FinedGrainedROI {
             pixels: vec,
             changed: false,
         }
+    }
+}
+
+impl ColorLut {
+    pub fn new(colormode: usize, lut: Vec<(f32, [u8; 3])>) -> Self {
+        Self { colormode, lut }
     }
 }
 
@@ -238,6 +257,7 @@ impl Interactions {
             Interaction::Circle(..) => false,
             Interaction::Lims(..) => false,
             Interaction::ColorLims(..) => false,
+            Interaction::ColorLut(..) => false,
             Interaction::PersistenceFilter(PersistenceFilter { moving, .. }) => *moving,
         })
     }
@@ -257,6 +277,9 @@ impl Interaction {
             Interaction::Circle(Circle { pixels, .. }) => Value::Circle(pixels.clone()),
             Interaction::Lims(Lims { lims, .. }) => Value::Float3(*lims),
             Interaction::ColorLims(ColorLims { lims, .. }) => Value::Float3x3(*lims),
+            Interaction::ColorLut(ColorLut { colormode, lut }) => {
+                Value::ColorLut((*colormode, lut.clone()))
+            }
             Interaction::PersistenceFilter(PersistenceFilter { val, .. }) => Value::Float(*val),
         }
     }
@@ -303,6 +326,17 @@ impl Interaction {
                         lims[c][v] = Interaction::clamp(f3[c][v], 0.0, 1.0);
                     }
                 }
+                Ok(())
+            }
+            (
+                Interaction::ColorLut(ColorLut {
+                    ref mut colormode,
+                    ref mut lut,
+                }),
+                Value::ColorLut(l),
+            ) => {
+                *colormode = l.0;
+                *lut = l.1.clone();
                 Ok(())
             }
             (

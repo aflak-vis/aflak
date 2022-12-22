@@ -221,6 +221,15 @@ fn inner_editor(
             };
             None
         }
+        IOValue::ColorLut(ref _colorlut) => {
+            ui.text("Non-writable");
+            if ui.is_item_hovered() {
+                ui.tooltip(|| {
+                    ui.text(" Please edit from output window ");
+                });
+            }
+            None
+        }
         _ => None,
     }
 }

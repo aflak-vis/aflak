@@ -88,6 +88,7 @@ pub enum IOValue {
     Image(WcsArray),
     Map2dTo3dCoords(Array2<[f32; 3]>),
     Roi(roi::ROI),
+    ColorLut((usize, Vec<(f32, [u8; 3])>)),
     Paths(PATHS),
     ToneCurve(ToneCurveState),
     PersistencePairs(PersistencePairs),
@@ -109,6 +110,7 @@ impl PartialEq for IOValue {
             (Image(i1), Image(i2)) => i1 == i2,
             (Map2dTo3dCoords(m1), Map2dTo3dCoords(m2)) => m1 == m2,
             (Roi(r1), Roi(r2)) => r1 == r2,
+            (ColorLut(c1), ColorLut(c2)) => *c1 == *c2,
             (Paths(p1), Paths(p2)) => p1 == p2,
             _ => false,
         }

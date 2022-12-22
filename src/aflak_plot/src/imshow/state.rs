@@ -13,7 +13,7 @@ use std::time::Instant;
 
 use super::image;
 use super::interactions::{
-    Circle, ColorLims, FinedGrainedROI, HorizontalLine, Interaction, InteractionId,
+    Circle, ColorLims, ColorLut, FinedGrainedROI, HorizontalLine, Interaction, InteractionId,
     InteractionIterMut, Interactions, Lims, Line, ValueIter, VerticalLine,
 };
 use super::lut::{BuiltinLUT, ColorLUT};
@@ -520,6 +520,23 @@ where
                         *lims = now_lims;
                     } else if *lims != now_lims {
                         self.lut.set_lims(lims[0], lims[1], lims[2]);
+                        changed = true;
+                    }
+                }
+                Interaction::ColorLut(ColorLut { colormode, lut }) => {
+                    let now_lut = self.lut.gradient();
+                    let cm = if self.colormap_name == "Topological Accentuating"
+                        || self.colormap_name == "Normal JetColor"
+                    {
+                        1
+                    } else {
+                        0
+                    };
+                    *colormode = cm;
+                    if changed {
+                        *lut = now_lut;
+                    } else if *lut != now_lut {
+                        self.lut.set_gradient(lut.clone());
                         changed = true;
                     }
                 }
@@ -2047,6 +2064,7 @@ where
                         // Used in show_bar
                         Interaction::Lims(_) => {}
                         Interaction::ColorLims(_) => {}
+                        Interaction::ColorLut(_) => {}
                         // Unused in imshow
                         Interaction::PersistenceFilter(_) => {}
                     }
