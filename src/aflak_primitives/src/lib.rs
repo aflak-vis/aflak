@@ -192,6 +192,24 @@ Extract data where the 0th axis is from start to end",
                 }
             ),
             cake_transform!(
+                "Range specification. Parameter: image, start, end.
+Extract data where the 1st axis is from start to end",
+                "04. Extract part of data",
+                0, 1, 0,
+                range_specification_x<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_range_specification_x(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
+                "Range specification. Parameter: image, start, end.
+Extract data where the 2nd axis is from start to end",
+                "04. Extract part of data",
+                0, 1, 0,
+                range_specification_y<IOValue, IOErr>(image: Image, start: Integer = 0, end: Integer = 1) -> Image {
+                    vec![run_range_specification_y(image, *start, *end)]
+                }
+            ),
+            cake_transform!(
                 "Image's min and max value. Parameter: image.
 Compute v_min(first), v_max(second)",
                 "04. Extract part of data",
@@ -2305,6 +2323,14 @@ fn run_range_specification(image: &WcsArray, start: i64, end: i64) -> Result<IOV
     reduce_array_slice(image, start, end, |slices| slices.to_owned())
 }
 
+fn run_range_specification_x(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice_x(image, start, end, |slices| slices.to_owned())
+}
+
+fn run_range_specification_y(image: &WcsArray, start: i64, end: i64) -> Result<IOValue, IOErr> {
+    reduce_array_slice_y(image, start, end, |slices| slices.to_owned())
+}
+
 fn run_extrude(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> {
     dim_is!(image, 3)?;
 
@@ -2386,6 +2412,48 @@ where
     let image_val = image.scalar();
 
     let slices = image_val.slice_axis(Axis(0), Slice::from(start..end));
+    let raw = f(&slices);
+    let ndim = raw.ndim();
+
+    let wrap_with_unit = image.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        image.array().with_new_value(raw),
+    );
+    Ok(IOValue::Image(wrap_with_unit))
+}
+
+fn reduce_array_slice_x<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
+where
+    F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
+{
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
+    //is_sliceable!(image, start, end)?;
+
+    let image_val = image.scalar();
+
+    let slices = image_val.slice_axis(Axis(1), Slice::from(start..end));
+    let raw = f(&slices);
+    let ndim = raw.ndim();
+
+    let wrap_with_unit = image.make_slice(
+        &(0..ndim).map(|i| (i, 0.0, 1.0)).collect::<Vec<_>>(),
+        image.array().with_new_value(raw),
+    );
+    Ok(IOValue::Image(wrap_with_unit))
+}
+
+fn reduce_array_slice_y<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
+where
+    F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
+{
+    let start = try_into_unsigned!(start)?;
+    let end = try_into_unsigned!(end)?;
+    //is_sliceable!(image, start, end)?;
+
+    let image_val = image.scalar();
+
+    let slices = image_val.slice_axis(Axis(2), Slice::from(start..end));
     let raw = f(&slices);
     let ndim = raw.ndim();
 
