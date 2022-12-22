@@ -16,6 +16,7 @@ use crate::aflak_plot::{
     plot::UiImage1d,
     plot_colormap::UiColorMap,
     scatter_lineplot::UiScatter,
+    three::UiImage3d,
     AxisTransform, InteractionId, InteractionIterMut, ValueIter,
 };
 use crate::cake::{OutputId, TransformIdx};
@@ -614,6 +615,20 @@ impl MenuBar for primitives::WcsArray {
                         menu.end();
                     }
                 }
+                3 => {
+                    if let Some(menu) =
+                        ui.begin_menu_with_enabled(format!("Transfer Function"), true)
+                    {
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("ColorMap"), true) {
+                            MenuItem::new(format!("Edit"))
+                                .build_with_ref(ui, &mut window.image3d_state.show_colormapedit);
+                            menu.end();
+                        }
+                        MenuItem::new(format!("Brightness Settings"))
+                            .build_with_ref(ui, &mut window.image3d_state.show_tf_parameters);
+                        menu.end();
+                    }
+                }
                 _ => {}
             },
             Some(tag) => match tag.as_ref() {
@@ -867,6 +882,22 @@ impl MenuBar for primitives::WcsArray {
                         &mut ctx.window.editable_values,
                         ctx.node_editor,
                     );
+                }
+                3 => {
+                    let ui = &ctx.ui;
+                    let state = &mut ctx.window.image3d_state;
+                    let arr = self.array();
+                    let val = arr.scalar().view();
+                    let texture_id = TextureId::from(hash_outputid(ctx.output));
+                    let new_incoming_image = match state.image_created_on() {
+                        Some(image_created_on) => ctx.created_on > image_created_on,
+                        None => true,
+                    };
+                    state.topology = self.topology().clone();
+                    if new_incoming_image {
+                        state.new(ctx.created_on);
+                    }
+                    ui.image3d(&val, texture_id, ctx.textures, ctx.gl_ctx, state);
                 }
                 _ => {
                     let ui = &ctx.ui;

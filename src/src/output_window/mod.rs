@@ -10,7 +10,7 @@ use owning_ref::ArcRef;
 
 use crate::aflak_plot::{
     imshow::{self, Textures},
-    persistence_diagram, plot, plot_colormap, scatter_lineplot, InteractionId,
+    persistence_diagram, plot, plot_colormap, scatter_lineplot, three, InteractionId,
 };
 use crate::cake::{OutputId, TransformIdx};
 use crate::primitives::{ndarray, IOValue, SuccessOut};
@@ -24,6 +24,7 @@ use crate::aflak::AflakNodeEditor;
 pub struct OutputWindow {
     image1d_state: plot::State,
     image2d_state: imshow::State<ArcRef<IOValue, ndarray::ArrayD<f32>>>,
+    image3d_state: three::State,
     colormap_state: plot_colormap::State,
     scatter_lineplot_state: scatter_lineplot::State,
     persistence_diagram_state: persistence_diagram::State,

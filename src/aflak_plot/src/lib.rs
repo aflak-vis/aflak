@@ -21,7 +21,9 @@ extern crate meval;
 pub mod imshow;
 pub mod persistence_diagram;
 pub mod plot;
+pub mod plot_colormap;
 pub mod scatter_lineplot;
+pub mod three;
 
 mod err;
 pub mod interactions;
