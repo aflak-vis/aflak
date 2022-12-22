@@ -1800,6 +1800,14 @@ impl cake::NamedAlgorithms<IOErr> for IOValue {
     }
 }
 
+fn func(x: f32, y: f32, z: f32, c: f32, d: f32, r: f32) -> f32 {
+    4.0 * c * c * ((x - r) * (x - r) + (z - r) * (z - r) + (x + r) * (x + r) + (z + r) * (z + r))
+        - ((x - r) * (x - r) + y * y + (z - r) * (z - r) + c * c - d * d)
+            * ((x - r) * (x - r) + y * y + (z - r) * (z - r) + c * c - d * d)
+        - ((x + r) * (x + r) + y * y + (z + r) * (z + r) + c * c - d * d)
+            * ((x + r) * (x + r) + y * y + (z + r) * (z + r) + c * c - d * d)
+}
+
 impl cake::DefaultFor for IOValue {
     fn default_for(variant_name: &str) -> Self {
         match variant_name {
@@ -1813,6 +1821,29 @@ impl cake::DefaultFor for IOValue {
             "Str" => IOValue::Str("".to_owned()),
             "Bool" => IOValue::Bool(false),
             "Paths" => IOValue::Paths(PATHS::FileList(vec![])),
+            "Sliced_Analytic_Volume" => {
+                let image_data = {
+                    const WIDTH: usize = 129;
+                    const HEIGHT: usize = 129;
+                    const C: f32 = 0.6;
+                    const D: f32 = 0.5;
+                    const R: f32 = 0.2;
+                    let mut image_data = Vec::with_capacity(WIDTH * HEIGHT);
+                    for j in 0..WIDTH {
+                        for i in 0..HEIGHT {
+                            let j = (j as f32) / 64.0 - 1.0;
+                            let i = (i as f32) / 64.0 - 1.0;
+                            let v = func(j as f32, 0.0, i as f32, C, D, R);
+                            image_data.push(v);
+                        }
+                    }
+                    ndarray::ArrayD::from_shape_vec(vec![WIDTH, HEIGHT], image_data).unwrap()
+                };
+                IOValue::Image(WcsArray::from_array_and_tag(
+                    Dimensioned::new(image_data.into_dyn(), Unit::None),
+                    None,
+                ))
+            }
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
     }
@@ -1831,6 +1862,7 @@ impl cake::EditableVariants for IOValue {
             "Bool",
             "Paths",
             "ToneCurve",
+            "Sliced_Analytic_Volume",
         ]
     }
 }
