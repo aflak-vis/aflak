@@ -21,3 +21,4 @@ variant_name = { path = "../variant_name", version = "0.0.1" }
 variant_name_derive = { path = "../variant_name_derive", version = "0.0.1" }
 rawloader = "0.36.3"
 libm = "0.2.1"
+ttk-sys = { path = "../ttk-sys" }

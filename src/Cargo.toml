@@ -27,6 +27,7 @@ imgui = { version = "0.8.0" }
 imgui-glium-renderer = { version = "0.8.0" }
 implot = { git = "https://github.com/4bb4/implot-rs" }
 owning_ref = "0.4.0"
+ttk-sys = { path = "ttk-sys" }
 [build-dependencies]
 clap = "2.32.0"
 

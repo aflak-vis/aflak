@@ -1,0 +1,3 @@
+[submodule "src/ttk-sys"]
+	path = src/ttk-sys
+	url = https://github.com/dabokun/ttk-sys
