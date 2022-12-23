@@ -193,6 +193,68 @@ impl ColorLUT {
         }
     }
 
+    fn hsv2rgb(&self, hsv: [u8; 3]) -> [u8; 3] {
+        let h = hsv[0] as f32 / 255.0 * 360.0;
+        let (s, v) = (hsv[1] as f32, hsv[2] as f32);
+        let max = v as f32;
+        let min = max - ((s / 255.0) * max);
+        if 0.0 <= h && h < 60.0 {
+            let g = (h / 60.0) * (max - min) + min;
+            [max as u8, g as u8, min as u8]
+        } else if 60.0 <= h && h < 120.0 {
+            let r = ((120.0 - h) / 60.0) * (max - min) + min;
+            [r as u8, max as u8, min as u8]
+        } else if 120.0 <= h && h < 180.0 {
+            let b = ((h - 120.0) / 60.0) * (max - min) + min;
+            [min as u8, max as u8, b as u8]
+        } else if 180.0 <= h && h < 240.0 {
+            let g = ((240.0 - h) / 60.0) * (max - min) + min;
+            [min as u8, g as u8, max as u8]
+        } else if 240.0 <= h && h < 300.0 {
+            let r = ((h - 240.0) / 60.0) * (max - min) + min;
+            [r as u8, min as u8, max as u8]
+        } else if 300.0 <= h && h < 360.0 {
+            let b = ((360.0 - h) / 60.0) * (max - min) + min;
+            [max as u8, min as u8, b as u8]
+        } else {
+            [0, 0, 0]
+        }
+    }
+
+    fn color_at_init_hsv(&self, point: f32) -> [u8; 3] {
+        for ((val1, c1), (val2, c2)) in self.bounds() {
+            let dv = val2 - val1;
+            if val1 <= point && point <= val2 {
+                let [h1, s1, v1] = c1;
+                let [h2, s2, v2] = c2;
+                return if dv == 0.0 {
+                    self.hsv2rgb(c1)
+                } else {
+                    let h1 = f32::from(h1);
+                    let h2 = f32::from(h2);
+                    let s1 = f32::from(s1);
+                    let s2 = f32::from(s2);
+                    let v1 = f32::from(v1);
+                    let v2 = f32::from(v2);
+                    let dp = point - val1;
+                    let coef = dp / dv;
+                    self.hsv2rgb([
+                        (h1 + (h2 - h1) * coef) as u8,
+                        (s1 + (s2 - s1) * coef) as u8,
+                        (v1 + (v2 - v1) * coef) as u8,
+                    ])
+                };
+            }
+        }
+        [0, 0, 0]
+    }
+
+    fn lut_init_hsv(&mut self) {
+        for i in 0..LUT_SIZE {
+            self.lut[i] = self.color_at_init_hsv(i as f32 / (LUT_SIZE - 1) as f32);
+        }
+    }
+
     pub fn bounds(&self) -> iter::Zip<StopIter, iter::Skip<StopIter>> {
         let first_color = StopIter::new(self);
         let next_color = first_color.skip(1);
@@ -242,9 +304,18 @@ impl ColorLUT {
         self.lims
     }
 
+    pub fn gradient(&self) -> Vec<(f32, [u8; 3])> {
+        self.gradient.clone()
+    }
+
     pub fn set_gradient<G: Into<Vec<(f32, [u8; 3])>>>(&mut self, gradient: G) {
         self.gradient = gradient.into();
         self.lut_init();
+    }
+
+    pub fn set_gradient_hsv<G: Into<Vec<(f32, [u8; 3])>>>(&mut self, gradient: G) {
+        self.gradient = gradient.into();
+        self.lut_init_hsv();
     }
 }
 

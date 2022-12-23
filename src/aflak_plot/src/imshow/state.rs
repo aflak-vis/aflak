@@ -52,6 +52,7 @@ pub struct State<I> {
     pub show_tp_separatrices_points: bool,
     pub show_tp_connections: bool,
     pub topology: Option<Topology>,
+    pub colormap_name: String,
     offset: [f32; 2],
     pub zoomkind: [bool; 4],
     scrolling: [f32; 2],
@@ -130,6 +131,7 @@ impl<I> Default for State<I> {
             show_tp_separatrices_points: false,
             show_tp_connections: false,
             topology: None,
+            colormap_name: "Flame".to_string(),
             offset: [0.0, 0.0],
             zoomkind: [true, false, false, false],
             scrolling: [0.0, 0.0],
@@ -221,6 +223,7 @@ where
                     self.lut.set_gradient(*builtin_lut);
                     self.lut.set_lims(buf_min, buf_mid, buf_max);
                     changed = true;
+                    self.colormap_name = builtin_lut.name().to_string();
                 }
                 stack.pop();
             }
@@ -260,11 +263,100 @@ where
                     let now_lims = self.lut.lims();
                     let now_lims = [now_lims.0, now_lims.1, now_lims.2];
                     let new = Interaction::Lims(Lims::new(now_lims));
-                    self.interactions.insert(new);
+                    self.interactions.insert(new.clone());
                 }
                 menu.end();
             }
+            if let Some(menu) = ui.begin_menu_with_enabled(format!("Color Map"), true) {
+                if MenuItem::new(format!("to main editor")).build(ui) {
+                    let lut = self.lut.gradient();
+                    let colormode = if self.colormap_name == "Topological Accentuating"
+                        || self.colormap_name == "Normal JetColor"
+                    {
+                        1
+                    } else {
+                        0
+                    };
+                    let new = Interaction::ColorLut(ColorLut::new(colormode, lut));
+                    self.interactions.insert(new.clone());
+                }
+                menu.end();
+            }
+            if let Some(_) = &self.topology {
+                if MenuItem::new(format!("Topological Accentuating")).build(ui) {
+                    self.colormap_name = "Topological Accentuating".to_string();
+                }
+                if MenuItem::new(format!("Normal JetColor")).build(ui) {
+                    self.colormap_name = "Normal JetColor".to_string();
+                    let color_points = vec![(0.0, [170, 255, 255]), (1.0, [0, 255, 255])];
+                    self.lut.set_gradient_hsv(color_points.to_vec());
+                    changed = true;
+                }
+            }
         });
+        if let Some(topology) = &self.topology {
+            if self.colormap_name == "Topological Accentuating" {
+                let cp_coord = topology
+                    .critical_points
+                    .iter()
+                    .map(|v| (v.coord.0, v.coord.1))
+                    .collect::<Vec<(f32, f32)>>();
+                let mut cp_val = Vec::new();
+                for (x, y) in cp_coord {
+                    if let Some(val) = self
+                        .image
+                        .get([(73.0 - y).round() as usize, x.round() as usize])
+                    {
+                        cp_val.push(val);
+                    }
+                }
+                let max = self.image.vmax();
+                let min = self.image.vmin();
+                let mut cp_val_norm = cp_val
+                    .iter()
+                    .map(|v| (v - min) / (max - min))
+                    .collect::<Vec<f32>>();
+                cp_val_norm.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                let mut min = f32::MAX;
+                for (cp1, cp2) in cp_val_norm.iter().zip(cp_val_norm.iter().skip(1)) {
+                    min = min.min(cp2 - cp1);
+                }
+                let mut color_points = vec![(0.0, [170, 170, 170])];
+                let omega = min / 2.0;
+                let mut cp_val_norm_added_first_end = vec![0.0];
+                cp_val_norm_added_first_end.append(&mut cp_val_norm.clone());
+                cp_val_norm_added_first_end.push(1.0);
+                cp_val_norm_added_first_end.dedup();
+                let mut counter = 0;
+                let first = cp_val_norm_added_first_end.iter();
+                let second = cp_val_norm_added_first_end.iter().skip(1);
+                let down_hue = 170.0 / (cp_val_norm_added_first_end.len() - 1) as f32;
+                for (c1, c2) in first.zip(second) {
+                    let t = down_hue / (c2 - c1);
+                    if counter == 0 {
+                        let hue1 = (170.0 - t * (c2 - omega)) as u8;
+                        let hue2 = (170.0 - t * c2) as u8;
+                        color_points.push((*c2 - omega, [hue1, 170, 170]));
+                        color_points.push((*c2, [hue2, 255, 255]));
+                    } else if counter == cp_val_norm_added_first_end.len() - 1 {
+                        let hue1 = (170.0 - counter as f32 * down_hue - t * omega) as u8;
+                        color_points.push((*c1 + omega, [hue1, 170, 170]));
+                    } else {
+                        let hue1 = (170.0 - counter as f32 * down_hue - t * omega) as u8;
+                        let hue2 = (170.0 - ((counter + 1) as f32 * down_hue) + t * omega) as u8;
+                        let hue3 = (170.0 - ((counter + 1) as f32 * down_hue)) as u8;
+                        color_points.push((*c1 + omega, [hue1, 170, 170]));
+                        color_points.push((*c2 - omega, [hue2, 170, 170]));
+                        color_points.push((*c2, [hue3, 255, 255]));
+                    }
+                    counter += 1;
+                }
+                color_points.push((1.0, [0, 170, 170]));
+                self.lut.set_lims(0.0, 0.5, 1.0);
+                self.lut.set_gradient_hsv(color_points.to_vec());
+                changed = true;
+            }
+        }
 
         let draw_list = ui.get_window_draw_list();
 
