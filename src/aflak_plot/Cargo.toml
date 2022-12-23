@@ -16,6 +16,7 @@ node_editor = { path = "../node_editor" }
 ndarray = "0.12"
 implot = { git = "https://github.com/4bb4/implot-rs" }
 meval = "0.2"
+itertools = "0.10.5"
 
 [dev-dependencies]
 aflak_imgui_glium_support = { path = "../imgui_glium_support", version = "0.0.3" }
