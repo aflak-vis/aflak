@@ -22,6 +22,7 @@ extern crate variant_name_derive;
 extern crate aflak_cake as cake;
 pub extern crate fitrs;
 extern crate imgui_tone_curve;
+extern crate lab;
 extern crate libm;
 
 #[macro_use]
