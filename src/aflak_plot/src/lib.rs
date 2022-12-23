@@ -15,7 +15,10 @@ extern crate node_editor;
 #[macro_use]
 extern crate ndarray;
 
+extern crate contour;
+extern crate geojson;
 extern crate implot;
+extern crate itertools;
 extern crate meval;
 
 pub mod imshow;

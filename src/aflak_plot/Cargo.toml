@@ -16,6 +16,8 @@ node_editor = { path = "../node_editor" }
 ndarray = "0.12"
 implot = { git = "https://github.com/4bb4/implot-rs" }
 meval = "0.2"
+contour = "0.4.0"
+geojson = ">=0.16, <=0.22"
 itertools = "0.10.5"
 
 [dev-dependencies]

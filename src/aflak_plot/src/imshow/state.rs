@@ -1,6 +1,8 @@
 use super::cake::{OutputId, Transform, TransformIdx};
 use super::node_editor::NodeEditor;
 use super::primitives::{IOErr, IOValue, Topology};
+use contour::ContourBuilder;
+use geojson;
 use glium::backend::Facade;
 use imgui::{
     ChildWindow, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider, TextureId,
@@ -9,6 +11,7 @@ use imgui::{
 use ndarray::ArrayD;
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::time::Instant;
 
 use super::image;
@@ -44,6 +47,8 @@ pub struct State<I> {
     roi_input: RoiInputState,
     circle_input: CircleInputState,
     image: image::Image<I>,
+    pub show_contour: bool,
+    pub contour_state: (f32, f32, f32), //(min, max, step)
     pub show_approx_line: bool,
     pub show_axis_option: bool,
     pub use_ms_for_degrees: (bool, bool),
@@ -123,6 +128,8 @@ impl<I> Default for State<I> {
             roi_input: Default::default(),
             circle_input: Default::default(),
             image: Default::default(),
+            show_contour: false,
+            contour_state: (0.0, 1.0, 0.1),
             show_approx_line: false,
             show_axis_option: false,
             use_ms_for_degrees: (true, true),
@@ -1424,6 +1431,166 @@ where
                         });
                 }
 
+                if self.show_contour {
+                    Window::new(&ImString::new(format!("Contour Control of {:?}", outputid)))
+                        .size([300.0, 200.0], Condition::Appearing)
+                        .resizable(false)
+                        .build(ui, || {
+                            ui.input_float(format!("min"), &mut self.contour_state.0)
+                                .step(0.01)
+                                .step_fast(1.0)
+                                .build();
+                            ui.input_float(format!("max"), &mut self.contour_state.1)
+                                .step(0.01)
+                                .step_fast(1.0)
+                                .build();
+                            ui.input_float(format!("step"), &mut self.contour_state.2)
+                                .step(0.01)
+                                .step_fast(1.0)
+                                .build();
+                            if self.contour_state.2 <= 0.01 {
+                                self.contour_state.2 = 0.01;
+                            }
+                        });
+                    let c = ContourBuilder::new(
+                        self.image.dim().0 as u32,
+                        self.image.dim().1 as u32,
+                        true,
+                    );
+                    let mut data = Vec::new();
+                    for i in 0..self.image.dim().1 {
+                        for j in 0..self.image.dim().0 {
+                            let index = [i, j];
+                            if let Some(val) = self.image.get(index) {
+                                data.push(val as f64);
+                            } else {
+                                println!("None value!");
+                            }
+                        }
+                    }
+                    let mut range = Vec::new();
+                    let mut v = self.contour_state.0;
+                    while v < self.contour_state.1 {
+                        range.push(v as f64);
+                        v += self.contour_state.2;
+                    }
+                    let res = c.contours(&data, &range).unwrap();
+                    for contours in &res {
+                        match contours.clone().geometry.unwrap().value {
+                            geojson::Value::MultiPolygon(polys) => {
+                                if !polys.is_empty() {
+                                    for poly in polys {
+                                        for polygons in poly {
+                                            let mut prev: Option<Vec<f64>> = None;
+                                            for point in polygons {
+                                                if let Some(ref pp) = prev {
+                                                    let x0 = p[0]
+                                                        + pp[0] as f32 / tex_size.0 as f32
+                                                            * size[0];
+                                                    let y0 = p[1] + size[1]
+                                                        - pp[1] as f32 / tex_size.1 as f32
+                                                            * size[1];
+                                                    let x1 = p[0]
+                                                        + point[0] as f32 / tex_size.0 as f32
+                                                            * size[0];
+                                                    let y1 = p[1] + size[1]
+                                                        - point[1] as f32 / tex_size.1 as f32
+                                                            * size[1];
+
+                                                    draw_list
+                                                        .add_line(
+                                                            [x0 as f32, y0 as f32],
+                                                            [x1 as f32, y1 as f32],
+                                                            0x80FF_FFFF,
+                                                        )
+                                                        .build();
+                                                }
+                                                prev = Some(point.clone());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            _ => unimplemented!(""),
+                        }
+                    }
+                }
+
+                if let Some(topology) = &self.topology {
+                    if self.show_tp_critical_points {
+                        for cp in &topology.critical_points {
+
+                            let x = p[0] + cp.coord.0 / tex_size.0 as f32 * size[0];
+                            let y = p[1] + cp.coord.1 / tex_size.1 as f32 * size[1];
+                            const CIRCLE_COLOR_RED: u32 = 0xB000_00FF;
+                            const CIRCLE_COLOR_GREEN: u32 = 0xB000_FF00;
+                            const CIRCLE_COLOR_BLUE: u32 = 0xB0FF_0000;
+
+                            draw_list
+                                .add_circle(
+                                    [x, y],
+                                    10.0,
+                                    if cp.point_type == 0 {
+                                        CIRCLE_COLOR_BLUE
+                                    } else if cp.point_type == 1 {
+                                        CIRCLE_COLOR_GREEN
+                                    } else {
+                                        CIRCLE_COLOR_RED
+                                    },
+                                )
+                                .filled(true)
+                                .build();
+                        }
+                    }
+                    if self.show_tp_separatrices_points {
+                        for sp in &topology.separatrices1_points {
+                            let x = p[0] + sp.coord.0 / tex_size.0 as f32 * size[0];
+                            let y = p[1] + sp.coord.1 / tex_size.1 as f32 * size[1];
+                            const CIRCLE_COLOR_RED: u32 = 0xB000_00FF;
+                            const CIRCLE_COLOR_GREEN: u32 = 0xB000_FF00;
+                            const CIRCLE_COLOR_BLUE: u32 = 0xB0FF_0000;
+
+                            draw_list
+                                .add_circle(
+                                    [x, y],
+                                    1.0,
+                                    if sp.point_type == 0 {
+                                        CIRCLE_COLOR_BLUE
+                                    } else if sp.point_type == 1 {
+                                        CIRCLE_COLOR_GREEN
+                                    } else {
+                                        CIRCLE_COLOR_RED
+                                    },
+                                )
+                                .filled(true)
+                                .build();
+                        }
+                    }
+                    if self.show_tp_connections {
+                        let mut vset = Vec::new();
+                        for sc in &topology.separatrices1_cells {
+                            vset.push((sc.source, sc.dest));
+                        }
+                        let vset: HashSet<(usize, usize)> = vset.into_iter().collect();
+                        const LINE_COLOR: u32 = 0xFFFF_FFFF;
+                        for (startid, endid) in vset {
+                            let mut x0: f32 = 0.0;
+                            let mut y0: f32 = 0.0;
+                            let mut x1: f32 = 0.0;
+                            let mut y1: f32 = 0.0;
+                            for cp in &topology.critical_points {
+                                if cp.cellid == startid {
+                                    x0 = p[0] + cp.coord.0 / tex_size.0 as f32 * size[0];
+                                    y0 = p[1] + cp.coord.1 / tex_size.1 as f32 * size[1];
+                                } else if cp.cellid == endid {
+                                    x1 = p[0] + cp.coord.0 / tex_size.0 as f32 * size[0];
+                                    y1 = p[1] + cp.coord.1 / tex_size.1 as f32 * size[1];
+                                }
+                            }
+                            draw_list.add_line([x0, y0], [x1, y1], LINE_COLOR).build();
+                        }
+                    }
+                }
                 // Add interaction handlers
                 ui.popup(format!("add-interaction-handle"), || {
                     ui.text("Add interaction handle");
