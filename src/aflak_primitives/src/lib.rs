@@ -38,6 +38,7 @@ extern crate ttk_sys;
 mod fits;
 #[macro_use]
 mod precond;
+mod dijkstra;
 mod roi;
 mod unit;
 
@@ -47,10 +48,12 @@ pub use crate::unit::{
     Unit, WcsArray,
 };
 
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::slice;
 use std::sync::Arc;
 
 use imgui_tone_curve::ToneCurveState;
@@ -2965,6 +2968,30 @@ fn run_color_image_to_hsv(image: &WcsArray) -> Result<IOValue, IOErr> {
             out[[0, j, i]] = hue;
             out[[1, j, i]] = (max - min) / max * 65535.0;
             out[[2, j, i]] = max;
+        }
+    }
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        out,
+        Unit::None,
+    ))))
+}
+
+fn run_lab_to_rgb(image: &WcsArray) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image = image.scalar();
+    let mut out = image.clone();
+    for (j, slice) in image.axis_iter(Axis(1)).enumerate() {
+        for (i, data) in slice.axis_iter(Axis(1)).enumerate() {
+            let d = lab::Lab {
+                l: data[0],
+                a: (std::f32::consts::PI * data[0] / 100.0).sin() * data[1],
+                b: (std::f32::consts::PI * data[0] / 100.0).sin() * data[2],
+            };
+            let c = d.to_rgb();
+            out[[0, j, i]] = c[0] as f32;
+            out[[1, j, i]] = c[1] as f32;
+            out[[2, j, i]] = c[2] as f32;
+            println!("d: {:?} -> c: {:?}", d, c);
         }
     }
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
