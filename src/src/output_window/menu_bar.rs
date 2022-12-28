@@ -648,6 +648,16 @@ impl MenuBar for primitives::WcsArray {
                                     window.image3d_state.show_single_contour = false;
                                     window.image3d_state.representative_isosurface = false;
                                 }
+                                MenuItem::new(format!("Representative isosurface")).build_with_ref(
+                                    ui,
+                                    &mut window.image3d_state.representative_isosurface,
+                                );
+                                if ui.is_item_clicked()
+                                    && !window.image3d_state.representative_isosurface
+                                {
+                                    window.image3d_state.show_single_contour = false;
+                                    window.image3d_state.critical_isosurface = false;
+                                }
                                 menu.end();
                             }
                             menu.end();

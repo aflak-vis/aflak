@@ -88,8 +88,6 @@ impl<'ui> UiImage3d for Ui<'ui> {
                         .build(self, || {
                             Slider::new(format!("Brightness"), 0.0, 200.0)
                                 .build(self, &mut state.topology_brightness);
-                            Slider::new(format!("Upperbound"), 0.0, 100.0)
-                                .build(self, &mut state.topology_upperbound);
                         });
                 }
                 if state.show_single_contour {
@@ -129,8 +127,46 @@ impl<'ui> UiImage3d for Ui<'ui> {
                         cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
                         cp_vals.dedup_by(|a, b| (*a - *b).abs() < 3.0e-2);
                         for v in cp_vals {
+                            let alpha = (255.0 * v) as u8;
                             gradient_alpha.push((v - 0.005, 0));
-                            gradient_alpha.push((v, 255));
+                            gradient_alpha.push((v, alpha));
+                            gradient_alpha.push((v + 0.005, 0));
+                        }
+                    }
+
+                    gradient_alpha.push((1.0, 0));
+                    state.lut.set_gradient((gradient, gradient_alpha, readmode));
+                } else if state.representative_isosurface {
+                    let gradient = state.lut.gradient();
+                    let readmode = state.lut.read_mode();
+                    let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
+                    if let Some(topology) = &state.topology {
+                        let mut cp_vals = vec![0.0];
+                        let mut rep_vals = vec![];
+                        for c in &topology.critical_points {
+                            if c.point_type == 0 || c.point_type == 3 {
+                                let coord =
+                                    [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
+                                let vmin = lims::get_vmin(&image).unwrap();
+                                let vmax = lims::get_vmax(&image).unwrap();
+                                if let Some(v) = image.get(coord) {
+                                    let v = (*v - vmin) / (vmax - vmin);
+                                    cp_vals.push(v);
+                                }
+                            }
+                        }
+                        cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < 3.0e-2);
+                        cp_vals.push(1.0);
+                        let first = cp_vals.iter();
+                        let second = cp_vals.iter().skip(1);
+                        for (v1, v2) in first.zip(second) {
+                            rep_vals.push((v1 + v2) / 2.0);
+                        }
+                        for v in rep_vals {
+                            let alpha = (255.0 * v) as u8;
+                            gradient_alpha.push((v - 0.005, 0));
+                            gradient_alpha.push((v, alpha));
                             gradient_alpha.push((v + 0.005, 0));
                         }
                     }
@@ -556,16 +592,18 @@ where
             return result;
         }
 
-        vec4 color_legend_from_lut(const in float val) {
+        vec4 color_legend_from_lut(const in float val, inout ray re) {
             float r = texture(color_lut, float(val)).r;
             float g = texture(color_lut, float(val)).g;
             float b = texture(color_lut, float(val)).b;
             const float E = 2.71828;
             float a = texture(color_lut, float(val)).a;
+            int cp_size_int = int(cp_size);
+            float distance = sqrt(re.origin.x * re.origin.x + re.origin.y * re.origin.y + re.origin.z * re.origin.z);
             if (render_mode == 1) {
-                a *= 100.0f;
+                a *= brightness;
             } else {
-                a *= pow(100.0f, val);
+                a *= brightness*pow(E, -distance*distance);
             }
             return vec4(r, g, b, a);
         }
@@ -643,7 +681,7 @@ where
                     r.color += (color_legend(val) - r.color) / step++;
                     r.color.a = 1.0f;
                 } else {
-                    r.color += (color_legend_from_lut(val) - r.color) / step++;
+                    r.color += (color_legend_from_lut(val, r) - r.color) / step++;
                     //r.color.a += ((alpha_legend_topological(val) - r.color.a) / step++) * dis_s;
                 }
                 r.origin += r.direction * dt;
