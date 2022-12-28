@@ -24,6 +24,9 @@ pub struct State {
     pub lut_color_adding: Option<(usize, (f32, [u8; 3]))>,
     pub show_single_contour: bool,
     pub single_contour: f32,
+    pub single_contour_clicked: bool,
+    pub critical_isosurface: bool,
+    pub representative_isosurface: bool,
 }
 
 impl Default for State {
@@ -50,6 +53,9 @@ impl Default for State {
             lut_color_adding: None,
             show_single_contour: false,
             single_contour: 0.5,
+            single_contour_clicked: false,
+            critical_isosurface: false,
+            representative_isosurface: false,
         }
     }
 }

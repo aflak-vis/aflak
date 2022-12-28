@@ -21,6 +21,7 @@ mod state;
 
 pub use self::state::State;
 use super::imshow::Textures;
+use super::lims;
 use lut::BuiltinLUT;
 
 /// TODO
@@ -91,6 +92,58 @@ impl<'ui> UiImage3d for Ui<'ui> {
                                 .build(self, &mut state.topology_upperbound);
                         });
                 }
+                if state.show_single_contour {
+                    Window::new(&ImString::new(format!("Single Contour")))
+                        .size([300.0, 50.0], Condition::Appearing)
+                        .resizable(false)
+                        .build(self, || {
+                            Slider::new(format!("Value"), 0.01, 0.99)
+                                .build(self, &mut state.single_contour);
+                        });
+                    let gradient = state.lut.gradient();
+                    let readmode = state.lut.read_mode();
+                    let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
+                    gradient_alpha.push((state.single_contour - 0.005, 0));
+                    gradient_alpha.push((state.single_contour, 255));
+                    gradient_alpha.push((state.single_contour + 0.005, 0));
+                    gradient_alpha.push((1.0, 0));
+                    state.lut.set_gradient((gradient, gradient_alpha, readmode));
+                } else if state.critical_isosurface {
+                    let gradient = state.lut.gradient();
+                    let readmode = state.lut.read_mode();
+                    let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
+                    if let Some(topology) = &state.topology {
+                        let mut cp_vals = vec![];
+                        for c in &topology.critical_points {
+                            if c.point_type == 0 || c.point_type == 3 {
+                                let coord =
+                                    [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
+                                let vmin = lims::get_vmin(&image).unwrap();
+                                let vmax = lims::get_vmax(&image).unwrap();
+                                if let Some(v) = image.get(coord) {
+                                    let v = (*v - vmin) / (vmax - vmin);
+                                    cp_vals.push(v);
+                                }
+                            }
+                        }
+                        cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < 3.0e-2);
+                        for v in cp_vals {
+                            gradient_alpha.push((v - 0.005, 0));
+                            gradient_alpha.push((v, 255));
+                            gradient_alpha.push((v + 0.005, 0));
+                        }
+                    }
+
+                    gradient_alpha.push((1.0, 0));
+                    state.lut.set_gradient((gradient, gradient_alpha, readmode));
+                } else if state.single_contour_clicked {
+                    let gradient = state.lut.gradient();
+                    let readmode = state.lut.read_mode();
+                    let gradient_alpha = vec![(0.0 as f32, 0 as u8), (1.0 as f32, 255 as u8)];
+                    state.lut.set_gradient((gradient, gradient_alpha, readmode));
+                    state.single_contour_clicked = false;
+                }
                 if state.show_colormapedit {
                     const BG_COLOR: u32 = 0xA033_3333;
                     const LINE_COLORS: [u32; 3] = [0xFF00_00FF, 0xFF00_FF00, 0xFFFF_0000];
@@ -103,7 +156,6 @@ impl<'ui> UiImage3d for Ui<'ui> {
                         .resizable(false)
                         .menu_bar(true)
                         .build(self, || {
-                            let mut single_contour_clicked = false;
                             self.menu_bar(|| {
                                 if let Some(menu) =
                                     self.begin_menu_with_enabled(format!("Preset"), true)
@@ -113,37 +165,9 @@ impl<'ui> UiImage3d for Ui<'ui> {
                                             state.lut.set_gradient(*builtin_lut);
                                         }
                                     }
-                                    if MenuItem::new("Single Contour")
-                                        .build_with_ref(self, &mut state.show_single_contour)
-                                    {
-                                        single_contour_clicked = true;
-                                    }
                                     menu.end();
                                 }
                             });
-                            if state.show_single_contour {
-                                Window::new(&ImString::new(format!("Single Contour")))
-                                    .size([300.0, 50.0], Condition::Appearing)
-                                    .resizable(false)
-                                    .build(self, || {
-                                        Slider::new(format!("Value"), 0.01, 0.99)
-                                            .build(self, &mut state.single_contour);
-                                    });
-                                let gradient = state.lut.gradient();
-                                let readmode = state.lut.read_mode();
-                                let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
-                                gradient_alpha.push((state.single_contour - 0.005, 0));
-                                gradient_alpha.push((state.single_contour, 255));
-                                gradient_alpha.push((state.single_contour + 0.005, 0));
-                                gradient_alpha.push((1.0, 0));
-                                state.lut.set_gradient((gradient, gradient_alpha, readmode));
-                            } else if single_contour_clicked {
-                                let gradient = state.lut.gradient();
-                                let readmode = state.lut.read_mode();
-                                let gradient_alpha =
-                                    vec![(0.0 as f32, 0 as u8), (1.0 as f32, 255 as u8)];
-                                state.lut.set_gradient((gradient, gradient_alpha, readmode));
-                            }
 
                             let p = self.cursor_screen_pos();
                             let size = self.window_content_region_max();

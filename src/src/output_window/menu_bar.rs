@@ -619,9 +619,37 @@ impl MenuBar for primitives::WcsArray {
                     if let Some(menu) =
                         ui.begin_menu_with_enabled(format!("Transfer Function"), true)
                     {
+                        let have_topology = &self.topology().is_some();
                         if let Some(menu) = ui.begin_menu_with_enabled(format!("ColorMap"), true) {
                             MenuItem::new(format!("Edit"))
                                 .build_with_ref(ui, &mut window.image3d_state.show_colormapedit);
+                            menu.end();
+                        }
+                        if let Some(menu) = ui.begin_menu_with_enabled(format!("Isosurface"), true)
+                        {
+                            MenuItem::new(format!("Single isosurface"))
+                                .build_with_ref(ui, &mut window.image3d_state.show_single_contour);
+                            if ui.is_item_clicked() {
+                                if !window.image3d_state.show_single_contour {
+                                    window.image3d_state.critical_isosurface = false;
+                                    window.image3d_state.representative_isosurface = false;
+                                }
+                                window.image3d_state.single_contour_clicked = true;
+                            }
+                            if let Some(menu) =
+                                ui.begin_menu_with_enabled(format!("Use topology"), *have_topology)
+                            {
+                                MenuItem::new(format!("Critical isosurface")).build_with_ref(
+                                    ui,
+                                    &mut window.image3d_state.critical_isosurface,
+                                );
+                                if ui.is_item_clicked() && !window.image3d_state.critical_isosurface
+                                {
+                                    window.image3d_state.show_single_contour = false;
+                                    window.image3d_state.representative_isosurface = false;
+                                }
+                                menu.end();
+                            }
                             menu.end();
                         }
                         MenuItem::new(format!("Brightness Settings"))
