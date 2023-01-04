@@ -493,8 +493,7 @@ where
 
     let program = glium::Program::from_source(
         display.get_context(),
-        "#version 430
-
+        "#version 130
         in vec3 pos;
         in vec2 texcoord;
         out vec2 Texcoord;
@@ -502,7 +501,7 @@ where
           gl_Position = vec4(pos, 1.0);
           Texcoord = texcoord;
         }",
-        "#version 430
+        "#version 130
         precision highp float;
         #define PI (3.14159265359)
         #define FLT_MAX (3.402823466e+38)
@@ -559,8 +558,8 @@ where
 
         bool hit_volume(inout ray r) {
             const int nDim = 3;
-            const vec3 _min = {-1.0f, -1.0f, -1.0f};
-            const vec3 _max = {1.0f, 1.0f, 1.0f};
+            const vec3 _min = vec3(-1.0f, -1.0f, -1.0f);
+            const vec3 _max = vec3(1.0f, 1.0f, 1.0f);
             float tmin = 0.0f;
             float tmax = FLT_MAX;
             float t0;
@@ -669,7 +668,7 @@ where
 
         void sampling_volume(inout ray r) {
             const float dt = 1.0f / 2000.0f;
-            uint step = 1;
+            int step = 1;
             int cp_size_int = int(cp_size);
             float val;
             while (hit_volume(r))
@@ -690,13 +689,13 @@ where
 
         vec4 gammaCorrect(const in vec4 color, const in float gamma) {
             const float g = 1.0f / gamma;
-            vec4 result =
-            {
+            vec4 result = vec4
+            (
                 pow(color.r, g),
                 pow(color.g, g),
                 pow(color.b, g),
                 color.a
-            };
+            );
             if (color.r == 0.0f && color.g == 0.0f && color.b == 0.0f) {
                 result = vec4(0.0f, 0.0f, 0.0f, 0.0f);
             }
@@ -713,13 +712,13 @@ where
 
         void main() {
             vec4 eye = vec4(0.0f, 0.0f, eyepos_z, 1.0f);
-            const vec4 position_screen =
-            {
+            vec4 position_screen = vec4
+            (
                 Texcoord.x * 2.0 - 1.0,
                 Texcoord.y * 2.0 - 1.0,
                 eye.z + 0.5f,
                 1.0f
-            };
+            );
             /*const mat3 M1 = mat3(
                 cos(-theta), 0, sin(-theta),
                 0, 1, 0,
@@ -731,12 +730,10 @@ where
                 0, sin(-phi), cos(-phi)
             );*/
 
-            ray r =
-            {
-                (rmat1 * rmat2 * eye).xyz,
-                (normalize(rmat1 * rmat2 * (position_screen - eye))).xyz,
-                vec4(0.0f),
-            };
+            ray r;
+            r.origin = (rmat1 * rmat2 * eye).xyz;
+            r.direction = (normalize(rmat1 * rmat2 * (position_screen - eye))).xyz;
+            r.color = vec4(0.0f);
 
             sampling_volume(r);
             out_color = gammaCorrect(r.color, 2.2);
