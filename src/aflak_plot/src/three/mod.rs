@@ -969,7 +969,7 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
     let line_indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
 
     let vertex_shader_src = r#"
-        #version 430
+        #version 130
         in vec3 pos;
         in vec2 texcoord;
         out vec3 col;
@@ -977,12 +977,12 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
         uniform float theta;
         uniform float phi;
         void main() {
-            const mat3 M1 = mat3(
+            mat3 M1 = mat3(
                 cos(-theta), 0, sin(-theta),
                 0, 1, 0,
                 -sin(-theta), 0, cos(-theta)
             );
-            const mat3 M2 = mat3(
+            mat3 M2 = mat3(
                 1, 0, 0,
                 0, cos(-phi), -sin(-phi),
                 0, sin(-phi), cos(-phi)
@@ -993,7 +993,7 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
     "#;
 
     let fragment_shader_src = r#"
-        #version 430
+        #version 130
         in vec3 col;
         out vec4 color;
         void main() {
