@@ -924,6 +924,7 @@ where
     .unwrap();
     let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
     let mut shape = image.dim();
+    let actual_wavesize = shape.0;
     if shape.0 > 128 {
         shape.0 = 128;
     } // max texture size is 2048
@@ -933,15 +934,18 @@ where
     for i in 0..shape.0 {
         for j in 0..shape.1 {
             for k in 0..shape.2 {
-                if min_val > image[[i, j, k]] {
-                    min_val = if image[[i, j, k]] < 0f32 {
+                let coef = actual_wavesize as f32 / shape.0 as f32;
+                let index = (i as f32 * coef) as usize;
+
+                if min_val > image[[index, j, k]] {
+                    min_val = if image[[index, j, k]] < 0f32 {
                         0f32
                     } else {
-                        image[[i, j, k]]
+                        image[[index, j, k]]
                     };
                 }
-                if max_val < image[[i, j, k]] {
-                    max_val = image[[i, j, k]];
+                if max_val < image[[index, j, k]] {
+                    max_val = image[[index, j, k]];
                 }
             }
         }
@@ -949,10 +953,12 @@ where
     for i in 0..shape.0 {
         for j in 0..shape.1 {
             for k in 0..shape.2 {
-                volume_data[i][j][k] = (if image[[i, j, k]] < 0f32 {
+                let coef = actual_wavesize as f32 / shape.0 as f32;
+                let index = (i as f32 * coef) as usize;
+                volume_data[i][j][k] = (if image[[index, j, k]] < 0f32 {
                     0f32
                 } else {
-                    image[[i, j, k]]
+                    image[[index, j, k]]
                 } - min_val)
                     / (max_val - min_val);
             }
