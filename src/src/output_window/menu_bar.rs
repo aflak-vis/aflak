@@ -935,11 +935,11 @@ impl MenuBar for primitives::WcsArray {
                         Some(image_created_on) => ctx.created_on > image_created_on,
                         None => true,
                     };
-                    state.topology = self.topology().clone();
+                    let topology = self.topology();
                     if new_incoming_image {
                         state.new(ctx.created_on);
                     }
-                    ui.image3d(&val, texture_id, ctx.textures, ctx.gl_ctx, state);
+                    ui.image3d(&val, topology, texture_id, ctx.textures, ctx.gl_ctx, state);
                 }
                 _ => {
                     let ui = &ctx.ui;

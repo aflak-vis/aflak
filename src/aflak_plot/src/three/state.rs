@@ -1,5 +1,4 @@
 use super::lut::{BuiltinLUT, ColorLUT};
-use super::primitives::Topology;
 use std::time::Instant;
 
 pub struct State {
@@ -13,7 +12,6 @@ pub struct State {
     pub phi: f32,
     pub axis1: [f32; 3],
     pub axis2: [f32; 3],
-    pub topology: Option<Topology>,
     pub show_tf_parameters: bool,
     pub show_colormapedit: bool,
     pub topology_brightness: f32,
@@ -43,7 +41,6 @@ impl Default for State {
             phi: 0.0,
             axis1: [0.0, -1.0, 0.0],
             axis2: [1.0, 0.0, 0.0],
-            topology: None,
             show_tf_parameters: false,
             show_colormapedit: false,
             topology_brightness: 100.0,

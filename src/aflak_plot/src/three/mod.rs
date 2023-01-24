@@ -23,12 +23,14 @@ pub use self::state::State;
 use super::imshow::Textures;
 use super::lims;
 use lut::BuiltinLUT;
+use primitives::Topology;
 
 /// TODO
 pub trait UiImage3d {
     fn image3d<S, F>(
         &self,
         image: &ArrayBase<S, IxDyn>,
+        topology: &Option<Topology>,
         texture_id: TextureId,
         textures: &mut Textures,
         ctx: &F,
@@ -43,6 +45,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
     fn image3d<S, F>(
         &self,
         image: &ArrayBase<S, IxDyn>,
+        topology: &Option<Topology>,
         texture_id: TextureId,
         textures: &mut Textures,
         ctx: &F,
@@ -60,7 +63,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
         ];
 
         // 3D image...
-        let raw = make_raw_image(image, state);
+        let raw = make_raw_image(image, topology, state);
         let gl_texture = Texture2d::new(ctx, raw).expect("Error!");
         textures.replace(
             texture_id,
@@ -110,27 +113,30 @@ impl<'ui> UiImage3d for Ui<'ui> {
                     let gradient = state.lut.gradient();
                     let readmode = state.lut.read_mode();
                     let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
-                    if let Some(topology) = &state.topology {
+                    if let Some(topology) = topology {
                         let mut cp_vals = vec![];
+                        let vmin = lims::get_vmin(&image).unwrap();
+                        let vmax = lims::get_vmax(&image).unwrap();
                         for c in &topology.critical_points {
                             if c.point_type == 0 || c.point_type == 3 {
                                 let coord =
                                     [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
-                                let vmin = lims::get_vmin(&image).unwrap();
-                                let vmax = lims::get_vmax(&image).unwrap();
                                 if let Some(v) = image.get(coord) {
                                     let v = (*v - vmin) / (vmax - vmin);
-                                    cp_vals.push(v);
+                                    if !v.is_nan() {
+                                        cp_vals.push(v);
+                                    }
                                 }
                             }
                         }
                         cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < 3.0e-2);
-                        for v in cp_vals {
-                            let alpha = (255.0 * v) as u8;
-                            gradient_alpha.push((v - 0.005, 0));
-                            gradient_alpha.push((v, alpha));
-                            gradient_alpha.push((v + 0.005, 0));
+                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < state.topology_interval * 1.0e-2);
+                        let cp_vals_len = cp_vals.len() - 1;
+                        for (k, v) in cp_vals.iter().enumerate() {
+                            let alpha = (255.0 * k as f32 / cp_vals_len as f32) as u8;
+                            gradient_alpha.push((*v - 0.005, 0));
+                            gradient_alpha.push((*v, alpha));
+                            gradient_alpha.push((*v + 0.005, 0));
                         }
                     }
 
@@ -140,34 +146,38 @@ impl<'ui> UiImage3d for Ui<'ui> {
                     let gradient = state.lut.gradient();
                     let readmode = state.lut.read_mode();
                     let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
-                    if let Some(topology) = &state.topology {
+                    if let Some(topology) = topology {
                         let mut cp_vals = vec![0.0];
                         let mut rep_vals = vec![];
+                        let vmin = lims::get_vmin(&image).unwrap();
+                        let vmax = lims::get_vmax(&image).unwrap();
                         for c in &topology.critical_points {
                             if c.point_type == 0 || c.point_type == 3 {
                                 let coord =
                                     [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
-                                let vmin = lims::get_vmin(&image).unwrap();
-                                let vmax = lims::get_vmax(&image).unwrap();
+
                                 if let Some(v) = image.get(coord) {
                                     let v = (*v - vmin) / (vmax - vmin);
-                                    cp_vals.push(v);
+                                    if !v.is_nan() {
+                                        cp_vals.push(v);
+                                    }
                                 }
                             }
                         }
                         cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < 3.0e-2);
+                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < state.topology_interval * 1.0e-2);
                         cp_vals.push(1.0);
                         let first = cp_vals.iter();
                         let second = cp_vals.iter().skip(1);
                         for (v1, v2) in first.zip(second) {
                             rep_vals.push((v1 + v2) / 2.0);
                         }
-                        for v in rep_vals {
-                            let alpha = (255.0 * v) as u8;
-                            gradient_alpha.push((v - 0.005, 0));
-                            gradient_alpha.push((v, alpha));
-                            gradient_alpha.push((v + 0.005, 0));
+                        let rep_len = rep_vals.len() - 1;
+                        for (k, v) in rep_vals.iter().enumerate() {
+                            let alpha = (255.0 * k as f32 / rep_len as f32) as u8;
+                            gradient_alpha.push((*v - 0.005, 0));
+                            gradient_alpha.push((*v, alpha));
+                            gradient_alpha.push((*v + 0.005, 0));
                         }
                     }
 
@@ -469,7 +479,13 @@ struct Vertex {
 }
 implement_vertex!(Vertex, pos, texcoord);
 
-fn ray_casting_gpu<S>(image: &ArrayBase<S, Ix3>, n: usize, m: usize, state: &mut State) -> Vec<u8>
+fn ray_casting_gpu<S>(
+    image: &ArrayBase<S, Ix3>,
+    topology: &Option<Topology>,
+    n: usize,
+    m: usize,
+    state: &mut State,
+) -> Vec<u8>
 where
     S: Data<Elem = f32>,
 {
@@ -871,7 +887,7 @@ where
         }
     }
     let mut cp_vals = vec![0.0];
-    if let Some(topology) = state.topology.clone() {
+    if let Some(topology) = topology {
         for cp in &topology.critical_points {
             let (mut x, mut y, mut z) = cp.coord;
             if x >= shape.1 as f32 {
@@ -883,7 +899,7 @@ where
             if z >= shape.0 as f32 {
                 z = (shape.0 - 1) as f32;
             }
-            if cp.manifoldsize > 0 {
+            if cp.manifoldsize > 0 && !volume_data[z as usize][x as usize][y as usize].is_nan() {
                 cp_vals.push(volume_data[z as usize][x as usize][y as usize]);
             }
         }
@@ -950,14 +966,18 @@ where
     data
 }
 
-fn make_raw_image<S>(image: &ArrayBase<S, IxDyn>, state: &mut State) -> RawImage2d<'static, u8>
+fn make_raw_image<S>(
+    image: &ArrayBase<S, IxDyn>,
+    topology: &Option<Topology>,
+    state: &mut State,
+) -> RawImage2d<'static, u8>
 where
     S: Data<Elem = f32>,
 {
     let image3 = image.slice(s![.., .., ..]);
     let n = 512;
     let m = 512;
-    let data = ray_casting_gpu(&image3, n, m, state);
+    let data = ray_casting_gpu(&image3, topology, n, m, state);
     RawImage2d {
         data: Cow::Owned(data),
         width: n as u32,
