@@ -980,12 +980,11 @@ fn run_ttk_persistence_pairs_3d(image: &WcsArray) -> Result<IOValue, IOErr> {
     }
     let mut pp = Vec::<(i32, i32, f32, f32)>::new();
     for (i, j) in act_pair {
-        pp.push((
-            i,
-            j,
-            *data.get(i as usize).unwrap(),
-            *data.get(j as usize).unwrap(),
-        ));
+        let vi = *data.get(i as usize).unwrap();
+        let vj = *data.get(j as usize).unwrap();
+        if !vi.is_nan() && !vj.is_nan() {
+            pp.push((i, j, vi, vj));
+        }
     }
     Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
 }
@@ -2297,7 +2296,9 @@ fn run_extract_wave(image: &WcsArray, roi: &roi::ROI) -> Result<IOValue, IOErr> 
     for i in 0..wave_size {
         let mut res = 0.0;
         for (_, val) in roi.filter(image_val.slice(s![i, .., ..])) {
-            res += val;
+            if !val.is_nan() {
+                res += val;
+            }
         }
         wave.push(res);
     }
