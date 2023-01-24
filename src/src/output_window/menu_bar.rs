@@ -670,6 +670,11 @@ impl MenuBar for primitives::WcsArray {
                             .build_with_ref(ui, &mut window.image3d_state.show_tf_parameters);
                         menu.end();
                     }
+                    if let Some(menu) = ui.begin_menu_with_enabled(format!("Slice"), true) {
+                        MenuItem::new(format!("Simple Slice"))
+                            .build_with_ref(ui, &mut window.image3d_state.show_simple_slice);
+                        menu.end();
+                    }
                 }
                 _ => {}
             },

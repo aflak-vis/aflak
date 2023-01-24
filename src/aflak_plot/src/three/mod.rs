@@ -9,8 +9,8 @@ use glium::{
     Surface, Texture2d,
 };
 use imgui::{
-    ChildWindow, ColorEdit, Condition, ImString, Image, MenuItem, MouseButton, MouseCursor, Slider,
-    TextureId, Ui, Window,
+    ChildWindow, ColorEdit, Condition, Drag, ImString, Image, MenuItem, MouseButton, MouseCursor,
+    Slider, TextureId, Ui, Window,
 };
 use imgui_glium_renderer::Texture;
 use ndarray::{ArrayBase, Data, Ix3, IxDyn};
@@ -437,6 +437,33 @@ impl<'ui> UiImage3d for Ui<'ui> {
                             //);
                         });
                 }
+                if state.show_simple_slice {
+                    Window::new(&ImString::new(format!("Simple Slice")))
+                        .size([300.0, 300.0], Condition::Appearing)
+                        .resizable(false)
+                        .build(self, || {
+                            Drag::new(format!("X"))
+                                .range(0.0, 1.0)
+                                .speed(0.001)
+                                .build(self, &mut state.simple_slice_v[0].0);
+                            self.checkbox(format!("X enabled"), &mut state.simple_slice_v[0].1);
+                            self.checkbox(format!("X GT/LT"), &mut state.simple_slice_v[0].2);
+
+                            Drag::new(format!("Y"))
+                                .range(0.0, 1.0)
+                                .speed(0.001)
+                                .build(self, &mut state.simple_slice_v[1].0);
+                            self.checkbox(format!("Y enabled"), &mut state.simple_slice_v[1].1);
+                            self.checkbox(format!("Y GT/LT"), &mut state.simple_slice_v[1].2);
+
+                            Drag::new(format!("Z"))
+                                .range(0.0, 1.0)
+                                .speed(0.001)
+                                .build(self, &mut state.simple_slice_v[2].0);
+                            self.checkbox(format!("Z enabled"), &mut state.simple_slice_v[2].1);
+                            self.checkbox(format!("Z GT/LT"), &mut state.simple_slice_v[2].2);
+                        });
+                }
                 Image::new(texture_id, size).build(self);
                 if self.is_item_hovered() {
                     if self.is_mouse_down(MouseButton::Left) {
@@ -573,6 +600,16 @@ where
         uniform float brightness;
         uniform float upperbound;
         uniform int render_mode;
+
+        uniform float simple_slice_x_v;
+        uniform bool simple_slice_x_enabled;
+        uniform bool simple_slice_x_gtlt;
+        uniform float simple_slice_y_v;
+        uniform bool simple_slice_y_enabled;
+        uniform bool simple_slice_y_gtlt;
+        uniform float simple_slice_z_v;
+        uniform bool simple_slice_z_enabled;
+        uniform bool simple_slice_z_gtlt;
 
         struct ray {
             vec3 origin;
@@ -730,7 +767,42 @@ where
             {
                 float dis = sqrt(r.origin.x * r.origin.x + r.origin.y * r.origin.y * r.origin.z * r.origin.z);
                 float dis_s = 1.0f / (dis + 1.0f);
-                val = texture(volume, r.origin / 2.0f + vec3(0.5)).r;
+                vec3 pos = r.origin / 2.0f + vec3(0.5);
+                val = texture(volume, pos).r;
+                if (simple_slice_x_enabled) {
+                    if (simple_slice_x_gtlt) {
+                        if (pos.x > simple_slice_x_v){
+                            val = 0.0;
+                        }
+                    } else {
+                        if (pos.x < simple_slice_x_v) {
+                            val = 0.0;
+                        }
+                    }
+                }
+                if (simple_slice_y_enabled) {
+                    if (simple_slice_y_gtlt) {
+                        if (pos.y > simple_slice_y_v){
+                            val = 0.0;
+                        }
+                    } else {
+                        if (pos.y < simple_slice_y_v) {
+                            val = 0.0;
+                        }
+                    }
+                }
+                if (simple_slice_z_enabled) {
+                    if (simple_slice_z_gtlt) {
+                        if (pos.z > simple_slice_z_v){
+                            val = 0.0;
+                        }
+                    } else {
+                        if (pos.z < simple_slice_z_v) {
+                            val = 0.0;
+                        }
+                    }
+                }
+
                 if (cp_size_int <= 2) {
                     r.color += (color_legend(val) - r.color) / step++;
                     r.color.a = 1.0f;
@@ -945,7 +1017,10 @@ where
         volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
         rmat1: rmat1, rmat2: rmat2, eyepos_z: eyepos_z, cp_size: cp_size as f32, cp_vals: cp_tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
         color_lut: color_tex.sampled()
-    , brightness: state.topology_brightness, upperbound: state.topology_upperbound, render_mode: render_mode};
+    , brightness: state.topology_brightness, upperbound: state.topology_interval, render_mode: render_mode,
+    simple_slice_x_v: state.simple_slice_v[0].0, simple_slice_x_enabled: state.simple_slice_v[0].1, simple_slice_x_gtlt: state.simple_slice_v[0].2,
+    simple_slice_y_v: state.simple_slice_v[1].0, simple_slice_y_enabled: state.simple_slice_v[1].1, simple_slice_y_gtlt: state.simple_slice_v[1].2,
+    simple_slice_z_v: state.simple_slice_v[2].0, simple_slice_z_enabled: state.simple_slice_v[2].1, simple_slice_z_gtlt: state.simple_slice_v[2].2};
     let params = glium::DrawParameters {
         blend: glium::draw_parameters::Blend::alpha_blending(),
         ..Default::default()

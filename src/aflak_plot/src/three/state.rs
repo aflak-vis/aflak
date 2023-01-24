@@ -26,6 +26,8 @@ pub struct State {
     pub single_contour_clicked: bool,
     pub critical_isosurface: bool,
     pub representative_isosurface: bool,
+    pub show_simple_slice: bool,
+    pub simple_slice_v: [(f32, bool, bool); 3], //(value, enabled, gt/lt)
 }
 
 impl Default for State {
@@ -55,6 +57,12 @@ impl Default for State {
             single_contour_clicked: false,
             critical_isosurface: false,
             representative_isosurface: false,
+            show_simple_slice: false,
+            simple_slice_v: [
+                (0.0, false, false),
+                (0.0, false, false),
+                (0.0, false, false),
+            ],
         }
     }
 }
