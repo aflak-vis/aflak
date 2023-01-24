@@ -180,6 +180,15 @@ impl<'ui> UiImage3d for Ui<'ui> {
                     state.lut.set_gradient((gradient, gradient_alpha, readmode));
                     state.single_contour_clicked = false;
                 }
+                if state.show_other_topology_settings {
+                    Window::new(&ImString::new(format!("Other Topology Settings")))
+                        .size([300.0, 100.0], Condition::Appearing)
+                        .resizable(false)
+                        .build(self, || {
+                            Slider::new(format!("Interval"), 1.0, 10.0)
+                                .build(self, &mut state.topology_interval);
+                        });
+                }
                 if state.show_colormapedit {
                     const BG_COLOR: u32 = 0xA033_3333;
                     const LINE_COLORS: [u32; 3] = [0xFF00_00FF, 0xFF00_FF00, 0xFFFF_0000];

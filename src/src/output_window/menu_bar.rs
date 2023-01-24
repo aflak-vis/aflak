@@ -658,6 +658,10 @@ impl MenuBar for primitives::WcsArray {
                                     window.image3d_state.show_single_contour = false;
                                     window.image3d_state.critical_isosurface = false;
                                 }
+                                MenuItem::new(format!("Other topology settings")).build_with_ref(
+                                    ui,
+                                    &mut window.image3d_state.show_other_topology_settings,
+                                );
                                 menu.end();
                             }
                             menu.end();
