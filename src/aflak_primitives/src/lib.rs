@@ -232,6 +232,16 @@ Compute v_min(first), v_max(second)",
                 }
             ),
             cake_transform!(
+                "Image's statistics. Parameter: image.
+Compute mean(first), median(second), stdDev(third), background(forth)",
+                "04. Extract part of data",
+                1, 0, 0,
+                compute_background<IOValue, IOErr>(image: Image, sigma_high: Float = 3.0, sigma_low: Float = 3.0, alpha: Float = 2.0) -> Float, Float, Float, Float {
+                    let (mean, median, stddev, background) = run_compute_background(image, *sigma_high, *sigma_low, *alpha);
+                    vec![Ok(IOValue::Float(mean)), Ok(IOValue::Float(median)), Ok(IOValue::Float(stddev)), Ok(IOValue::Float(background))]
+                }
+            ),
+            cake_transform!(
                 "Make a Float3 from 3 float values.",
                 "02. Make new data",
                 1, 0, 0,
@@ -297,6 +307,14 @@ If bool value is checked, then replaces the values above the threshold with NaN,
                 1, 0, 0,
                 clip_image<IOValue, IOErr>(image: Image, ceiling_threshold: Float = 0.0, ceiling: Bool = false, floor_threshold: Float = 0.0, floor: Bool = false) -> Image {
                     vec![run_clip(image, *ceiling_threshold, *ceiling, *floor_threshold, *floor)]
+                }
+            ),
+            cake_transform!("Estimate background and replace below background with NaN.
+Parameters:sigma_high/sigma_low: Sigma clipping parameters, alpha: User preference parameter.",
+                "05. Convert data",
+                1, 0, 0,
+                clip_background<IOValue, IOErr>(image: Image, sigma_high: Float = 3.0, sigma_low: Float = 3.0, alpha: Float = 2.0) -> Image {
+                    vec![run_clip_background(image, *sigma_high, *sigma_low, *alpha)]
                 }
             ),
             cake_transform!("Normalize image",
@@ -2406,6 +2424,43 @@ fn run_clip(
     Ok(IOValue::Image(image))
 }
 
+fn run_clip_background(
+    image: &WcsArray,
+    sigma_high: f32,
+    sigma_low: f32,
+    alpha: f32,
+) -> Result<IOValue, IOErr> {
+    let original_meta = image.meta();
+    let original_visualization = image.tag();
+    let original_topology = image.topology();
+    let mut image = image.clone();
+    let image_val = image.scalar_mut();
+
+    let mut backgrounds = Vec::new();
+    for slice in image_val.axis_iter(Axis(0)) {
+        let d = Dimensioned::new(slice.to_owned(), Unit::None);
+        let image = WcsArray::new(
+            original_meta.to_owned(), //FIXME: Handle metadata
+            d,
+            original_visualization.to_owned(),
+            original_topology.to_owned(),
+        );
+        let (_, _, _, background) = run_compute_background(&image, sigma_high, sigma_low, alpha);
+        backgrounds.push(background);
+    }
+    for (slice, background) in image_val.axis_iter_mut(Axis(0)).zip(backgrounds) {
+        for f in slice {
+            if *f <= background {
+                *f = ::std::f32::NAN;
+            }
+        }
+    }
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        image_val.clone(),
+        Unit::None,
+    ))))
+}
+
 fn run_replace_nan_image(image: &WcsArray, placeholder: f32) -> Result<IOValue, IOErr> {
     let mut image = image.clone();
 
@@ -2431,6 +2486,64 @@ fn run_linear_composition(
 
 fn run_make_float3(f1: f32, f2: f32, f3: f32) -> Result<IOValue, IOErr> {
     Ok(IOValue::Float3([f1, f2, f3]))
+}
+
+fn run_compute_background(
+    image: &WcsArray,
+    sigma_high: f32,
+    sigma_low: f32,
+    alpha: f32,
+) -> (f32, f32, f32, f32) {
+    let image_arr = image.scalar();
+    let mut data_arr = Vec::new();
+    let mut data_sum = 0.0;
+    for data in image_arr {
+        if !data.is_nan() {
+            data_arr.push(*data);
+            data_sum += *data;
+        }
+    }
+    let mut data_len = data_arr.len();
+    data_arr.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut mean = data_sum / data_len as f32;
+    let mut median = if data_len % 2 == 0 {
+        (data_arr[data_len / 2 - 1] + data_arr[data_len / 2]) / 2.0
+    } else {
+        data_arr[data_len / 2]
+    };
+    let mut variance = 0.0;
+    for i in &data_arr {
+        variance += (i - mean) * (i - mean);
+    }
+    variance /= data_len as f32;
+    let mut stddev = variance.sqrt();
+    loop {
+        data_arr.retain(|&d| mean - sigma_low * stddev < d && d < mean + sigma_high * stddev);
+        let new_data_len = data_arr.len();
+        if data_len != new_data_len {
+            let mut new_sum = 0.0;
+            for d in &data_arr {
+                new_sum += d;
+            }
+            mean = new_sum / new_data_len as f32;
+            median = if new_data_len % 2 == 0 {
+                (data_arr[new_data_len / 2 - 1] + data_arr[new_data_len / 2]) / 2.0
+            } else {
+                data_arr[new_data_len / 2]
+            };
+            variance = 0.0;
+            for i in &data_arr {
+                variance += (i - mean) * (i - mean);
+            }
+            variance /= new_data_len as f32;
+            stddev = variance.sqrt();
+            data_len = new_data_len;
+        } else {
+            break;
+        }
+    }
+    let background = median + alpha * stddev;
+    (mean, median, stddev, background)
 }
 
 fn reduce_array_slice<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Result<IOValue, IOErr>
