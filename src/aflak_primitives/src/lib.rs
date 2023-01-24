@@ -2572,9 +2572,16 @@ fn reduce_array_slice_x<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Resu
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
+    dim_is!(image, 3)?;
+    let xdim = image.scalar().dim().as_array_view()[1];
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
-    //is_sliceable!(image, start, end)?;
+    if xdim < start || xdim < end || end < start {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot slice {}, {}, {}",
+            start, end, xdim
+        )));
+    }
 
     let image_val = image.scalar();
 
@@ -2593,10 +2600,16 @@ fn reduce_array_slice_y<F>(image: &WcsArray, start: i64, end: i64, f: F) -> Resu
 where
     F: Fn(&ArrayViewD<f32>) -> ArrayD<f32>,
 {
+    dim_is!(image, 3)?;
+    let ydim = image.scalar().dim().as_array_view()[2];
     let start = try_into_unsigned!(start)?;
     let end = try_into_unsigned!(end)?;
-    //is_sliceable!(image, start, end)?;
-
+    if ydim < start || ydim < end || end < start {
+        return Err(IOErr::UnexpectedInput(format!(
+            "Cannot slice {}, {}, {}",
+            start, end, ydim
+        )));
+    }
     let image_val = image.scalar();
 
     let slices = image_val.slice_axis(Axis(2), Slice::from(start..end));
