@@ -1866,6 +1866,33 @@ impl cake::DefaultFor for IOValue {
                     None,
                 ))
             }
+            "Analytic_Volume" => {
+                let image_data = {
+                    const WIDTH: usize = 128;
+                    const HEIGHT: usize = 128;
+                    const DEPTH: usize = 128;
+                    const C: f32 = 0.6;
+                    const D: f32 = 0.5;
+                    const R: f32 = 0.2;
+                    let mut image_data = Vec::with_capacity(WIDTH * HEIGHT * DEPTH);
+                    for j in 0..WIDTH {
+                        for i in 0..HEIGHT {
+                            for k in 0..DEPTH {
+                                let j = (j as f32) / 64.0 - 1.0;
+                                let i = (i as f32) / 64.0 - 1.0;
+                                let k = (k as f32) / 64.0 - 1.0;
+                                let v = func(j as f32, k, i as f32, C, D, R);
+                                image_data.push(v);
+                            }
+                        }
+                    }
+                    ndarray::ArrayD::from_shape_vec(vec![WIDTH, HEIGHT, DEPTH], image_data).unwrap()
+                };
+                IOValue::Image(WcsArray::from_array_and_tag(
+                    Dimensioned::new(image_data.into_dyn(), Unit::None),
+                    None,
+                ))
+            }
             _ => panic!("Unknown variant name provided: {}.", variant_name),
         }
     }
@@ -1885,6 +1912,7 @@ impl cake::EditableVariants for IOValue {
             "Paths",
             "ToneCurve",
             "Sliced_Analytic_Volume",
+            "Analytic_Volume",
         ]
     }
 }
