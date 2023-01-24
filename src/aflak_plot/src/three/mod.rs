@@ -580,8 +580,8 @@ where
         }
 
         vec4 color_legend(const in float val) {
-            const float temp = (-cos(4.0f * val * PI) + 1.0f) / 2.0f;
-            const vec4 result =
+            float temp = (-cos(4.0f * val * PI) + 1.0f) / 2.0f;
+            vec4 result =
                 (val > 1.0f) ? vec4(1.0f, 0.0f, 0.0f, 0.0f) :
                 (val > 3.0f / 4.0f) ? vec4(1.0f, temp, 0.0f, 0.0f) * val :
                 (val > 2.0f / 4.0f) ? vec4(temp, 1.0f, 0.0f, 0.0f) * val :
@@ -595,7 +595,7 @@ where
             float r = texture(color_lut, float(val)).r;
             float g = texture(color_lut, float(val)).g;
             float b = texture(color_lut, float(val)).b;
-            const float E = 2.71828;
+            float E = 2.71828;
             float a = texture(color_lut, float(val)).a;
             int cp_size_int = int(cp_size);
             float distance = sqrt(re.origin.x * re.origin.x + re.origin.y * re.origin.y + re.origin.z * re.origin.z);
@@ -688,7 +688,7 @@ where
         }
 
         vec4 gammaCorrect(const in vec4 color, const in float gamma) {
-            const float g = 1.0f / gamma;
+            float g = 1.0f / gamma;
             vec4 result = vec4
             (
                 pow(color.r, g),
