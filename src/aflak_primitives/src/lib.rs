@@ -1260,7 +1260,7 @@ fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<I
 
     //critical_points
     let mut cp_len = 0;
-    const MAX_CRITICAL_POINTS: usize = 131072;
+    const MAX_CRITICAL_POINTS: usize = 1000000;
     let mut cp_point_types = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
     let mut cp_coordx = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
     let mut cp_coordy = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
@@ -1281,7 +1281,7 @@ fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<I
 
     //separatrices1_points
     let mut sp_len = 0;
-    const MAX_SEPARATRICES1_POINTS: usize = 100000000;
+    const MAX_SEPARATRICES1_POINTS: usize = 1000000000;
     let mut sp_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
     let mut sp_coordx = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
     let mut sp_coordy = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
@@ -1298,7 +1298,7 @@ fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<I
 
     //separatrices1_cells
     let mut sc_len = 0;
-    const MAX_SEPARATRICES1_CELLS: usize = 100000000;
+    const MAX_SEPARATRICES1_CELLS: usize = 1000000000;
     let mut sc_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
     let mut sc_source = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
     let mut sc_dest = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
