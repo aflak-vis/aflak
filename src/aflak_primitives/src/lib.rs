@@ -3140,8 +3140,8 @@ fn run_lab_to_rgb(image: &WcsArray) -> Result<IOValue, IOErr> {
         for (i, data) in slice.axis_iter(Axis(1)).enumerate() {
             let d = lab::Lab {
                 l: data[0],
-                a: (std::f32::consts::PI * data[0] / 100.0).sin() * data[1],
-                b: (std::f32::consts::PI * data[0] / 100.0).sin() * data[2],
+                a: (std::f32::consts::PI * data[1] / 100.0).sin() * data[0],
+                b: (std::f32::consts::PI * data[2] / 100.0).sin() * data[0],
             };
             let c = d.to_rgb();
             out[[0, j, i]] = c[0] as f32;
