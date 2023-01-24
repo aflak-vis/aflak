@@ -19,6 +19,7 @@ extern crate contour;
 extern crate geojson;
 extern crate implot;
 extern crate itertools;
+extern crate lab;
 extern crate meval;
 
 pub mod imshow;

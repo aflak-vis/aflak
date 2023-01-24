@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use lab;
 use std::iter;
 use std::slice;
 
@@ -31,13 +32,15 @@ pub enum BuiltinLUT {
     Green,
     JetColor,
     TurboColor,
+    LabTest,
 }
 
 #[derive(Copy, Clone, Hash, Debug, PartialEq, Eq)]
+#[repr(usize)]
 pub enum ReadMode {
-    RGB,
-    HSV,
-    LAB,
+    RGB = 0,
+    HSV = 1,
+    LAB = 2,
 }
 
 impl From<BuiltinLUT> for (Vec<(f32, [u8; 3])>, Vec<(f32, u8)>, ReadMode) {
@@ -65,6 +68,7 @@ impl From<String> for BuiltinLUT {
             "Green" => BuiltinLUT::Green,
             "JetColor" => BuiltinLUT::JetColor,
             "TurboColor" => BuiltinLUT::TurboColor,
+            "Lab" => BuiltinLUT::LabTest,
             _ => unimplemented!(),
         }
     }
@@ -73,9 +77,9 @@ impl From<String> for BuiltinLUT {
 impl BuiltinLUT {
     pub fn values() -> slice::Iter<'static, Self> {
         use self::BuiltinLUT::*;
-        const VALUES: [BuiltinLUT; 12] = [
+        const VALUES: [BuiltinLUT; 13] = [
             Grey, GreyClip, Thermal, Flame, Yellowy, HeatMap, HeatMapInv, Red, Blue, Green,
-            JetColor, TurboColor,
+            JetColor, TurboColor, LabTest,
         ];
         VALUES.iter()
     }
@@ -94,6 +98,7 @@ impl BuiltinLUT {
             BuiltinLUT::Blue => &"Blue",
             BuiltinLUT::JetColor => &"JetColor",
             BuiltinLUT::TurboColor => &"TurboColor",
+            BuiltinLUT::LabTest => &"Lab",
         }
     }
 
@@ -465,6 +470,11 @@ impl BuiltinLUT {
                 }
                 ColorLUT::linear(colors, vec![(0.0, 0), (1.0, 255)], ReadMode::RGB)
             }
+            BuiltinLUT::LabTest => ColorLUT::linear(
+                vec![(0.0, [0, 128, 0]), (1.0, [100, 255, 128])],
+                vec![(0.0, 0), (1.0, 255)],
+                ReadMode::LAB,
+            ),
         }
     }
 }
@@ -585,13 +595,15 @@ impl ColorLUT {
                     self.lut[i] = [color[0], color[1], color[2], alpha];
                 }
                 ReadMode::LAB => {
-                    unimplemented!()
+                    let color = self.color_at_init_lab(i as f32 / (LUT_SIZE - 1) as f32);
+                    let alpha = self.alpha_at_init(i as f32 / (LUT_SIZE - 1) as f32);
+                    self.lut[i] = [color[0], color[1], color[2], alpha];
                 }
             }
         }
     }
 
-    fn hsv2rgb(&self, hsv: [u8; 3]) -> [u8; 3] {
+    pub fn hsv2rgb(&self, hsv: [u8; 3]) -> [u8; 3] {
         let h = hsv[0] as f32 / 255.0 * 360.0;
         let (s, v) = (hsv[1] as f32, hsv[2] as f32);
         let max = v as f32;
@@ -619,6 +631,17 @@ impl ColorLUT {
         }
     }
 
+    pub fn lab2rgb(&self, lab: [u8; 3]) -> [u8; 3] {
+        let l = lab[0] as f32;
+        let (a, b) = (
+            (lab[1] as f32 - 128.0) / 128.0 * 100.0,
+            (lab[2] as f32 - 128.0) / 128.0 * 100.0,
+        );
+        let lab = lab::Lab { l, a, b };
+        let rgb = lab.to_rgb();
+        rgb
+    }
+
     fn color_at_init_hsv(&self, point: f32) -> [u8; 3] {
         for ((val1, c1), (val2, c2)) in self.bounds() {
             let dv = val2 - val1;
@@ -641,6 +664,39 @@ impl ColorLUT {
                         (s1 + (s2 - s1) * coef) as u8,
                         (v1 + (v2 - v1) * coef) as u8,
                     ])
+                };
+            }
+        }
+        [0, 0, 0]
+    }
+
+    fn color_at_init_lab(&self, point: f32) -> [u8; 3] {
+        for ((val1, c1), (val2, c2)) in self.bounds() {
+            let dv = val2 - val1;
+            if val1 <= point && point <= val2 {
+                let [l1, a1, b1] = c1;
+                let [l2, a2, b2] = c2;
+                return if dv == 0.0 {
+                    self.lab2rgb(c1)
+                } else {
+                    let pi = std::f32::consts::PI;
+                    let l1 = f32::from(l1);
+                    let l2 = f32::from(l2);
+                    let a1 = (f32::from(a1) - 128.0) / 128.0;
+                    let a2 = (f32::from(a2) - 128.0) / 128.0;
+                    let b1 = (f32::from(b1) - 128.0) / 128.0;
+                    let b2 = (f32::from(b2) - 128.0) / 128.0;
+                    let rad1 = b1.atan2(a1);
+                    let rad2 = b2.atan2(a2);
+                    let rad1 = if rad1 < 0.0 { rad1 + 2.0 * pi } else { rad1 };
+                    let rad2 = if rad2 < 0.0 { rad2 + 2.0 * pi } else { rad2 };
+                    let dp = point - val1;
+                    let coef = dp / dv;
+                    let rad = rad1 + (rad2 - rad1) * coef;
+                    let a = (rad.cos() * 128.0 + 128.0) as u8;
+                    let b = (rad.sin() * 128.0 + 128.0) as u8;
+
+                    self.lab2rgb([(l1 + (l2 - l1) * coef) as u8, a, b])
                 };
             }
         }

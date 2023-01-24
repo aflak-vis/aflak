@@ -211,7 +211,7 @@ impl<'ui> UiImage3d for Ui<'ui> {
                             draw_list.add_text(
                                 p,
                                 0xFFFF_FFFF,
-                                &format!("Color Mode: {:?}", state.lut.read_mode()),
+                                &format!("Graph color Mode: {:?}", state.lut.read_mode()),
                             );
                             /*draw_list.with_clip_rect_intersect(
                             [p[0] + 30.0, p[1] + 20.0],
@@ -296,16 +296,41 @@ impl<'ui> UiImage3d for Ui<'ui> {
                                 let mut b = 0;
                                 for (p, n) in prev.zip(next) {
                                     if p.0 < v && v < n.0 {
+                                        let readmode = state.lut.read_mode();
                                         let coef = (v - p.0) / (n.0 - p.0);
-                                        let r1 = p.1[0] as f32;
-                                        let r2 = n.1[0] as f32;
-                                        let g1 = p.1[1] as f32;
-                                        let g2 = n.1[1] as f32;
-                                        let b1 = p.1[2] as f32;
-                                        let b2 = n.1[2] as f32;
-                                        r = (r1 + (r2 - r1) * coef) as u8;
-                                        g = (g1 + (g2 - g1) * coef) as u8;
-                                        b = (b1 + (b2 - b1) * coef) as u8;
+                                        match readmode {
+                                            lut::ReadMode::RGB | lut::ReadMode::HSV => {
+                                                let r1 = p.1[0] as f32;
+                                                let r2 = n.1[0] as f32;
+                                                let g1 = p.1[1] as f32;
+                                                let g2 = n.1[1] as f32;
+                                                let b1 = p.1[2] as f32;
+                                                let b2 = n.1[2] as f32;
+                                                r = (r1 + (r2 - r1) * coef) as u8;
+                                                g = (g1 + (g2 - g1) * coef) as u8;
+                                                b = (b1 + (b2 - b1) * coef) as u8;
+                                            }
+                                            lut::ReadMode::LAB => {
+                                                let pi = std::f32::consts::PI;
+                                                let l1 = f32::from(p.1[0]);
+                                                let l2 = f32::from(n.1[0]);
+                                                let a1 = (f32::from(p.1[1]) - 128.0) / 128.0;
+                                                let a2 = (f32::from(n.1[1]) - 128.0) / 128.0;
+                                                let b1 = (f32::from(p.1[2]) - 128.0) / 128.0;
+                                                let b2 = (f32::from(n.1[2]) - 128.0) / 128.0;
+                                                let rad1 = b1.atan2(a1);
+                                                let rad2 = b2.atan2(a2);
+                                                let rad1 =
+                                                    if rad1 < 0.0 { rad1 + 2.0 * pi } else { rad1 };
+                                                let rad2 =
+                                                    if rad2 < 0.0 { rad2 + 2.0 * pi } else { rad2 };
+                                                let rad = rad1 + (rad2 - rad1) * coef;
+                                                let la = (rad.cos() * 128.0 + 128.0) as u8;
+                                                let lb = (rad.sin() * 128.0 + 128.0) as u8;
+
+                                                [r, g, b] = [(l1 + (l2 - l1) * coef) as u8, la, lb];
+                                            }
+                                        }
                                         break;
                                     }
                                     insert_pos += 1;
@@ -323,10 +348,15 @@ impl<'ui> UiImage3d for Ui<'ui> {
                             });
                             let gradient_size = gradient.len();
                             for (k, (v, color)) in gradient.iter_mut().enumerate() {
+                                let color_rgb = match state.lut.read_mode() {
+                                    lut::ReadMode::HSV => state.lut.hsv2rgb(*color),
+                                    lut::ReadMode::LAB => state.lut.lab2rgb(*color),
+                                    lut::ReadMode::RGB => *color,
+                                };
                                 let mut color_float = [
-                                    color[0] as f32 / 255.0,
-                                    color[1] as f32 / 255.0,
-                                    color[2] as f32 / 255.0,
+                                    color_rgb[0] as f32 / 255.0,
+                                    color_rgb[1] as f32 / 255.0,
+                                    color_rgb[2] as f32 / 255.0,
                                 ];
                                 let x = p[0] + MARGIN_LEFT + (size[0] - OFFSET_X) * (*v);
                                 let y = p[1] + MARGIN_TOP + size[1] - OFFSET_Y + 30.0;
