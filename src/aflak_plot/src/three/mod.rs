@@ -1031,6 +1031,7 @@ where
         blend: glium::draw_parameters::Blend::alpha_blending(),
         ..Default::default()
     };
+    draw_box(state, &mut fb);
     fb.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &params)
         .unwrap();
     draw_axes(state, &mut fb);
@@ -1484,6 +1485,172 @@ fn _draw_pyramid(
         &program_box,
         &uniform! {color: [1.0f32, 1.0f32, 1.0f32], theta: theta, phi: phi, coord: [0.0f32, 0.0f32, 0.0f32], scale: 1.0f32, eyepos_z: eyepos_z},
         &Default::default(),
+    )
+    .unwrap();
+}
+
+fn draw_box(state: &mut State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
+    let display = state.display.clone().unwrap();
+    let eyepos_z = state.eyepos_z;
+    let theta = state.theta;
+    let phi = state.phi;
+    let boxline: [Vertex; 24] = [
+        Vertex {
+            pos: [1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        //split
+        Vertex {
+            pos: [1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        //Split
+        Vertex {
+            pos: [1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, 1.0],
+            texcoord: [0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, -1.0],
+            texcoord: [0.0, 0.0],
+        },
+    ];
+    let box_positions = glium::VertexBuffer::new(&display, &boxline).unwrap();
+    let box_indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
+    let vertex_shader_src_box = r#"
+        #version 430
+        in vec3 pos;
+        in vec2 texcoord;
+        out vec3 col;
+        uniform vec3 color;
+        uniform float theta;
+        uniform float phi;
+        uniform vec3 coord;
+        uniform float scale;
+        uniform float eyepos_z;
+        void main() {
+            const mat3 M1 = mat3(
+                cos(-theta), 0, sin(-theta),
+                0, 1, 0,
+                -sin(-theta), 0, cos(-theta)
+            );
+            const mat3 M2 = mat3(
+                1, 0, 0,
+                0, cos(-phi), -sin(-phi),
+                0, sin(-phi), cos(-phi)
+            );
+            vec4 posr = vec4(M2 * M1 * pos, 1.0);
+            gl_Position.x = posr.x*0.5 / (posr.z + -eyepos_z);
+            gl_Position.y = posr.y*0.5 / (posr.z + -eyepos_z);
+            gl_Position.z = 0.0;
+            gl_Position = vec4(gl_Position.xyz, 1.0);
+            col = color;
+        }
+    "#;
+    let fragment_shader_src = r#"
+        #version 430
+        in vec3 col;
+        out vec4 color;
+        void main() {
+            color = vec4(col, 1);
+        }
+    "#;
+    let program_box = glium::Program::from_source(
+        display.get_context(),
+        vertex_shader_src_box,
+        fragment_shader_src,
+        None,
+    )
+    .unwrap();
+    let params = glium::DrawParameters {
+        blend: glium::draw_parameters::Blend::alpha_blending(),
+        ..Default::default()
+    };
+    fb.draw(
+        &box_positions,
+        &box_indices,
+        &program_box,
+        &uniform! {color: [1.0f32, 0.0f32, 0.0f32], theta: theta, phi: phi, coord: [0.0f32, 0.0f32, 0.0f32], scale: 1.0f32, eyepos_z: eyepos_z},
+        &params,
     )
     .unwrap();
 }
