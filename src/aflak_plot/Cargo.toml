@@ -8,6 +8,7 @@ license = "GPL-3.0-only"
 
 [dependencies]
 glium = { version = "0.30", default-features = true }
+glium_text_rusttype = { git = "https://github.com/not-fl3/glium_text_rusttype" }
 imgui = { version = "0.8.0" }
 imgui-glium-renderer = { version = "0.8.0" }
 aflak_cake = { path = "../aflak_cake" }
@@ -20,6 +21,7 @@ contour = "0.4.0"
 geojson = ">=0.16, <=0.22"
 itertools = "0.10.5"
 lab = "0.11.0"
+cgmath = "0.18"
 
 [dev-dependencies]
 aflak_imgui_glium_support = { path = "../imgui_glium_support", version = "0.0.3" }

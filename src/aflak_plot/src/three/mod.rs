@@ -1,5 +1,6 @@
 //! Draw 3D representations.
 pub extern crate aflak_primitives as primitives;
+extern crate glium_text_rusttype as glium_text;
 use glium::{
     backend::Facade,
     implement_vertex,
@@ -1071,26 +1072,27 @@ where
 fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
     let theta = state.theta;
     let phi = state.phi;
+    let eyepos_z = state.eyepos_z;
     let display = state.display.clone().unwrap();
-    const AXIS_LEN: f32 = 0.3;
+    const AXIS_LEN: f32 = 0.2;
     let line_x: [Vertex; 2] = [
         Vertex {
-            pos: [0.0, 0.0, 0.0],
+            pos: [-1.15, 1.15, -1.15],
             texcoord: [0.0, 0.0],
         },
         Vertex {
-            pos: [AXIS_LEN, 0.0, 0.0],
+            pos: [-1.15 + AXIS_LEN, 1.15, -1.15],
             texcoord: [1.0, 1.0],
         },
     ];
     let line_x = glium::VertexBuffer::new(&display, &line_x).unwrap();
     let line_y: [Vertex; 2] = [
         Vertex {
-            pos: [0.0, 0.0, 0.0],
+            pos: [-1.15, 1.15, -1.15],
             texcoord: [0.0, 0.0],
         },
         Vertex {
-            pos: [0.0, AXIS_LEN, 0.0],
+            pos: [-1.15, 1.15 - AXIS_LEN, -1.15],
             texcoord: [1.0, 1.0],
         },
     ];
@@ -1098,11 +1100,11 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
 
     let line_z: [Vertex; 2] = [
         Vertex {
-            pos: [0.0, 0.0, 0.0],
+            pos: [-1.15, 1.15, -1.15],
             texcoord: [0.0, 0.0],
         },
         Vertex {
-            pos: [0.0, 0.0, AXIS_LEN],
+            pos: [-1.15, 1.15, -1.15 + AXIS_LEN],
             texcoord: [1.0, 1.0],
         },
     ];
@@ -1117,6 +1119,7 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
         uniform vec3 color;
         uniform float theta;
         uniform float phi;
+        uniform float eyepos_z;
         void main() {
             mat3 M1 = mat3(
                 cos(-theta), 0, sin(-theta),
@@ -1128,7 +1131,11 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
                 0, cos(-phi), -sin(-phi),
                 0, sin(-phi), cos(-phi)
             );
-            gl_Position = vec4(M2*M1*pos / 6.0, 1.0);
+            vec4 posr = vec4(M2 * M1 * pos, 1.0);
+            gl_Position.x = posr.x*0.5 / (posr.z + -eyepos_z);
+            gl_Position.y = posr.y*0.5 / (posr.z + -eyepos_z);
+            gl_Position.z = 0.0;
+            gl_Position = vec4(gl_Position.xyz, 1.0);
             col = color;
         }
     "#;
@@ -1153,7 +1160,7 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
         &line_x,
         &line_indices,
         &program_axes,
-        &uniform! {color: [1.0f32, 0.0, 0.0], theta: theta, phi: phi},
+        &uniform! {color: [1.0f32, 1.0, 1.0], theta: theta, phi: phi, eyepos_z: eyepos_z},
         &Default::default(),
     )
     .unwrap();
@@ -1161,7 +1168,7 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
         &line_y,
         &line_indices,
         &program_axes,
-        &uniform! {color: [0.0, 1.0f32, 0.0], theta: theta, phi: phi},
+        &uniform! {color: [1.0, 1.0f32, 1.0], theta: theta, phi: phi},
         &Default::default(),
     )
     .unwrap();
@@ -1169,10 +1176,173 @@ fn draw_axes(state: &State, fb: &mut glium::framebuffer::SimpleFrameBuffer) {
         &line_z,
         &line_indices,
         &program_axes,
-        &uniform! {color: [0.0, 0.0, 1.0f32], theta: theta, phi: phi},
+        &uniform! {color: [1.0, 1.0, 1.0f32], theta: theta, phi: phi},
         &Default::default(),
     )
     .unwrap();
+
+    //ticks
+    for i in 0..11 {
+        let tick: [Vertex; 6] = [
+            Vertex {
+                pos: [1.0, -1.0 + 0.2 * i as f32, -1.0],
+                texcoord: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [0.95, -1.0 + 0.2 * i as f32, -1.0],
+                texcoord: [1.0, 1.0],
+            },
+            Vertex {
+                pos: [-1.0 + 0.2 * i as f32, 1.0, -1.0],
+                texcoord: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [-1.0 + 0.2 * i as f32, 0.95, -1.0],
+                texcoord: [1.0, 1.0],
+            },
+            Vertex {
+                pos: [1.0, 1.0, -1.0 + 0.2 * i as f32],
+                texcoord: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [1.0, 0.95, -1.0 + 0.2 * i as f32],
+                texcoord: [1.0, 1.0],
+            },
+        ];
+        let tick = glium::VertexBuffer::new(&display, &tick).unwrap();
+        let tick_indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
+        fb.draw(
+            &tick,
+            &tick_indices,
+            &program_axes,
+            &uniform! {color: [1.0, 1.0, 1.0f32], theta: theta, phi: phi},
+            &Default::default(),
+        )
+        .unwrap();
+    }
+
+    //text
+    let text_system = glium_text::TextSystem::new(&display);
+
+    let font = glium_text::FontTexture::new(
+        &display,
+        &include_bytes!("font.ttf")[..],
+        70,
+        glium_text::FontTexture::ascii_character_list(),
+    )
+    .unwrap();
+    let text_x = glium_text::TextDisplay::new(&text_system, &font, "X");
+    let text_y = glium_text::TextDisplay::new(&text_system, &font, "Y");
+    let text_z = glium_text::TextDisplay::new(&text_system, &font, "wave");
+    let theta = state.theta;
+    let phi = state.phi;
+    let m1 = cgmath::Matrix3::new(
+        (-theta).cos(),
+        0.0,
+        (-theta).sin(),
+        0.0,
+        1.0,
+        0.0,
+        -(-theta).sin(),
+        0.0,
+        (-theta).cos(),
+    );
+
+    let m2 = cgmath::Matrix3::new(
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        (-phi).cos(),
+        -(-phi).sin(),
+        0.0,
+        (-phi).sin(),
+        (-phi).cos(),
+    );
+    let pos_x = cgmath::Vector3::new(-1.15 + AXIS_LEN, 1.15, -1.15);
+    let pos_y = cgmath::Vector3::new(-1.15, 1.15 - AXIS_LEN, -1.15);
+    let pos_z = cgmath::Vector3::new(-1.15, 1.15, -1.15 + AXIS_LEN);
+    //X
+    let v3_x = cgmath::Vector3::from(m2 * m1 * pos_x);
+    let finalpos_x = [
+        v3_x[0] * 0.5 / (v3_x[2] + -eyepos_z),
+        v3_x[1] * 0.5 / (v3_x[2] + -eyepos_z),
+        0.0,
+    ];
+    let text_size_x = 0.05 / (v3_x[2] + -eyepos_z);
+    let matrix_x = cgmath::Matrix4::new(
+        text_size_x,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -text_size_x,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        finalpos_x[0],
+        finalpos_x[1],
+        finalpos_x[2],
+        1.0f32,
+    );
+    //Y
+    let v3_y = cgmath::Vector3::from(m2 * m1 * pos_y);
+    let finalpos_y = [
+        v3_y[0] * 0.5 / (v3_y[2] + -eyepos_z),
+        v3_y[1] * 0.5 / (v3_y[2] + -eyepos_z),
+        0.0,
+    ];
+    let text_size_y = 0.05 / (v3_y[2] + -eyepos_z);
+    let matrix_y = cgmath::Matrix4::new(
+        text_size_y,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -text_size_y,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        finalpos_y[0],
+        finalpos_y[1],
+        finalpos_y[2],
+        1.0f32,
+    );
+    //Z
+    let v3_z = cgmath::Vector3::from(m2 * m1 * pos_z);
+    let finalpos_z = [
+        v3_z[0] * 0.5 / (v3_z[2] + -eyepos_z),
+        v3_z[1] * 0.5 / (v3_z[2] + -eyepos_z),
+        0.0,
+    ];
+    let text_size_z = 0.05 / (v3_z[2] + -eyepos_z);
+    let matrix_z = cgmath::Matrix4::new(
+        text_size_z,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -text_size_z,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        finalpos_z[0],
+        finalpos_z[1],
+        finalpos_z[2],
+        1.0f32,
+    );
+    glium_text::draw(&text_x, &text_system, fb, matrix_x, (1.0, 1.0, 0.0, 1.0)).unwrap();
+    glium_text::draw(&text_y, &text_system, fb, matrix_y, (1.0, 1.0, 0.0, 1.0)).unwrap();
+    glium_text::draw(&text_z, &text_system, fb, matrix_z, (1.0, 1.0, 0.0, 1.0)).unwrap();
 }
 
 fn _draw_line(
