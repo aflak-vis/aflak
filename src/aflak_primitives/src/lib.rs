@@ -821,8 +821,16 @@ if value > max, value changes to 0.",
                 "TTKTest use C++",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
-                ttk_persistence_pairs_3d<IOValue, IOErr>(image: Image) -> PersistencePairs {
-                    vec![run_ttk_persistence_pairs_3d(image)]
+                ttk_persistence_pairs_3d<IOValue, IOErr>(image: Image, thres: Integer = 500) -> PersistencePairs {
+                    vec![run_ttk_persistence_pairs_3d(image, *thres)]
+                }
+            ),
+            cake_transform!(
+                "TTKTest use C++",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
+                ttk_persistence_pairs_3d_cp<IOValue, IOErr>(image: Image, thres: Integer = 500) -> Image {
+                    vec![run_ttk_persistence_pairs_3d_cp(image, *thres)]
                 }
             ),
             cake_transform!(
@@ -845,8 +853,24 @@ if value > max, value changes to 0.",
                 "TTKTest",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
+                ttk_get_simplified<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
+                    vec![run_ttk_get_simplified(image, pp.clone())]
+                }
+            ),
+            cake_transform!(
+                "TTKTest",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
                 ttk_simplification<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
                     vec![run_ttk_simplification(image, pp.clone())]
+                }
+            ),
+            cake_transform!(
+                "TTKTest",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
+                ttk_get_simplified_iter_3d<IOValue, IOErr>(image: Image, thres: Float) -> Image {
+                    vec![run_ttk_get_simplified_iter_3d(image, *thres)]
                 }
             ),
             cake_transform!(
