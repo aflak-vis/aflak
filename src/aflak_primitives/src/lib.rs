@@ -71,7 +71,7 @@ pub enum PATHS {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PersistencePairs {
-    Pairs(Vec<(i32, i32, f32, f32)>),
+    Pairs(Vec<(i32, i32, f32, f32, usize)>),
 }
 
 /// Value used for I/O in astronomical transforms.
@@ -933,6 +933,16 @@ fn run_ttk_persistence_pairs(image: &WcsArray) -> Result<IOValue, IOErr> {
     let death_ptr = death.as_mut_ptr();
     let mut act_pair = Vec::new();
     let mut len = 0;
+
+    let mut node = Vec::<i32>::with_capacity(500000);
+    let mut arcs = Vec::<i32>::with_capacity(500000 * 3);
+    let nodes_ptr = node.as_mut_ptr();
+    let arcs_ptr = arcs.as_mut_ptr();
+    let mut nodes_len = 0;
+    let mut arcs_n = 0;
+    let mut arcs_len = 0;
+    let mut act_nodes = Vec::new();
+    let mut act_arcs = Vec::new();
     unsafe {
         let mut my_ttk = Ttk_rs::new();
         my_ttk.compute_persistence_pairs(
@@ -943,6 +953,11 @@ fn run_ttk_persistence_pairs(image: &WcsArray) -> Result<IOValue, IOErr> {
             birth_ptr,
             death_ptr,
             &mut len,
+            nodes_ptr,
+            arcs_ptr,
+            &mut nodes_len,
+            &mut arcs_n,
+            &mut arcs_len,
         );
         let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
         let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
@@ -952,20 +967,141 @@ fn run_ttk_persistence_pairs(image: &WcsArray) -> Result<IOValue, IOErr> {
                 *(death.get(i as usize).unwrap()),
             ));
         }
+        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
+        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize * 3).to_vec();
+        for i in 0..nodes_len {
+            act_nodes.push(*(nodes.get(i as usize).unwrap()));
+        }
+        let mut counter = 0;
+        for _ in 0..arcs_n {
+            let from_node = *(arcs.get(counter).unwrap());
+            let to_node = *(arcs.get(counter + 1).unwrap());
+            let region_size = *(arcs.get(counter + 2).unwrap());
+            counter += 3;
+            let mut region = Vec::new();
+            for _ in 0..region_size {
+                region.push(*(arcs.get(counter).unwrap()));
+                counter += 1;
+            }
+            act_arcs.push((from_node, to_node, region_size, region));
+        }
+        for i in 0..len {
+            act_pair.push((
+                *(birth.get(i as usize).unwrap()),
+                *(death.get(i as usize).unwrap()),
+            ));
+        }
     }
-    let mut pp = Vec::<(i32, i32, f32, f32)>::new();
+    let mut pp = Vec::<(i32, i32, f32, f32, usize)>::new();
     for (i, j) in act_pair {
         pp.push((
             i,
             j,
             *data.get(i as usize).unwrap(),
             *data.get(j as usize).unwrap(),
+            0,
         ));
     }
     Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
 }
 
-fn run_ttk_persistence_pairs_3d(image: &WcsArray) -> Result<IOValue, IOErr> {
+fn run_ttk_persistence_pairs_region(image: &WcsArray) -> Result<IOValue, IOErr> {
+    dim_is!(image, 2)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let dim = dim.as_array_view();
+    let mut data = Vec::new();
+    for i in image_val {
+        data.push(*i);
+    }
+    let data_ptr = data.as_mut_ptr();
+    let mut birth = Vec::<i32>::with_capacity(image_val.len());
+    let mut death = Vec::<i32>::with_capacity(image_val.len());
+    let birth_ptr = birth.as_mut_ptr();
+    let death_ptr = death.as_mut_ptr();
+    let mut act_pair = Vec::new();
+    let mut len = 0;
+
+    let mut node = Vec::<i32>::with_capacity(500000);
+    let mut arcs = Vec::<i32>::with_capacity(500000 * 3);
+    let nodes_ptr = node.as_mut_ptr();
+    let arcs_ptr = arcs.as_mut_ptr();
+    let mut nodes_len = 0;
+    let mut arcs_n = 0;
+    let mut arcs_len = 0;
+    let mut act_nodes = Vec::new();
+    let mut act_arcs = Vec::new();
+    unsafe {
+        let mut my_ttk = Ttk_rs::new();
+        my_ttk.compute_persistence_pairs(
+            data_ptr,
+            data.len() as u32,
+            dim[0] as u32,
+            dim[1] as u32,
+            birth_ptr,
+            death_ptr,
+            &mut len,
+            nodes_ptr,
+            arcs_ptr,
+            &mut nodes_len,
+            &mut arcs_n,
+            &mut arcs_len,
+        );
+        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
+        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
+        for i in 0..len {
+            act_pair.push((
+                *(birth.get(i as usize).unwrap()),
+                *(death.get(i as usize).unwrap()),
+            ));
+        }
+        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
+        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize * 3).to_vec();
+        for i in 0..nodes_len {
+            act_nodes.push(*(nodes.get(i as usize).unwrap()));
+        }
+        let mut counter = 0;
+        for _ in 0..arcs_n {
+            let from_node = *(arcs.get(counter).unwrap());
+            let to_node = *(arcs.get(counter + 1).unwrap());
+            let region_size = *(arcs.get(counter + 2).unwrap());
+            counter += 3;
+            let mut region = Vec::new();
+            for _ in 0..region_size {
+                region.push(*(arcs.get(counter).unwrap()));
+                counter += 1;
+            }
+            act_arcs.push((from_node, to_node, region_size, region));
+        }
+        for i in 0..len {
+            act_pair.push((
+                *(birth.get(i as usize).unwrap()),
+                *(death.get(i as usize).unwrap()),
+            ));
+        }
+    }
+    let mut image = image.clone();
+    let mut counter = 0;
+    for d in image.scalar_mut().iter_mut() {
+        let mut findflag = false;
+        for (_, a) in act_arcs.iter().enumerate() {
+            for region in &a.3 {
+                if *region == counter {
+                    *d = a.2 as f32;
+                    findflag = true;
+                    break;
+                }
+            }
+        }
+        if !findflag {
+            *d = std::f32::NAN;
+        }
+        counter += 1;
+    }
+    Ok(IOValue::Image(image))
+}
+
+fn run_ttk_persistence_pairs_3d(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
     dim_is!(image, 3)?;
     let image_val = image.scalar();
     let dim = image_val.dim();
@@ -981,6 +1117,21 @@ fn run_ttk_persistence_pairs_3d(image: &WcsArray) -> Result<IOValue, IOErr> {
     let death_ptr = death.as_mut_ptr();
     let mut act_pair = Vec::new();
     let mut len = 0;
+
+    let mut node = Vec::<i32>::with_capacity(500000);
+    let mut arcs = Vec::<i32>::with_capacity(50000000);
+    let nodes_ptr = node.as_mut_ptr();
+    let arcs_ptr = arcs.as_mut_ptr();
+    let mut nodes_len = 0;
+    let mut arcs_n = 0;
+    let mut arcs_len = 0;
+    let mut act_nodes = Vec::new();
+    let mut act_arcs = Vec::new();
+    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
+    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
+    let mut volume_sizes_len = 0;
+    let mut node_weight = Vec::<i32>::with_capacity(500000);
+    let node_weight_ptr = node_weight.as_mut_ptr();
     unsafe {
         let mut my_ttk = Ttk_rs::new();
         my_ttk.compute_persistence_pairs_3d(
@@ -992,30 +1143,325 @@ fn run_ttk_persistence_pairs_3d(image: &WcsArray) -> Result<IOValue, IOErr> {
             birth_ptr,
             death_ptr,
             &mut len,
+            nodes_ptr,
+            node_weight_ptr,
+            arcs_ptr,
+            &mut nodes_len,
+            &mut arcs_n,
+            &mut arcs_len,
+            volume_sizes_ptr,
+            &mut volume_sizes_len,
+            thres as i32,
         );
         let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
         let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
+        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
+        let node_weight = slice::from_raw_parts(node_weight_ptr, nodes_len as usize).to_vec();
+        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
+        for i in 0..nodes_len {
+            if (*(nodes.get(i as usize).unwrap())) != -1 {
+                act_nodes.push(*(nodes.get(i as usize).unwrap()));
+            }
+        }
+        let mut counter = 0;
+        for _ in 0..arcs_n {
+            if (arcs_len as usize) < counter {
+                break;
+            }
+            let from_node = *(arcs.get(counter).unwrap());
+            let to_node = *(arcs.get(counter + 1).unwrap());
+            let region_size = *(arcs.get(counter + 2).unwrap());
+            counter += 3;
+            let mut region = Vec::new();
+            for _ in 0..region_size {
+                region.push(*(arcs.get(counter).unwrap_or(&0)));
+                counter += 1;
+            }
+            act_arcs.push((from_node, to_node, region_size, region));
+        }
+        for i in 0..len {
+            if *(birth.get(i as usize).unwrap()) != -1 && *(death.get(i as usize).unwrap()) != -1 {
+                act_pair.push((
+                    *(birth.get(i as usize).unwrap()),
+                    *(death.get(i as usize).unwrap()),
+                ));
+            }
+        }
+    }
+    let mut graph: Vec<Vec<dijkstra::Edge>> = Vec::new();
+    for node in &act_nodes {
+        let mut edge = Vec::new();
+        for arc in &act_arcs {
+            if *node == arc.0 {
+                let mut count = 0;
+                for node2 in &act_nodes {
+                    if *node2 == arc.1 {
+                        edge.push(dijkstra::Edge {
+                            node: count,
+                            cost: dijkstra::Total(arc.2 as f32),
+                        });
+                    }
+                    count += 1;
+                }
+            }
+        }
+        graph.push(edge);
+    }
+
+    let mut pp = Vec::<(i32, i32, f32, f32, usize)>::new();
+    for (i, j) in act_pair {
+        let vi = *data.get(i as usize).unwrap();
+        let vj = *data.get(j as usize).unwrap();
+        let mut i_id = 0;
+        let mut j_id = 0;
+        for (k, node) in act_nodes.iter().enumerate() {
+            if i == *node {
+                i_id = k;
+            }
+            if j == *node {
+                j_id = k;
+            }
+        }
+        if let Some(dijkstra::Total(region)) = dijkstra::shortest_path(&graph, i_id, j_id) {
+            if !vi.is_nan() && !vj.is_nan() {
+                pp.push((i, j, vi, vj, region as usize));
+            }
+        }
+    }
+    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
+}
+
+fn run_ttk_persistence_pairs_3d_cp(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let dim = dim.as_array_view();
+    let mut data = Vec::new();
+    for i in image_val {
+        data.push(*i);
+    }
+    let data_ptr = data.as_mut_ptr();
+    let mut birth = Vec::<i32>::with_capacity(image_val.len());
+    let mut death = Vec::<i32>::with_capacity(image_val.len());
+    let birth_ptr = birth.as_mut_ptr();
+    let death_ptr = death.as_mut_ptr();
+    let mut act_pair = Vec::new();
+    let mut len = 0;
+
+    let mut node = Vec::<i32>::with_capacity(500000);
+    let mut arcs = Vec::<i32>::with_capacity(50000000);
+
+    let mut node_weight = Vec::<i32>::with_capacity(500000);
+    let node_weight_ptr = node_weight.as_mut_ptr();
+    let nodes_ptr = node.as_mut_ptr();
+    let arcs_ptr = arcs.as_mut_ptr();
+    let mut nodes_len = 0;
+    let mut arcs_n = 0;
+    let mut arcs_len = 0;
+    let mut act_nodes = Vec::new();
+    let mut act_node_weights = Vec::new();
+    let mut act_arcs = Vec::new();
+    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
+    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
+    let mut volume_sizes_len = 0;
+    let mut act_volume_sizes = Vec::new();
+
+    unsafe {
+        let mut my_ttk = Ttk_rs::new();
+        my_ttk.compute_persistence_pairs_3d(
+            data_ptr,
+            data.len() as u32,
+            dim[1] as u32,
+            dim[2] as u32,
+            dim[0] as u32,
+            birth_ptr,
+            death_ptr,
+            &mut len,
+            nodes_ptr,
+            node_weight_ptr,
+            arcs_ptr,
+            &mut nodes_len,
+            &mut arcs_n,
+            &mut arcs_len,
+            volume_sizes_ptr,
+            &mut volume_sizes_len,
+            thres as i32,
+        );
+        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
+        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
+        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
+        let node_weights = slice::from_raw_parts(node_weight_ptr, nodes_len as usize).to_vec();
+        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
+        let volume_sizes =
+            slice::from_raw_parts(volume_sizes_ptr, volume_sizes_len as usize).to_vec();
+        for i in 0..nodes_len {
+            if *(nodes.get(i as usize).unwrap()) != -1 {
+                act_nodes.push(*(nodes.get(i as usize).unwrap()));
+                act_node_weights.push(*(node_weights.get(i as usize).unwrap()));
+            }
+        }
+        let mut counter = 0;
+        for _ in 0..arcs_n {
+            if (arcs_len as usize) < counter {
+                break;
+            }
+            let from_node = *(arcs.get(counter).unwrap());
+            let to_node = *(arcs.get(counter + 1).unwrap());
+            let region_size = *(arcs.get(counter + 2).unwrap());
+            counter += 3;
+            let mut region = Vec::new();
+            for _ in 0..region_size {
+                region.push(*(arcs.get(counter).unwrap_or(&0)));
+                counter += 1;
+            }
+            region.sort();
+            act_arcs.push((from_node, to_node, region_size, region));
+        }
         for i in 0..len {
             act_pair.push((
                 *(birth.get(i as usize).unwrap()),
                 *(death.get(i as usize).unwrap()),
             ));
         }
-    }
-    let mut pp = Vec::<(i32, i32, f32, f32)>::new();
-    for (i, j) in act_pair {
-        let vi = *data.get(i as usize).unwrap();
-        let vj = *data.get(j as usize).unwrap();
-        if !vi.is_nan() && !vj.is_nan() {
-            pp.push((i, j, vi, vj));
+        for d in volume_sizes {
+            act_volume_sizes.push(d);
         }
     }
-    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
+    let mut image = image.clone();
+    let mut critical_points = Vec::new();
+    for (k, i) in act_nodes.iter().enumerate() {
+        let cp = CriticalPoints::new(
+            0,
+            (0.0, 0.0, 0.0),
+            *data.get(*i as usize).unwrap(),
+            0,
+            0,
+            (*act_node_weights.get(k).unwrap()) as usize,
+        );
+        critical_points.push(cp);
+    }
+    let topology = Topology::new(critical_points, vec![], vec![], vec![]);
+    image.set_topology(Some(topology));
+    Ok(IOValue::Image(image))
 }
 
-fn run_select_the_most_pairs(pp: PersistencePairs, filter: f32) -> Result<IOValue, IOErr> {
+fn run_ttk_persistence_pairs_region_3d(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let dim = dim.as_array_view();
+    let mut data = Vec::new();
+    for i in image_val {
+        data.push(*i);
+    }
+    let data_ptr = data.as_mut_ptr();
+    let mut birth = Vec::<i32>::with_capacity(image_val.len());
+    let mut death = Vec::<i32>::with_capacity(image_val.len());
+    let birth_ptr = birth.as_mut_ptr();
+    let death_ptr = death.as_mut_ptr();
+    let mut act_pair = Vec::new();
+    let mut len = 0;
+
+    let mut node = Vec::<i32>::with_capacity(500000);
+    let mut arcs = Vec::<i32>::with_capacity(50000000);
+    let nodes_ptr = node.as_mut_ptr();
+    let arcs_ptr = arcs.as_mut_ptr();
+    let mut nodes_len = 0;
+    let mut arcs_n = 0;
+    let mut arcs_len = 0;
+    let mut act_nodes = Vec::new();
+    let mut act_arcs = Vec::new();
+    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
+    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
+    let mut volume_sizes_len = 0;
+    let mut act_volume_sizes = Vec::new();
+
+    let mut node_weight = Vec::<i32>::with_capacity(500000);
+    let node_weight_ptr = node_weight.as_mut_ptr();
+    unsafe {
+        let mut my_ttk = Ttk_rs::new();
+        my_ttk.compute_persistence_pairs_3d(
+            data_ptr,
+            data.len() as u32,
+            dim[1] as u32,
+            dim[2] as u32,
+            dim[0] as u32,
+            birth_ptr,
+            death_ptr,
+            &mut len,
+            nodes_ptr,
+            node_weight_ptr,
+            arcs_ptr,
+            &mut nodes_len,
+            &mut arcs_n,
+            &mut arcs_len,
+            volume_sizes_ptr,
+            &mut volume_sizes_len,
+            thres as i32,
+        );
+        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
+        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
+        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
+        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
+        let volume_sizes =
+            slice::from_raw_parts(volume_sizes_ptr, volume_sizes_len as usize).to_vec();
+        for i in 0..nodes_len {
+            act_nodes.push(*(nodes.get(i as usize).unwrap()));
+        }
+        let mut counter = 0;
+        println!("arcs_len: {}", arcs_len);
+        for _ in 0..arcs_n {
+            if (arcs_len as usize) < counter {
+                break;
+            }
+            let from_node = *(arcs.get(counter).unwrap());
+            let to_node = *(arcs.get(counter + 1).unwrap());
+            let region_size = *(arcs.get(counter + 2).unwrap());
+            counter += 3;
+            let mut region = Vec::new();
+            for _ in 0..region_size {
+                region.push(*(arcs.get(counter).unwrap_or(&0)));
+                counter += 1;
+            }
+            region.sort();
+            act_arcs.push((from_node, to_node, region_size, region));
+        }
+        for i in 0..len {
+            act_pair.push((
+                *(birth.get(i as usize).unwrap()),
+                *(death.get(i as usize).unwrap()),
+            ));
+        }
+        for d in volume_sizes {
+            act_volume_sizes.push(d);
+        }
+    }
+    let mut image = image.clone();
+    let size = image.scalar().len();
+    let mut counter = 0;
+    for d in image.scalar_mut().iter_mut() {
+        let n = act_volume_sizes.get(counter);
+        if let Some(val) = n {
+            *d = *val as f32;
+        } else {
+            *d = std::f32::NAN;
+        }
+        counter += 1;
+    }
+    Ok(IOValue::Image(image))
+}
+
+fn run_select_the_most_pairs(
+    pp: PersistencePairs,
+    filter: f32,
+    consider_region: bool,
+) -> Result<IOValue, IOErr> {
     let PersistencePairs::Pairs(mut data) = pp;
-    data.retain(|d| d.3 - d.2 > filter);
+    if consider_region {
+        data.retain(|d| (d.3 - d.2) * d.4 as f32 > filter);
+    } else {
+        data.retain(|d| d.3 - d.2 > filter);
+    }
     Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(data)))
 }
 
@@ -1056,7 +1502,7 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
     for i in image_val {
         data.push(*i);
     }
-    for (b, d, _, _) in &pairs {
+    for (b, d, _, _, _) in &pairs {
         authorized_birth.push(*b);
         authorized_death.push(*d);
     }
@@ -1261,6 +1707,147 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
     Ok(IOValue::Image(out))
 }
 
+fn run_ttk_get_simplified(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
+    dim_is!(image, 2)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let dim = dim.as_array_view();
+    let mut data = Vec::new();
+    let mut authorized_birth = Vec::new();
+    let mut authorized_death = Vec::new();
+    let PersistencePairs::Pairs(pairs) = pp;
+    for i in image_val {
+        data.push(*i);
+    }
+    for (b, d, _, _, _) in &pairs {
+        authorized_birth.push(*b);
+        authorized_death.push(*d);
+    }
+    let data_ptr = data.as_mut_ptr();
+    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
+    let authorized_death_ptr = authorized_death.as_mut_ptr();
+
+    let mut simplified = Vec::with_capacity(data.len());
+    let simplified_ptr = simplified.as_mut_ptr();
+    let mut simplified_len = 0;
+    let mut act_simplified = Vec::new();
+    unsafe {
+        let mut my_ttk = Ttk_rs::new();
+        my_ttk.get_simplified(
+            data_ptr,
+            data.len() as u32,
+            dim[1] as u32,
+            dim[0] as u32,
+            authorized_birth_ptr,
+            authorized_death_ptr,
+            pairs.len() as u32,
+            simplified_ptr,
+            &mut simplified_len,
+        );
+        let simplified = slice::from_raw_parts(simplified_ptr, simplified_len as usize).to_vec();
+        for d in simplified {
+            act_simplified.push(d);
+        }
+    }
+    let mut image = image.clone();
+    let mut counter = 0;
+    for d in image.scalar_mut().iter_mut() {
+        *d = *act_simplified.get(counter).unwrap();
+        counter += 1;
+    }
+    Ok(IOValue::Image(image))
+}
+
+fn run_ttk_get_simplified_3d(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let image_val = image.scalar();
+    let dim = image_val.dim();
+    let dim = dim.as_array_view();
+    let mut data = Vec::new();
+    let mut authorized_birth = Vec::new();
+    let mut authorized_death = Vec::new();
+    let PersistencePairs::Pairs(pairs) = pp;
+    for i in image_val {
+        data.push(*i);
+    }
+    for (b, d, _, _, _) in &pairs {
+        authorized_birth.push(*b);
+        authorized_death.push(*d);
+    }
+    let data_ptr = data.as_mut_ptr();
+    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
+    let authorized_death_ptr = authorized_death.as_mut_ptr();
+
+    let mut simplified = Vec::with_capacity(data.len());
+    let simplified_ptr = simplified.as_mut_ptr();
+    let mut simplified_len = 0;
+    let mut act_simplified = Vec::new();
+
+    unsafe {
+        let mut my_ttk = Ttk_rs::new();
+        my_ttk.get_simplified_3d(
+            data_ptr,
+            data.len() as u32,
+            dim[1] as u32,
+            dim[2] as u32,
+            dim[0] as u32,
+            authorized_birth_ptr,
+            authorized_death_ptr,
+            pairs.len() as u32,
+            simplified_ptr,
+            &mut simplified_len,
+        );
+        let simplified = slice::from_raw_parts(simplified_ptr, simplified_len as usize).to_vec();
+        for d in simplified {
+            act_simplified.push(d);
+        }
+    }
+    let mut image = image.clone();
+    let mut counter = 0;
+    for d in image.scalar_mut().iter_mut() {
+        *d = *act_simplified.get(counter).unwrap();
+        counter += 1;
+    }
+    Ok(IOValue::Image(image))
+}
+
+fn run_ttk_get_simplified_iter_3d(image: &WcsArray, thres: f32) -> Result<IOValue, IOErr> {
+    dim_is!(image, 3)?;
+    let original_meta = image.meta();
+    let original_visualization = image.tag();
+    let original_topology = image.topology();
+    let dim = image.scalar().dim();
+    let dim = dim.as_array_view();
+    let mut image = image.clone();
+    let image_val = image.scalar_mut();
+    let mut data = Vec::new();
+
+    for slice in image_val.axis_iter_mut(Axis(0)) {
+        let d = Dimensioned::new(slice.to_owned(), Unit::None);
+        let image = WcsArray::new(
+            original_meta.to_owned(), //FIXME: Handle metadata
+            d,
+            original_visualization.to_owned(),
+            original_topology.to_owned(),
+        );
+        if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image)? {
+            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs_using_sigma(pp, thres)?
+            {
+                if let IOValue::Image(image_simplified) = run_ttk_get_simplified(&image, pp)? {
+                    for d in image_simplified.scalar() {
+                        data.push(*d);
+                    }
+                }
+            }
+        }
+    }
+    let img = Array::from_shape_vec((dim[0], dim[1], dim[2]), data).unwrap();
+    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
+        img.into_dyn(),
+        Unit::None,
+    ))))
+}
+
 fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
     dim_is!(image, 3)?;
     let mut out = image.clone();
@@ -1274,7 +1861,7 @@ fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<I
     for i in image_val {
         data.push(*i);
     }
-    for (b, d, _, _) in &pairs {
+    for (b, d, _, _, _) in &pairs {
         authorized_birth.push(*b);
         authorized_death.push(*d);
     }
@@ -1716,7 +2303,7 @@ fn run_ttk_ftr(image: &WcsArray) -> Result<IOValue, IOErr> {
         let s = slice.into_owned();
         let image_2d = WcsArray::from_array(Dimensioned::new(s.into_dyn(), Unit::None));
         if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image_2d)? {
-            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs(pp, 0.1)? {
+            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs(pp, 0.1, false)? {
                 let PersistencePairs::Pairs(_) = pp.clone();
                 if let IOValue::Image(image) = run_ttk_simplification(&image_2d, pp)? {
                     if let Some(topology) = image.topology() {
@@ -2473,11 +3060,10 @@ fn run_clip_background(
         let (_, _, _, background) = run_compute_background(&image, sigma_high, sigma_low, alpha);
         backgrounds.push(background);
     }
-    for (slice, background) in image_val.axis_iter_mut(Axis(0)).zip(backgrounds) {
-        for f in slice {
-            if *f <= background {
-                *f = ::std::f32::NAN;
-            }
+    let background = backgrounds.iter().fold(0.0 / 0.0, |m, v| v.min(m));
+    for d in image_val.iter_mut() {
+        if *d <= background {
+            *d = ::std::f32::NAN;
         }
     }
     Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
