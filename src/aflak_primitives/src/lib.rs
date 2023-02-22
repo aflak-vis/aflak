@@ -837,8 +837,8 @@ if value > max, value changes to 0.",
                 "TTKTest",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
-                select_the_most_pairs<IOValue, IOErr>(pp: PersistencePairs, filter: Float = 0.05) -> PersistencePairs {
-                    vec![run_select_the_most_pairs(pp.clone(), *filter)]
+                select_the_most_pairs<IOValue, IOErr>(pp: PersistencePairs, filter: Float = 0.05, consider_region: Bool = false) -> PersistencePairs {
+                    vec![run_select_the_most_pairs(pp.clone(), *filter, *consider_region)]
                 }
             ),
             cake_transform!(
@@ -1569,6 +1569,10 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
     let sc_f_minima_ptr = sc_f_minima.as_mut_ptr();
     let sc_f_diff_ptr = sc_f_diff.as_mut_ptr();
 
+    //morsesmale
+    let mut morsesmale = Vec::<f32>::with_capacity(data.len());
+    let morsesmale_ptr = morsesmale.as_mut_ptr();
+
     unsafe {
         let mut my_ttk = Ttk_rs::new();
         my_ttk.simplification(
@@ -1604,6 +1608,7 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
             sc_f_minima_ptr,
             sc_f_diff_ptr,
             &mut sc_len,
+            morsesmale_ptr,
         );
         println!("After Simplification Rust part");
         println!(
@@ -1659,6 +1664,8 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
         let sc_f_maxima = slice::from_raw_parts(sc_f_maxima_ptr, sc_len as usize).to_vec();
         let sc_f_minima = slice::from_raw_parts(sc_f_minima_ptr, sc_len as usize).to_vec();
         let sc_f_diff = slice::from_raw_parts(sc_f_diff_ptr, sc_len as usize).to_vec();
+
+        let morsesmale = slice::from_raw_parts(morsesmale_ptr, data.len()).to_vec();
         println!("After Read from_raw_parts");
         let mut critical_points = Vec::new();
         let mut separatrices1_points = Vec::new();
@@ -1700,7 +1707,12 @@ fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOVa
             );
             separatrices1_cells.push(sc);
         }
-        let topology = Topology::new(critical_points, separatrices1_points, separatrices1_cells);
+        let topology = Topology::new(
+            critical_points,
+            separatrices1_points,
+            separatrices1_cells,
+            morsesmale,
+        );
         out.set_topology(Some(topology));
         println!("All done!");
     }
@@ -2068,7 +2080,12 @@ fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<I
             );
             separatrices1_cells.push(sc);
         }
-        let topology = Topology::new(critical_points, separatrices1_points, separatrices1_cells);
+        let topology = Topology::new(
+            critical_points,
+            separatrices1_points,
+            separatrices1_cells,
+            vec![],
+        );
         out.set_topology(Some(topology));
         println!("All done!");
     }

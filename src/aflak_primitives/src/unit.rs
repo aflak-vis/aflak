@@ -316,6 +316,7 @@ pub struct Topology {
     pub critical_points: Vec<CriticalPoints>,
     pub separatrices1_points: Vec<Separatrices1Point>,
     pub separatrices1_cells: Vec<Separatrices1Cell>,
+    pub morsesmale: Vec<f32>,
 }
 
 impl Topology {
@@ -323,11 +324,13 @@ impl Topology {
         critical_points: Vec<CriticalPoints>,
         separatrices1_points: Vec<Separatrices1Point>,
         separatrices1_cells: Vec<Separatrices1Cell>,
+        morsesmale: Vec<f32>,
     ) -> Self {
         Self {
             critical_points,
             separatrices1_points,
             separatrices1_cells,
+            morsesmale,
         }
     }
 }
