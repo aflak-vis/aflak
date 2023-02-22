@@ -90,8 +90,10 @@ impl<'ui> UiImage3d for Ui<'ui> {
                         .size([300.0, 100.0], Condition::Appearing)
                         .resizable(false)
                         .build(self, || {
-                            Slider::new(format!("Brightness"), 0.0, 200.0)
-                                .build(self, &mut state.topology_brightness);
+                            Slider::new(format!("radix"), 1.0, 10.0)
+                                .build(self, &mut state.topology_brightness_radix);
+                            self.input_int("exp", &mut state.topology_brightness_exp)
+                                .build();
                         });
                 }
                 if state.show_single_contour {
@@ -115,29 +117,41 @@ impl<'ui> UiImage3d for Ui<'ui> {
                     let readmode = state.lut.read_mode();
                     let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
                     if let Some(topology) = topology {
-                        let mut cp_vals = vec![];
+                        let mut cp_vals = Vec::<(f32, usize)>::new();
+                        let mut cp_buf = Vec::<(f32, usize)>::new();
                         let vmin = lims::get_vmin(&image).unwrap();
                         let vmax = lims::get_vmax(&image).unwrap();
+                        let mut all_manifold = 0;
                         for c in &topology.critical_points {
-                            if c.point_type == 0 || c.point_type == 3 {
-                                let coord =
-                                    [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
-                                if let Some(v) = image.get(coord) {
-                                    let v = (*v - vmin) / (vmax - vmin);
-                                    if !v.is_nan() {
-                                        cp_vals.push(v);
-                                    }
-                                }
+                            let v = (c.value - vmin) / (vmax - vmin);
+                            if c.manifoldsize > 0 {
+                                cp_buf.push((v, c.manifoldsize));
+                                all_manifold += c.manifoldsize;
                             }
                         }
-                        cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < state.topology_interval * 1.0e-2);
-                        let cp_vals_len = cp_vals.len() - 1;
-                        for (k, v) in cp_vals.iter().enumerate() {
-                            let alpha = (255.0 * k as f32 / cp_vals_len as f32) as u8;
-                            gradient_alpha.push((*v - 0.005, 0));
-                            gradient_alpha.push((*v, alpha));
-                            gradient_alpha.push((*v + 0.005, 0));
+                        cp_buf.sort_by(|a, b| (a.0).partial_cmp(&b.0).unwrap());
+
+                        for c in cp_buf {
+                            if let Some((v_buf, m_buf)) = cp_vals.last_mut() {
+                                if c.0 - *v_buf < state.topology_width * 2.0 {
+                                    if *m_buf > c.1 {
+                                        *m_buf += c.1;
+                                    } else {
+                                        *m_buf += c.1;
+                                        *v_buf = c.0;
+                                    }
+                                } else {
+                                    cp_vals.push(c);
+                                }
+                            } else {
+                                cp_vals.push(c);
+                            }
+                        }
+                        for (_, v) in cp_vals.iter().enumerate() {
+                            let alpha = (255.0 * v.1 as f32 / all_manifold as f32) as u8;
+                            gradient_alpha.push((v.0 - state.topology_width, 0));
+                            gradient_alpha.push((v.0, alpha));
+                            gradient_alpha.push((v.0 + state.topology_width, 0));
                         }
                     }
 
@@ -148,37 +162,50 @@ impl<'ui> UiImage3d for Ui<'ui> {
                     let readmode = state.lut.read_mode();
                     let mut gradient_alpha = vec![(0.0 as f32, 0 as u8)];
                     if let Some(topology) = topology {
-                        let mut cp_vals = vec![0.0];
+                        let mut cp_vals = vec![(0.0, 0)];
+                        let mut cp_buf = Vec::new();
                         let mut rep_vals = vec![];
                         let vmin = lims::get_vmin(&image).unwrap();
                         let vmax = lims::get_vmax(&image).unwrap();
+                        let mut all_manifold = 0;
                         for c in &topology.critical_points {
-                            if c.point_type == 0 || c.point_type == 3 {
-                                let coord =
-                                    [c.coord.2 as usize, c.coord.0 as usize, c.coord.1 as usize];
-
-                                if let Some(v) = image.get(coord) {
-                                    let v = (*v - vmin) / (vmax - vmin);
-                                    if !v.is_nan() {
-                                        cp_vals.push(v);
-                                    }
-                                }
+                            let v = (c.value - vmin) / (vmax - vmin);
+                            if c.manifoldsize > 0 {
+                                cp_buf.push((v, c.manifoldsize));
+                                all_manifold += c.manifoldsize;
                             }
                         }
-                        cp_vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        cp_vals.dedup_by(|a, b| (*a - *b).abs() < state.topology_interval * 1.0e-2);
-                        cp_vals.push(1.0);
+                        cp_buf.sort_by(|a, b| (a.0).partial_cmp(&b.0).unwrap());
+                        cp_buf.push((1.0, 0));
+                        for c in cp_buf {
+                            if let Some((v_buf, m_buf)) = cp_vals.last_mut() {
+                                if c.0 - *v_buf < state.topology_width * 2.0 {
+                                    if *m_buf > c.1 {
+                                        *m_buf += c.1;
+                                    } else {
+                                        *m_buf += c.1;
+                                        *v_buf = c.0;
+                                    }
+                                } else {
+                                    cp_vals.push(c);
+                                }
+                            } else {
+                                cp_vals.push(c);
+                            }
+                        }
                         let first = cp_vals.iter();
                         let second = cp_vals.iter().skip(1);
-                        for (v1, v2) in first.zip(second) {
-                            rep_vals.push((v1 + v2) / 2.0);
+                        let mut all_manifold_rp = 0;
+                        for ((v1, r1), (v2, r2)) in first.zip(second) {
+                            rep_vals.push(((v1 + v2) / 2.0, (r1 + r2) / 2));
+                            all_manifold_rp += (r1 + r2) / 2;
                         }
                         let rep_len = rep_vals.len() - 1;
                         for (k, v) in rep_vals.iter().enumerate() {
-                            let alpha = (255.0 * k as f32 / rep_len as f32) as u8;
-                            gradient_alpha.push((*v - 0.005, 0));
-                            gradient_alpha.push((*v, alpha));
-                            gradient_alpha.push((*v + 0.005, 0));
+                            let alpha = (255.0 * v.1 as f32 / all_manifold_rp as f32) as u8;
+                            gradient_alpha.push((v.0 - state.topology_width, 0));
+                            gradient_alpha.push((v.0, alpha));
+                            gradient_alpha.push((v.0 + state.topology_width, 0));
                         }
                     }
 
@@ -196,8 +223,10 @@ impl<'ui> UiImage3d for Ui<'ui> {
                         .size([300.0, 100.0], Condition::Appearing)
                         .resizable(false)
                         .build(self, || {
-                            Slider::new(format!("Interval"), 1.0, 10.0)
+                            Slider::new(format!("Interval"), 0.0, 10.0)
                                 .build(self, &mut state.topology_interval);
+                            Slider::new(format!("Width"), 0.001, 0.01)
+                                .build(self, &mut state.topology_width);
                         });
                 }
                 if state.show_colormapedit {
@@ -598,7 +627,8 @@ where
         uniform float cp_size;
         uniform highp sampler1D cp_vals;
         uniform highp sampler1D color_lut;
-        uniform float brightness;
+        uniform float brightness_radix;
+        uniform int brightness_exp;
         uniform float upperbound;
         uniform int render_mode;
 
@@ -693,9 +723,9 @@ where
             int cp_size_int = int(cp_size);
             float distance = sqrt(re.origin.x * re.origin.x + re.origin.y * re.origin.y + re.origin.z * re.origin.z);
             if (render_mode == 1) {
-                a *= brightness;
+                a *= pow(brightness_radix, float(brightness_exp));
             } else {
-                a *= brightness*pow(E, -distance*distance);
+                a *= pow(brightness_radix, float(brightness_exp)) * pow(E, -distance*distance);
             }
             return vec4(r, g, b, a);
         }
@@ -723,7 +753,7 @@ where
             if (distance > min_span) {
                 result = 0.2f;
             } else {
-                result = 0.2f+(min_span - distance) / min_span * (val * brightness);
+                result = 0.2f+(min_span - distance) / min_span * (val * brightness_radix);
                 if (result > upperbound) {
                     result = upperbound;
                 }
@@ -760,7 +790,7 @@ where
         }
 
         void sampling_volume(inout ray r) {
-            const float dt = 1.0f / 2000.0f;
+            const float dt = 1.0f / 10000.0f;
             int step = 1;
             int cp_size_int = int(cp_size);
             float val;
@@ -805,8 +835,7 @@ where
                 }
 
                 if (cp_size_int <= 2) {
-                    r.color += (color_legend(val) - r.color) / step++;
-                    r.color.a = 1.0f;
+                    r.color += (color_legend_from_lut(val, r) - r.color) / step++;
                 } else {
                     r.color += (color_legend_from_lut(val, r) - r.color) / step++;
                     //r.color.a += ((alpha_legend_topological(val) - r.color.a) / step++) * dis_s;
@@ -1024,7 +1053,7 @@ where
         volume: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
         rmat1: rmat1, rmat2: rmat2, eyepos_z: eyepos_z, cp_size: cp_size as f32, cp_vals: cp_tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
         color_lut: color_tex.sampled()
-    , brightness: state.topology_brightness, upperbound: state.topology_interval, render_mode: render_mode,
+    , brightness_radix: state.topology_brightness_radix, brightness_exp:state.topology_brightness_exp, upperbound: state.topology_interval, render_mode: render_mode,
     simple_slice_x_v: state.simple_slice_v[0].0, simple_slice_x_enabled: state.simple_slice_v[0].1, simple_slice_x_gtlt: state.simple_slice_v[0].2,
     simple_slice_y_v: state.simple_slice_v[1].0, simple_slice_y_enabled: state.simple_slice_v[1].1, simple_slice_y_gtlt: state.simple_slice_v[1].2,
     simple_slice_z_v: state.simple_slice_v[2].0, simple_slice_z_enabled: state.simple_slice_v[2].1, simple_slice_z_gtlt: state.simple_slice_v[2].2};
@@ -1391,7 +1420,7 @@ fn _draw_line(
             vec4 posr = vec4(M2 * M1 * pos, 1.0);
             gl_Position.x = posr.x*0.5 / (posr.z + -eyepos_z);
             gl_Position.y = posr.y*0.5 / (posr.z + -eyepos_z);
-            gl_Position.z = posr.z;
+            gl_Position.z = 0.0;
             gl_Position = vec4(gl_Position.xyz, 1.0);
             col = color;
         }

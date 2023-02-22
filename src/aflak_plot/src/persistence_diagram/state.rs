@@ -55,15 +55,16 @@ impl State {
             let mut xmin = f32::MAX;
             let mut xmax = f32::MIN;
             let mut ymax = f32::MIN;
-            for (_, _, birth, death) in data {
+            for (_, _, birth, death, region) in data {
                 if xmin > *birth {
                     xmin = *birth;
                 }
                 if xmax < *birth {
                     xmax = *birth;
                 }
-                if ymax < *death {
-                    ymax = *death;
+                let length = (death - birth) * *region as f32;
+                if ymax < length {
+                    ymax = length;
                 }
             }
             let content_area = ui.content_region_avail();
@@ -187,7 +188,7 @@ impl State {
 
                     let markerchoice = push_style_var_i32(&StyleVar::Marker, Marker::Circle as i32);
                     let max_persistence = data[0].3 - data[0].2;
-                    for (_, _, birth, death) in data {
+                    for (_, _, birth, death, region) in data {
                         let mut pushed_var = push_style_color(
                             &PlotColorElement::Line,
                             1.0,
@@ -196,7 +197,8 @@ impl State {
                             (death - birth) / max_persistence + 0.5,
                         );
                         if let Some(persistence) = self.persistence_filter {
-                            if ((death - birth) as f64) < persistence {
+                            let length = (death - birth) * region as f32;
+                            if (((death - birth) * region as f32) as f64) < persistence {
                                 pushed_var.pop();
                                 pushed_var = push_style_color(
                                     &PlotColorElement::Line,
@@ -207,18 +209,19 @@ impl State {
                                 );
                                 PlotLine::new(format!("##P: {}", death - birth).as_str()).plot(
                                     &vec![birth as f64, birth as f64],
-                                    &vec![birth as f64, death as f64],
+                                    &vec![birth as f64, (birth + length) as f64],
                                 );
                             } else {
                                 PlotLine::new(format!("P: {}", death - birth).as_str()).plot(
                                     &vec![birth as f64, birth as f64],
-                                    &vec![birth as f64, death as f64],
+                                    &vec![birth as f64, (birth + length) as f64],
                                 );
                             }
                         } else {
+                            let length = (death - birth) * region as f32;
                             PlotLine::new(format!("P: {}", death - birth).as_str()).plot(
                                 &vec![birth as f64, birth as f64],
-                                &vec![birth as f64, death as f64],
+                                &vec![birth as f64, (birth + length) as f64],
                             );
                         }
                         pushed_var.pop();
