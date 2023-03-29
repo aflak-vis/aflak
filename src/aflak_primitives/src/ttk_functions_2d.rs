@@ -209,6 +209,29 @@ pub(crate) fn run_ttk_persistence_pairs_region(image: &WcsArray) -> Result<IOVal
     Ok(IOValue::Image(image))
 }
 
+pub(crate) fn run_select_the_most_pairs(
+    pp: PersistencePairs,
+    filter: f32,
+    consider_region: bool,
+) -> Result<IOValue, IOErr> {
+    let PersistencePairs::Pairs(mut data) = pp;
+    if consider_region {
+        data.retain(|d| (d.3 - d.2) * d.4 as f32 > filter);
+        for d in &data {
+            println!(
+                "authorized critical point: {}->{} p = {}, #{}",
+                d.0,
+                d.1,
+                d.3 - d.2,
+                d.4
+            );
+        }
+    } else {
+        data.retain(|d| d.3 - d.2 > filter);
+    }
+    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(data)))
+}
+
 pub(crate) fn run_select_the_most_pairs_using_sigma(
     pp: PersistencePairs,
     kappa: f32,
