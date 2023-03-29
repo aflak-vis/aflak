@@ -41,6 +41,8 @@ mod fits;
 mod precond;
 mod dijkstra;
 mod roi;
+mod ttk_functions_2d;
+mod ttk_functions_3d;
 mod unit;
 
 pub use crate::roi::ROI;
@@ -799,7 +801,7 @@ if value > max, value changes to 0.",
             ),
             cake_transform!(
                 "TTK Test node, call hello in TTK",
-                "10. Topological Analysis",
+                "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_hello<IOValue, IOErr>(image: Image) -> Image {
                     unsafe {
@@ -814,7 +816,15 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_persistence_pairs<IOValue, IOErr>(image: Image) -> PersistencePairs {
-                    vec![run_ttk_persistence_pairs(image)]
+                    vec![ttk_functions_2d::run_ttk_persistence_pairs(image)]
+                }
+            ),
+            cake_transform!(
+                "TTKTest use C++",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
+                ttk_persistence_pairs_region<IOValue, IOErr>(image: Image) -> Image {
+                    vec![ttk_functions_2d::run_ttk_persistence_pairs_region(image)]
                 }
             ),
             cake_transform!(
@@ -822,7 +832,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_persistence_pairs_3d<IOValue, IOErr>(image: Image, thres: Integer = 500) -> PersistencePairs {
-                    vec![run_ttk_persistence_pairs_3d(image, *thres)]
+                    vec![ttk_functions_3d::run_ttk_persistence_pairs_3d(image, *thres)]
                 }
             ),
             cake_transform!(
@@ -830,7 +840,15 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_persistence_pairs_3d_cp<IOValue, IOErr>(image: Image, thres: Integer = 500) -> Image {
-                    vec![run_ttk_persistence_pairs_3d_cp(image, *thres)]
+                    vec![ttk_functions_3d::run_ttk_persistence_pairs_3d_cp(image, *thres)]
+                }
+            ),
+            cake_transform!(
+                "TTKTest use C++",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
+                ttk_persistence_pairs_region_3d<IOValue, IOErr>(image: Image, thres: Integer = 500) -> Image {
+                    vec![ttk_functions_3d::run_ttk_persistence_pairs_region_3d(image, *thres)]
                 }
             ),
             cake_transform!(
@@ -838,7 +856,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 select_the_most_pairs<IOValue, IOErr>(pp: PersistencePairs, filter: Float = 0.05, consider_region: Bool = false) -> PersistencePairs {
-                    vec![run_select_the_most_pairs(pp.clone(), *filter, *consider_region)]
+                    vec![ttk_functions_2d::run_select_the_most_pairs(pp.clone(), *filter, *consider_region)]
                 }
             ),
             cake_transform!(
@@ -846,7 +864,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 select_the_most_pairs_using_sigma<IOValue, IOErr>(pp: PersistencePairs, kappa: Float = 1.0) -> PersistencePairs {
-                    vec![run_select_the_most_pairs_using_sigma(pp.clone(), *kappa)]
+                    vec![ttk_functions_2d::run_select_the_most_pairs_using_sigma(pp.clone(), *kappa)]
                 }
             ),
             cake_transform!(
@@ -854,7 +872,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_get_simplified<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
-                    vec![run_ttk_get_simplified(image, pp.clone())]
+                    vec![ttk_functions_2d::run_ttk_get_simplified(image, pp.clone())]
                 }
             ),
             cake_transform!(
@@ -862,7 +880,15 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_simplification<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
-                    vec![run_ttk_simplification(image, pp.clone())]
+                    vec![ttk_functions_2d::run_ttk_simplification(image, pp.clone())]
+                }
+            ),
+            cake_transform!(
+                "TTKTest",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
+                ttk_get_simplified_3d<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
+                    vec![ttk_functions_3d::run_ttk_get_simplified_3d(image, pp.clone())]
                 }
             ),
             cake_transform!(
@@ -870,7 +896,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_get_simplified_iter_3d<IOValue, IOErr>(image: Image, thres: Float) -> Image {
-                    vec![run_ttk_get_simplified_iter_3d(image, *thres)]
+                    vec![ttk_functions_3d::run_ttk_get_simplified_iter_3d(image, *thres)]
                 }
             ),
             cake_transform!(
@@ -878,7 +904,7 @@ if value > max, value changes to 0.",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
                 ttk_simplification_3d<IOValue, IOErr>(image: Image, pp: PersistencePairs) -> Image {
-                    vec![run_ttk_simplification_3d(image, pp.clone())]
+                    vec![ttk_functions_3d::run_ttk_simplification_3d(image, pp.clone())]
                 }
             ),
             cake_transform!(
@@ -909,1187 +935,20 @@ if value > max, value changes to 0.",
                 "TTKTest",
                 "10. Topological Analysis in C++",
                 1, 0, 0,
+                visualize_morsesmale<IOValue, IOErr>(image: Image) -> Image {
+                    vec![ttk_functions_2d::run_visualize_morsesmale(image)]
+                }
+            ),
+            cake_transform!(
+                "TTKTest",
+                "10. Topological Analysis in C++",
+                1, 0, 0,
                 lab_to_rgb<IOValue, IOErr>(image: Image) -> Image {
                     vec![run_lab_to_rgb(image)]
                 }
             )
         ]
     };
-}
-
-fn run_ttk_persistence_pairs(image: &WcsArray) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    for i in image_val {
-        data.push(*i);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let mut birth = Vec::<i32>::with_capacity(image_val.len());
-    let mut death = Vec::<i32>::with_capacity(image_val.len());
-    let birth_ptr = birth.as_mut_ptr();
-    let death_ptr = death.as_mut_ptr();
-    let mut act_pair = Vec::new();
-    let mut len = 0;
-
-    let mut node = Vec::<i32>::with_capacity(500000);
-    let mut arcs = Vec::<i32>::with_capacity(500000 * 3);
-    let nodes_ptr = node.as_mut_ptr();
-    let arcs_ptr = arcs.as_mut_ptr();
-    let mut nodes_len = 0;
-    let mut arcs_n = 0;
-    let mut arcs_len = 0;
-    let mut act_nodes = Vec::new();
-    let mut act_arcs = Vec::new();
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.compute_persistence_pairs(
-            data_ptr,
-            data.len() as u32,
-            dim[0] as u32,
-            dim[1] as u32,
-            birth_ptr,
-            death_ptr,
-            &mut len,
-            nodes_ptr,
-            arcs_ptr,
-            &mut nodes_len,
-            &mut arcs_n,
-            &mut arcs_len,
-        );
-        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
-        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
-        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize * 3).to_vec();
-        for i in 0..nodes_len {
-            act_nodes.push(*(nodes.get(i as usize).unwrap()));
-        }
-        let mut counter = 0;
-        for _ in 0..arcs_n {
-            let from_node = *(arcs.get(counter).unwrap());
-            let to_node = *(arcs.get(counter + 1).unwrap());
-            let region_size = *(arcs.get(counter + 2).unwrap());
-            counter += 3;
-            let mut region = Vec::new();
-            for _ in 0..region_size {
-                region.push(*(arcs.get(counter).unwrap()));
-                counter += 1;
-            }
-            act_arcs.push((from_node, to_node, region_size, region));
-        }
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-    }
-    let mut pp = Vec::<(i32, i32, f32, f32, usize)>::new();
-    for (i, j) in act_pair {
-        pp.push((
-            i,
-            j,
-            *data.get(i as usize).unwrap(),
-            *data.get(j as usize).unwrap(),
-            0,
-        ));
-    }
-    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
-}
-
-fn run_ttk_persistence_pairs_region(image: &WcsArray) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    for i in image_val {
-        data.push(*i);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let mut birth = Vec::<i32>::with_capacity(image_val.len());
-    let mut death = Vec::<i32>::with_capacity(image_val.len());
-    let birth_ptr = birth.as_mut_ptr();
-    let death_ptr = death.as_mut_ptr();
-    let mut act_pair = Vec::new();
-    let mut len = 0;
-
-    let mut node = Vec::<i32>::with_capacity(500000);
-    let mut arcs = Vec::<i32>::with_capacity(500000 * 3);
-    let nodes_ptr = node.as_mut_ptr();
-    let arcs_ptr = arcs.as_mut_ptr();
-    let mut nodes_len = 0;
-    let mut arcs_n = 0;
-    let mut arcs_len = 0;
-    let mut act_nodes = Vec::new();
-    let mut act_arcs = Vec::new();
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.compute_persistence_pairs(
-            data_ptr,
-            data.len() as u32,
-            dim[0] as u32,
-            dim[1] as u32,
-            birth_ptr,
-            death_ptr,
-            &mut len,
-            nodes_ptr,
-            arcs_ptr,
-            &mut nodes_len,
-            &mut arcs_n,
-            &mut arcs_len,
-        );
-        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
-        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
-        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize * 3).to_vec();
-        for i in 0..nodes_len {
-            act_nodes.push(*(nodes.get(i as usize).unwrap()));
-        }
-        let mut counter = 0;
-        for _ in 0..arcs_n {
-            let from_node = *(arcs.get(counter).unwrap());
-            let to_node = *(arcs.get(counter + 1).unwrap());
-            let region_size = *(arcs.get(counter + 2).unwrap());
-            counter += 3;
-            let mut region = Vec::new();
-            for _ in 0..region_size {
-                region.push(*(arcs.get(counter).unwrap()));
-                counter += 1;
-            }
-            act_arcs.push((from_node, to_node, region_size, region));
-        }
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-    }
-    let mut image = image.clone();
-    let mut counter = 0;
-    for d in image.scalar_mut().iter_mut() {
-        let mut findflag = false;
-        for (_, a) in act_arcs.iter().enumerate() {
-            for region in &a.3 {
-                if *region == counter {
-                    *d = a.2 as f32;
-                    findflag = true;
-                    break;
-                }
-            }
-        }
-        if !findflag {
-            *d = std::f32::NAN;
-        }
-        counter += 1;
-    }
-    Ok(IOValue::Image(image))
-}
-
-fn run_ttk_persistence_pairs_3d(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    for i in image_val {
-        data.push(*i);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let mut birth = Vec::<i32>::with_capacity(image_val.len());
-    let mut death = Vec::<i32>::with_capacity(image_val.len());
-    let birth_ptr = birth.as_mut_ptr();
-    let death_ptr = death.as_mut_ptr();
-    let mut act_pair = Vec::new();
-    let mut len = 0;
-
-    let mut node = Vec::<i32>::with_capacity(500000);
-    let mut arcs = Vec::<i32>::with_capacity(50000000);
-    let nodes_ptr = node.as_mut_ptr();
-    let arcs_ptr = arcs.as_mut_ptr();
-    let mut nodes_len = 0;
-    let mut arcs_n = 0;
-    let mut arcs_len = 0;
-    let mut act_nodes = Vec::new();
-    let mut act_arcs = Vec::new();
-    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
-    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
-    let mut volume_sizes_len = 0;
-    let mut node_weight = Vec::<i32>::with_capacity(500000);
-    let node_weight_ptr = node_weight.as_mut_ptr();
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.compute_persistence_pairs_3d(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[2] as u32,
-            dim[0] as u32,
-            birth_ptr,
-            death_ptr,
-            &mut len,
-            nodes_ptr,
-            node_weight_ptr,
-            arcs_ptr,
-            &mut nodes_len,
-            &mut arcs_n,
-            &mut arcs_len,
-            volume_sizes_ptr,
-            &mut volume_sizes_len,
-            thres as i32,
-        );
-        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
-        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
-        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
-        let node_weight = slice::from_raw_parts(node_weight_ptr, nodes_len as usize).to_vec();
-        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
-        for i in 0..nodes_len {
-            if (*(nodes.get(i as usize).unwrap())) != -1 {
-                act_nodes.push(*(nodes.get(i as usize).unwrap()));
-            }
-        }
-        let mut counter = 0;
-        for _ in 0..arcs_n {
-            if (arcs_len as usize) < counter {
-                break;
-            }
-            let from_node = *(arcs.get(counter).unwrap());
-            let to_node = *(arcs.get(counter + 1).unwrap());
-            let region_size = *(arcs.get(counter + 2).unwrap());
-            counter += 3;
-            let mut region = Vec::new();
-            for _ in 0..region_size {
-                region.push(*(arcs.get(counter).unwrap_or(&0)));
-                counter += 1;
-            }
-            act_arcs.push((from_node, to_node, region_size, region));
-        }
-        for i in 0..len {
-            if *(birth.get(i as usize).unwrap()) != -1 && *(death.get(i as usize).unwrap()) != -1 {
-                act_pair.push((
-                    *(birth.get(i as usize).unwrap()),
-                    *(death.get(i as usize).unwrap()),
-                ));
-            }
-        }
-    }
-    let mut graph: Vec<Vec<dijkstra::Edge>> = Vec::new();
-    for node in &act_nodes {
-        let mut edge = Vec::new();
-        for arc in &act_arcs {
-            if *node == arc.0 {
-                let mut count = 0;
-                for node2 in &act_nodes {
-                    if *node2 == arc.1 {
-                        edge.push(dijkstra::Edge {
-                            node: count,
-                            cost: dijkstra::Total(arc.2 as f32),
-                        });
-                    }
-                    count += 1;
-                }
-            }
-        }
-        graph.push(edge);
-    }
-
-    let mut pp = Vec::<(i32, i32, f32, f32, usize)>::new();
-    for (i, j) in act_pair {
-        let vi = *data.get(i as usize).unwrap();
-        let vj = *data.get(j as usize).unwrap();
-        let mut i_id = 0;
-        let mut j_id = 0;
-        for (k, node) in act_nodes.iter().enumerate() {
-            if i == *node {
-                i_id = k;
-            }
-            if j == *node {
-                j_id = k;
-            }
-        }
-        if let Some(dijkstra::Total(region)) = dijkstra::shortest_path(&graph, i_id, j_id) {
-            if !vi.is_nan() && !vj.is_nan() {
-                pp.push((i, j, vi, vj, region as usize));
-            }
-        }
-    }
-    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(pp)))
-}
-
-fn run_ttk_persistence_pairs_3d_cp(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    for i in image_val {
-        data.push(*i);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let mut birth = Vec::<i32>::with_capacity(image_val.len());
-    let mut death = Vec::<i32>::with_capacity(image_val.len());
-    let birth_ptr = birth.as_mut_ptr();
-    let death_ptr = death.as_mut_ptr();
-    let mut act_pair = Vec::new();
-    let mut len = 0;
-
-    let mut node = Vec::<i32>::with_capacity(500000);
-    let mut arcs = Vec::<i32>::with_capacity(50000000);
-
-    let mut node_weight = Vec::<i32>::with_capacity(500000);
-    let node_weight_ptr = node_weight.as_mut_ptr();
-    let nodes_ptr = node.as_mut_ptr();
-    let arcs_ptr = arcs.as_mut_ptr();
-    let mut nodes_len = 0;
-    let mut arcs_n = 0;
-    let mut arcs_len = 0;
-    let mut act_nodes = Vec::new();
-    let mut act_node_weights = Vec::new();
-    let mut act_arcs = Vec::new();
-    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
-    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
-    let mut volume_sizes_len = 0;
-    let mut act_volume_sizes = Vec::new();
-
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.compute_persistence_pairs_3d(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[2] as u32,
-            dim[0] as u32,
-            birth_ptr,
-            death_ptr,
-            &mut len,
-            nodes_ptr,
-            node_weight_ptr,
-            arcs_ptr,
-            &mut nodes_len,
-            &mut arcs_n,
-            &mut arcs_len,
-            volume_sizes_ptr,
-            &mut volume_sizes_len,
-            thres as i32,
-        );
-        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
-        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
-        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
-        let node_weights = slice::from_raw_parts(node_weight_ptr, nodes_len as usize).to_vec();
-        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
-        let volume_sizes =
-            slice::from_raw_parts(volume_sizes_ptr, volume_sizes_len as usize).to_vec();
-        for i in 0..nodes_len {
-            if *(nodes.get(i as usize).unwrap()) != -1 {
-                act_nodes.push(*(nodes.get(i as usize).unwrap()));
-                act_node_weights.push(*(node_weights.get(i as usize).unwrap()));
-            }
-        }
-        let mut counter = 0;
-        for _ in 0..arcs_n {
-            if (arcs_len as usize) < counter {
-                break;
-            }
-            let from_node = *(arcs.get(counter).unwrap());
-            let to_node = *(arcs.get(counter + 1).unwrap());
-            let region_size = *(arcs.get(counter + 2).unwrap());
-            counter += 3;
-            let mut region = Vec::new();
-            for _ in 0..region_size {
-                region.push(*(arcs.get(counter).unwrap_or(&0)));
-                counter += 1;
-            }
-            region.sort();
-            act_arcs.push((from_node, to_node, region_size, region));
-        }
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-        for d in volume_sizes {
-            act_volume_sizes.push(d);
-        }
-    }
-    let mut image = image.clone();
-    let mut critical_points = Vec::new();
-    for (k, i) in act_nodes.iter().enumerate() {
-        let cp = CriticalPoints::new(
-            0,
-            (0.0, 0.0, 0.0),
-            *data.get(*i as usize).unwrap(),
-            0,
-            0,
-            (*act_node_weights.get(k).unwrap()) as usize,
-        );
-        critical_points.push(cp);
-    }
-    let topology = Topology::new(critical_points, vec![], vec![], vec![]);
-    image.set_topology(Some(topology));
-    Ok(IOValue::Image(image))
-}
-
-fn run_ttk_persistence_pairs_region_3d(image: &WcsArray, thres: i64) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    for i in image_val {
-        data.push(*i);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let mut birth = Vec::<i32>::with_capacity(image_val.len());
-    let mut death = Vec::<i32>::with_capacity(image_val.len());
-    let birth_ptr = birth.as_mut_ptr();
-    let death_ptr = death.as_mut_ptr();
-    let mut act_pair = Vec::new();
-    let mut len = 0;
-
-    let mut node = Vec::<i32>::with_capacity(500000);
-    let mut arcs = Vec::<i32>::with_capacity(50000000);
-    let nodes_ptr = node.as_mut_ptr();
-    let arcs_ptr = arcs.as_mut_ptr();
-    let mut nodes_len = 0;
-    let mut arcs_n = 0;
-    let mut arcs_len = 0;
-    let mut act_nodes = Vec::new();
-    let mut act_arcs = Vec::new();
-    let mut volume_sizes = Vec::<i32>::with_capacity(50000000);
-    let volume_sizes_ptr = volume_sizes.as_mut_ptr();
-    let mut volume_sizes_len = 0;
-    let mut act_volume_sizes = Vec::new();
-
-    let mut node_weight = Vec::<i32>::with_capacity(500000);
-    let node_weight_ptr = node_weight.as_mut_ptr();
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.compute_persistence_pairs_3d(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[2] as u32,
-            dim[0] as u32,
-            birth_ptr,
-            death_ptr,
-            &mut len,
-            nodes_ptr,
-            node_weight_ptr,
-            arcs_ptr,
-            &mut nodes_len,
-            &mut arcs_n,
-            &mut arcs_len,
-            volume_sizes_ptr,
-            &mut volume_sizes_len,
-            thres as i32,
-        );
-        let birth = slice::from_raw_parts(birth_ptr, len as usize).to_vec();
-        let death = slice::from_raw_parts(death_ptr, len as usize).to_vec();
-        let nodes = slice::from_raw_parts(nodes_ptr, nodes_len as usize).to_vec();
-        let arcs = slice::from_raw_parts(arcs_ptr, arcs_len as usize).to_vec();
-        let volume_sizes =
-            slice::from_raw_parts(volume_sizes_ptr, volume_sizes_len as usize).to_vec();
-        for i in 0..nodes_len {
-            act_nodes.push(*(nodes.get(i as usize).unwrap()));
-        }
-        let mut counter = 0;
-        println!("arcs_len: {}", arcs_len);
-        for _ in 0..arcs_n {
-            if (arcs_len as usize) < counter {
-                break;
-            }
-            let from_node = *(arcs.get(counter).unwrap());
-            let to_node = *(arcs.get(counter + 1).unwrap());
-            let region_size = *(arcs.get(counter + 2).unwrap());
-            counter += 3;
-            let mut region = Vec::new();
-            for _ in 0..region_size {
-                region.push(*(arcs.get(counter).unwrap_or(&0)));
-                counter += 1;
-            }
-            region.sort();
-            act_arcs.push((from_node, to_node, region_size, region));
-        }
-        for i in 0..len {
-            act_pair.push((
-                *(birth.get(i as usize).unwrap()),
-                *(death.get(i as usize).unwrap()),
-            ));
-        }
-        for d in volume_sizes {
-            act_volume_sizes.push(d);
-        }
-    }
-    let mut image = image.clone();
-    let size = image.scalar().len();
-    let mut counter = 0;
-    for d in image.scalar_mut().iter_mut() {
-        let n = act_volume_sizes.get(counter);
-        if let Some(val) = n {
-            *d = *val as f32;
-        } else {
-            *d = std::f32::NAN;
-        }
-        counter += 1;
-    }
-    Ok(IOValue::Image(image))
-}
-
-fn run_select_the_most_pairs(
-    pp: PersistencePairs,
-    filter: f32,
-    consider_region: bool,
-) -> Result<IOValue, IOErr> {
-    let PersistencePairs::Pairs(mut data) = pp;
-    if consider_region {
-        data.retain(|d| (d.3 - d.2) * d.4 as f32 > filter);
-    } else {
-        data.retain(|d| d.3 - d.2 > filter);
-    }
-    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(data)))
-}
-
-fn run_select_the_most_pairs_using_sigma(
-    pp: PersistencePairs,
-    kappa: f32,
-) -> Result<IOValue, IOErr> {
-    let PersistencePairs::Pairs(mut data) = pp;
-    let mut average = 0.0;
-    for d in &data {
-        average += d.3 - d.2;
-    }
-    average /= data.len() as f32;
-    let mut sigma = 0.0;
-    for d in &data {
-        let xi = d.3 - d.2;
-        sigma += (xi - average) * (xi - average);
-    }
-    sigma /= data.len() as f32;
-    sigma = sigma.sqrt();
-    data.retain(|d| {
-        d.3 - d.2 > average
-            && ((d.3 - d.2) - average) * ((d.3 - d.2) - average) > kappa * kappa * sigma * sigma
-    });
-    Ok(IOValue::PersistencePairs(PersistencePairs::Pairs(data)))
-}
-
-fn run_ttk_simplification(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
-    let mut out = image.clone();
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    let mut authorized_birth = Vec::new();
-    let mut authorized_death = Vec::new();
-    let PersistencePairs::Pairs(pairs) = pp;
-    for i in image_val {
-        data.push(*i);
-    }
-    for (b, d, _, _, _) in &pairs {
-        authorized_birth.push(*b);
-        authorized_death.push(*d);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
-    let authorized_death_ptr = authorized_death.as_mut_ptr();
-
-    //critical_points
-    let mut cp_len = 0;
-    const MAX_CRITICAL_POINTS: usize = 1024;
-    let mut cp_point_types = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_coordx = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_coordy = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_value = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_cellid = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_pl_vertex_identifier = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_manifold_size = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-
-    let cp_point_types_ptr = cp_point_types.as_mut_ptr();
-    let cp_coordx_ptr = cp_coordx.as_mut_ptr();
-    let cp_coordy_ptr = cp_coordy.as_mut_ptr();
-    let cp_value_ptr = cp_value.as_mut_ptr();
-    let cp_cellid_ptr = cp_cellid.as_mut_ptr();
-    let cp_pl_vertex_identifier_ptr = cp_pl_vertex_identifier.as_mut_ptr();
-    let cp_manifold_size_ptr = cp_manifold_size.as_mut_ptr();
-
-    //separatrices1_points
-    let mut sp_len = 0;
-    const MAX_SEPARATRICES1_POINTS: usize = 32768;
-    let mut sp_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_coordx = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_coordy = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_point_type = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_cellid = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-
-    let sp_id_ptr = sp_id.as_mut_ptr();
-    let sp_coordx_ptr = sp_coordx.as_mut_ptr();
-    let sp_coordy_ptr = sp_coordy.as_mut_ptr();
-    let sp_point_type_ptr = sp_point_type.as_mut_ptr();
-    let sp_cellid_ptr = sp_cellid.as_mut_ptr();
-
-    //separatrices1_cells
-    let mut sc_len = 0;
-    const MAX_SEPARATRICES1_CELLS: usize = 32768;
-    let mut sc_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_source = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_dest = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_connectivity_s = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_connectivity_d = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_separatrix_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_separatrix_type = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_maxima = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_minima = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_diff = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-
-    let sc_id_ptr = sc_id.as_mut_ptr();
-    let sc_source_ptr = sc_source.as_mut_ptr();
-    let sc_dest_ptr = sc_dest.as_mut_ptr();
-    let sc_connectivity_s_ptr = sc_connectivity_s.as_mut_ptr();
-    let sc_connectivity_d_ptr = sc_connectivity_d.as_mut_ptr();
-    let sc_separatrix_id_ptr = sc_separatrix_id.as_mut_ptr();
-    let sc_separatrix_type_ptr = sc_separatrix_type.as_mut_ptr();
-    let sc_f_maxima_ptr = sc_f_maxima.as_mut_ptr();
-    let sc_f_minima_ptr = sc_f_minima.as_mut_ptr();
-    let sc_f_diff_ptr = sc_f_diff.as_mut_ptr();
-
-    //morsesmale
-    let mut morsesmale = Vec::<f32>::with_capacity(data.len());
-    let morsesmale_ptr = morsesmale.as_mut_ptr();
-
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.simplification(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[0] as u32,
-            authorized_birth_ptr,
-            authorized_death_ptr,
-            pairs.len() as u32,
-            cp_point_types_ptr,
-            cp_coordx_ptr,
-            cp_coordy_ptr,
-            cp_value_ptr,
-            cp_cellid_ptr,
-            cp_pl_vertex_identifier_ptr,
-            cp_manifold_size_ptr,
-            &mut cp_len,
-            sp_id_ptr,
-            sp_coordx_ptr,
-            sp_coordy_ptr,
-            sp_point_type_ptr,
-            sp_cellid_ptr,
-            &mut sp_len,
-            sc_id_ptr,
-            sc_source_ptr,
-            sc_dest_ptr,
-            sc_connectivity_s_ptr,
-            sc_connectivity_d_ptr,
-            sc_separatrix_id_ptr,
-            sc_separatrix_type_ptr,
-            sc_f_maxima_ptr,
-            sc_f_minima_ptr,
-            sc_f_diff_ptr,
-            &mut sc_len,
-            morsesmale_ptr,
-        );
-        println!("After Simplification Rust part");
-        println!(
-            "cp_len: {}, MAX_CRITICAL_POINTS: {}",
-            cp_len, MAX_CRITICAL_POINTS
-        );
-        if cp_len >= MAX_CRITICAL_POINTS as u32 {
-            println!("maybe segfault!");
-        }
-        let cp_point_types = slice::from_raw_parts(cp_point_types_ptr, cp_len as usize).to_vec();
-        let cp_coordx = slice::from_raw_parts(cp_coordx_ptr, cp_len as usize).to_vec();
-        let cp_coordy = slice::from_raw_parts(cp_coordy_ptr, cp_len as usize).to_vec();
-        let cp_value = slice::from_raw_parts(cp_value_ptr, cp_len as usize).to_vec();
-        let cp_cellid = slice::from_raw_parts(cp_cellid_ptr, cp_len as usize).to_vec();
-        let cp_pl_vertex_identifier =
-            slice::from_raw_parts(cp_pl_vertex_identifier_ptr, cp_len as usize).to_vec();
-        let cp_manifold_size =
-            slice::from_raw_parts(cp_manifold_size_ptr, cp_len as usize).to_vec();
-
-        println!(
-            "sp_len: {}, MAX_SEPARATRICES1_POINTS: {}",
-            sp_len, MAX_SEPARATRICES1_POINTS
-        );
-        if sp_len >= MAX_SEPARATRICES1_POINTS as u32 {
-            println!("maybe segfault!");
-        }
-
-        let sp_id = slice::from_raw_parts(sp_id_ptr, sp_len as usize).to_vec();
-        let sp_coordx = slice::from_raw_parts(sp_coordx_ptr, sp_len as usize).to_vec();
-        let sp_coordy = slice::from_raw_parts(sp_coordy_ptr, sp_len as usize).to_vec();
-        let sp_point_type = slice::from_raw_parts(sp_point_type_ptr, sp_len as usize).to_vec();
-        let sp_cellid = slice::from_raw_parts(sp_cellid_ptr, sp_len as usize).to_vec();
-
-        println!(
-            "sc_len: {}, MAX_SEPARATRICES1_CELLS: {}",
-            sc_len, MAX_SEPARATRICES1_CELLS
-        );
-        if sc_len >= MAX_SEPARATRICES1_CELLS as u32 {
-            println!("maybe segfault!");
-        }
-
-        let sc_id = slice::from_raw_parts(sc_id_ptr, sc_len as usize).to_vec();
-        let sc_source = slice::from_raw_parts(sc_source_ptr, sc_len as usize).to_vec();
-        let sc_dest = slice::from_raw_parts(sc_dest_ptr, sc_len as usize).to_vec();
-        let sc_connectivity_s =
-            slice::from_raw_parts(sc_connectivity_s_ptr, sc_len as usize).to_vec();
-        let sc_connectivity_d =
-            slice::from_raw_parts(sc_connectivity_d_ptr, sc_len as usize).to_vec();
-        let sc_separatrix_id =
-            slice::from_raw_parts(sc_separatrix_id_ptr, sc_len as usize).to_vec();
-        let sc_separatrix_type =
-            slice::from_raw_parts(sc_separatrix_type_ptr, sc_len as usize).to_vec();
-        let sc_f_maxima = slice::from_raw_parts(sc_f_maxima_ptr, sc_len as usize).to_vec();
-        let sc_f_minima = slice::from_raw_parts(sc_f_minima_ptr, sc_len as usize).to_vec();
-        let sc_f_diff = slice::from_raw_parts(sc_f_diff_ptr, sc_len as usize).to_vec();
-
-        let morsesmale = slice::from_raw_parts(morsesmale_ptr, data.len()).to_vec();
-        println!("After Read from_raw_parts");
-        let mut critical_points = Vec::new();
-        let mut separatrices1_points = Vec::new();
-        let mut separatrices1_cells = Vec::new();
-        println!("Compute CP");
-        for i in 0..cp_len as usize {
-            let cp = CriticalPoints::new(
-                cp_point_types[i] as usize,
-                (cp_coordx[i], cp_coordy[i], 0.0),
-                cp_value[i],
-                cp_cellid[i] as usize,
-                cp_pl_vertex_identifier[i] as usize,
-                cp_manifold_size[i] as usize,
-            );
-            critical_points.push(cp);
-        }
-        println!("Compute SP");
-        for i in 0..sp_len as usize {
-            let sp = Separatrices1Point::new(
-                sp_id[i] as usize,
-                (sp_coordx[i], sp_coordy[i], 0.0),
-                sp_point_type[i] as usize,
-                sp_cellid[i] as usize,
-            );
-            separatrices1_points.push(sp);
-        }
-        println!("Compute SC");
-        for i in 0..sc_len as usize {
-            let sc = Separatrices1Cell::new(
-                sc_id[i] as usize,
-                sc_source[i] as usize,
-                sc_dest[i] as usize,
-                (sc_connectivity_s[i] as usize, sc_connectivity_d[i] as usize),
-                sc_separatrix_id[i] as usize,
-                sc_separatrix_type[i] as usize,
-                sc_f_maxima[i] as usize,
-                sc_f_minima[i] as usize,
-                sc_f_diff[i],
-            );
-            separatrices1_cells.push(sc);
-        }
-        let topology = Topology::new(
-            critical_points,
-            separatrices1_points,
-            separatrices1_cells,
-            morsesmale,
-        );
-        out.set_topology(Some(topology));
-        println!("All done!");
-    }
-    Ok(IOValue::Image(out))
-}
-
-fn run_ttk_get_simplified(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
-    dim_is!(image, 2)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    let mut authorized_birth = Vec::new();
-    let mut authorized_death = Vec::new();
-    let PersistencePairs::Pairs(pairs) = pp;
-    for i in image_val {
-        data.push(*i);
-    }
-    for (b, d, _, _, _) in &pairs {
-        authorized_birth.push(*b);
-        authorized_death.push(*d);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
-    let authorized_death_ptr = authorized_death.as_mut_ptr();
-
-    let mut simplified = Vec::with_capacity(data.len());
-    let simplified_ptr = simplified.as_mut_ptr();
-    let mut simplified_len = 0;
-    let mut act_simplified = Vec::new();
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.get_simplified(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[0] as u32,
-            authorized_birth_ptr,
-            authorized_death_ptr,
-            pairs.len() as u32,
-            simplified_ptr,
-            &mut simplified_len,
-        );
-        let simplified = slice::from_raw_parts(simplified_ptr, simplified_len as usize).to_vec();
-        for d in simplified {
-            act_simplified.push(d);
-        }
-    }
-    let mut image = image.clone();
-    let mut counter = 0;
-    for d in image.scalar_mut().iter_mut() {
-        *d = *act_simplified.get(counter).unwrap();
-        counter += 1;
-    }
-    Ok(IOValue::Image(image))
-}
-
-fn run_ttk_get_simplified_3d(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    let mut authorized_birth = Vec::new();
-    let mut authorized_death = Vec::new();
-    let PersistencePairs::Pairs(pairs) = pp;
-    for i in image_val {
-        data.push(*i);
-    }
-    for (b, d, _, _, _) in &pairs {
-        authorized_birth.push(*b);
-        authorized_death.push(*d);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
-    let authorized_death_ptr = authorized_death.as_mut_ptr();
-
-    let mut simplified = Vec::with_capacity(data.len());
-    let simplified_ptr = simplified.as_mut_ptr();
-    let mut simplified_len = 0;
-    let mut act_simplified = Vec::new();
-
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.get_simplified_3d(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[2] as u32,
-            dim[0] as u32,
-            authorized_birth_ptr,
-            authorized_death_ptr,
-            pairs.len() as u32,
-            simplified_ptr,
-            &mut simplified_len,
-        );
-        let simplified = slice::from_raw_parts(simplified_ptr, simplified_len as usize).to_vec();
-        for d in simplified {
-            act_simplified.push(d);
-        }
-    }
-    let mut image = image.clone();
-    let mut counter = 0;
-    for d in image.scalar_mut().iter_mut() {
-        *d = *act_simplified.get(counter).unwrap();
-        counter += 1;
-    }
-    Ok(IOValue::Image(image))
-}
-
-fn run_ttk_get_simplified_iter_3d(image: &WcsArray, thres: f32) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let original_meta = image.meta();
-    let original_visualization = image.tag();
-    let original_topology = image.topology();
-    let dim = image.scalar().dim();
-    let dim = dim.as_array_view();
-    let mut image = image.clone();
-    let image_val = image.scalar_mut();
-    let mut data = Vec::new();
-
-    for slice in image_val.axis_iter_mut(Axis(0)) {
-        let d = Dimensioned::new(slice.to_owned(), Unit::None);
-        let image = WcsArray::new(
-            original_meta.to_owned(), //FIXME: Handle metadata
-            d,
-            original_visualization.to_owned(),
-            original_topology.to_owned(),
-        );
-        if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image)? {
-            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs_using_sigma(pp, thres)?
-            {
-                if let IOValue::Image(image_simplified) = run_ttk_get_simplified(&image, pp)? {
-                    for d in image_simplified.scalar() {
-                        data.push(*d);
-                    }
-                }
-            }
-        }
-    }
-    let img = Array::from_shape_vec((dim[0], dim[1], dim[2]), data).unwrap();
-    Ok(IOValue::Image(WcsArray::from_array(Dimensioned::new(
-        img.into_dyn(),
-        Unit::None,
-    ))))
-}
-
-fn run_ttk_simplification_3d(image: &WcsArray, pp: PersistencePairs) -> Result<IOValue, IOErr> {
-    dim_is!(image, 3)?;
-    let mut out = image.clone();
-    let image_val = image.scalar();
-    let dim = image_val.dim();
-    let dim = dim.as_array_view();
-    let mut data = Vec::new();
-    let mut authorized_birth = Vec::new();
-    let mut authorized_death = Vec::new();
-    let PersistencePairs::Pairs(pairs) = pp;
-    for i in image_val {
-        data.push(*i);
-    }
-    for (b, d, _, _, _) in &pairs {
-        authorized_birth.push(*b);
-        authorized_death.push(*d);
-    }
-    let data_ptr = data.as_mut_ptr();
-    let authorized_birth_ptr = authorized_birth.as_mut_ptr();
-    let authorized_death_ptr = authorized_death.as_mut_ptr();
-
-    //critical_points
-    let mut cp_len = 0;
-    const MAX_CRITICAL_POINTS: usize = 1000000;
-    let mut cp_point_types = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_coordx = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_coordy = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_coordz = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_value = Vec::<f32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_cellid = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_pl_vertex_identifier = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-    let mut cp_manifold_size = Vec::<u32>::with_capacity(MAX_CRITICAL_POINTS);
-
-    let cp_point_types_ptr = cp_point_types.as_mut_ptr();
-    let cp_coordx_ptr = cp_coordx.as_mut_ptr();
-    let cp_coordy_ptr = cp_coordy.as_mut_ptr();
-    let cp_coordz_ptr = cp_coordz.as_mut_ptr();
-    let cp_value_ptr = cp_value.as_mut_ptr();
-    let cp_cellid_ptr = cp_cellid.as_mut_ptr();
-    let cp_pl_vertex_identifier_ptr = cp_pl_vertex_identifier.as_mut_ptr();
-    let cp_manifold_size_ptr = cp_manifold_size.as_mut_ptr();
-
-    //separatrices1_points
-    let mut sp_len = 0;
-    const MAX_SEPARATRICES1_POINTS: usize = 1000000000;
-    let mut sp_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_coordx = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_coordy = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_coordz = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_point_type = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-    let mut sp_cellid = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_POINTS);
-
-    let sp_id_ptr = sp_id.as_mut_ptr();
-    let sp_coordx_ptr = sp_coordx.as_mut_ptr();
-    let sp_coordy_ptr = sp_coordy.as_mut_ptr();
-    let sp_coordz_ptr = sp_coordz.as_mut_ptr();
-    let sp_point_type_ptr = sp_point_type.as_mut_ptr();
-    let sp_cellid_ptr = sp_cellid.as_mut_ptr();
-
-    //separatrices1_cells
-    let mut sc_len = 0;
-    const MAX_SEPARATRICES1_CELLS: usize = 1000000000;
-    let mut sc_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_source = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_dest = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_connectivity_s = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_connectivity_d = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_separatrix_id = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_separatrix_type = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_maxima = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_minima = Vec::<u32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-    let mut sc_f_diff = Vec::<f32>::with_capacity(MAX_SEPARATRICES1_CELLS);
-
-    let sc_id_ptr = sc_id.as_mut_ptr();
-    let sc_source_ptr = sc_source.as_mut_ptr();
-    let sc_dest_ptr = sc_dest.as_mut_ptr();
-    let sc_connectivity_s_ptr = sc_connectivity_s.as_mut_ptr();
-    let sc_connectivity_d_ptr = sc_connectivity_d.as_mut_ptr();
-    let sc_separatrix_id_ptr = sc_separatrix_id.as_mut_ptr();
-    let sc_separatrix_type_ptr = sc_separatrix_type.as_mut_ptr();
-    let sc_f_maxima_ptr = sc_f_maxima.as_mut_ptr();
-    let sc_f_minima_ptr = sc_f_minima.as_mut_ptr();
-    let sc_f_diff_ptr = sc_f_diff.as_mut_ptr();
-
-    unsafe {
-        let mut my_ttk = Ttk_rs::new();
-        my_ttk.simplification_3d(
-            data_ptr,
-            data.len() as u32,
-            dim[1] as u32,
-            dim[2] as u32,
-            dim[0] as u32,
-            authorized_birth_ptr,
-            authorized_death_ptr,
-            pairs.len() as u32,
-            cp_point_types_ptr,
-            cp_coordx_ptr,
-            cp_coordy_ptr,
-            cp_coordz_ptr,
-            cp_value_ptr,
-            cp_cellid_ptr,
-            cp_pl_vertex_identifier_ptr,
-            cp_manifold_size_ptr,
-            &mut cp_len,
-            sp_id_ptr,
-            sp_coordx_ptr,
-            sp_coordy_ptr,
-            sp_coordz_ptr,
-            sp_point_type_ptr,
-            sp_cellid_ptr,
-            &mut sp_len,
-            sc_id_ptr,
-            sc_source_ptr,
-            sc_dest_ptr,
-            sc_connectivity_s_ptr,
-            sc_connectivity_d_ptr,
-            sc_separatrix_id_ptr,
-            sc_separatrix_type_ptr,
-            sc_f_maxima_ptr,
-            sc_f_minima_ptr,
-            sc_f_diff_ptr,
-            &mut sc_len,
-        );
-        println!("After Simplification Rust part");
-        println!(
-            "cp_len: {}, MAX_CRITICAL_POINTS: {}",
-            cp_len, MAX_CRITICAL_POINTS
-        );
-        if cp_len >= MAX_CRITICAL_POINTS as u32 {
-            println!("maybe segfault!");
-        }
-        let cp_point_types = slice::from_raw_parts(cp_point_types_ptr, cp_len as usize).to_vec();
-        let cp_coordx = slice::from_raw_parts(cp_coordx_ptr, cp_len as usize).to_vec();
-        let cp_coordy = slice::from_raw_parts(cp_coordy_ptr, cp_len as usize).to_vec();
-        let cp_coordz = slice::from_raw_parts(cp_coordz_ptr, cp_len as usize).to_vec();
-        let cp_value = slice::from_raw_parts(cp_value_ptr, cp_len as usize).to_vec();
-        let cp_cellid = slice::from_raw_parts(cp_cellid_ptr, cp_len as usize).to_vec();
-        let cp_pl_vertex_identifier =
-            slice::from_raw_parts(cp_pl_vertex_identifier_ptr, cp_len as usize).to_vec();
-        let cp_manifold_size =
-            slice::from_raw_parts(cp_manifold_size_ptr, cp_len as usize).to_vec();
-
-        println!(
-            "sp_len: {}, MAX_SEPARATRICES1_POINTS: {}",
-            sp_len, MAX_SEPARATRICES1_POINTS
-        );
-        if sp_len >= MAX_SEPARATRICES1_POINTS as u32 {
-            println!("maybe segfault!");
-        }
-
-        let sp_id = slice::from_raw_parts(sp_id_ptr, sp_len as usize).to_vec();
-        let sp_coordx = slice::from_raw_parts(sp_coordx_ptr, sp_len as usize).to_vec();
-        let sp_coordy = slice::from_raw_parts(sp_coordy_ptr, sp_len as usize).to_vec();
-        let sp_coordz = slice::from_raw_parts(sp_coordz_ptr, sp_len as usize).to_vec();
-        let sp_point_type = slice::from_raw_parts(sp_point_type_ptr, sp_len as usize).to_vec();
-        let sp_cellid = slice::from_raw_parts(sp_cellid_ptr, sp_len as usize).to_vec();
-
-        println!(
-            "sc_len: {}, MAX_SEPARATRICES1_CELLS: {}",
-            sc_len, MAX_SEPARATRICES1_CELLS
-        );
-        if sc_len >= MAX_SEPARATRICES1_CELLS as u32 {
-            println!("maybe segfault!");
-        }
-
-        let sc_id = slice::from_raw_parts(sc_id_ptr, sc_len as usize).to_vec();
-        let sc_source = slice::from_raw_parts(sc_source_ptr, sc_len as usize).to_vec();
-        let sc_dest = slice::from_raw_parts(sc_dest_ptr, sc_len as usize).to_vec();
-        let sc_connectivity_s =
-            slice::from_raw_parts(sc_connectivity_s_ptr, sc_len as usize).to_vec();
-        let sc_connectivity_d =
-            slice::from_raw_parts(sc_connectivity_d_ptr, sc_len as usize).to_vec();
-        let sc_separatrix_id =
-            slice::from_raw_parts(sc_separatrix_id_ptr, sc_len as usize).to_vec();
-        let sc_separatrix_type =
-            slice::from_raw_parts(sc_separatrix_type_ptr, sc_len as usize).to_vec();
-        let sc_f_maxima = slice::from_raw_parts(sc_f_maxima_ptr, sc_len as usize).to_vec();
-        let sc_f_minima = slice::from_raw_parts(sc_f_minima_ptr, sc_len as usize).to_vec();
-        let sc_f_diff = slice::from_raw_parts(sc_f_diff_ptr, sc_len as usize).to_vec();
-        println!("After Read from_raw_parts ///TODO");
-        let mut critical_points = Vec::new();
-        let mut separatrices1_points = Vec::new();
-        let mut separatrices1_cells = Vec::new();
-        println!("Compute CP");
-        for i in 0..cp_len as usize {
-            let cp = CriticalPoints::new(
-                cp_point_types[i] as usize,
-                (cp_coordx[i], cp_coordy[i], cp_coordz[i]),
-                cp_value[i],
-                cp_cellid[i] as usize,
-                cp_pl_vertex_identifier[i] as usize,
-                cp_manifold_size[i] as usize,
-            );
-            critical_points.push(cp);
-        }
-        println!("Compute SP");
-        for i in 0..sp_len as usize {
-            let sp = Separatrices1Point::new(
-                sp_id[i] as usize,
-                (sp_coordx[i], sp_coordy[i], sp_coordz[i]),
-                sp_point_type[i] as usize,
-                sp_cellid[i] as usize,
-            );
-            separatrices1_points.push(sp);
-        }
-        println!("Compute SC");
-        for i in 0..sc_len as usize {
-            let sc = Separatrices1Cell::new(
-                sc_id[i] as usize,
-                sc_source[i] as usize,
-                sc_dest[i] as usize,
-                (sc_connectivity_s[i] as usize, sc_connectivity_d[i] as usize),
-                sc_separatrix_id[i] as usize,
-                sc_separatrix_type[i] as usize,
-                sc_f_maxima[i] as usize,
-                sc_f_minima[i] as usize,
-                sc_f_diff[i],
-            );
-            separatrices1_cells.push(sc);
-        }
-        let topology = Topology::new(
-            critical_points,
-            separatrices1_points,
-            separatrices1_cells,
-            vec![],
-        );
-        out.set_topology(Some(topology));
-        println!("All done!");
-    }
-    Ok(IOValue::Image(out))
 }
 
 fn run_compute_t_index(image: &WcsArray) -> (i32, i32, f32) {
@@ -2294,10 +1153,16 @@ fn run_ttk_ftr(image: &WcsArray) -> Result<IOValue, IOErr> {
         println!("idx:{}", k);
         let s = slice.into_owned();
         let image_2d = WcsArray::from_array(Dimensioned::new(s.into_dyn(), Unit::None));
-        if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image_2d)? {
-            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs_using_sigma(pp, 0.3)? {
+        if let IOValue::PersistencePairs(pp) =
+            ttk_functions_2d::run_ttk_persistence_pairs(&image_2d)?
+        {
+            if let IOValue::PersistencePairs(pp) =
+                ttk_functions_2d::run_select_the_most_pairs_using_sigma(pp, 0.3)?
+            {
                 let PersistencePairs::Pairs(_) = pp.clone();
-                if let IOValue::Image(image) = run_ttk_simplification(&image_2d, pp)? {
+                if let IOValue::Image(image) =
+                    ttk_functions_2d::run_ttk_simplification(&image_2d, pp)?
+                {
                     if let Some(topology) = image.topology() {
                         if topology.critical_points.len() > 12 {
                             println!("first time: failured {}", topology.critical_points.len());
@@ -2319,10 +1184,16 @@ fn run_ttk_ftr(image: &WcsArray) -> Result<IOValue, IOErr> {
         let slice = image.scalar().index_axis(Axis(0), idx);
         let s = slice.into_owned();
         let image_2d = WcsArray::from_array(Dimensioned::new(s.into_dyn(), Unit::None));
-        if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image_2d)? {
-            if let IOValue::PersistencePairs(pp) = run_select_the_most_pairs(pp, 0.1, false)? {
+        if let IOValue::PersistencePairs(pp) =
+            ttk_functions_2d::run_ttk_persistence_pairs(&image_2d)?
+        {
+            if let IOValue::PersistencePairs(pp) =
+                ttk_functions_2d::run_select_the_most_pairs(pp, 0.1, false)?
+            {
                 let PersistencePairs::Pairs(_) = pp.clone();
-                if let IOValue::Image(image) = run_ttk_simplification(&image_2d, pp)? {
+                if let IOValue::Image(image) =
+                    ttk_functions_2d::run_ttk_simplification(&image_2d, pp)?
+                {
                     if let Some(topology) = image.topology() {
                         if topology.critical_points.len() > 12 {
                             println!("second time: failured {}", topology.critical_points.len());
@@ -2360,9 +1231,11 @@ fn run_ttk_create_kappa_lambda_map(image: &WcsArray) -> Result<IOValue, IOErr> {
             println!("now_kappa: {}, wave: {}", i as f32 * 0.01, k);
             let s = slice.into_owned();
             let image_2d = WcsArray::from_array(Dimensioned::new(s.into_dyn(), Unit::None));
-            if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image_2d)? {
+            if let IOValue::PersistencePairs(pp) =
+                ttk_functions_2d::run_ttk_persistence_pairs(&image_2d)?
+            {
                 if let IOValue::PersistencePairs(PersistencePairs::Pairs(data)) =
-                    run_select_the_most_pairs_using_sigma(pp, i as f32 * 0.01)?
+                    ttk_functions_2d::run_select_the_most_pairs_using_sigma(pp, i as f32 * 0.01)?
                 {
                     result.push(data.len() as f32);
                 }
@@ -2389,15 +1262,19 @@ fn run_ttk_create_tindexes_map(image: &WcsArray) -> Result<IOValue, IOErr> {
             println!("now_kappa: {}, wave: {}", i as f32 * 0.01, k);
             let s = slice.into_owned();
             let image_2d = WcsArray::from_array(Dimensioned::new(s.into_dyn(), Unit::None));
-            if let IOValue::PersistencePairs(pp) = run_ttk_persistence_pairs(&image_2d)? {
+            if let IOValue::PersistencePairs(pp) =
+                ttk_functions_2d::run_ttk_persistence_pairs(&image_2d)?
+            {
                 if let IOValue::PersistencePairs(pp) =
-                    run_select_the_most_pairs_using_sigma(pp, i as f32 * 0.01)?
+                    ttk_functions_2d::run_select_the_most_pairs_using_sigma(pp, i as f32 * 0.01)?
                 {
                     let PersistencePairs::Pairs(data) = pp.clone();
                     if data.len() == 0 {
                         println!("Empty Pairs!");
                     }
-                    if let IOValue::Image(image) = run_ttk_simplification(&image_2d, pp)? {
+                    if let IOValue::Image(image) =
+                        ttk_functions_2d::run_ttk_simplification(&image_2d, pp)?
+                    {
                         if let Some(topology) = image.topology() {
                             if topology.critical_points.len() > 10 {
                                 result_i.push(-1.0);
